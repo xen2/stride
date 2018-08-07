@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
@@ -12,7 +13,6 @@ using Xenko.Core.IO;
 using Xenko.Core.Assets.Diagnostics;
 using Xenko.Core.Reflection;
 using ILogger = Xenko.Core.Diagnostics.ILogger;
-using Microsoft.Build.Evaluation;
 using Xenko.Core.Assets.Tracking;
 using Xenko.Core.Serialization;
 using Xenko.Core.Packages;
@@ -22,6 +22,66 @@ using Xenko.Core.Extensions;
 
 namespace Xenko.Core.Assets
 {
+    public sealed class Project
+    {
+        private PackageSession session;
+        private Package package;
+
+        public Project(PackageSession session, Guid guid, string fullPath)
+        {
+            this.Session = session;
+            vsProject = new VisualStudio.Project(session.VSSolution, guid, VisualStudio.KnownProjectTypeGuid.CSharp, Path.GetFileNameWithoutExtension(fullPath), fullPath, Guid.Empty,
+                Enumerable.Empty<VisualStudio.Section>(),
+                Enumerable.Empty<VisualStudio.PropertyItem>(),
+                Enumerable.Empty<VisualStudio.PropertyItem>());
+
+            this.Package = package;
+        }
+
+        [CanBeNull]
+        public Package Package
+        {
+            get => package;
+            set
+            {
+                if (package != null)
+                {
+                    session.Packages.Remove(package);
+                }
+                package = value;
+                if (package != null)
+                {
+                    session.Packages.Add(package);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the session.
+        /// </summary>
+        /// <value>The session.</value>
+        /// <exception cref="System.InvalidOperationException">Cannot attach a package to more than one session</exception>
+        [DataMemberIgnore]
+        public PackageSession Session
+        {
+            get => session;
+            internal set
+            {
+                if (value != null && session != null && !ReferenceEquals(session, value))
+                {
+                    throw new InvalidOperationException("Cannot attach a package to more than one session");
+                }
+                session = value;
+            }
+        }
+
+        private VisualStudio.Project vsProject;
+    }
+
+    public sealed class ProjectCollection : ObservableCollection<Project>
+    {
+    }
+
     /// <summary>
     /// A session for editing a package.
     /// </summary>
@@ -54,7 +114,12 @@ namespace Xenko.Core.Assets
         /// </summary>
         public PackageSession(Package package)
         {
+            VSSolution = new VisualStudio.Solution();
+
             constraintProvider.AddConstraint(PackageStore.Instance.DefaultPackageName, new PackageVersionRange(PackageStore.Instance.DefaultPackageVersion));
+
+            Projects = new ProjectCollection();
+            Projects.CollectionChanged += ProjectsCollectionChanged;
 
             Packages = new PackageCollection();
             packagesCopy = new PackageCollection();
@@ -66,8 +131,15 @@ namespace Xenko.Core.Assets
             }            
         }
 
+        internal VisualStudio.Solution VSSolution;
+
         /// <inheritdoc/>
         public bool IsDirty { get; set; }
+
+        /// <summary>
+        /// The projects.
+        /// </summary>
+        public ProjectCollection Projects { get; }
 
         /// <summary>
         /// Gets the packages.
@@ -370,6 +442,8 @@ namespace Xenko.Core.Assets
                     // If we have a solution, load all packages
                     if (PackageSessionHelper.IsSolutionFile(filePath))
                     {
+                        session.VSSolution = VisualStudio.Solution.FromFile(filePath);
+
                         PackageSessionHelper.LoadSolution(session, filePath, packagePaths, sessionResult);
                         if (loadParameters.AutoCompileProjects && loadParameters.ForceNugetRestore)
                             VSProjectHelper.RestoreNugetPackages(sessionResult, filePath).Wait();
@@ -581,7 +655,7 @@ namespace Xenko.Core.Assets
                         return;
        
                     //batch projects
-                    var vsProjs = new Dictionary<string, Project>();
+                    var vsProjs = new Dictionary<string, Microsoft.Build.Evaluation.Project>();
 
                     // Delete previous files
                     foreach (var fileIt in assetsOrPackagesToRemove)
@@ -600,8 +674,7 @@ namespace Xenko.Core.Assets
                                 {
                                     var projectInclude = assetItem.GetProjectInclude();
 
-                                    Project project;
-                                    if (!vsProjs.TryGetValue(assetItem.SourceProject, out project))
+                                    if (!vsProjs.TryGetValue(assetItem.SourceProject, out var project))
                                     {
                                         project = VSProjectHelper.LoadProject(assetItem.SourceProject);
                                         vsProjs.Add(assetItem.SourceProject, project);
