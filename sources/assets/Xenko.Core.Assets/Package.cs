@@ -552,7 +552,7 @@ namespace Xenko.Core.Assets
                 }
 
                 //batch projects
-                var vsProjs = new Dictionary<string, Project>();
+                var vsProjs = new Dictionary<string, Microsoft.Build.Evaluation.Project>();
 
                 foreach (var asset in Assets)
                 {
@@ -575,7 +575,7 @@ namespace Xenko.Core.Assets
                         var projectFullPath = asset.SourceProject;
                         var projectInclude = asset.GetProjectInclude();
 
-                        Project project;
+                        Microsoft.Build.Evaluation.Project project;
                         if (!vsProjs.TryGetValue(projectFullPath, out project))
                         {
                             project = VSProjectHelper.LoadProject(projectFullPath);

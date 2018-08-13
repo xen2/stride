@@ -34,10 +34,19 @@ namespace Xenko.Assets.Presentation.Templates
 
         protected override bool Generate(SessionTemplateGeneratorParameters parameters)
         {
-            return GeneratePackage(parameters) != null;
+            var package = GeneratePackage(parameters);
+
+            // Add it to the current session
+            var session = parameters.Session;
+            session.Packages.Add(package);
+
+            // Load missing references
+            session.LoadMissingReferences(parameters.Logger);
+
+            return true;
         }
 
-        public static Package GeneratePackage(SessionTemplateGeneratorParameters parameters)
+        public static Package GeneratePackage(TemplateGeneratorParameters parameters)
         {
             if (parameters == null) throw new ArgumentNullException(nameof(parameters));
             parameters.Validate();
@@ -53,13 +62,6 @@ namespace Xenko.Assets.Presentation.Templates
 
             // Setup the path to save it
             package.FullPath = UPath.Combine(outputDirectory, new UFile(name + Package.PackageFileExtension));
-
-            // Add it to the current session
-            var session = parameters.Session;
-            session.Packages.Add(package);
-
-            // Load missing references
-            session.LoadMissingReferences(parameters.Logger);
 
             return package;
         }

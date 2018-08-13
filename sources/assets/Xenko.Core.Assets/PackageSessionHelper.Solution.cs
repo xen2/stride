@@ -62,13 +62,13 @@ namespace Xenko.Core.Assets
             return null;
         }
 
-        internal static bool IsPackage(Project project)
+        internal static bool IsPackage(VisualStudio.Project project)
         {
             string packagePath;
             return IsPackage(project, out packagePath);
         }
 
-        internal static bool IsPackage(Project project, out string packagePathRelative)
+        internal static bool IsPackage(VisualStudio.Project project, out string packagePathRelative)
         {
             packagePathRelative = null;
             if (project.IsSolutionFolder)

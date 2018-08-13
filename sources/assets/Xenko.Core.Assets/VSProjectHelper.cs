@@ -125,7 +125,7 @@ namespace Xenko.Core.Assets
                     var addedProjs = new HashSet<string>(); //to avoid worst case circular dependencies.
                     var allProjs = Core.Utilities.IterateTree(project, project1 =>
                     {
-                        var projs = new List<Project>();
+                        var projs = new List<Microsoft.Build.Evaluation.Project>();
                         foreach (var item in project1.AllEvaluatedItems.Where(x => x.ItemType == "ProjectReference"))
                         {
                             var path = Path.Combine(project.DirectoryPath, item.EvaluatedInclude);
@@ -306,7 +306,7 @@ namespace Xenko.Core.Assets
 
         private class CancellableAsyncBuild : ICancellableAsyncBuild
         {
-            public CancellableAsyncBuild(Project project, string assemblyPath)
+            public CancellableAsyncBuild(Microsoft.Build.Evaluation.Project project, string assemblyPath)
             {
                 Project = project;
                 AssemblyPath = assemblyPath;
@@ -314,7 +314,7 @@ namespace Xenko.Core.Assets
 
             public string AssemblyPath { get; private set; }
 
-            public Project Project { get; private set; }
+            public Microsoft.Build.Evaluation.Project Project { get; private set; }
 
             public Task<BuildResult> BuildTask { get; private set; }
 

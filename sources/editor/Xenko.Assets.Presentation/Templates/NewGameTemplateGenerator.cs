@@ -128,9 +128,6 @@ namespace Xenko.Assets.Presentation.Templates
             //write gitignore
             WriteGitIgnore(parameters);
 
-            var previousCurrent = session.CurrentPackage;
-            session.CurrentPackage = package;
-
             var projectGameName = Utilities.BuildValidNamespaceName(name) + ".Game";
 
             var stepIndex = 0;
@@ -143,6 +140,11 @@ namespace Xenko.Assets.Presentation.Templates
             var projectGameReference = ProjectTemplateGeneratorHelper.GenerateTemplate(parameters, platforms, package, "ProjectLibrary.Game/ProjectLibrary.Game.ttproj", projectGameName, PlatformType.Shared, null, null, ProjectType.Library, orientation);
             projectGameReference.Type = ProjectType.Library;
             sharedProfile.ProjectReferences.Add(projectGameReference);
+
+            session.Projects.Add(new Project2(session, Guid.NewGuid(), projectGameReference.Location.ToWindowsPath()) { Package = package });
+
+            var previousCurrent = session.CurrentPackage;
+            session.CurrentPackage = package;
 
             // Add Effects as an asset folder in order to load xksl
             sharedProfile.AssetFolders.Add(new AssetFolder(projectGameName + "/Effects"));

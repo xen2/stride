@@ -23,20 +23,18 @@ using ILogger = Xenko.Core.Diagnostics.ILogger;
 
 namespace Xenko.Core.Assets
 {
-    public sealed class Project
+    public sealed class Project2
     {
         private PackageSession session;
         private Package package;
 
-        public Project(PackageSession session, Guid guid, string fullPath)
+        public Project2([NotNull] PackageSession session, Guid guid, string fullPath)
         {
             this.Session = session;
             vsProject = new VisualStudio.Project(session.VSSolution, guid, VisualStudio.KnownProjectTypeGuid.CSharp, Path.GetFileNameWithoutExtension(fullPath), fullPath, Guid.Empty,
                 Enumerable.Empty<VisualStudio.Section>(),
                 Enumerable.Empty<VisualStudio.PropertyItem>(),
                 Enumerable.Empty<VisualStudio.PropertyItem>());
-
-            this.Package = package;
         }
 
         [CanBeNull]
@@ -79,7 +77,7 @@ namespace Xenko.Core.Assets
         private VisualStudio.Project vsProject;
     }
 
-    public sealed class ProjectCollection : ObservableCollection<Project>
+    public sealed class ProjectCollection : ObservableCollection<Project2>
     {
     }
 
@@ -106,14 +104,7 @@ namespace Xenko.Core.Assets
         /// <summary>
         /// Initializes a new instance of the <see cref="PackageSession"/> class.
         /// </summary>
-        public PackageSession() : this(null)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PackageSession"/> class.
-        /// </summary>
-        public PackageSession(Package package)
+        public PackageSession()
         {
             VSSolution = new VisualStudio.Solution();
 
@@ -122,14 +113,24 @@ namespace Xenko.Core.Assets
             Projects = new ProjectCollection();
             Projects.CollectionChanged += ProjectsCollectionChanged;
 
+            SolutionPackages = new PackageCollection();
+            SolutionPackages.CollectionChanged += SolutionPackagesCollectionChanged;
+
             Packages = new PackageCollection();
             packagesCopy = new PackageCollection();
             AssemblyContainer = new AssemblyContainer();
             Packages.CollectionChanged += PackagesCollectionChanged;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PackageSession"/> class.
+        /// </summary>
+        public PackageSession(Package package) : this()
+        {
             if (package != null)
             {
-                Packages.Add(package);
-            }            
+                SolutionPackages.Add(package);
+            }
         }
 
         internal VisualStudio.Solution VSSolution;
@@ -137,15 +138,21 @@ namespace Xenko.Core.Assets
         public bool IsDirty { get; set; }
 
         /// <summary>
-        /// The projects.
+        /// The projects referenced by the solution.
         /// </summary>
         public ProjectCollection Projects { get; }
 
         /// <summary>
-        /// Gets the packages.
+        /// Gets the list of all resolved packages.
+        /// </summary>
+        /// <value>The list of all resolved packages, coming from <see cref="Project.Package"/> of each <see cref="Projects"/>, <see cref="Packages"/> and their dependencies.</value>
+        public PackageCollection Packages { get; }
+
+        /// <summary>
+        /// Gets the packages referenced by the solution.
         /// </summary>
         /// <value>The packages.</value>
-        public PackageCollection Packages { get; }
+        public PackageCollection SolutionPackages { get; }
 
         /// <summary>
         /// Gets the user packages (excluding system packages).
@@ -378,7 +385,6 @@ namespace Xenko.Core.Assets
             // Run analysis after
             var analysis = new PackageAnalysis(package, GetPackageAnalysisParametersForLoad());
             analysis.Run(logger);
-
         }
 
         /// <inheritdoc />
@@ -660,7 +666,7 @@ namespace Xenko.Core.Assets
                         return;
        
                     //batch projects
-                    var vsProjs = new Dictionary<string, Microsoft.Build.Evaluation.Project>();
+                    var vsProjs = new Dictionary<string, Project>();
 
                     // Delete previous files
                     foreach (var fileIt in assetsOrPackagesToRemove)
@@ -761,7 +767,8 @@ namespace Xenko.Core.Assets
                     // be setup for the packages)
                     if (packagesSaved)
                     {
-                        PackageSessionHelper.SaveSolution(this, loggerResult);
+                        VSSolution.FullPath = UPath.Combine(Environment.CurrentDirectory, SolutionPath);
+                        VSSolution.Save();
                     }
                     saveCompletion?.SetResult(0);
                     saveCompletion = null;
@@ -834,6 +841,49 @@ namespace Xenko.Core.Assets
                 }
             }
             return false;
+        }
+
+        private void ProjectsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            switch (e.Action)
+            {
+                case NotifyCollectionChangedAction.Add:
+                    RegisterProject((Project2)e.NewItems[0]);
+                    break;
+                case NotifyCollectionChangedAction.Remove:
+                    UnRegisterProject((Project2)e.OldItems[0]);
+                    break;
+
+                case NotifyCollectionChangedAction.Replace:
+                    packagesCopy.Clear();
+
+                    foreach (var oldProject in e.OldItems.OfType<Project2>())
+                    {
+                        UnRegisterProject(oldProject);
+                    }
+
+                    foreach (var projectToCopy in Projects)
+                    {
+                        RegisterProject(projectToCopy);
+                    }
+                    break;
+            }            
+        }
+
+        private void RegisterProject(Project2 project)
+        {
+            if (project.Package != null)
+                Packages.Add(project.Package);
+        }
+
+        private void UnRegisterProject(Project2 project)
+        {
+            if (project.Package != null)
+                Packages.Remove(project.Package);
+        }
+
+        private void SolutionPackagesCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
         }
 
         private void PackagesCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
