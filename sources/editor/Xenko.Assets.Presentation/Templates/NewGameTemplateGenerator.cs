@@ -143,6 +143,9 @@ namespace Xenko.Assets.Presentation.Templates
 
             session.Projects.Add(new Project2(session, Guid.NewGuid(), projectGameReference.Location.ToWindowsPath()) { Package = package });
 
+            // Load missing references
+            session.LoadMissingReferences(parameters.Logger);
+
             var previousCurrent = session.CurrentPackage;
             session.CurrentPackage = package;
 
@@ -470,11 +473,11 @@ namespace Xenko.Assets.Presentation.Templates
             logger.Verbose("Compiling game assemblies...");
             parameters.Session.UpdateAssemblyReferences(logger);
 
-            if (package.State < PackageState.DependenciesReady)
-            {
-                logger.Warning("Assembly references were not compiled properly");
-                return;
-            }
+            //if (package.State < PackageState.DependenciesReady)
+            //{
+            //    logger.Warning("Assembly references were not compiled properly");
+            //    return;
+            //}
             logger.Verbose("Game assemblies compiled...");
 
             // Create the Camera script in Camera entity

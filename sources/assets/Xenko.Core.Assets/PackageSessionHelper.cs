@@ -16,7 +16,7 @@ namespace Xenko.Core.Assets
     /// </summary>
     internal partial class PackageSessionHelper
     {
-        private static readonly string SolutionHeader = @"Microsoft Visual Studio Solution File, Format Version 12.00
+        internal static readonly string SolutionHeader = @"Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = {0}
 MinimumVisualStudioVersion = {0}".ToFormat(PackageSession.DefaultVisualStudioVersion);
