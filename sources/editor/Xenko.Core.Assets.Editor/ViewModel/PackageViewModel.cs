@@ -39,9 +39,9 @@ namespace Xenko.Core.Assets.Editor.ViewModel
         private readonly PackageSettingsWrapper packageSettingsWrapper = new PackageSettingsWrapper();
         // TODO: When anything become renamable in the content of the package, this must be turn into an auto-updating sorted collection
         private readonly SortedObservableCollection<DirtiableEditableViewModel> content = new SortedObservableCollection<DirtiableEditableViewModel>(ComparePackageContent);
-        private bool isCurrentPackage;
         private ProfileViewModel selectedProfile;
         private readonly List<AssetViewModel> deletedAssetsSinceLastSave = new List<AssetViewModel>();
+        private readonly ProjectViewModel project;
 
         public PackageViewModel(SessionViewModel session, Package package, bool packageAlreadyInSession)
             : base(session)
@@ -56,12 +56,16 @@ namespace Xenko.Core.Assets.Editor.ViewModel
             RenameCommand = new AnonymousCommand(ServiceProvider, () => IsEditing = true);
             IsLoaded = package.State >= PackageState.AssetsReady;
 
-            isCurrentPackage = package.Session.CurrentPackage == package;
-
             // IsDeleted will make the package added to Session.LocalPackages, so let's do it last
             InitialUndelete(!packageAlreadyInSession);
 
             DeletedAssets.CollectionChanged += DeletedAssetsChanged;
+        }
+
+        public PackageViewModel(ProjectViewModel project, Package package, bool packageAlreadyInSession)
+            : this(project.Session, package, packageAlreadyInSession)
+        {
+            this.project = project;
         }
 
         /// <summary>
@@ -198,14 +202,8 @@ namespace Xenko.Core.Assets.Editor.ViewModel
         {
             get
             {
-                return isCurrentPackage;
-            }
-            internal set
-            {
-                SetValueUncancellable(ref isCurrentPackage, value);
-
-                // TODO: Check with Ben if this is the property place to put this?
-                Package.Session.CurrentPackage = isCurrentPackage ? Package : null;
+                // TODO CSPROJ=XKPKG
+                return true;
             }
         }
 
@@ -261,11 +259,6 @@ namespace Xenko.Core.Assets.Editor.ViewModel
 
                 var viewModel = new ProfileViewModel(Session, Package, profile, this);
                 Profiles.Add(viewModel);
-
-                foreach (var project in viewModel.Projects)
-                {
-                    AddProject(project);
-                }
             }
 
             foreach (var localPackage in Package.LocalDependencies)
@@ -707,26 +700,28 @@ namespace Xenko.Core.Assets.Editor.ViewModel
 
         protected override void UpdateIsDeletedStatus()
         {
-            var collection = Package.IsSystem ? Session.StorePackages : Session.LocalPackages;
-
-            if (IsDeleted)
+            if (project != null)
             {
-                collection.Remove(this);
+                if (IsDeleted)
+                {
+                    project.Package = null;
+                }
+                else
+                {
+                    project.Package = this;
+                }
             }
             else
             {
-                collection.Add(this);
+                if (IsDeleted)
+                {
+                    Session.StorePackages.Remove(this);
+                }
+                else
+                {
+                    Session.StorePackages.Add(this);
+                }
             }
-        }
-
-        internal void AddProject(ProjectViewModel project)
-        {
-            content.Add(project);
-        }
-
-        internal bool RemoveProject(ProjectViewModel project)
-        {
-            return content.Remove(project);
         }
 
         private void Rename(string newName)
@@ -800,11 +795,6 @@ namespace Xenko.Core.Assets.Editor.ViewModel
                 {
                     changes = viewModel.UpdateProjectList();
                 }
-
-                foreach (var project in viewModel.Projects.Where(x => !Content.Contains(x)))
-                {
-                    AddProject(project);
-                }
             }
 
             // Remove profiles (TODO/alex: Check with Ben this)
@@ -869,7 +859,7 @@ namespace Xenko.Core.Assets.Editor.ViewModel
 
         IChildViewModel IChildViewModel.GetParent()
         {
-            return Session.PackageCategories.Values.First(x => x.Content.Contains(this));
+            return Session.PackageCategories.Values.First(x => x.Packages.Contains(this));
         }
 
         string IChildViewModel.GetName()

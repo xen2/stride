@@ -44,14 +44,14 @@ Cache/
 
             SaveSession(parameters);
 
-            parameters.Logger.Verbose("Restore NuGet packages...");
+            /*parameters.Logger.Verbose("Restore NuGet packages...");
             VSProjectHelper.RestoreNugetPackages(parameters.Logger, parameters.Session.SolutionPath).Wait();
 
             // Load missing references (we do this after saving)
             // TODO: Better tracking of ProjectReferences (added, removed, etc...)
             parameters.Logger.Verbose("Compiling game assemblies...");
             parameters.Session.UpdateAssemblyReferences(parameters.Logger);
-            parameters.Logger.Verbose("Game assemblies compiled...");
+            parameters.Logger.Verbose("Game assemblies compiled...");*/
 
             result = AfterSave(parameters).Result;
 

@@ -280,11 +280,12 @@ namespace Xenko.Assets.Presentation.Templates
                 loadParams.GenerateNewAssetIds = true;
                 loadParams.LoadMissingDependencies = false;
                 var session = parameters.Session;
-                var loadedPackage = session.AddExistingPackage(packageOutputFile, log, loadParams);
-
-                RemoveUnusedAssets(loadedPackage, session);
-
-                parameters.Tags.Add(GeneratedPackageKey, loadedPackage);
+                throw new NotImplementedException();
+                //var loadedPackage = session.AddExistingPackage(packageOutputFile, log, loadParams);
+                //
+                //RemoveUnusedAssets(loadedPackage, session);
+                //
+                //parameters.Tags.Add(GeneratedPackageKey, loadedPackage);
             }
             else
             {

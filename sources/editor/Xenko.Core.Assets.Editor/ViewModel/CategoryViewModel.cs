@@ -53,12 +53,39 @@ namespace Xenko.Core.Assets.Editor.ViewModel
         public TParent Parent { get; }
     }
 
-    public class PackageCategoryViewModel : CategoryViewModel<PackageViewModel>, IChildViewModel
+    public interface IPackageCategoryViewModel : ICategoryViewModel, IChildViewModel
+    {
+        IEnumerable<PackageViewModel> Packages { get; }
+    }
+
+    public class PackageCategoryViewModel : CategoryViewModel<PackageViewModel>, IPackageCategoryViewModel, IChildViewModel
     {
         public PackageCategoryViewModel(string name, SessionViewModel session, IComparer<PackageViewModel> childComparer = null)
             : base(name, session, childComparer)
         {
         }
+
+        IEnumerable<PackageViewModel> IPackageCategoryViewModel.Packages => Content;
+
+        IChildViewModel IChildViewModel.GetParent()
+        {
+            return null;
+        }
+
+        string IChildViewModel.GetName()
+        {
+            return Name;
+        }
+    }
+
+    public class ProjectCategoryViewModel : CategoryViewModel<ProjectViewModel>, IPackageCategoryViewModel, IChildViewModel
+    {
+        public ProjectCategoryViewModel(string name, SessionViewModel session, IComparer<ProjectViewModel> childComparer = null)
+            : base(name, session, childComparer)
+        {
+        }
+
+        IEnumerable<PackageViewModel> IPackageCategoryViewModel.Packages => Content.Select(x => x.Package).Where(x => x != null);
 
         IChildViewModel IChildViewModel.GetParent()
         {

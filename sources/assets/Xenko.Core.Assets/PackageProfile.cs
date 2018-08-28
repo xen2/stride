@@ -60,7 +60,6 @@ namespace Xenko.Core.Assets
             assetFolders = new AssetFolderCollection();
             InheritProfiles = new List<string>();
             OutputGroupDirectories = new Dictionary<string, UDirectory>();
-            ProjectReferences = new List<ProjectReference>();
         }
 
         /// <summary>
@@ -133,13 +132,6 @@ namespace Xenko.Core.Assets
         /// <value>The output group directories.</value>
         [DataMember(50)]
         public Dictionary<string, UDirectory> OutputGroupDirectories { get; private set; }
-
-        /// <summary>
-        /// Gets the assembly references to load when compiling this package.
-        /// </summary>
-        /// <value>The assembly references.</value>
-        [DataMember(70)]
-        public List<ProjectReference> ProjectReferences { get; private set; }
 
         /// <summary>
         /// Creates a a default shared package profile.
