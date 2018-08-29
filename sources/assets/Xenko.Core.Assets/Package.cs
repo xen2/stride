@@ -307,65 +307,6 @@ namespace Xenko.Core.Assets
         [DataMemberIgnore]
         public List<PackageLoadedAssembly> LoadedAssemblies { get; } = new List<PackageLoadedAssembly>();
 
-        /// <summary>
-        /// Adds an existing project to this package.
-        /// </summary>
-        /// <param name="pathToMsproj">The path to msproj.</param>
-        /// <returns>LoggerResult.</returns>
-        public LoggerResult AddExistingProject(UFile pathToMsproj)
-        {
-            var logger = new LoggerResult();
-            AddExistingProject(pathToMsproj, logger);
-            return logger;
-        }
-
-        /// <summary>
-        /// Adds an existing project to this package.
-        /// </summary>
-        /// <param name="pathToMsproj">The path to msproj.</param>
-        /// <param name="logger">The logger.</param>
-        public void AddExistingProject(UFile pathToMsproj, LoggerResult logger)
-        {
-            if (pathToMsproj == null) throw new ArgumentNullException(nameof(pathToMsproj));
-            if (logger == null) throw new ArgumentNullException(nameof(logger));
-            if (!pathToMsproj.IsAbsolute) throw new ArgumentException(@"Expecting relative path", nameof(pathToMsproj));
-
-            try
-            {
-                // Load a project without specifying a platform to make sure we get the correct platform type
-                var msProject = VSProjectHelper.LoadProject(pathToMsproj, platform: "NoPlatform");
-                try
-                {
-
-                    var projectType = VSProjectHelper.GetProjectTypeFromProject(msProject);
-                    if (!projectType.HasValue)
-                    {
-                        logger.Error("This project is not a project created with the editor");
-                    }
-                    else
-                    {
-                        var platformType = VSProjectHelper.GetPlatformTypeFromProject(msProject) ?? PlatformType.Shared;
-                        var projectReference = new ProjectReference(VSProjectHelper.GetProjectGuid(msProject), pathToMsproj.MakeRelative(RootDirectory), projectType.Value);
-
-                        // Add the ProjectReference only for the compatible profiles (same platform or no platform)
-                        foreach (var profile in Profiles.Where(profile => platformType == profile.Platform))
-                        {
-                            profile.ProjectReferences.Add(projectReference);
-                        }
-                    }
-                }
-                finally
-                {
-                    msProject.ProjectCollection.UnloadAllProjects();
-                    msProject.ProjectCollection.Dispose();
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error($"Unexpected exception while loading project [{pathToMsproj}]", ex);
-            }
-        }
-
         /// <inheritdoc />
         /// <remarks>Looks for the asset amongst the current package and its dependencies.</remarks>
         public AssetItem FindAsset(AssetId assetId)
@@ -1086,32 +1027,6 @@ namespace Xenko.Core.Assets
             }
         }
 
-        /// <summary>
-        /// Loads the assembly references that were not loaded before.
-        /// </summary>
-        /// <param name="log">The log.</param>
-        /// <param name="loadParametersArg">The load parameters argument.</param>
-        public void UpdateAssemblyReferences(ILogger log, PackageLoadParameters loadParametersArg = null)
-        {
-            if (State < PackageState.DependenciesReady)
-                return;
-
-            var loadParameters = loadParametersArg ?? PackageLoadParameters.Default();
-            LoadAssemblyReferencesForPackage(log, loadParameters);
-        }
-
-        /// <summary>
-        /// Restore NuGet packages of all projects in this package.
-        /// </summary>
-        /// <param name="log">The log.</param>
-        public void RestoreNugetPackages(ILogger log)
-        {
-            foreach (var profile in Profiles)
-            {
-                VSProjectHelper.RestoreNugetPackagesNonRecursive(log, profile.ProjectReferences.Select(projectReference => UPath.Combine(RootDirectory, projectReference.Location).ToWindowsPath())).Wait();
-            }
-        }
-
         private static Asset LoadAsset(ILogger log, string assetFullPath, string assetPath, byte[] assetContent, out bool assetDirty, out AttachedYamlAssetMetadata yamlMetadata)
         {
             var loadResult = assetContent != null
@@ -1130,64 +1045,6 @@ namespace Xenko.Core.Assets
             }
 
             return loadResult.Asset;
-        }
-
-        private void LoadAssemblyReferencesForPackage(ILogger log, PackageLoadParameters loadParameters)
-        {
-            if (log == null) throw new ArgumentNullException(nameof(log));
-            if (loadParameters == null) throw new ArgumentNullException(nameof(loadParameters));
-            var assemblyContainer = loadParameters.AssemblyContainer ?? AssemblyContainer.Default;
-            foreach (var profile in Profiles)
-            {
-                foreach (var projectReference in profile.ProjectReferences.Where(projectRef => projectRef.Type == ProjectType.Plugin || projectRef.Type == ProjectType.Library))
-                {
-                    // Check if already loaded
-                    // TODO: More advanced cases: unload removed references, etc...
-                    if (LoadedAssemblies.Any(x => x.ProjectReference == projectReference))
-                        continue;
-
-                    string assemblyPath = null;
-                    var fullProjectLocation = UPath.Combine(RootDirectory, projectReference.Location).ToWindowsPath();
-
-                    try
-                    {
-                        var forwardingLogger = new ForwardingLoggerResult(log);
-                        assemblyPath = VSProjectHelper.GetOrCompileProjectAssembly(Session?.SolutionPath, fullProjectLocation, forwardingLogger, "Build", loadParameters.AutoCompileProjects, loadParameters.BuildConfiguration, extraProperties: loadParameters.ExtraCompileProperties, onlyErrors: true);
-                        if (String.IsNullOrWhiteSpace(assemblyPath))
-                        {
-                            log.Error($"Unable to locate assembly reference for project [{fullProjectLocation}]");
-                            continue;
-                        }
-
-                        var loadedAssembly = new PackageLoadedAssembly(projectReference, assemblyPath);
-                        LoadedAssemblies.Add(loadedAssembly);
-
-                        if (!File.Exists(assemblyPath) || forwardingLogger.HasErrors)
-                        {
-                            log.Error($"Unable to build assembly reference [{assemblyPath}]");
-                            continue;
-                        }
-
-                        var assembly = assemblyContainer.LoadAssemblyFromPath(assemblyPath, log);
-                        if (assembly == null)
-                        {
-                            log.Error($"Unable to load assembly reference [{assemblyPath}]");
-                        }
-
-                        loadedAssembly.Assembly = assembly;
-
-                        if (assembly != null)
-                        {
-                            // Register assembly in the registry
-                            AssemblyRegistry.Register(assembly, AssemblyCommonCategories.Assets);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        log.Error($"Unexpected error while loading project [{fullProjectLocation}] or assembly reference [{assemblyPath}]", ex);
-                    }
-                }
-            }
         }
 
         /// <summary>

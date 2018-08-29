@@ -10,14 +10,6 @@ namespace Xenko.Core.Assets
     public class PackageLoadedAssembly
     {
         /// <summary>
-        /// Gets the project reference for this assembly.
-        /// </summary>
-        /// <value>
-        /// The project reference.
-        /// </value>
-        public ProjectReference ProjectReference { get; private set; }
-
-        /// <summary>
         /// Gets the path of the assembly.
         /// </summary>
         /// <value>
@@ -33,9 +25,8 @@ namespace Xenko.Core.Assets
         /// </value>
         public Assembly Assembly { get; set; }
 
-        public PackageLoadedAssembly(ProjectReference projectReference, string path)
+        public PackageLoadedAssembly(string path)
         {
-            ProjectReference = projectReference;
             Path = path;
         }
     }

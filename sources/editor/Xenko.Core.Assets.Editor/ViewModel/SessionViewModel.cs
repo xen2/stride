@@ -596,7 +596,8 @@ namespace Xenko.Core.Assets.Editor.ViewModel
             NextSelectionCommand = new AnonymousCommand(serviceProvider, () => { ServiceProvider.Get<SelectionService>().NextSelection(); UpdateSelectionCommands(); });
 
             // This event must be subscribed before we create the package view models
-            PackageCategories.ForEach(x => x.Value.Content.CollectionChanged += PackageCollectionChanged);
+            // TODO CSPROJ=XKPKG
+            //PackageCategories.ForEach(x => x.Value.Content.CollectionChanged += PackageCollectionChanged);
 
             // Create project view models
             session.Projects.ForEach(x => CreateProjectViewModel(x, true));
@@ -1288,11 +1289,53 @@ namespace Xenko.Core.Assets.Editor.ViewModel
 
         private async Task AddExistingProject()
         {
-            PackageViewModel selectedPackage = await RequestSingleSelectedPackage();
-            if (selectedPackage == null)
-                return;
+            var fileDialog = ServiceProvider.Get<IEditorDialogService>().CreateFileOpenModalDialog();
+            fileDialog.Filters.Add(new FileDialogFilter("Visual Studio C# project", "csproj"));
+            fileDialog.InitialDirectory = SolutionPath;
+            var result = await fileDialog.ShowModal();
 
-            await selectedPackage.AddExistingProject();
+            var projectPath = fileDialog.FilePaths.FirstOrDefault();
+            if (result == DialogResult.Ok && projectPath != null)
+            {
+                var loggerResult = new LoggerResult();
+                var cancellationSource = new CancellationTokenSource();
+                var workProgress = new WorkProgressViewModel(ServiceProvider, loggerResult)
+                {
+                    Title = "Importing package...",
+                    KeepOpen = KeepOpen.OnWarningsOrErrors,
+                    IsIndeterminate = true,
+                    IsCancellable = false
+                };
+
+                using (var transaction = UndoRedoService.CreateTransaction())
+                {
+                    workProgress.RegisterProgressStatus(loggerResult, true);
+
+                    ServiceProvider.Get<IEditorDialogService>().ShowProgressWindow(workProgress, 500);
+
+                    await Task.Run(() =>
+                    {
+                        try
+                        {
+                            // TODO CSPROJ=XKPKG
+                            //session.AddExistingProject(projectPath, loggerResult);
+                        }
+                        catch (Exception e)
+                        {
+                            loggerResult.Error("An exception occurred while importing the project", e);
+                        }
+
+                    }, cancellationSource.Token);
+
+                    // TODO CSPROJ=XKPKG
+                    //RefreshProjects();
+
+                    UndoRedoService.SetName(transaction, $"Import project '{new UFile(projectPath).GetFileNameWithoutExtension()}'");
+                }
+
+                // Notify that the task is finished
+                await workProgress.NotifyWorkFinished(cancellationSource.IsCancellationRequested, loggerResult.HasErrors);
+            }
         }
 
         private async Task AddDependency()
@@ -1380,7 +1423,7 @@ namespace Xenko.Core.Assets.Editor.ViewModel
             // If no directory are selected, create in the first package of the session.
             else if (createdDirectory == null)
             {
-                var firstPackage = LocalPackages.FirstOrDefault();
+                var firstPackage = Projects.Select(x => x.Package).NotNull().FirstOrDefault();
                 if (firstPackage != null)
                 {
                     using (var transaction = UndoRedoService.CreateTransaction())

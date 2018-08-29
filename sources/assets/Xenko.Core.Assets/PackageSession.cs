@@ -23,7 +23,12 @@ using ILogger = Xenko.Core.Diagnostics.ILogger;
 
 namespace Xenko.Core.Assets
 {
-    public sealed class Project2
+    public interface IPackageContainer
+    {
+        Package Package { get; }
+    }
+
+    public sealed class Project2 : IPackageContainer
     {
         private PackageSession session;
         private Package package;
@@ -44,6 +49,8 @@ namespace Xenko.Core.Assets
         }
 
         public List<LockFileLibrary> Dependencies { get; } = new List<LockFileLibrary>();
+
+        public PackageLoadedAssembly LoadedAssembly { get; private set; }
 
         [CanBeNull]
         public Package Package
@@ -85,6 +92,57 @@ namespace Xenko.Core.Assets
         }
 
         internal VisualStudio.Project VSProject;
+
+        private void LoadAssemblyReference(ILogger log, PackageLoadParameters loadParameters)
+        {
+            if (log == null) throw new ArgumentNullException(nameof(log));
+            if (loadParameters == null) throw new ArgumentNullException(nameof(loadParameters));
+            var assemblyContainer = loadParameters.AssemblyContainer ?? AssemblyContainer.Default;
+
+            // Check if already loaded
+            // TODO: More advanced cases: unload removed references, etc...
+            if (LoadedAssembly != null)
+                return;
+
+            string assemblyPath = null;
+
+            try
+            {
+                var forwardingLogger = new ForwardingLoggerResult(log);
+                assemblyPath = VSProjectHelper.GetOrCompileProjectAssembly(Session?.SolutionPath, VSProject.FullPath, forwardingLogger, "Build", loadParameters.AutoCompileProjects, loadParameters.BuildConfiguration, extraProperties: loadParameters.ExtraCompileProperties, onlyErrors: true);
+                if (String.IsNullOrWhiteSpace(assemblyPath))
+                {
+                    log.Error($"Unable to locate assembly reference for project [{VSProject.FullPath}]");
+                    return;
+                }
+
+                LoadedAssembly = new PackageLoadedAssembly(assemblyPath);
+
+                if (!File.Exists(assemblyPath) || forwardingLogger.HasErrors)
+                {
+                    log.Error($"Unable to build assembly reference [{assemblyPath}]");
+                    return;
+                }
+
+                var assembly = assemblyContainer.LoadAssemblyFromPath(assemblyPath, log);
+                if (assembly == null)
+                {
+                    log.Error($"Unable to load assembly reference [{assemblyPath}]");
+                }
+
+                LoadedAssembly.Assembly = assembly;
+
+                if (assembly != null)
+                {
+                    // Register assembly in the registry
+                    AssemblyRegistry.Register(assembly, AssemblyCommonCategories.Assets);
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Unexpected error while loading project [{VSProject.FullPath}] or assembly reference [{assemblyPath}]", ex);
+            }
+        }
     }
 
     public sealed class ProjectCollection : ObservableCollection<Project2>
@@ -711,18 +769,6 @@ namespace Xenko.Core.Assets
             return assetsOrPackagesToRemove;
         }
 
-        /// <summary>
-        /// Loads the assembly references that were not loaded before.
-        /// </summary>
-        /// <param name="log">The log.</param>
-        public void UpdateAssemblyReferences(LoggerResult log)
-        {
-            foreach (var package in LocalPackages)
-            {
-                package.UpdateAssemblyReferences(log);
-            }
-        }
-
         private bool CheckModifiedPackages()
         {
             if (IsDirty)
@@ -1169,6 +1215,8 @@ namespace Xenko.Core.Assets
                 project.Dependencies.AddRange(projectAssets.Libraries);
 
                 // Load dependency (if external)
+
+                // Compute output path
             }
 
             // 1. Load store package

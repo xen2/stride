@@ -540,55 +540,6 @@ namespace Xenko.Core.Assets.Editor.ViewModel
             Package.IsDirty = true;
         }
 
-        public async Task AddExistingProject()
-        {
-            var fileDialog = ServiceProvider.Get<IEditorDialogService>().CreateFileOpenModalDialog();
-            fileDialog.Filters.Add(new FileDialogFilter("Visual Studio C# project", "csproj"));
-            fileDialog.InitialDirectory = Session.SolutionPath;
-            var result = await fileDialog.ShowModal();
-
-            var projectPath = fileDialog.FilePaths.FirstOrDefault();
-            if (result == DialogResult.Ok && projectPath != null)
-            {
-                var loggerResult = new LoggerResult();
-                var cancellationSource = new CancellationTokenSource();
-                var workProgress = new WorkProgressViewModel(ServiceProvider, loggerResult)
-                {
-                    Title = "Importing package...",
-                    KeepOpen = KeepOpen.OnWarningsOrErrors,
-                    IsIndeterminate = true,
-                    IsCancellable = false
-                };
-
-                using (var transaction = UndoRedoService.CreateTransaction())
-                {
-                    workProgress.RegisterProgressStatus(loggerResult, true);
-
-                    ServiceProvider.Get<IEditorDialogService>().ShowProgressWindow(workProgress, 500);
-
-                	await Task.Run(() =>
-                    {
-                        try
-                        {
-                            Package.AddExistingProject(projectPath, loggerResult);
-                        }
-                        catch (Exception e)
-                        {
-                            loggerResult.Error("An exception occurred while importing the project", e);
-                        }
-
-                    }, cancellationSource.Token);
-
-                    RefreshProjects();
-
-                    UndoRedoService.SetName(transaction, $"Import project '{new UFile(projectPath).GetFileNameWithoutExtension()}'");
-                }
-
-                // Notify that the task is finished
-                await workProgress.NotifyWorkFinished(cancellationSource.IsCancellationRequested, loggerResult.HasErrors);
-            }
-        }
-
         public void AddDependency(PackageViewModel packageViewModel)
         {
             using (var transaction = UndoRedoService.CreateTransaction())
