@@ -85,9 +85,11 @@ namespace Xenko.Core.Serialization.Contents
         /// </summary>
         /// <param name="location">The location of the referenced content.</param>
         /// <remarks>This constructor should be used during deserialization.</remarks>
-        public ContentReference(string location)
+        public ContentReference(string location, bool neverLoad = false)
         {
             Location = location;
+            if (neverLoad)
+                State = ContentReferenceState.NeverLoad;
         }
 
         /// <inheritdoc />

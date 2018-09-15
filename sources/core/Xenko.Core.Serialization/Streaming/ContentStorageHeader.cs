@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.Serialization;
 using Xenko.Core.Serialization;
+using Xenko.Core.Serialization.Contents;
 
 namespace Xenko.Core.Streaming
 {
@@ -60,7 +61,16 @@ namespace Xenko.Core.Streaming
         public void Write(SerializationStream stream)
         {
             stream.Write(1);
-            stream.Write(DataUrl);
+
+            var contentSerializerContext = stream.Context.Get(ContentSerializerContext.ContentSerializerContextProperty);
+            if (contentSerializerContext == null)
+                throw new NotSupportedException("No content serializer context when serializing ContentStorageHeader");
+
+            var contentReference = new ContentReference<object>(DataUrl, true);
+            int index = contentSerializerContext.AddContentReference(contentReference);
+
+            stream.Write(index);
+
             stream.Write(PackageTime.Ticks);
             stream.Write(ChunksCount);
             for (int i = 0; i < Chunks.Length; i++)
@@ -83,7 +93,14 @@ namespace Xenko.Core.Streaming
             var version = stream.ReadInt32();
             if (version == 1)
             {
-                result.DataUrl = stream.ReadString();
+                var contentSerializerContext = stream.Context.Get(ContentSerializerContext.ContentSerializerContextProperty);
+                if (contentSerializerContext == null)
+                    throw new NotSupportedException("No content serializer context when serializing ContentStorageHeader");
+
+                int index = stream.ReadInt32();
+                var contentReference = contentSerializerContext.GetContentReference<object>(index, true);
+
+                result.DataUrl = contentReference.Location;
                 result.PackageTime = new DateTime(stream.ReadInt64());
                 int chunksCount = stream.ReadInt32();
                 result.Chunks = new ChunkEntry[chunksCount];

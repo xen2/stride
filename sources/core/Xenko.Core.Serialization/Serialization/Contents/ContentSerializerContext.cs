@@ -79,16 +79,16 @@ namespace Xenko.Core.Serialization.Contents
             return AddChunkReference(reference.Location, reference.Type);
         }
 
-        internal ContentReference<T> GetContentReference<T>(int index) where T : class
+        internal ContentReference<T> GetContentReference<T>(int index, bool neverLoad = false) where T : class
         {
             if (index == ChunkReference.NullIdentifier)
                 return null;
 
             var chunkReference = GetChunkReference(index);
 
-            var contentReference = new ContentReference<T>(chunkReference.Location);
-
-            ContentReferences.Add(contentReference);
+            var contentReference = new ContentReference<T>(chunkReference.Location, neverLoad);
+            if (contentReference.State != ContentReferenceState.NeverLoad)
+                ContentReferences.Add(contentReference);
 
             return contentReference;
         }
