@@ -97,6 +97,9 @@
                   <ImageBrush ImageSource="{StaticResource ImageUpdate}"/>
                 </Rectangle.OpacityMask>
               </Rectangle>
+              <Button.ContextMenu>
+                <ContextMenu ItemsSource="{Binding AlternateVersions}" MaxHeight="400"/>
+              </Button.ContextMenu>
             </Button>
             <!-- DOWNLOAD BUTTON -->
             <Button Content="{sskk:Image {StaticResource ImageDownload}, 20, 20}" Width="32" Height="32" ToolTipService.IsEnabled="False" Margin="4,0,0,0"

@@ -231,7 +231,7 @@ namespace Xenko.LauncherApp.ViewModels
                             {
                                 version = (XenkoStoreVersionViewModel)xenkoVersions[index];
                             }
-                            version.UpdateLocalPackage(localPackage);
+                            version.UpdateLocalPackage(localPackage, package);
                             updatedLocalPackages.Add(version);
                         }
                     }
@@ -240,7 +240,7 @@ namespace Xenko.LauncherApp.ViewModels
                     Dispatcher.Invoke(() =>
                     {
                         foreach (var xenkoUninstalledVersion in xenkoVersions.OfType<XenkoStoreVersionViewModel>().Where(x => !updatedLocalPackages.Contains(x)))
-                            xenkoUninstalledVersion.UpdateLocalPackage(null);
+                            xenkoUninstalledVersion.UpdateLocalPackage(null, null);
                     });
 
                     // Update the active version if it is now invalid.
@@ -368,7 +368,7 @@ namespace Xenko.LauncherApp.ViewModels
                                 // If yes, update it and remove it from the list of old version
                                 version = (XenkoStoreVersionViewModel)xenkoVersions[index];
                             }
-                            version.UpdateServerPackage(serverPackage);
+                            version.UpdateServerPackage(serverPackage, package);
                         }
                     }
                 }

@@ -12,6 +12,7 @@ using Xenko.Core.Packages;
 using Xenko.Core.Presentation.Collections;
 using Xenko.Core.Presentation.Commands;
 using Xenko.Core.Presentation.Services;
+using System.Collections.Generic;
 
 namespace Xenko.LauncherApp.ViewModels
 {
@@ -57,6 +58,8 @@ namespace Xenko.LauncherApp.ViewModels
         /// </summary>
         public string ServerVersionFullName => ServerPackage?.Version?.ToString() ?? "";
 
+        public ObservableList<XenkoStoreVersionViewModel> AlternateVersions { get; } = new ObservableList<XenkoStoreVersionViewModel>();
+
         /// <summary>
         /// Gets the release notes associated to this version.
         /// </summary>
@@ -77,7 +80,7 @@ namespace Xenko.LauncherApp.ViewModels
         /// Updates the local package of this version.
         /// </summary>
         /// <param name="package">The local package corresponding to this version.</param>
-        internal void UpdateLocalPackage(NugetLocalPackage package)
+        internal void UpdateLocalPackage(NugetLocalPackage package, IEnumerable<NugetLocalPackage> alternateVersions)
         {
             OnPropertyChanging(nameof(FullName), nameof(Version));
             LocalPackage = package;
@@ -89,10 +92,22 @@ namespace Xenko.LauncherApp.ViewModels
         /// Updates the server package of this version.
         /// </summary>
         /// <param name="package">The server package corresponding to this version.</param>
-        internal void UpdateServerPackage(NugetServerPackage package)
+        internal void UpdateServerPackage(NugetServerPackage package, IEnumerable<NugetServerPackage> alternateVersions)
         {
             ServerPackage = package;
             Dispatcher.Invoke(UpdateStatus);
+            if (alternateVersions != null)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    foreach (var alternateVersion in alternateVersions)
+                    {
+                        var alternateVersionViewModel = new XenkoStoreVersionViewModel(Launcher, Store, null, alternateVersion.Version.Version.Major, alternateVersion.Version.Version.Minor);
+                        alternateVersionViewModel.UpdateServerPackage(alternateVersion, null);
+                        AlternateVersions.Add(alternateVersionViewModel);
+                    }
+                });
+            }
         }
 
         internal async Task RunPrerequisitesInstaller()
