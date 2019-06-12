@@ -51,6 +51,8 @@
       <SolidColorBrush x:Key="EmphasisButtonBackground" Color="#900520"/>
       <Color x:Key="EmphasisButtonHoverColor">#DA0830</Color>
 
+      <Style TargetType="{x:Type l:StaysOpenContextMenu}" BasedOn="{StaticResource {x:Type ContextMenu}}"/>
+
       <DataTemplate DataType="{x:Type vm:XenkoDevVersionViewModel}">
         <DockPanel Margin="0,2" Height="32" SnapsToDevicePixels="True" Background="{StaticResource TileAlphaBackgroundBrush}"
                    Visibility="{Binding IsVisible, Converter={sskk:VisibleOrCollapsed}, Mode=OneWay}">
@@ -97,9 +99,6 @@
                   <ImageBrush ImageSource="{StaticResource ImageUpdate}"/>
                 </Rectangle.OpacityMask>
               </Rectangle>
-              <Button.ContextMenu>
-                <ContextMenu ItemsSource="{Binding AlternateVersions}" MaxHeight="400"/>
-              </Button.ContextMenu>
             </Button>
             <!-- DOWNLOAD BUTTON -->
             <Button Content="{sskk:Image {StaticResource ImageDownload}, 20, 20}" Width="32" Height="32" ToolTipService.IsEnabled="False" Margin="4,0,0,0"
@@ -169,6 +168,56 @@
               </TextBlock>
             </Grid>
           </Grid>
+          <!-- Context menu to access other versions -->
+          <DockPanel.ContextMenu>
+            <l:StaysOpenContextMenu ItemsSource="{Binding AlternateVersions}" MaxHeight="200" StaysOpen="True">
+              <ContextMenu.ItemTemplate>
+                <DataTemplate>
+                  <ContentControl Content="{Binding}">
+                    <ContentControl.Style>
+                      <Style TargetType="{x:Type ContentControl}">
+                        <Setter Property="Template">
+                          <Setter.Value>
+                            <ControlTemplate>
+                              <MenuItem Command="{Binding DownloadCommand}" IsEnabled="{Binding CanBeDownloaded}"
+                                        Header="{Binding FullName, Converter={sskk:FormatString}, ConverterParameter={x:Static r:Strings.ToolTipDownload}}" StaysOpenOnClick="True"/>
+                            </ControlTemplate>
+                          </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding CanDelete}" Value="True">
+                            <Setter Property="Template">
+                              <Setter.Value>
+                                <ControlTemplate>
+                                  <MenuItem Command="{Binding SetAsActiveCommand}"
+                                            Header="{Binding FullName, Converter={sskk:FormatString}, ConverterParameter={x:Static r:Strings.ToolTipSetActiveVersion}}"/>
+                                </ControlTemplate>
+                              </Setter.Value>
+                            </Setter>
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding IsProcessing}" Value="True">
+                            <Setter Property="Template">
+                              <Setter.Value>
+                                <ControlTemplate>
+                                  <Grid>
+                                    <ProgressBar x:Name="ProgressBar" Minimum="0" Maximum="100" Value="{Binding CurrentProgress, Mode=OneWay}"
+                                      BorderThickness="0" Background="{StaticResource ControlBackgroundBrush}" Height="24" Width="200"
+                                      IsIndeterminate="{Binding CurrentProgress, Mode=OneWay, Converter={l:ProgressToIndeterminatedConverter}}"/>
+                                    <TextBlock Text="{Binding CurrentProcessStatus, Mode=OneWay}" Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" Visibility="{Binding IsProcessing, Converter={sskk:VisibleOrCollapsed}}"/>
+                                  </Grid>
+                                </ControlTemplate>
+                              </Setter.Value>
+                            </Setter>
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </ContentControl.Style>
+                  </ContentControl>
+                </DataTemplate>
+              </ContextMenu.ItemTemplate>
+            </l:StaysOpenContextMenu>
+          </DockPanel.ContextMenu>
         </DockPanel>
       </DataTemplate>
 

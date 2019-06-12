@@ -86,6 +86,12 @@ namespace Xenko.LauncherApp.ViewModels
             LocalPackage = package;
             OnPropertyChanged(nameof(FullName), nameof(Version));
             Dispatcher.Invoke(UpdateStatus);
+            if (alternateVersions != null)
+            {
+                Dispatcher.Invoke(() =>
+                    UpdateAlternateVersions(alternateVersions, (alternateVersionViewModel, alternateVersion) =>
+                        alternateVersionViewModel.UpdateLocalPackage(alternateVersion, null)));
+            }
         }
 
         /// <summary>
@@ -99,14 +105,31 @@ namespace Xenko.LauncherApp.ViewModels
             if (alternateVersions != null)
             {
                 Dispatcher.Invoke(() =>
+                    UpdateAlternateVersions(alternateVersions, (alternateVersionViewModel, alternateVersion) =>
+                        alternateVersionViewModel.UpdateServerPackage(alternateVersion, null)));
+            }
+        }
+
+        private void UpdateAlternateVersions<T>(IEnumerable<T> alternateVersions, Action<XenkoStoreVersionViewModel, T> updateAction) where T : NugetPackage
+        {
+            foreach (var alternateVersion in alternateVersions)
+            {
+
+                int index = AlternateVersions.IndexOf(x => x.Version == alternateVersion.Version);
+                XenkoStoreVersionViewModel alternateVersionViewModel;
+                if (index < 0)
                 {
-                    foreach (var alternateVersion in alternateVersions)
-                    {
-                        var alternateVersionViewModel = new XenkoStoreVersionViewModel(Launcher, Store, null, alternateVersion.Version.Version.Major, alternateVersion.Version.Version.Minor);
-                        alternateVersionViewModel.UpdateServerPackage(alternateVersion, null);
-                        AlternateVersions.Add(alternateVersionViewModel);
-                    }
-                });
+                    // If not, add it
+                    alternateVersionViewModel = new XenkoStoreVersionViewModel(Launcher, Store, null, alternateVersion.Version.Version.Major, alternateVersion.Version.Version.Minor);
+                    AlternateVersions.Add(alternateVersionViewModel);
+                }
+                else
+                {
+                    // If yes, update it and remove it from the list of old version
+                    alternateVersionViewModel = AlternateVersions[index];
+                }
+
+                updateAction(alternateVersionViewModel, alternateVersion);
             }
         }
 
