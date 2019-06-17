@@ -195,7 +195,6 @@ namespace Xenko.LauncherApp.ViewModels
             await RetrieveLocalXenkoVersions();
             await RetrieveServerXenkoVersions();
             Dispatcher.Invoke(() => IsSynchronizing = false);
-
         }
 
         public async Task RetrieveLocalXenkoVersions()

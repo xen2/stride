@@ -81,6 +81,10 @@
         </DockPanel>
       </DataTemplate>
 
+      <DataTemplate DataType="{x:Type vm:XenkoStoreAlternateVersionViewModel}">
+        <TextBlock Text="ASD" />
+      </DataTemplate>
+
       <DataTemplate DataType="{x:Type vm:XenkoStoreVersionViewModel}">
         <DockPanel Margin="0,2" Height="32" SnapsToDevicePixels="True" Background="{StaticResource TileAlphaBackgroundBrush}"
                    Visibility="{Binding IsVisible, Converter={sskk:VisibleOrCollapsed}, Mode=OneWay}">
@@ -123,7 +127,7 @@
               <ToggleButton x:Name="Toggle" Content="{sskk:Image {StaticResource ImageReleaseNotes}, 20, 20}" Width="32" Height="32"
                   ToolTipService.IsEnabled="False" ToolTip="Install another version" Margin="4,0,0,0"/>
               <Popup IsOpen="{Binding IsChecked, ElementName=Toggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True">
-                <Border MinHeight="300" Margin="6" Background="{StaticResource ControlBackgroundBrush}"
+                <Border Margin="6" Background="{StaticResource ControlBackgroundBrush}"
                   BorderBrush="{StaticResource NormalBrush}" BorderThickness="1">
                   <Border.Effect>
                     <DropShadowEffect BlurRadius="5" Opacity="0.4"/>
@@ -136,51 +140,8 @@
                     </Menu.ItemsPanel>
                     <Menu.ItemTemplate>
                       <DataTemplate>
-                        <ContentControl Content="{Binding}">
-                          <ContentControl.Style>
-                            <Style TargetType="{x:Type ContentControl}">
-                              <Setter Property="Template">
-                                <Setter.Value>
-                                  <ControlTemplate>
-                                    <DockPanel LastChildFill="True" Width="180">
-                                      <Button DockPanel.Dock="Right" Command="{Binding DownloadCommand}" Content="{sskk:Image {StaticResource ImageDownload}, 20, 20}" Width="32" Height="32" />
-                                      <TextBlock Text="{Binding FullName}"/>
-                                    </DockPanel>
-                                    <!--<MenuItem Command="{Binding DownloadCommand}" IsEnabled="{Binding CanBeDownloaded}"
-                                        Header="{Binding FullName, Converter={sskk:FormatString}, ConverterParameter={x:Static r:Strings.ToolTipDownload}}" StaysOpenOnClick="True"/>-->
-                                  </ControlTemplate>
-                                </Setter.Value>
-                              </Setter>
-                              <Style.Triggers>
-                                <DataTrigger Binding="{Binding CanDelete}" Value="True">
-                                  <Setter Property="Template">
-                                    <Setter.Value>
-                                      <ControlTemplate>
-                                        <MenuItem Command="{Binding SetAsActiveCommand}"
-                                            Header="{Binding FullName, Converter={sskk:FormatString}, ConverterParameter={x:Static r:Strings.ToolTipSetActiveVersion}}"/>
-                                      </ControlTemplate>
-                                    </Setter.Value>
-                                  </Setter>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding IsProcessing}" Value="True">
-                                  <Setter Property="Template">
-                                    <Setter.Value>
-                                      <ControlTemplate>
-                                        <Grid>
-                                          <ProgressBar x:Name="ProgressBar" Minimum="0" Maximum="100" Value="{Binding CurrentProgress, Mode=OneWay}"
-                                      BorderThickness="0" Background="{StaticResource ControlBackgroundBrush}" Height="24" Width="200"
-                                      IsIndeterminate="{Binding CurrentProgress, Mode=OneWay, Converter={l:ProgressToIndeterminatedConverter}}"/>
-                                          <TextBlock Text="{Binding CurrentProcessStatus, Mode=OneWay}" Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" Visibility="{Binding IsProcessing, Converter={sskk:VisibleOrCollapsed}}"/>
-                                        </Grid>
-                                      </ControlTemplate>
-                                    </Setter.Value>
-                                  </Setter>
-                                </DataTrigger>
-                              </Style.Triggers>
-                            </Style>
-                          </ContentControl.Style>
-                        </ContentControl>
+                        <MenuItem Header="{Binding FullName, Converter={sskk:FormatString}, ConverterParameter={x:Static r:Strings.ToolTipSetActiveVersion}}"
+                                  Command="{Binding SetAsActiveCommand}"/>
                       </DataTemplate>
                     </Menu.ItemTemplate>
                   </Menu>
