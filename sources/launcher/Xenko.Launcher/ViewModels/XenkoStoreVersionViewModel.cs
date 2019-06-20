@@ -13,6 +13,7 @@ using Xenko.Core.Presentation.Collections;
 using Xenko.Core.Presentation.Commands;
 using Xenko.Core.Presentation.Services;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Xenko.LauncherApp.ViewModels
 {
@@ -91,7 +92,12 @@ namespace Xenko.LauncherApp.ViewModels
             {
                 Dispatcher.Invoke(() =>
                     UpdateAlternateVersions(alternateVersions, (alternateVersionViewModel, alternateVersion) =>
-                        alternateVersionViewModel.UpdateLocalPackage(alternateVersion)));
+                    {
+                        if (alternateVersion == null && alternateVersionViewModel.ServerPackage == null)
+                            AlternateVersions.Remove(alternateVersionViewModel);
+                        else
+                            alternateVersionViewModel.UpdateLocalPackage(alternateVersion);
+                    }));
             }
         }
 
@@ -114,12 +120,18 @@ namespace Xenko.LauncherApp.ViewModels
             {
                 Dispatcher.Invoke(() =>
                     UpdateAlternateVersions(alternateVersions, (alternateVersionViewModel, alternateVersion) =>
-                        alternateVersionViewModel.UpdateServerPackage(alternateVersion)));
+                    {
+                        if (alternateVersion == null && alternateVersionViewModel.LocalPackage == null)
+                            AlternateVersions.Remove(alternateVersionViewModel);
+                        else
+                            alternateVersionViewModel.UpdateServerPackage(alternateVersion);
+                    }));
             }
         }
 
         private void UpdateAlternateVersions<T>(IEnumerable<T> alternateVersions, Action<XenkoStoreAlternateVersionViewModel, T> updateAction) where T : NugetPackage
         {
+            var updatedViewModels = new HashSet<XenkoStoreAlternateVersionViewModel>();
             foreach (var alternateVersion in alternateVersions)
             {
 
@@ -138,6 +150,13 @@ namespace Xenko.LauncherApp.ViewModels
                 }
 
                 updateAction(alternateVersionViewModel, alternateVersion);
+                updatedViewModels.Add(alternateVersionViewModel);
+            }
+
+            // Update versions that are not installed locally anymore
+            foreach (var alternateVersionViewModel in AlternateVersions.Where(x => !updatedViewModels.Contains(x)).ToList())
+            {
+                updateAction(alternateVersionViewModel, null);
             }
         }
 

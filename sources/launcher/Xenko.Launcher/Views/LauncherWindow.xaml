@@ -39,6 +39,7 @@
       <BitmapImage x:Key="ImageDelete" UriSource="pack://application:,,,/Xenko.Launcher;component/Resources/delete-26-dark.png"/>
       <BitmapImage x:Key="ImageUpgrade" UriSource="pack://application:,,,/Xenko.Launcher;component/Resources/upgrade-16.png"/>
       <BitmapImage x:Key="ImageReleaseNotes" UriSource="pack://application:,,,/Xenko.Launcher;component/Resources/note-26-dark.png"/>
+      <BitmapImage x:Key="ImageListVersions" UriSource="pack://application:,,,/Xenko.Launcher;component/Resources/list-26.png"/>
       <BitmapImage x:Key="ImageBackground" UriSource="pack://application:,,,/Xenko.Launcher;component/Resources/Robot.jpg"/>
 
       <s:Double x:Key="ReleaseNotesMargin">20</s:Double>
@@ -124,7 +125,7 @@
               </i:Interaction.Behaviors>
             </Button>
             <!-- ALTERNATE VERSIONS -->
-              <ToggleButton x:Name="Toggle" Content="{sskk:Image {StaticResource ImageReleaseNotes}, 20, 20}" Width="32" Height="32"
+              <ToggleButton x:Name="Toggle" Content="{sskk:Image {StaticResource ImageListVersions}, 20, 20}" Width="32" Height="32"
                   ToolTipService.IsEnabled="False" ToolTip="Install another version" Margin="4,0,0,0"/>
               <Popup IsOpen="{Binding IsChecked, ElementName=Toggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True">
                 <Border Margin="6" Background="{StaticResource ControlBackgroundBrush}"
@@ -141,7 +142,11 @@
                     <Menu.ItemTemplate>
                       <DataTemplate>
                         <MenuItem Header="{Binding FullName, Converter={sskk:FormatString}, ConverterParameter={x:Static r:Strings.ToolTipSetActiveVersion}}"
-                                  Command="{Binding SetAsActiveCommand}"/>
+                                  Command="{Binding SetAsActiveCommand}">
+                          <i:Interaction.Behaviors>
+                            <sskk:OnEventSetPropertyBehavior EventName="Click" EventOwnerType="MenuItem" Target="{Binding ElementName=Toggle}" Property="ToggleButton.IsChecked" Value="{sskk:False}" />
+                          </i:Interaction.Behaviors>
+                        </MenuItem>
                       </DataTemplate>
                     </Menu.ItemTemplate>
                   </Menu>
@@ -428,12 +433,30 @@
               <Border BorderBrush="{StaticResource TileBorderBrush}" BorderThickness="{StaticResource TileBorderThickness}" DockPanel.Dock="Top">
                 <StackPanel>
                   <Grid Height="48">
+                    <!-- Install specific version -->
+                    <Button IsEnabled="{sskk:MultiBinding {Binding ActiveVersion.IsProcessing, Converter={sskk:InvertBool}},
+                          {Binding ActiveVersion.DownloadCommand.IsEnabled}, Converter={sskk:AndMultiConverter}}"
+                          Command="{Binding ActiveVersion.DownloadCommand}" Content="{Binding ActiveVersion.FullName}"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch" TextBlock.FontSize="24"
+                          ContentStringFormat="{x:Static r:Strings.InstallVersion}" Background="{StaticResource EmphasisButtonBackground}" ToolTipService.IsEnabled="False"
+                          Visibility="{sskk:MultiBinding {Binding ActiveVersion.DownloadCommand.IsEnabled}, {Binding StartStudioCommand.IsEnabled, Converter={sskk:InvertBool}}, Converter={sskk:MultiChained {sskk:AndMultiConverter}, {sskk:VisibleOrCollapsed}}}"
+                          ToolTip="{Binding ActiveVersion.FullName, Converter={sskk:FormatString}, ConverterParameter={x:Static r:Strings.ToolTipDownload}}">
+                      <Button.Resources>
+                        <!-- ReSharper disable once Xaml.RedundantResource - Overriding hovered color from theme-->
+                        <SolidColorBrush x:Key="ButtonHoverBackgroundBrush" Color="{StaticResource EmphasisButtonHoverColor}"/>
+                      </Button.Resources>
+                      <i:Interaction.Behaviors>
+                        <sskk:BindCurrentToolTipStringBehavior ToolTipTarget="{Binding CurrentToolTip}"
+                                                                               DefaultValue="{x:Static r:Strings.ToolTipDefault}"/>
+                      </i:Interaction.Behaviors>
+                    </Button>
+                    <!-- Launch game studio -->
                     <Button IsEnabled="{sskk:MultiBinding {Binding ActiveVersion.IsProcessing, Converter={sskk:InvertBool}},
                           {Binding StartStudioCommand.IsEnabled}, Converter={sskk:AndMultiConverter}}"
                           Command="{Binding StartStudioCommand}" Content="{Binding ActiveVersion.FullName}"
                           HorizontalAlignment="Stretch" VerticalAlignment="Stretch" TextBlock.FontSize="24"
                           ContentStringFormat="{x:Static r:Strings.StartVersion}" Background="{StaticResource EmphasisButtonBackground}" ToolTipService.IsEnabled="False"
-                          Visibility="{Binding ActiveVersion, Converter={sskk:Chained {sskk:ObjectToBool}, {sskk:VisibleOrCollapsed}}}"
+                          Visibility="{Binding StartStudioCommand.IsEnabled, Converter={sskk:VisibleOrCollapsed}}"
                           ToolTip="{Binding ActiveVersion.FullName, Converter={sskk:FormatString}, ConverterParameter={x:Static r:Strings.ToolTipStartButton}}">
                       <Button.Resources>
                         <!-- ReSharper disable once Xaml.RedundantResource - Overriding hovered color from theme-->
@@ -444,6 +467,7 @@
                                                                                DefaultValue="{x:Static r:Strings.ToolTipDefault}"/>
                       </i:Interaction.Behaviors>
                     </Button>
+                    <!-- Install latest version (nothing installed) -->
                     <Button IsEnabled="{sskk:MultiBinding {Binding IsSynchronizing, Converter={sskk:InvertBool}},
                           {Binding InstallLatestVersionCommand.IsEnabled}, Converter={sskk:AndMultiConverter}}"
                           Command="{Binding InstallLatestVersionCommand}" Content="{x:Static r:Strings.InstallLatestVersion}"

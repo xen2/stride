@@ -14,8 +14,8 @@ namespace Xenko.LauncherApp.ViewModels
     internal sealed class XenkoStoreAlternateVersionViewModel : DispatcherViewModel
     {
         private XenkoStoreVersionViewModel xenkoVersion;
-        private NugetServerPackage serverPackage;
-        private NugetLocalPackage localPackage;
+        internal NugetServerPackage ServerPackage;
+        internal NugetLocalPackage LocalPackage;
 
         public XenkoStoreAlternateVersionViewModel([NotNull] XenkoStoreVersionViewModel xenkoVersion)
             : base(xenkoVersion.ServiceProvider)
@@ -24,11 +24,11 @@ namespace Xenko.LauncherApp.ViewModels
 
             SetAsActiveCommand = new AnonymousCommand(ServiceProvider, () =>
             {
-                xenkoVersion.UpdateLocalPackage(localPackage, null);
-                if (localPackage == null)
+                xenkoVersion.UpdateLocalPackage(LocalPackage, null);
+                if (LocalPackage == null)
                 {
                     // If it's a non installed version, offer same version for serverPackage so that it offers to install this specific version
-                    xenkoVersion.UpdateServerPackage(serverPackage, null);
+                    xenkoVersion.UpdateServerPackage(ServerPackage, null);
                 }
                 else
                 {
@@ -36,16 +36,7 @@ namespace Xenko.LauncherApp.ViewModels
                     xenkoVersion.UpdateServerPackage(xenkoVersion.LatestServerPackage, null);
                 }
 
-                if (!xenkoVersion.SetAsActiveCommand.IsEnabled && xenkoVersion.Launcher.ActiveVersion == xenkoVersion)
-                {
-                    // Non existing version, disable global active version
-                    xenkoVersion.Launcher.ActiveVersion = null;
-                }
-                else if (xenkoVersion.SetAsActiveCommand.IsEnabled)
-                {
-                    // Existing version, set as active
-                    xenkoVersion.Launcher.ActiveVersion = xenkoVersion;
-                }
+                xenkoVersion.Launcher.ActiveVersion = xenkoVersion;
             });
         }
 
@@ -58,25 +49,25 @@ namespace Xenko.LauncherApp.ViewModels
         {
             get
             {
-                if (localPackage != null)
-                    return $"{localPackage.Id} {localPackage.Version} (installed)";
-                return $"{serverPackage.Id} {serverPackage.Version}";
+                if (LocalPackage != null)
+                    return $"{LocalPackage.Id} {LocalPackage.Version} (installed)";
+                return $"{ServerPackage.Id} {ServerPackage.Version}";
             }
         }
 
-        public PackageVersion Version => localPackage?.Version ?? serverPackage.Version;
+        public PackageVersion Version => LocalPackage?.Version ?? ServerPackage.Version;
 
         internal void UpdateLocalPackage(NugetLocalPackage package)
         {
             OnPropertyChanging(nameof(FullName), nameof(Version));
-            localPackage = package;
+            LocalPackage = package;
             OnPropertyChanged(nameof(FullName), nameof(Version));
         }
 
         internal void UpdateServerPackage(NugetServerPackage package)
         {
             OnPropertyChanging(nameof(FullName), nameof(Version));
-            serverPackage = package;
+            ServerPackage = package;
             OnPropertyChanged(nameof(FullName), nameof(Version));
         }
     }
