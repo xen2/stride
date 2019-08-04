@@ -13,7 +13,7 @@
     <RootNamespace>Xenko.VisualStudio</RootNamespace>
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>Key.snk</AssemblyOriginatorKeyFile>
-    <TargetFramework>$(TargetFrameworkTool)</TargetFramework>
+    <TargetFrameworks>$(TargetFrameworksTool)</TargetFrameworks>
     <XenkoAssemblyProcessor>false</XenkoAssemblyProcessor>
     <XenkoBuildTags>WindowsTools</XenkoBuildTags>
     <XenkoSkipAutoPack>true</XenkoSkipAutoPack>

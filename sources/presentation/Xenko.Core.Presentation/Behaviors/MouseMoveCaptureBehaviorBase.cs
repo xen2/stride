@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Interactivity;
 using Xenko.Core.Annotations;
 using Xenko.Core.Presentation.Internal;
+using NotNullAttribute = Xenko.Core.Annotations.NotNullAttribute;
 
 namespace Xenko.Core.Presentation.Behaviors
 {

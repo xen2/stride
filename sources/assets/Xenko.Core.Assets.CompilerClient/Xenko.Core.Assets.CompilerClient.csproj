@@ -5,7 +5,7 @@
     <XenkoAssemblyProcessor>false</XenkoAssemblyProcessor>
     <OutputType>Exe</OutputType>
     <Prefer32Bit>false</Prefer32Bit>
-    <TargetFramework>$(TargetFrameworkTool)</TargetFramework>
+    <TargetFrameworks>$(TargetFrameworksTool)</TargetFrameworks>
     <XenkoBuildTags>WindowsTools</XenkoBuildTags>
     <XenkoAssemblyProcessor>true</XenkoAssemblyProcessor>
     <XenkoAssemblyProcessorOptions>--auto-module-initializer</XenkoAssemblyProcessorOptions>

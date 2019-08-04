@@ -19,6 +19,7 @@
     <LangVersion>7.3</LangVersion>
     <XenkoRuntimeTargetFramework>net461</XenkoRuntimeTargetFramework>
     <TargetFrameworkTool>net472</TargetFrameworkTool>
+    <TargetFrameworksTool>net472;netcoreapp3.0</TargetFrameworksTool>
     <TargetFrameworkVersionTool>v4.7.2</TargetFrameworkVersionTool>
     <XenkoPlatformDefines>XENKO_PLATFORM_WINDOWS;XENKO_PLATFORM_WINDOWS_DESKTOP;NET45</XenkoPlatformDefines>
 

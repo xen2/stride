@@ -3,13 +3,13 @@
   <Import Project="Sdk.props" Sdk="MSBuild.Sdk.Extras" Version="2.0.24" />
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <TargetFramework>$(TargetFrameworkTool)</TargetFramework>
+    <TargetFrameworks>$(TargetFrameworksTool)</TargetFrameworks>
     <XenkoAssemblyProcessor>true</XenkoAssemblyProcessor>
     <XenkoAssemblyProcessorOptions>--auto-module-initializer --serialization</XenkoAssemblyProcessorOptions>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NuGet.Protocol" Version="5.0.0" />
-    <PackageReference Include="NuGet.PackageManagement" Version="5.0.0" />
+    <PackageReference Include="NuGet.Protocol" Version="5.2.0" />
+    <PackageReference Include="Xenko.NuGet.PackageManagement" Version="5.2.0" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <Reference Include="System.Core" />
     <Reference Include="System.ComponentModel.DataAnnotations" />

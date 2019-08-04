@@ -3,7 +3,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net40</TargetFramework>
     <XenkoCommonDependenciesDir>..\..\..\deps\</XenkoCommonDependenciesDir>
-    <TargetFramework>$(TargetFrameworkTool)</TargetFramework>
+    <TargetFrameworks>$(TargetFrameworksTool)</TargetFrameworks>
     <XenkoBuildTags>WindowsTools</XenkoBuildTags>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
