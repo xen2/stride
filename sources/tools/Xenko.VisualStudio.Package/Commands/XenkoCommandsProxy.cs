@@ -212,6 +212,12 @@ namespace Xenko.VisualStudio.Commands
             return remote.GenerateShaderKeys(inputFileName, inputFileContent);
         }
 
+        public void GenerateScript(string @namespace, string name, string file)
+        {
+            if (remote is IXenkoCommands3 remote3)
+                remote3.GenerateScript(@namespace, name, file);
+        }
+
         public RawShaderNavigationResult AnalyzeAndGoToDefinition(string projectPath, string sourceCode, RawSourceSpan span)
         {
 

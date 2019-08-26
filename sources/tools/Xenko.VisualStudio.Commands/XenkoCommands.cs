@@ -11,11 +11,17 @@ using Xenko.VisualStudio.Commands.Shaders;
 using Xenko.Core.Shaders.Ast;
 using Xenko.Core.Shaders.Utility;
 using Xenko.Core;
+using Xenko.Core.Assets.Templates;
+using System.Linq;
+using Xenko.Assets.Presentation.Templates;
+using Xenko.Assets.Templates;
 
 namespace Xenko.VisualStudio.Commands
 {
-    public class XenkoCommands : IXenkoCommands, IXenkoCommands2
+    public class XenkoCommands : IXenkoCommands, IXenkoCommands2, IXenkoCommands3
     {
+        private const string CameraScriptDefaultOutputName = "BasicCameraController";
+
         public void Initialize(string xenkoSdkDir)
         {
             //DirectoryHelper.PackageDirectoryOverride = xenkoSdkDir;
@@ -27,6 +33,16 @@ namespace Xenko.VisualStudio.Commands
         {
             // This is implemented in the proxy only
             throw new NotImplementedException();
+        }
+
+        public void GenerateScript(string @namespace, string name, string file)
+        {
+            var cameraScriptTemplate = TemplateManager.FindTemplates().OfType<TemplateAssetDescription>().FirstOrDefault(x => x.DefaultOutputName == CameraScriptDefaultOutputName);
+            if (cameraScriptTemplate == null)
+                throw new InvalidOperationException($"Could not find template for script '{CameraScriptDefaultOutputName}'");
+
+            var scriptContent = ScriptTemplateGeneratorHelper.GenerateScript(cameraScriptTemplate, @namespace, name);
+            File.WriteAllText(file, scriptContent);
         }
 
         public void StartRemoteBuildLogServer(IBuildMonitorCallback buildMonitorCallback, string logPipeUrl)

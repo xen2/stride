@@ -74,6 +74,8 @@ namespace Xenko.VisualStudio
     // Temporarily force load for easier debugging
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExists_string, PackageAutoLoadFlags.BackgroundLoad)]
+    // Item template wizard
+    [ProvideBindingPath]
     public sealed class XenkoPackage : AsyncPackage, IOleComponent
     {
         public const string Version = "2.0";

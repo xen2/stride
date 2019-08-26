@@ -15,6 +15,7 @@ using Xenko.Core.Translation;
 using Xenko.Assets.Scripts;
 using EditorViewModel = Xenko.Core.Assets.Editor.ViewModel.EditorViewModel;
 using System.Linq;
+using Xenko.Assets.Templates;
 
 namespace Xenko.Assets.Presentation.Templates
 {
@@ -136,13 +137,10 @@ namespace Xenko.Assets.Presentation.Templates
         protected override IEnumerable<AssetItem> CreateAssets(AssetTemplateGeneratorParameters parameters)
         {
             var desc = parameters.Description;
-            var scriptFile = Path.ChangeExtension(desc.FullPath, ScriptSourceFileAsset.Extension);
 
-            var scriptContent = File.ReadAllText(scriptFile);
             parameters.Name = parameters.Tags.Get(ClassNameKey);
             var location = GenerateLocation(parameters);
-            scriptContent = scriptContent.Replace("##Namespace##", parameters.Namespace);
-            scriptContent = scriptContent.Replace("##Scriptname##", location.GetFileNameWithoutExtension());
+            var scriptContent = ScriptTemplateGeneratorHelper.GenerateScript(desc, parameters.Namespace, location.GetFileNameWithoutExtension());
 
             var asset = (ScriptSourceFileAsset)ObjectFactoryRegistry.NewInstance(typeof(ScriptSourceFileAsset));
             asset.Id = SourceCodeAsset.GenerateIdFromLocation(parameters.Package.Meta.Name, location);

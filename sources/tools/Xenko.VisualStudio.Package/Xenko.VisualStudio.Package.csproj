@@ -23,6 +23,7 @@
     <None Remove="NShader\Common\GLSLKeywords.map" />
     <None Remove="NShader\Common\HLSLKeywords.map" />
     <None Remove="NShader\Common\XenkoShaderKeywords.map" />
+    <None Remove="XenkoScripts.vstemplate" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="EnvDTE80" Version="8.0.3" />
@@ -32,7 +33,8 @@
     <PackageReference Include="Microsoft.VisualStudio.Package.LanguageService.14.0" Version="14.0.23205" />
     <PackageReference Include="Microsoft.VisualStudio.Shell.Interop.14.0.DesignTime" Version="14.0.25023" />
     <PackageReference Include="VSLangProj" Version="7.0.3301" />
-    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="15.0.26201" />
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="16.2.3074" />
+    <PackageReference Include="VSSDK.TemplateWizardInterface" Version="12.0.4" />
 
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.ComponentModel.Composition" />
@@ -132,9 +134,18 @@
     <ProjectReference Include="..\..\core\Xenko.Core.MicroThreading\Xenko.Core.MicroThreading.csproj" AdditionalProperties="TargetFramework=netstandard2.0" />
     <ProjectReference Include="..\..\core\Xenko.Core.Serialization\Xenko.Core.Serialization.csproj" AdditionalProperties="TargetFramework=netstandard2.0" />
     <ProjectReference Include="..\..\assets\Xenko.Core.Assets\Xenko.Core.Assets.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+    <ProjectReference Include="..\Xenko.VisualStudio.Templates\Xenko.VisualStudio.Templates.csproj">
+      <Name>Xenko.VisualStudio.Templates</Name>
+      <VSIXSubPath>ItemTemplates</VSIXSubPath>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="NuGet\" />
+  </ItemGroup>
+  <ItemGroup>
+    <VSTemplate Include="XenkoScripts.vstemplate" />
   </ItemGroup>
   <Import Project="..\..\assets\Xenko.Core.Assets.Yaml\Xenko.Core.Assets.Yaml.projitems" Label="Shared" />
   <PropertyGroup>
