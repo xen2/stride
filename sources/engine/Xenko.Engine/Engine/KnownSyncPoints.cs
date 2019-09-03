@@ -1,4 +1,6 @@
-namespace Xenko.Core.Scripting
+using Xenko.Core.Scripting;
+
+namespace Xenko.Engine
 {
     /// <summary>
     /// Various well-known sync points that can be used to setup scripting.
@@ -16,6 +18,7 @@ namespace Xenko.Core.Scripting
         public static readonly SyncPoint UpdateEnd = new SyncPoint { Dependencies = { UpdatePhysics } };
 
         public static readonly SyncPoint DrawStart = new SyncPoint();
-        public static readonly SyncPoint DrawEnd = new SyncPoint { Dependencies = { DrawStart } };
+        public static readonly SyncPoint DrawScene = new SyncPoint { Dependencies = { DrawStart } };
+        public static readonly SyncPoint DrawEnd = new SyncPoint { Dependencies = { DrawScene } };
     }
 }

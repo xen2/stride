@@ -7,11 +7,11 @@ namespace Xenko.Engine.Processors
     /// <summary>
     /// Manage scripts
     /// </summary>
-    public sealed class ScriptProcessor : EntityProcessor<MicroThreadScript>
+    public sealed class ScriptProcessor2 : EntityProcessor<Script>
     {
-        private ScriptSystem scriptSystem;
+        private ScriptSystem2 scriptSystem;
 
-        public ScriptProcessor()
+        public ScriptProcessor2()
         {
             // Script processor always running before others
             Order = -100000;
@@ -19,18 +19,18 @@ namespace Xenko.Engine.Processors
 
         protected internal override void OnSystemAdd()
         {
-            scriptSystem = Services.GetService<ScriptSystem>();
+            scriptSystem = Services.GetService<ScriptSystem2>();
         }
 
         /// <inheritdoc/>
-        protected override void OnEntityComponentAdding(Entity entity, MicroThreadScript component, MicroThreadScript associatedData)
+        protected override void OnEntityComponentAdding(Entity entity, Script component, Script associatedData)
         {
             // Add current list of scripts
             scriptSystem.Add(component);
         }
 
         /// <inheritdoc/>
-        protected override void OnEntityComponentRemoved(Entity entity, MicroThreadScript component, MicroThreadScript associatedData)
+        protected override void OnEntityComponentRemoved(Entity entity, Script component, Script associatedData)
         {
             scriptSystem.Remove(component);
         }

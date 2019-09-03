@@ -20,11 +20,33 @@ using Xenko.Streaming;
 
 namespace Xenko.Engine
 {
+    [DefaultEntityComponentProcessor(typeof(ScriptProcessor), ExecutionMode = ExecutionMode.Runtime)]
+    public abstract class MicroThreadScript : ScriptComponent
+    {
+        private int priority;
+
+        /// <summary>
+        /// The priority this script will be scheduled with (compared to other scripts).
+        /// </summary>
+        /// <userdoc>The execution priority for this script. It applies to async, sync and startup scripts. Lower values mean earlier execution.</userdoc>
+        [DefaultValue(0)]
+        [DataMember(10000)]
+        public int Priority
+        {
+            get { return priority; }
+            set { priority = value; PriorityUpdated(); }
+        }
+
+        /// <summary>
+        /// Determines whether the script is currently undergoing live reloading.
+        /// </summary>
+        public bool IsLiveReloading { get; internal set; }
+    }
+
     /// <summary>
     /// Script component.
     /// </summary>
     [DataContract("ScriptComponent", Inherited = true)]
-    [DefaultEntityComponentProcessor(typeof(ScriptProcessor), ExecutionMode = ExecutionMode.Runtime)]
     [Display(Expand = ExpandRule.Once)]
     [AllowMultipleComponents]
     [ComponentOrder(1000)]
@@ -148,25 +170,6 @@ namespace Xenko.Engine
                 return logger;
             }
         }
-
-        private int priority;
-
-        /// <summary>
-        /// The priority this script will be scheduled with (compared to other scripts).
-        /// </summary>
-        /// <userdoc>The execution priority for this script. It applies to async, sync and startup scripts. Lower values mean earlier execution.</userdoc>
-        [DefaultValue(0)]
-        [DataMember(10000)]
-        public int Priority
-        {
-            get { return priority; }
-            set { priority = value; PriorityUpdated(); }
-        }
-
-        /// <summary>
-        /// Determines whether the script is currently undergoing live reloading.
-        /// </summary>
-        public bool IsLiveReloading { get; internal set; }
 
         /// <summary>
         /// The object collector associated with this script.

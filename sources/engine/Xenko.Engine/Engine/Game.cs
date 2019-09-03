@@ -67,6 +67,8 @@ namespace Xenko.Engine
         /// <value>The script.</value>
         public ScriptSystem Script { get; }
 
+        public ScriptSystem2 Script2 { get; }
+
         /// <summary>
         /// Gets the input manager.
         /// </summary>
@@ -200,6 +202,9 @@ namespace Xenko.Engine
             // Registration takes place in `Initialize'.
             Script = new ScriptSystem(Services);
             Services.AddService(Script);
+
+            Script2 = new ScriptSystem2(Services);
+            Services.AddService(Script2);
 
             SceneSystem = new SceneSystem(Services);
             Services.AddService(SceneSystem);
@@ -359,6 +364,7 @@ namespace Xenko.Engine
             // - Must be before Entities/Camera/Audio/UI, so that scripts can apply
             // changes in the same frame they will be applied
             GameSystems.Add(Script);
+            GameSystems.Add(Script2);
 
             // Add the Font system
             GameSystems.Add(gameFontSystem);

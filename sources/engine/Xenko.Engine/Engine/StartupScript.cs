@@ -6,7 +6,7 @@ using Xenko.Core.MicroThreading;
 
 namespace Xenko.Engine
 {
-    public abstract class StartupScript : ScriptComponent
+    public abstract class StartupScript : MicroThreadScript
     {
         internal PriorityQueueNode<SchedulerEntry> StartSchedulerNode;
 

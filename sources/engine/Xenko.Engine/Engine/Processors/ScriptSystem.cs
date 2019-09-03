@@ -27,10 +27,10 @@ namespace Xenko.Engine.Processors
         /// <summary>
         /// Contains all currently executed scripts
         /// </summary>
-        private readonly HashSet<ScriptComponent> registeredScripts = new HashSet<ScriptComponent>();
-        private readonly HashSet<ScriptComponent> scriptsToStart = new HashSet<ScriptComponent>();
+        private readonly HashSet<MicroThreadScript> registeredScripts = new HashSet<MicroThreadScript>();
+        private readonly HashSet<MicroThreadScript> scriptsToStart = new HashSet<MicroThreadScript>();
         private readonly HashSet<SyncScript> syncScripts = new HashSet<SyncScript>();
-        private readonly List<ScriptComponent> scriptsToStartCopy = new List<ScriptComponent>();
+        private readonly List<MicroThreadScript> scriptsToStartCopy = new List<MicroThreadScript>();
         private readonly List<SyncScript> syncScriptsCopy = new List<SyncScript>();
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace Xenko.Engine.Processors
         /// Add the provided script to the script system.
         /// </summary>
         /// <param name="script">The script to add</param>
-        public void Add(ScriptComponent script)
+        public void Add(MicroThreadScript script)
         {
             script.Initialize(Services);
             registeredScripts.Add(script);
@@ -182,7 +182,7 @@ namespace Xenko.Engine.Processors
         /// Remove the provided script from the script system.
         /// </summary>
         /// <param name="script">The script to remove</param>
-        public void Remove(ScriptComponent script)
+        public void Remove(MicroThreadScript script)
         {
             // Make sure it's not registered in any pending list
             var startWasPending = scriptsToStart.Remove(script);
@@ -229,7 +229,7 @@ namespace Xenko.Engine.Processors
         /// </summary>
         /// <param name="oldScript">The old script</param>
         /// <param name="newScript">The new script</param>
-        public void LiveReload(ScriptComponent oldScript, ScriptComponent newScript)
+        public void LiveReload(MicroThreadScript oldScript, MicroThreadScript newScript)
         {
             // Set live reloading mode for the rest of it's lifetime
             oldScript.IsLiveReloading = true;
@@ -240,10 +240,10 @@ namespace Xenko.Engine.Processors
 
         private void Scheduler_ActionException(Scheduler scheduler, SchedulerEntry schedulerEntry, Exception e)
         {
-            HandleSynchronousException((ScriptComponent)schedulerEntry.Token, e);
+            HandleSynchronousException((MicroThreadScript)schedulerEntry.Token, e);
         }
 
-        private void HandleSynchronousException(ScriptComponent script, Exception e)
+        private void HandleSynchronousException(MicroThreadScript script, Exception e)
         {
             Log.Error("Unexpected exception while executing a script.", e);
 
@@ -261,11 +261,11 @@ namespace Xenko.Engine.Processors
             registeredScripts.Remove(script);
         }
 
-        private class PriorityScriptComparer : IComparer<ScriptComponent>
+        private class PriorityScriptComparer : IComparer<MicroThreadScript>
         {
             public static readonly PriorityScriptComparer Default = new PriorityScriptComparer();
 
-            public int Compare(ScriptComponent x, ScriptComponent y)
+            public int Compare(MicroThreadScript x, MicroThreadScript y)
             {
                 return x.Priority.CompareTo(y.Priority);
             }

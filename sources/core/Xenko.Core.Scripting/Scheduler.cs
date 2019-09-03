@@ -52,6 +52,8 @@ namespace Xenko.Core.Scripting
                     // Move all callbacks from nextframe to current frame
                     currentSyncPoint.CallbackStartStep();
 
+                    ProcessYields();
+
                     while (currentSyncPoint.TryGetCallback(out var callback))
                     {
                         if (!announced)
@@ -74,11 +76,7 @@ namespace Xenko.Core.Scripting
                             callback.Context.SetException(e);
                         }
 
-                        // Process Yields
-                        while (yields.TryDequeue(out var yield))
-                        {
-                            yield.SignalCompletion();
-                        }
+                        ProcessYields();
                     }
 
                     foreach (var successor in currentSyncPoint.Successors)
@@ -91,6 +89,15 @@ namespace Xenko.Core.Scripting
             {
                 SynchronizationContext.SetSynchronizationContext(previousSyncContext);
                 Frame++;
+            }
+        }
+
+        private void ProcessYields()
+        {
+            // Process Yields
+            while (yields.TryDequeue(out var yield))
+            {
+                yield.SignalCompletion();
             }
         }
 

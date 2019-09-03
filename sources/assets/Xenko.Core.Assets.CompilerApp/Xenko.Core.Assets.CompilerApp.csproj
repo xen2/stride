@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
   <PropertyGroup>
     <XenkoPlatform>Windows</XenkoPlatform>
   </PropertyGroup>

@@ -21,9 +21,6 @@ namespace Xenko.Engine
     {
         private static readonly Logger Log = GlobalLogger.GetLogger("SceneSystem");
 
-        private RenderContext renderContext;
-        private RenderDrawContext renderDrawContext;
-
         private int previousWidth;
         private int previousHeight;
 
@@ -99,7 +96,7 @@ namespace Xenko.Engine
 
         private SplashScreenState splashScreenState = SplashScreenState.Invalid;
 
-        protected override void LoadContent()
+        public async ValueTask MainScript()
         {
             var content = Services.GetSafeServiceAs<ContentManager>();
             var graphicsContext = Services.GetSafeServiceAs<GraphicsContext>();
@@ -129,8 +126,21 @@ namespace Xenko.Engine
             }
 
             // Create the drawing context
-            renderContext = RenderContext.GetShared(Services);
-            renderDrawContext = new RenderDrawContext(Services, renderContext, graphicsContext);
+            var renderContext = RenderContext.GetShared(Services);
+            var renderDrawContext = new RenderDrawContext(Services, renderContext, graphicsContext);
+
+            while (true)
+            {
+                await KnownSyncPoints.UpdateStart.During();
+
+                // Execute Update step of SceneInstance
+                // This will run entity processors
+                SceneInstance?.Update(Game.UpdateTime);
+
+                await KnownSyncPoints.DrawScene.During();
+
+                Draw(Game.DrawTime, renderContext, renderDrawContext);
+            }
         }
 
         protected override void Destroy()
@@ -187,7 +197,7 @@ namespace Xenko.Engine
             Game.GraphicsContext.CommandList.SetViewport(initialViewport);
         }
 
-        public override void Draw(GameTime gameTime)
+        public void Draw(GameTime gameTime, RenderContext renderContext, RenderDrawContext renderDrawContext);
         {
             // Reset the context
             renderContext.Reset();
