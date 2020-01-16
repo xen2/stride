@@ -164,6 +164,31 @@ namespace Xenko.Games
             }
         }
 
+        public override void Prepare()
+        {
+            // Initialize the init callback
+            InitCallback?.Invoke();
+
+            messageLoop = new WindowsMessageLoop(Control);
+        }
+
+        WindowsMessageLoop messageLoop;
+
+        public override void Tick()
+        {
+            if (messageLoop.NextFrame())
+            {
+                if (Exiting)
+                {
+                    Destroy();
+                    return;
+                }
+
+                RunCallback?.Invoke();
+            }
+        }
+
+
         internal override void Run()
         {
             Debug.Assert(InitCallback != null, $"{nameof(InitCallback)} is null");

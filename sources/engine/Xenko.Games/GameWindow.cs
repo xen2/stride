@@ -186,6 +186,14 @@ namespace Xenko.Games
 
         internal Action ExitCallback;
 
+        public virtual void Prepare()
+        {
+        }
+
+        public virtual void Tick()
+        {
+        }
+
         internal abstract void Run();
 
         internal abstract void Resize(int width, int height);

@@ -51,6 +51,7 @@ namespace Xenko.Games
             : base(registry)
         {
             GameContext = gameContext;
+            Visible = true;
         }
 
         /// <summary>
@@ -161,6 +162,8 @@ namespace Xenko.Games
 
             Window.ClientSizeChanged += WindowOnClientSizeChanged;
 
+            Window.Prepare();
+
             base.Initialize();
         }
 
@@ -199,6 +202,8 @@ namespace Xenko.Games
 
         public override bool BeginDraw()
         {
+            Window.Tick();
+
             if (GraphicsDevice != null && Window.Visible)
             {
                 savedPresenter = GraphicsDevice.Presenter;
