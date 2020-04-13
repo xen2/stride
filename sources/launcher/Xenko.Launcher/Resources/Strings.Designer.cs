@@ -61,6 +61,18 @@ namespace Xenko.LauncherApp.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Xenko has been renamed to Stride!
+        ///
+        ///Do you want to install the new Stride Launcher?
+        ///It handles both Xenko (v2 and v3) and Stride (v4+)..
+        /// </summary>
+        public static string AskInstallStride {
+            get {
+                return ResourceManager.GetString("AskInstallStride", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to It seems you do not have any version of Xenko currently installed. Would you like to install the latest version?.
         /// </summary>
         public static string AskInstallVersion {

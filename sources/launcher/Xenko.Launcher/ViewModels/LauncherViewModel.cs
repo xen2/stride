@@ -22,6 +22,7 @@ using Xenko.Core.Presentation.Commands;
 using Xenko.Core.Presentation.Services;
 using Xenko.Core.Presentation.ViewModel;
 using Xenko.Metrics;
+using System.Reflection;
 
 namespace Xenko.LauncherApp.ViewModels
 {
@@ -145,6 +146,7 @@ namespace Xenko.LauncherApp.ViewModels
             IsSynchronizing = true;
             await Task.Run(async () =>
             {
+                await AskUpdateStride();
                 await RetrieveLocalXenkoVersions();
                 await RunLockTask(async () =>
                 {
@@ -175,6 +177,36 @@ namespace Xenko.LauncherApp.ViewModels
                 await FetchNewsPages();
             });
             IsSynchronizing = false;
+        }
+
+        private async Task AskUpdateStride()
+        {
+            var result = await ServiceProvider.Get<IDialogService>().MessageBox(Strings.AskInstallStride, MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                var strideInstaller = Path.Combine(Path.GetTempPath(), $"StrideSetup-{Guid.NewGuid()}.exe");
+
+                try
+                {
+                    using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(Assembly.GetExecutingAssembly().GetManifestResourceNames().Single(x => x.EndsWith(".StrideSetup.exe"))))
+                    using (var fileStream = new FileStream(strideInstaller, FileMode.CreateNew))
+                        await stream.CopyToAsync(fileStream);
+
+                    var startInfo = new ProcessStartInfo(strideInstaller)
+                    {
+                        UseShellExecute = true
+                    };
+                    // Release the mutex before starting the new process
+                    Launcher.Mutex.Dispose();
+
+                    Process.Start(startInfo);
+                }
+                catch (Exception e)
+                {
+                    await ServiceProvider.Get<IDialogService>().MessageBox(string.Format(Strings.ErrorStartingProcess, strideInstaller) + Environment.NewLine + Environment.NewLine + e.Message, MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                Environment.Exit(0);
+            }
         }
 
         internal void LoadRecentProjects()

@@ -192,12 +192,13 @@ namespace Xenko.LauncherApp
                 if (!UninstallHelper.CloseProcessesInPath(DisplayMessage, "Xenko", path))
                     return LauncherErrorCode.UninstallCancelled; // User cancelled
 
-                // Uninstall packages (they might have uninstall actions)
-                var store = new NugetStore(path);
-                foreach (var package in store.MainPackageIds.SelectMany(store.GetLocalPackages).FilterXenkoMainPackages().ToList())
-                {
-                    store.UninstallPackage(package, null).Wait();
-                }
+                // Note: disabled package uninstall so that installing Stride on top of Xenko keeps existing packages
+                //// Uninstall packages (they might have uninstall actions)
+                //var store = new NugetStore(path);
+                //foreach (var package in store.MainPackageIds.SelectMany(store.GetLocalPackages).FilterXenkoMainPackages().ToList())
+                //{
+                //    store.UninstallPackage(package, null).Wait();
+                //}
 
                 foreach (var remainingFiles in Directory.GetFiles(path, "*.lock").Concat(Directory.GetFiles(path, "*.old")))
                 {

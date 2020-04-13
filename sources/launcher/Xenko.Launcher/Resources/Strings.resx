@@ -426,4 +426,10 @@
     <value>Install {0}</value>
     <comment>{0}: long version name</comment>
   </data>
+  <data name="AskInstallStride" xml:space="preserve">
+    <value>Xenko has been renamed to Stride!
+
+Do you want to install the new Stride Launcher?
+It handles both Xenko (v2 and v3) and Stride (v4+).</value>
+  </data>
 </root>
