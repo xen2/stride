@@ -54,6 +54,9 @@
     <!-- Try to guess correct which version of asset compiler to use depending on user TargetFramework -->
     <StrideCompileAssetTargetFramework Condition="'$(StrideCompileAssetTargetFramework)' == '' And Exists('$(StrideCompileAssetCommandPath)\netcoreapp3.1\Stride.Core.Assets.CompilerApp.exe') And $(TargetFramework.StartsWith('netcoreapp'))">netcoreapp3.1</StrideCompileAssetTargetFramework>
     <StrideCompileAssetTargetFramework Condition="'$(StrideCompileAssetTargetFramework)' == '' And Exists('$(StrideCompileAssetCommandPath)\net472\Stride.Core.Assets.CompilerApp.exe')">net472</StrideCompileAssetTargetFramework>
+    
+    <!-- If no match, maybe we built only for netcoreapp3.1 so default to that -->
+    <StrideCompileAssetTargetFramework Condition="'$(StrideCompileAssetTargetFramework)' == '' And Exists('$(StrideCompileAssetCommandPath)\netcoreapp3.1\Stride.Core.Assets.CompilerApp.exe')">netcoreapp3.1</StrideCompileAssetTargetFramework>
 
     <StrideCompileAssetCommand Condition="'$(StrideCompileAssetCommand)' == ''">$(StrideCompileAssetCommandPath)\$(StrideCompileAssetTargetFramework)\Stride.Core.Assets.CompilerApp.exe</StrideCompileAssetCommand>
 
