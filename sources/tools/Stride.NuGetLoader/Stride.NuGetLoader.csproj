@@ -1,4 +1,10 @@
 <Project>
+  <PropertyGroup>
+    <StrideSTAThreadOnMain>true</StrideSTAThreadOnMain>
+    <StrideNuGetResolverUX>true</StrideNuGetResolverUX>
+    <StrideNuGetLoaderWindowsDesktop>true</StrideNuGetLoaderWindowsDesktop>
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
   <Import Project="Sdk.props" Condition="'$(StrideNuGetLoaderWindowsDesktop)' != 'true'" Sdk="Microsoft.NET.Sdk" />
   <Import Project="Sdk.props" Condition="'$(StrideNuGetLoaderWindowsDesktop)' == 'true'" Sdk="Microsoft.NET.Sdk.WindowsDesktop" />
 
