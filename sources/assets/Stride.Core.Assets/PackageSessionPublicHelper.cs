@@ -8,6 +8,13 @@ using Microsoft.Build.Locator;
 
 namespace Stride.Core.Assets
 {
+    public enum MSBuildDetectionError
+    {
+        MSBuildNotFound,
+        NoMatchingToolset,
+        NoNetSDK,
+    }
+
     /// <summary>
     /// Helper class to load/save a VisualStudio solution.
     /// </summary>
