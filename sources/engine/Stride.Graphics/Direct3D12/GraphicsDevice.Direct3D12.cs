@@ -14,6 +14,9 @@ namespace Stride.Graphics
 {
     public partial class GraphicsDevice
     {
+        private static object debugLayerLock = new object();
+        private static bool debugLayerLoaded = false;
+
         // D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT (not exposed by SharpDX)
         internal readonly int ConstantBufferDataPlacementAlignment = 256;
 
@@ -233,7 +236,16 @@ namespace Stride.Graphics
             bool isDebug = (deviceCreationFlags & DeviceCreationFlags.Debug) != 0;
             if (isDebug)
             {
-                SharpDX.Direct3D12.DebugInterface.Get().EnableDebugLayer();
+                // Protection in case two device are created at the same time
+                // We need to make sure other threads can't get past this point until debug layer is fully loaded
+                lock (debugLayerLock)
+                {
+                    if (!debugLayerLoaded)
+                    {
+                        debugLayerLoaded = true;
+                        DebugInterface.Get().EnableDebugLayer();
+                    }
+                }
             }
 
             // Create Device D3D12 with feature Level based on profile
@@ -297,6 +309,7 @@ namespace Stride.Graphics
                         // Disable irrelevant debug layer warnings
                         InfoQueueFilter filter = new InfoQueueFilter
                         {
+                            AllowList = new InfoQueueFilterDescription(),
                             DenyList = new InfoQueueFilterDescription
                             {
                                 Ids = disabledMessages

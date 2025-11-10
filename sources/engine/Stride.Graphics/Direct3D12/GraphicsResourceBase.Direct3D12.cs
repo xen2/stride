@@ -18,6 +18,8 @@ namespace Stride.Graphics
 
         protected internal SharpDX.Direct3D12.Resource NativeResource { get; private set; }
 
+        protected bool IsDebugMode => GraphicsDevice != null && GraphicsDevice.IsDebugMode;
+
         private void Initialize()
         {
         }
@@ -46,6 +48,8 @@ namespace Stride.Graphics
         /// </summary>
         internal static void SetDebugName(GraphicsDevice graphicsDevice, SharpDX.Direct3D12.DeviceChild deviceChild, string name)
         {
+            if (graphicsDevice.IsDebugMode && deviceChild != null)
+                deviceChild.Name = $"{name} ({deviceChild.NativePointer.ToString("X16")})";
         }
 
         /// <summary>
