@@ -436,7 +436,7 @@ namespace Stride.Graphics
         }
 
         /// <inheritdoc/>
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             using (GraphicsDevice.UseOpenGLCreationContext())
             {
@@ -462,7 +462,7 @@ namespace Stride.Graphics
             stencilId = 0;
             pixelBufferObjectId = 0;
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         private static void ConvertDepthFormat(GraphicsDevice graphicsDevice, PixelFormat requestedFormat, out InternalFormat depthFormat)

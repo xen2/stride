@@ -243,7 +243,7 @@ namespace Stride.Graphics
             NativeUnorderedAccessView = GetUnorderedAccessView(ViewType, ArraySlice, MipLevel);
         }
 
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             // If it was a View, do not release reference
             if (ParentTexture != null)
@@ -255,7 +255,7 @@ namespace Stride.Graphics
                 GraphicsDevice?.RegisterTextureMemoryUsage(-SizeInBytes);
             }
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         private void OnRecreateImpl()

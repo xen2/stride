@@ -51,14 +51,14 @@ namespace Stride.Graphics
         }
 
         /// <inheritdoc/>
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             if (GraphicsDevice != null)
             {
                 GraphicsDevice.RegisterBufferMemoryUsage(-SizeInBytes);
             }
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         /// <inheritdoc/>

@@ -55,14 +55,23 @@ namespace Stride.Graphics
         /// <summary>
         /// Called when graphics device has been detected to be internally destroyed.
         /// </summary>
-        protected internal virtual void OnDestroyed()
+        protected internal virtual void OnDestroyed(bool immediate = false)
         {
             Destroyed?.Invoke(this, EventArgs.Empty);
 
             if (nativeDeviceChild != null)
             {
-                // Schedule the resource for destruction (as soon as we are done with it)
-                GraphicsDevice.TemporaryResources.Enqueue(new KeyValuePair<long, object>(GraphicsDevice.NextFenceValue, nativeDeviceChild));
+                if (immediate)
+                {
+                    // We make sure all previous command lists are completed (GPU->CPU sync point)
+                    GraphicsDevice.WaitNativeCommandQueueComplete();
+                    ((SharpDX.IUnknown)nativeDeviceChild).Release();
+                }
+                else
+                {
+                    // Schedule the resource for destruction (as soon as we are done with it)
+                    GraphicsDevice.TemporaryResources.Enqueue(new KeyValuePair<long, object>(GraphicsDevice.NextFenceValue, nativeDeviceChild));
+                }
                 nativeDeviceChild = null;
             }
             NativeResource = null;

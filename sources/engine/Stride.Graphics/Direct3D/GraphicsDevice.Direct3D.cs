@@ -297,7 +297,7 @@ namespace Stride.Graphics
             nativeDevice = null;
         }
 
-        internal void OnDestroyed()
+        internal void OnDestroyed(bool immediate = false)
         {
         }
 

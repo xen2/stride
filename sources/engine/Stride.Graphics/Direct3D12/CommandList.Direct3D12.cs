@@ -57,7 +57,7 @@ namespace Stride.Graphics
         }
 
         /// <inheritdoc/>
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             // Recycle heaps
             ResetSrvHeap(createNewHeap: false);
@@ -82,7 +82,7 @@ namespace Stride.Graphics
                 NativeCommandLists.Dequeue().Dispose();
             }
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         public void Reset()

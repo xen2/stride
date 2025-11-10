@@ -70,13 +70,13 @@ namespace Stride.Graphics
         }
 
         /// <inheritdoc/>
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             NativeQueryHeap.Dispose();
             readbackBuffer.Dispose();
             readbackFence.Dispose();
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         internal void ResetInternal()

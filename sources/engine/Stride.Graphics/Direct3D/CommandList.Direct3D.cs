@@ -59,11 +59,11 @@ namespace Stride.Graphics
         internal SharpDX.Direct3D11.DeviceContext NativeDeviceContext => nativeDeviceContext;
 
         /// <inheritdoc/>
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             Utilities.Dispose(ref nativeDeviceProfiler);
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         public void Reset()

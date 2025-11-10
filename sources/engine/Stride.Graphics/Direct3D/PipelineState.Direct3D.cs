@@ -112,7 +112,7 @@ namespace Stride.Graphics
             }
         }
 
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             var pipelineStateCache = GetPipelineStateCache();
 
@@ -138,7 +138,7 @@ namespace Stride.Graphics
 
             inputLayout?.Dispose();
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         private void CreateInputLayout(InputElementDescription[] inputElements)

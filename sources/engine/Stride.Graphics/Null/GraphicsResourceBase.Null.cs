@@ -21,7 +21,7 @@ namespace Stride.Graphics
         /// <summary>
         /// Called when graphics device has been detected to be internally destroyed.
         /// </summary>
-        protected internal virtual void OnDestroyed()
+        protected internal virtual void OnDestroyed(bool immediate = false)
         {
             Destroyed?.Invoke(this, EventArgs.Empty);
             NullHelper.ToImplement();

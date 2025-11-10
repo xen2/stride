@@ -58,12 +58,12 @@ namespace Stride.Graphics
             }
         }
 
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             ReleaseComObject(ref SrvHeap);
             ReleaseComObject(ref SamplerHeap);
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
     }
 }

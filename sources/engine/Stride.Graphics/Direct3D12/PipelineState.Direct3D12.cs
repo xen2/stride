@@ -272,7 +272,7 @@ namespace Stride.Graphics
             }
         }
 
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             RootSignature?.Dispose();
             RootSignature = null;
@@ -280,7 +280,7 @@ namespace Stride.Graphics
             CompiledState?.Dispose();
             CompiledState = null;
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         private unsafe SharpDX.Direct3D12.BlendStateDescription CreateBlendState(BlendStateDescription description)

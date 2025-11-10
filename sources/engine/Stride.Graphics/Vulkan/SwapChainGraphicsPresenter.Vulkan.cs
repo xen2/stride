@@ -102,9 +102,9 @@ namespace Stride.Graphics
 //                {
 //                    // Force render target destruction
 //                    // TODO: We should track all user created render targets that points to back buffer as well (or deny their creation?)
-//                    backBuffer.OnDestroyed();
+//                    backBuffer.OnDestroyed(true);
 
-//                    OnDestroyed();
+//                    OnDestroyed(true);
 
 //                    Description.IsFullScreen = true;
 
@@ -180,14 +180,14 @@ namespace Stride.Graphics
         }
 
         /// <inheritdoc/>
-        protected internal override unsafe void OnDestroyed()
+        protected internal override unsafe void OnDestroyed(bool immediate = false)
         {
             DestroySwapchain();
 
             vkDestroySurfaceKHR(GraphicsDevice.NativeInstance, surface, null);
             surface = VkSurfaceKHR.Null;
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         /// <inheritdoc/>
@@ -215,7 +215,7 @@ namespace Stride.Graphics
             newTextureDescription.Height = height;
 
             // Manually update the texture
-            DepthStencilBuffer.OnDestroyed();
+            DepthStencilBuffer.OnDestroyed(true);
 
             // Put it in our back buffer texture
             DepthStencilBuffer.InitializeFrom(newTextureDescription);
@@ -229,7 +229,7 @@ namespace Stride.Graphics
 
             vkDeviceWaitIdle(GraphicsDevice.NativeDevice);
 
-            backbuffer.OnDestroyed();
+            backbuffer.OnDestroyed(true);
 
             foreach (var swapchainImage in swapchainImages)
             {

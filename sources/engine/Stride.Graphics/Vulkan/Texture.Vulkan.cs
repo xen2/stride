@@ -413,7 +413,7 @@ namespace Stride.Graphics
         }
 
         /// <inheritdoc/>
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             if (ParentTexture != null || isNotOwningResources)
             {
@@ -460,7 +460,7 @@ namespace Stride.Graphics
                 }
             }
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         private void OnRecreateImpl()

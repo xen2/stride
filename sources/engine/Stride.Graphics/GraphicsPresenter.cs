@@ -222,7 +222,7 @@ namespace Stride.Graphics
         /// <summary>
         /// Called when [destroyed].
         /// </summary>
-        protected internal virtual void OnDestroyed()
+        protected internal virtual void OnDestroyed(bool immediate = false)
         {
         }
 

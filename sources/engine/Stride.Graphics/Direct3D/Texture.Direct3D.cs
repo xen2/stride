@@ -198,7 +198,7 @@ namespace Stride.Graphics
             }
         }
 
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             // If it was a View, do not release reference
             if (ParentTexture != null)
@@ -213,7 +213,7 @@ namespace Stride.Graphics
             ReleaseComObject(ref renderTargetView);
             ReleaseComObject(ref depthStencilView);
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         private void OnRecreateImpl()

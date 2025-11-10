@@ -211,6 +211,13 @@ namespace Stride.Graphics
             return rendererName;
         }
 
+        internal void WaitNativeCommandQueueComplete()
+        {
+            var fenceValue = NextFenceValue++;
+            NativeCommandQueue.Signal(nativeFence, fenceValue);
+            NativeCommandQueue.Wait(nativeFence, fenceValue);
+        }
+
         /// <summary>
         ///     Initializes the specified device.
         /// </summary>
@@ -470,7 +477,7 @@ namespace Stride.Graphics
             nativeDevice = null;
         }
 
-        internal void OnDestroyed()
+        internal void OnDestroyed(bool immediate = false)
         {
         }
 

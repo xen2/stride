@@ -226,7 +226,7 @@ namespace Stride.Graphics
             }
         }
 
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             // Manually update back buffer texture
             backBuffer.OnDestroyed();
@@ -235,7 +235,7 @@ namespace Stride.Graphics
             swapChain.Dispose();
             swapChain = null;
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
 
         public override void OnRecreated()
@@ -247,6 +247,7 @@ namespace Stride.Graphics
 
             // Get newly created native texture
             var backBufferTexture = swapChain.GetBackBuffer<BackBufferResourceType>(0);
+            bufferSwapIndex = 0;
 
             // Put it in our back buffer texture
             // TODO: Update new size
@@ -257,7 +258,7 @@ namespace Stride.Graphics
         protected override void ResizeBackBuffer(int width, int height, PixelFormat format)
         {
             // Manually update back buffer texture
-            backBuffer.OnDestroyed();
+            backBuffer.OnDestroyed(true);
 
             // Manually update all children textures
             var fastList = DestroyChildrenTextures(backBuffer);
@@ -290,6 +291,7 @@ namespace Stride.Graphics
 
             // Get newly created native texture
             var backBufferTexture = swapChain.GetBackBuffer<BackBufferResourceType>(0);
+            bufferSwapIndex = 0;
 
             // Put it in our back buffer texture
             backBuffer.InitializeFromImpl(backBufferTexture, Description.BackBufferFormat.IsSRgb());
@@ -307,7 +309,7 @@ namespace Stride.Graphics
             newTextureDescription.Height = height;
 
             // Manually update the texture
-            DepthStencilBuffer.OnDestroyed();
+            DepthStencilBuffer.OnDestroyed(true);
 
             // Manually update all children textures
             var fastList = DestroyChildrenTextures(DepthStencilBuffer);
@@ -337,7 +339,7 @@ namespace Stride.Graphics
                     var texture = resource as Texture;
                     if (texture != null && texture.ParentTexture == parentTexture)
                     {
-                        texture.OnDestroyed();
+                        texture.OnDestroyed(true);
                         fastList.Add(texture);
                     }
                 }

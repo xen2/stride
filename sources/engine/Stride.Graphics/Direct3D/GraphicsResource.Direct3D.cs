@@ -84,12 +84,12 @@ namespace Stride.Graphics
             }
         }
 
-        protected internal override void OnDestroyed()
+        protected internal override void OnDestroyed(bool immediate = false)
         {
             ReleaseComObject(ref shaderResourceView);
             ReleaseComObject(ref unorderedAccessView);
 
-            base.OnDestroyed();
+            base.OnDestroyed(immediate);
         }
     }
 }
