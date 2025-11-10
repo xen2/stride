@@ -34,13 +34,16 @@ namespace Stride.Graphics
 
             // Otherwise, queue readback
             var commandList = GraphicsDevice.NativeCopyCommandList;
+            lock (commandList)
+            {
 
-            commandList.Reset(GraphicsDevice.NativeCopyCommandAllocator, initialStateRef: null);
-            commandList.ResolveQueryData(NativeQueryHeap, SharpDX.Direct3D12.QueryType.Timestamp, startIndex: 0, QueryCount, readbackBuffer, alignedDestinationBufferOffset: 0);
-            commandList.Close();
+                commandList.Reset(GraphicsDevice.NativeCopyCommandAllocator, initialStateRef: null);
+                commandList.ResolveQueryData(NativeQueryHeap, SharpDX.Direct3D12.QueryType.Timestamp, startIndex: 0, QueryCount, readbackBuffer, alignedDestinationBufferOffset: 0);
+                commandList.Close();
 
-            GraphicsDevice.NativeCommandQueue.ExecuteCommandList(GraphicsDevice.NativeCopyCommandList);
-            GraphicsDevice.NativeCommandQueue.Signal(readbackFence, PendingValue);
+                GraphicsDevice.NativeCommandQueue.ExecuteCommandList(GraphicsDevice.NativeCopyCommandList);
+                GraphicsDevice.NativeCommandQueue.Signal(readbackFence, PendingValue);
+            }
 
             return false;
         }

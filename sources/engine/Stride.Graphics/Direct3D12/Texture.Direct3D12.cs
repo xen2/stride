@@ -131,41 +131,44 @@ namespace Stride.Graphics
                     if (hasInitData)
                     {
                         var commandList = GraphicsDevice.NativeCopyCommandList;
-                        commandList.Reset(GraphicsDevice.NativeCopyCommandAllocator, initialStateRef: null);
-
-                        var uploadMemory = GraphicsDevice.AllocateUploadBuffer(totalSize, out var uploadResource, out var uploadOffset, TextureSubresourceAlignment);
-
-                        // Copy data to the upload buffer
-                        int dataBoxIndex = 0;
-                        var uploadMemoryMipStart = uploadMemory;
-                        for (int arraySlice = 0; arraySlice < ArraySize; arraySlice++)
+                        lock (commandList)
                         {
-                            for (int mipLevel = 0; mipLevel < MipLevels; mipLevel++)
+                            commandList.Reset(GraphicsDevice.NativeCopyCommandAllocator, initialStateRef: null);
+
+                            var uploadMemory = GraphicsDevice.AllocateUploadBuffer(totalSize, out var uploadResource, out var uploadOffset, TextureSubresourceAlignment);
+
+                            // Copy data to the upload buffer
+                            int dataBoxIndex = 0;
+                            var uploadMemoryMipStart = uploadMemory;
+                            for (int arraySlice = 0; arraySlice < ArraySize; arraySlice++)
                             {
-                                var databox = dataBoxes[dataBoxIndex++];
-                                var mipHeight = CalculateMipSize(Width, mipLevel);
-                                var mipRowPitch = ComputeRowPitch(mipLevel);
-
-                                var uploadMemoryCurrent = uploadMemoryMipStart;
-                                var dataPointerCurrent = databox.DataPointer;
-                                for (int rowIndex = 0; rowIndex < mipHeight; rowIndex++)
+                                for (int mipLevel = 0; mipLevel < MipLevels; mipLevel++)
                                 {
-                                    Core.Utilities.CopyWithAlignmentFallback((void*) uploadMemoryCurrent, (void*) dataPointerCurrent, (uint) mipRowPitch);
-                                    uploadMemoryCurrent += mipRowPitch;
-                                    dataPointerCurrent += databox.RowPitch;
+                                    var databox = dataBoxes[dataBoxIndex++];
+                                    var mipHeight = CalculateMipSize(Width, mipLevel);
+                                    var mipRowPitch = ComputeRowPitch(mipLevel);
+
+                                    var uploadMemoryCurrent = uploadMemoryMipStart;
+                                    var dataPointerCurrent = databox.DataPointer;
+                                    for (int rowIndex = 0; rowIndex < mipHeight; rowIndex++)
+                                    {
+                                        Core.Utilities.CopyWithAlignmentFallback((void*)uploadMemoryCurrent, (void*)dataPointerCurrent, (uint)mipRowPitch);
+                                        uploadMemoryCurrent += mipRowPitch;
+                                        dataPointerCurrent += databox.RowPitch;
+                                    }
+
+                                    uploadMemoryMipStart += ComputeSubresourceSize(mipLevel);
                                 }
-
-                                uploadMemoryMipStart += ComputeSubresourceSize(mipLevel);
                             }
+
+                            // Copy from upload heap to actual resource
+                            commandList.CopyBufferRegion(NativeResource, dstOffset: 0, uploadResource, uploadOffset, totalSize);
+
+                            commandList.Close();
+
+                            StagingFenceValue = 0;
+                            GraphicsDevice.WaitCopyQueue();
                         }
-
-                        // Copy from upload heap to actual resource
-                        commandList.CopyBufferRegion(NativeResource, dstOffset: 0, uploadResource, uploadOffset, totalSize);
-
-                        commandList.Close();
-
-                        StagingFenceValue = 0;
-                        GraphicsDevice.WaitCopyQueue();
                     }
 
                     return;
@@ -182,48 +185,51 @@ namespace Stride.Graphics
                 {
                     // Trigger copy
                     var commandList = GraphicsDevice.NativeCopyCommandList;
-                    commandList.Reset(GraphicsDevice.NativeCopyCommandAllocator, initialStateRef: null);
-
-                    var placedSubresources = new PlacedSubResourceFootprint[dataBoxes.Length];
-                    var rowCounts = new int[dataBoxes.Length];
-                    var rowSizeInBytes = new long[dataBoxes.Length];
-                    GraphicsDevice.NativeDevice.GetCopyableFootprints(ref nativeDescription, 0, dataBoxes.Length, 0, placedSubresources, rowCounts, rowSizeInBytes, out var textureCopySize);
-
-                    var uploadMemory = GraphicsDevice.AllocateUploadBuffer((int)textureCopySize, out var uploadResource, out var uploadOffset, TextureSubresourceAlignment);
-
-                    for (int i = 0; i < dataBoxes.Length; ++i)
+                    lock (commandList)
                     {
-                        var databox = dataBoxes[i];
-                        var dataPointer = databox.DataPointer;
+                        commandList.Reset(GraphicsDevice.NativeCopyCommandAllocator, initialStateRef: null);
 
-                        var rowCount = rowCounts[i];
-                        var sliceCount = placedSubresources[i].Footprint.Depth;
-                        var rowSize = (int) rowSizeInBytes[i];
-                        var destRowPitch = placedSubresources[i].Footprint.RowPitch;
+                        var placedSubresources = new PlacedSubResourceFootprint[dataBoxes.Length];
+                        var rowCounts = new int[dataBoxes.Length];
+                        var rowSizeInBytes = new long[dataBoxes.Length];
+                        GraphicsDevice.NativeDevice.GetCopyableFootprints(ref nativeDescription, 0, dataBoxes.Length, 0, placedSubresources, rowCounts, rowSizeInBytes, out var textureCopySize);
 
-                        // Memcpy data
-                        for (int z = 0; z < sliceCount; ++z)
+                        var uploadMemory = GraphicsDevice.AllocateUploadBuffer((int)textureCopySize, out var uploadResource, out var uploadOffset, TextureSubresourceAlignment);
+
+                        for (int i = 0; i < dataBoxes.Length; ++i)
                         {
-                            var uploadMemoryCurrent = uploadMemory + (int)placedSubresources[i].Offset + z * destRowPitch * rowCount;
-                            var dataPointerCurrent = dataPointer + z * databox.SlicePitch;
-                            for (int y = 0; y < rowCount; ++y)
+                            var databox = dataBoxes[i];
+                            var dataPointer = databox.DataPointer;
+
+                            var rowCount = rowCounts[i];
+                            var sliceCount = placedSubresources[i].Footprint.Depth;
+                            var rowSize = (int)rowSizeInBytes[i];
+                            var destRowPitch = placedSubresources[i].Footprint.RowPitch;
+
+                            // Memcpy data
+                            for (int z = 0; z < sliceCount; ++z)
                             {
-                                Utilities.CopyWithAlignmentFallback((void*) uploadMemoryCurrent, (void*) dataPointerCurrent, (uint) rowSize);
-                                uploadMemoryCurrent += destRowPitch;
-                                dataPointerCurrent += databox.RowPitch;
+                                var uploadMemoryCurrent = uploadMemory + (int)placedSubresources[i].Offset + z * destRowPitch * rowCount;
+                                var dataPointerCurrent = dataPointer + z * databox.SlicePitch;
+                                for (int y = 0; y < rowCount; ++y)
+                                {
+                                    Utilities.CopyWithAlignmentFallback((void*)uploadMemoryCurrent, (void*)dataPointerCurrent, (uint)rowSize);
+                                    uploadMemoryCurrent += destRowPitch;
+                                    dataPointerCurrent += databox.RowPitch;
+                                }
                             }
+
+                            // Adjust upload offset (circular dependency between GetCopyableFootprints and AllocateUploadBuffer)
+                            placedSubresources[i].Offset += uploadOffset;
+
+                            commandList.CopyTextureRegion(new TextureCopyLocation(NativeResource, i), 0, 0, 0, new TextureCopyLocation(uploadResource, placedSubresources[i]), null);
                         }
 
-                        // Adjust upload offset (circular dependency between GetCopyableFootprints and AllocateUploadBuffer)
-                        placedSubresources[i].Offset += uploadOffset;
+                        commandList.ResourceBarrierTransition(NativeResource, ResourceStates.CopyDestination, initialResourceState);
+                        commandList.Close();
 
-                        commandList.CopyTextureRegion(new TextureCopyLocation(NativeResource, i), 0, 0, 0, new TextureCopyLocation(uploadResource, placedSubresources[i]), null);
+                        GraphicsDevice.WaitCopyQueue();
                     }
-
-                    commandList.ResourceBarrierTransition(NativeResource, ResourceStates.CopyDestination, initialResourceState);
-                    commandList.Close();
-
-                    GraphicsDevice.WaitCopyQueue();
                 }
 
                 NativeResourceState = initialResourceState;

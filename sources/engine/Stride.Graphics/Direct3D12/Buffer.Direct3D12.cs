@@ -134,18 +134,20 @@ namespace Stride.Graphics
                     var uploadMemory = GraphicsDevice.AllocateUploadBuffer(SizeInBytes, out uploadResource, out uploadOffset);
                     Core.Utilities.CopyWithAlignmentFallback((void*) uploadMemory, (void*) dataPointer, (uint) SizeInBytes);
 
-                    // TODO D3D12 lock NativeCopyCommandList usages
                     var commandList = GraphicsDevice.NativeCopyCommandList;
-                    commandList.Reset(GraphicsDevice.NativeCopyCommandAllocator, null);
-                    // Copy from upload heap to actual resource
-                    commandList.CopyBufferRegion(NativeResource, 0, uploadResource, uploadOffset, SizeInBytes);
+                    lock (commandList)
+                    {
+                        commandList.Reset(GraphicsDevice.NativeCopyCommandAllocator, null);
+                        // Copy from upload heap to actual resource
+                        commandList.CopyBufferRegion(NativeResource, 0, uploadResource, uploadOffset, SizeInBytes);
 
-                    // Switch resource to proper read state
-                    commandList.ResourceBarrierTransition(NativeResource, 0, ResourceStates.CopyDestination, NativeResourceState);
+                        // Switch resource to proper read state
+                        commandList.ResourceBarrierTransition(NativeResource, 0, ResourceStates.CopyDestination, NativeResourceState);
 
-                    commandList.Close();
+                        commandList.Close();
 
-                    GraphicsDevice.WaitCopyQueue();
+                        GraphicsDevice.WaitCopyQueue();
+                    }
                 }
             }
 
