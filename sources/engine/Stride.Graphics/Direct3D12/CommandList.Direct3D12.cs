@@ -858,34 +858,74 @@ namespace Stride.Graphics
             currentCommandList.NativeCommandList.ResolveSubresource(sourceMultisampleTexture.NativeResource, sourceSubResource, destTexture.NativeResource, destSubResource, (SharpDX.DXGI.Format)(format == PixelFormat.None ? destTexture.Format : format));
         }
 
-        public void CopyRegion(GraphicsResource source, int sourceSubresource, ResourceRegion? sourceRegion, GraphicsResource destination, int destinationSubResource, int dstX = 0, int dstY = 0, int dstZ = 0)
+        // Avoid reallocating every time (ideally we would like a ref/Span version of GetCopyableFootprints())
+        PlacedSubResourceFootprint[] footprints = new PlacedSubResourceFootprint[1];
+        int[] numRows = new int[1];
+        long[] rowSizeInBytes = new long[1];
+        public unsafe void CopyRegion(GraphicsResource source, int sourceSubresource, ResourceRegion? sourceRegion, GraphicsResource destination, int destinationSubResource, int dstX = 0, int dstY = 0, int dstZ = 0)
         {
             if (source is Texture sourceTexture && destination is Texture destinationTexture)
             {
-                if (sourceTexture.Usage == GraphicsResourceUsage.Staging || destinationTexture.Usage == GraphicsResourceUsage.Staging)
+                if (destinationTexture.Usage == GraphicsResourceUsage.Staging)
                 {
-                    throw new NotImplementedException("Copy region of staging resources is not supported yet");
+                    var destinationParent = destinationTexture.ParentTexture ?? destinationTexture;
+
+                    if (sourceTexture.Usage == GraphicsResourceUsage.Staging)
+                    {
+                        throw new NotImplementedException();
+                    }
+                    else
+                    {
+                        ResourceBarrierTransition(source, GraphicsResourceState.CopySource);
+                        ResourceBarrierTransition(destination, GraphicsResourceState.CopyDestination);
+                        FlushResourceBarriers();
+
+                        NativeDevice.GetCopyableFootprints(ref destinationTexture.NativeTextureDescription, destinationSubResource, 1, 0, footprints, numRows, rowSizeInBytes, out var totalBytes);
+
+                        currentCommandList.NativeCommandList.CopyTextureRegion(
+                            new TextureCopyLocation(destination.NativeResource, footprints[0]),
+                            dstX, dstY, dstZ,
+                            new TextureCopyLocation(source.NativeResource, sourceSubresource),
+                            sourceRegion.HasValue
+                                ? new SharpDX.Direct3D12.ResourceRegion
+                                {
+                                    Left = sourceRegion.Value.Left,
+                                    Top = sourceRegion.Value.Top,
+                                    Front = sourceRegion.Value.Front,
+                                    Right = sourceRegion.Value.Right,
+                                    Bottom = sourceRegion.Value.Bottom,
+                                    Back = sourceRegion.Value.Back
+                                }
+                                : null);
+                    }
+
+                    // Fence for host access
+                    destinationParent.StagingFenceValue = null;
+                    destinationParent.StagingBuilder = this;
+                    currentCommandList.StagingResources.Add(destinationParent);
                 }
+                else
+                {
+                    ResourceBarrierTransition(source, GraphicsResourceState.CopySource);
+                    ResourceBarrierTransition(destination, GraphicsResourceState.CopyDestination);
+                    FlushResourceBarriers();
 
-                ResourceBarrierTransition(source, GraphicsResourceState.CopySource);
-                ResourceBarrierTransition(destination, GraphicsResourceState.CopyDestination);
-                FlushResourceBarriers();
-
-                currentCommandList.NativeCommandList.CopyTextureRegion(
-                    new TextureCopyLocation(destination.NativeResource, destinationSubResource),
-                    dstX, dstY, dstZ,
-                    new TextureCopyLocation(source.NativeResource, sourceSubresource),
-                    sourceRegion.HasValue
-                        ? new SharpDX.Direct3D12.ResourceRegion
-                        {
-                            Left = sourceRegion.Value.Left,
-                            Top = sourceRegion.Value.Top,
-                            Front = sourceRegion.Value.Front,
-                            Right = sourceRegion.Value.Right,
-                            Bottom = sourceRegion.Value.Bottom,
-                            Back = sourceRegion.Value.Back
-                        }
-                        : null);
+                    currentCommandList.NativeCommandList.CopyTextureRegion(
+                        new TextureCopyLocation(destination.NativeResource, destinationSubResource),
+                        dstX, dstY, dstZ,
+                        new TextureCopyLocation(source.NativeResource, sourceSubresource),
+                        sourceRegion.HasValue
+                            ? new SharpDX.Direct3D12.ResourceRegion
+                            {
+                                Left = sourceRegion.Value.Left,
+                                Top = sourceRegion.Value.Top,
+                                Front = sourceRegion.Value.Front,
+                                Right = sourceRegion.Value.Right,
+                                Bottom = sourceRegion.Value.Bottom,
+                                Back = sourceRegion.Value.Back
+                            }
+                            : null);
+                }
             }
             else if (source is Buffer sourceBuffer && destination is Buffer)
             {

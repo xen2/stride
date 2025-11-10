@@ -35,6 +35,7 @@ namespace Stride.Graphics
     {
         internal CpuDescriptorHandle NativeRenderTargetView;
         internal CpuDescriptorHandle NativeDepthStencilView;
+        internal ResourceDescription NativeTextureDescription;
         public bool HasStencil;
 
         private int TexturePixelSize => Format.SizeInBytes();
@@ -113,6 +114,7 @@ namespace Stride.Graphics
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
+                NativeTextureDescription = nativeDescription;
 
                 var initialResourceState = ResourceStates.GenericRead;
 
