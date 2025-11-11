@@ -41,6 +41,7 @@ namespace Stride.Graphics
     /// <unmanaged-short>IDXGIAdapter1</unmanaged-short>
     public partial class GraphicsAdapter
     {
+        private readonly Factory1 factory;
         private readonly Adapter1 adapter;
         private readonly int adapterOrdinal;
         private readonly AdapterDescription1 description;
@@ -55,6 +56,7 @@ namespace Stride.Graphics
         /// <param name="adapterOrdinal">The adapter ordinal.</param>
         internal GraphicsAdapter(Factory1 defaultFactory, int adapterOrdinal)
         {
+            this.factory = defaultFactory;
             this.adapterOrdinal = adapterOrdinal;
             adapter = defaultFactory.GetAdapter1(adapterOrdinal).DisposeBy(this);
             description = adapter.Description1;
@@ -110,6 +112,8 @@ namespace Stride.Graphics
                 return adapter;
             }
         }
+
+        internal Factory NativeFactory => factory;
 
         /// <summary>
         /// Tests to see if the adapter supports the requested profile.

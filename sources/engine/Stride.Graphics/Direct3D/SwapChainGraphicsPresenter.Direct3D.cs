@@ -54,9 +54,7 @@ namespace Stride.Graphics
 
         private bool useFlipModel;
 
-#if STRIDE_GRAPHICS_API_DIRECT3D12
         private int bufferSwapIndex;
-#endif
 
         public SwapChainGraphicsPresenter(GraphicsDevice device, PresentationParameters presentationParameters)
             : base(device, presentationParameters)
@@ -78,10 +76,7 @@ namespace Stride.Graphics
             {
                 try
                 {
-                    // From https://github.com/walbourn/directx-vs-templates/blob/main/d3d11game_win32_dr/DeviceResources.cpp#L138
-                    using var dxgiDevice = device.NativeDevice.QueryInterface<SharpDX.DXGI.Device>();
-                    using var dxgiAdapter = dxgiDevice.Adapter;
-                    using var dxgiFactory = dxgiAdapter.GetParent<SharpDX.DXGI.Factory4>();
+                    using var dxgiFactory = device.Adapter.NativeFactory.QueryInterfaceOrNull<Factory4>();
                     return dxgiFactory != null;
                 }
                 catch
@@ -96,9 +91,7 @@ namespace Stride.Graphics
                 try
                 {
                     // From https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/variable-refresh-rate-displays
-                    using var dxgiDevice = device.NativeDevice.QueryInterface<SharpDX.DXGI.Device>();
-                    using var dxgiAdapter = dxgiDevice.Adapter;
-                    using var dxgiFactory = dxgiAdapter.GetParent<SharpDX.DXGI.Factory5>();
+                    using var dxgiFactory = device.Adapter.NativeFactory.QueryInterfaceOrNull<Factory5>();
                     if (dxgiFactory is null)
                         return false;
 
