@@ -91,6 +91,10 @@ namespace Stride.Games
 
         private ColorSpace preferredColorSpace;
 
+        private bool windowClientSizeChanged;
+        private bool windowOrientationChanged;
+        private bool windowFullscreenChanged;
+
         #endregion
 
         #region Constructors and Destructors
@@ -141,6 +145,7 @@ namespace Stride.Games
 
         private void GameOnWindowCreated(object sender, EventArgs eventArgs)
         {
+            game.Window.RunCallback += Window_ProcessEventsDelayed;
             game.Window.ClientSizeChanged += Window_ClientSizeChanged;
             game.Window.OrientationChanged += Window_OrientationChanged;
             game.Window.FullscreenChanged += Window_FullscreenChanged;
@@ -582,8 +587,10 @@ namespace Stride.Games
                 game.WindowCreated -= GameOnWindowCreated;
                 if (game.Window != null)
                 {
+                    game.Window.RunCallback -= Window_ProcessEventsDelayed;
                     game.Window.ClientSizeChanged -= Window_ClientSizeChanged;
                     game.Window.OrientationChanged -= Window_OrientationChanged;
+                    game.Window.FullscreenChanged -= Window_FullscreenChanged;
                 }
             }
 
@@ -883,55 +890,80 @@ namespace Stride.Games
             PreparingDeviceSettings?.Invoke(sender, args);
         }
 
-        private void Window_ClientSizeChanged(object sender, EventArgs e)
+        private void Window_ProcessEventsDelayed()
         {
-            if (!isChangingDevice && ((game.Window.ClientBounds.Height != 0) || (game.Window.ClientBounds.Width != 0)))
+            // If embedding a forms/game in editor, various events such as WM_SIZE might be forwarded by InputSourceWinforms.
+            // Since this is done using CallWindowProc, those events might be raised outside of the usual Translate/Peek message loop and happen during an unfortunate wait or I/O call during rendering (i.e. shader compiling wait).
+            // This is a big no no if we try to resize a swap chain in the middle of rendering!
+            // So we delay their process during Run() callback (which is before/after swap chain Present).
+            bool needApplyChanges = false;
+            if (windowClientSizeChanged)
             {
-                resizedBackBufferWidth = game.Window.ClientBounds.Width;
-                resizedBackBufferHeight = game.Window.ClientBounds.Height;
-                isBackBufferToResize = true;
-                if (GraphicsDevice != null)
+                windowClientSizeChanged = false;
+                if (!isChangingDevice && ((game.Window.ClientBounds.Height != 0) || (game.Window.ClientBounds.Width != 0)))
                 {
-                    ChangeOrCreateDevice(false);
+                    resizedBackBufferWidth = game.Window.ClientBounds.Width;
+                    resizedBackBufferHeight = game.Window.ClientBounds.Height;
+                    isBackBufferToResize = true;
+                    deviceSettingsChanged = true;
+                    needApplyChanges = true;
                 }
             }
+            if (windowOrientationChanged)
+            {
+                windowOrientationChanged = false;
+                if ((!isChangingDevice && ((game.Window.ClientBounds.Height != 0) || (game.Window.ClientBounds.Width != 0))) && (game.Window.CurrentOrientation != currentWindowOrientation))
+                {
+                    if ((game.Window.ClientBounds.Height > game.Window.ClientBounds.Width && preferredBackBufferWidth > preferredBackBufferHeight) ||
+                        (game.Window.ClientBounds.Width > game.Window.ClientBounds.Height && preferredBackBufferHeight > preferredBackBufferWidth))
+                    {
+                        //Client size and Back Buffer size are different things
+                        //in this case all we care is if orientation changed, if so we swap width and height
+                        var w = PreferredBackBufferWidth;
+                        PreferredBackBufferWidth = PreferredBackBufferHeight;
+                        PreferredBackBufferHeight = w;
+                        needApplyChanges = true;
+                    }
+                }
+            }
+            if (windowFullscreenChanged)
+            {
+                windowFullscreenChanged = false;
+                IsFullScreen = game.Window.IsFullscreen;
+                if (IsFullScreen)
+                {
+                    PreferredBackBufferWidth = game.Window.PreferredFullscreenSize.X;
+                    PreferredBackBufferHeight = game.Window.PreferredFullscreenSize.Y;
+                }
+                else
+                {
+                    PreferredBackBufferWidth = game.Window.PreferredWindowedSize.X;
+                    PreferredBackBufferHeight = game.Window.PreferredWindowedSize.Y;
+                }
+
+                needApplyChanges = true;
+            }
+
+            if (needApplyChanges)
+            {
+                ApplyChanges();
+            }
+        }
+
+        private void Window_ClientSizeChanged(object sender, EventArgs e)
+        {
+            windowClientSizeChanged = true;
         }
 
         private void Window_OrientationChanged(object sender, EventArgs e)
         {
-            if ((!isChangingDevice && ((game.Window.ClientBounds.Height != 0) || (game.Window.ClientBounds.Width != 0))) && (game.Window.CurrentOrientation != currentWindowOrientation))
-            {
-                if ((game.Window.ClientBounds.Height > game.Window.ClientBounds.Width && preferredBackBufferWidth > preferredBackBufferHeight) ||
-                    (game.Window.ClientBounds.Width > game.Window.ClientBounds.Height && preferredBackBufferHeight > preferredBackBufferWidth))
-                {
-                    //Client size and Back Buffer size are different things
-                    //in this case all we care is if orientation changed, if so we swap width and height
-                    var w = PreferredBackBufferWidth;
-                    PreferredBackBufferWidth = PreferredBackBufferHeight;
-                    PreferredBackBufferHeight = w;
-                    ApplyChanges();
-                }
-            }
+            windowOrientationChanged = true;
         }
 
         private void Window_FullscreenChanged(object sender, EventArgs eventArgs)
         {
             if (sender is GameWindow window)
-            {
-                IsFullScreen = window.IsFullscreen;
-                if (IsFullScreen)
-                {
-                    PreferredBackBufferWidth = window.PreferredFullscreenSize.X;
-                    PreferredBackBufferHeight = window.PreferredFullscreenSize.Y;
-                }
-                else
-                {
-                    PreferredBackBufferWidth = window.PreferredWindowedSize.X;
-                    PreferredBackBufferHeight = window.PreferredWindowedSize.Y;
-                }
-
-                ApplyChanges();
-            }
+                windowFullscreenChanged = true;
         }
 
         private void CreateDevice(GraphicsDeviceInformation newInfo)
