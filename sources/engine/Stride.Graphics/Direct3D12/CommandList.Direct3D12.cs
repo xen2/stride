@@ -578,7 +578,8 @@ namespace Stride.Graphics
         /// <param name="name">The name.</param>
         public void BeginProfile(Color4 profileColor, string name)
         {
-            //currentCommandList.NativeCommandList.BeginEvent();
+            if (IsDebugMode)
+                WinPixNative.PIXBeginEventOnCommandList(currentCommandList.NativeCommandList.NativePointer, (uint)profileColor.ToBgra(), name);
         }
 
         /// <summary>
@@ -586,7 +587,8 @@ namespace Stride.Graphics
         /// </summary>
         public void EndProfile()
         {
-            //currentCommandList.NativeCommandList.EndEvent();
+            if (IsDebugMode)
+                WinPixNative.PIXEndEventOnCommandList(currentCommandList.NativeCommandList.NativePointer);
         }
 
         /// <summary>
