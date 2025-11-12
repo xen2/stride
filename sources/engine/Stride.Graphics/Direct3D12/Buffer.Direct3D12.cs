@@ -113,41 +113,55 @@ namespace Stride.Graphics
                 NativeResourceState = ResourceStates.GenericRead;
             }
 
+            var initialResourceState = heapType != HeapType.Default ? NativeResourceState : ResourceStates.Common;
+
             // TODO D3D12 move that to a global allocator in bigger committed resources
-            NativeDeviceChild = GraphicsDevice.NativeDevice.CreateCommittedResource(new HeapProperties(heapType), HeapFlags.None, nativeDescription, dataPointer != IntPtr.Zero ? ResourceStates.CopyDestination : NativeResourceState);
+            NativeDeviceChild = GraphicsDevice.NativeDevice.CreateCommittedResource(new HeapProperties(heapType), HeapFlags.None, nativeDescription, initialResourceState);
             GPUVirtualAddress = NativeResource.GPUVirtualAddress;
 
-            if (dataPointer != IntPtr.Zero)
+            var desiredResourceState = dataPointer != IntPtr.Zero && heapType != HeapType.Upload ? ResourceStates.CopyDestination : NativeResourceState;
+
+            if (heapType == HeapType.Upload)
             {
-                if (heapType == HeapType.Upload)
+                if (dataPointer != IntPtr.Zero)
                 {
                     var uploadMemory = NativeResource.Map(0);
-                    Core.Utilities.CopyWithAlignmentFallback((void*) uploadMemory, (void*) dataPointer, (uint) SizeInBytes);
+                    Core.Utilities.CopyWithAlignmentFallback((void*)uploadMemory, (void*)dataPointer, (uint)SizeInBytes);
                     NativeResource.Unmap(0);
                 }
-                else
+            }
+            else if (heapType == HeapType.Default)
+            {
+                SharpDX.Direct3D12.Resource uploadResource = default;
+                int uploadOffset = default;
+                if (dataPointer != IntPtr.Zero)
                 {
                     // Copy data in upload heap for later copy
                     // TODO D3D12 move that to a shared upload heap
-                    SharpDX.Direct3D12.Resource uploadResource;
-                    int uploadOffset;
                     var uploadMemory = GraphicsDevice.AllocateUploadBuffer(SizeInBytes, out uploadResource, out uploadOffset);
-                    Core.Utilities.CopyWithAlignmentFallback((void*) uploadMemory, (void*) dataPointer, (uint) SizeInBytes);
+                    Core.Utilities.CopyWithAlignmentFallback((void*)uploadMemory, (void*)dataPointer, (uint)SizeInBytes);
+                }
 
-                    var commandList = GraphicsDevice.NativeCopyCommandList;
-                    lock (commandList)
+                var commandList = GraphicsDevice.NativeCopyCommandList;
+                lock (commandList)
+                {
+                    commandList.Reset(GraphicsDevice.NativeCopyCommandAllocator, null);
+
+                    if (dataPointer != IntPtr.Zero)
                     {
-                        commandList.Reset(GraphicsDevice.NativeCopyCommandAllocator, null);
+                        // Switch resource to copy state
+                        commandList.ResourceBarrierTransition(NativeResource, 0, ResourceStates.Common, ResourceStates.CopyDestination);
+
                         // Copy from upload heap to actual resource
                         commandList.CopyBufferRegion(NativeResource, 0, uploadResource, uploadOffset, SizeInBytes);
-
-                        // Switch resource to proper read state
-                        commandList.ResourceBarrierTransition(NativeResource, 0, ResourceStates.CopyDestination, NativeResourceState);
-
-                        commandList.Close();
-
-                        GraphicsDevice.WaitCopyQueue();
                     }
+
+                    // Switch resource to proper read state
+                    commandList.ResourceBarrierTransition(NativeResource, 0, ResourceStates.CopyDestination, NativeResourceState);
+
+                    commandList.Close();
+
+                    GraphicsDevice.WaitCopyQueue();
                 }
             }
 

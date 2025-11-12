@@ -140,10 +140,11 @@ namespace Stride.Graphics
         /// </summary>
         public void Flush()
         {
+            FlushResourceBarriers();
             GraphicsDevice.ExecuteCommandList(Close());
         }
 
-        private void FlushInternal(bool wait)
+        internal void FlushInternal(bool wait)
         {
             var fenceValue = GraphicsDevice.ExecuteCommandListInternal(Close());
 
@@ -310,9 +311,26 @@ namespace Stride.Graphics
             var barriers = stackalloc ResourceBarrier[count];
             for (int i = 0; i < count; i++)
                 barriers[i] = resourceBarriers[i];
+
             resourceBarriers.Clear();
 
-            currentCommandList.NativeCommandList.ResourceBarrier(*barriers);
+            for (int i = 0; i < count; ++i)
+                currentCommandList.NativeCommandList.ResourceBarrier(barriers[i]);
+        }
+
+        private struct ResourceBarrierTransitionRestore(CommandList commandList, GraphicsResource Resource, GraphicsResourceState OldState) : IDisposable
+        {
+            public void Dispose()
+            {
+                commandList.ResourceBarrierTransition(Resource, OldState);
+            }
+        }
+
+        private ResourceBarrierTransitionRestore ResourceBarrierTransitionAndRestore(GraphicsResource resource, GraphicsResourceState newState)
+        {
+            var currentState = resource.NativeResourceState;
+            ResourceBarrierTransition(resource, newState);
+            return new(this, resource, (GraphicsResourceState)currentState);
         }
 
         public void SetDescriptorSets(int index, DescriptorSet[] descriptorSets)
@@ -616,7 +634,7 @@ namespace Stride.Graphics
         /// <exception cref="InvalidOperationException"></exception>
         public void Clear(Texture depthStencilBuffer, DepthStencilClearOptions options, float depth = 1, byte stencil = 0)
         {
-            ResourceBarrierTransition(GraphicsDevice.Presenter.DepthStencilBuffer, GraphicsResourceState.DepthWrite);
+            using var _ = ResourceBarrierTransitionAndRestore(depthStencilBuffer, GraphicsResourceState.DepthWrite);
             FlushResourceBarriers();
             currentCommandList.NativeCommandList.ClearDepthStencilView(depthStencilBuffer.NativeDepthStencilView, (ClearFlags) options, depth, stencil);
         }
@@ -629,7 +647,7 @@ namespace Stride.Graphics
         /// <exception cref="ArgumentNullException">renderTarget</exception>
         public unsafe void Clear(Texture renderTarget, Color4 color)
         {
-            ResourceBarrierTransition(renderTarget, GraphicsResourceState.RenderTarget);
+            using var _ = ResourceBarrierTransitionAndRestore(renderTarget, GraphicsResourceState.RenderTarget);
             FlushResourceBarriers();
             currentCommandList.NativeCommandList.ClearRenderTargetView(renderTarget.NativeRenderTargetView, *(RawColor4*) &color);
         }
@@ -786,8 +804,8 @@ namespace Stride.Graphics
                     }
                     else
                     {
-                        ResourceBarrierTransition(sourceTexture, GraphicsResourceState.CopySource);
-                        ResourceBarrierTransition(destinationTexture, GraphicsResourceState.CopyDestination);
+                        using var _1 = ResourceBarrierTransitionAndRestore(sourceTexture, GraphicsResourceState.CopySource);
+                        using var _2 = ResourceBarrierTransitionAndRestore(destinationTexture, GraphicsResourceState.CopyDestination);
                         FlushResourceBarriers();
 
                         int copyOffset = 0;
@@ -821,8 +839,8 @@ namespace Stride.Graphics
                 }
                 else
                 {
-                    ResourceBarrierTransition(sourceTexture, GraphicsResourceState.CopySource);
-                    ResourceBarrierTransition(destinationTexture, GraphicsResourceState.CopyDestination);
+                    using var _1 = ResourceBarrierTransitionAndRestore(sourceTexture, GraphicsResourceState.CopySource);
+                    using var _2 = ResourceBarrierTransitionAndRestore(destinationTexture, GraphicsResourceState.CopyDestination);
                     FlushResourceBarriers();
 
                     currentCommandList.NativeCommandList.CopyResource(destinationTexture.NativeResource, sourceTexture.NativeResource);
@@ -831,8 +849,8 @@ namespace Stride.Graphics
             // Copy buffer -> buffer
             else if (source is Buffer sourceBuffer && destination is Buffer destinationBuffer)
             {
-                ResourceBarrierTransition(sourceBuffer, GraphicsResourceState.CopySource);
-                ResourceBarrierTransition(destinationBuffer, GraphicsResourceState.CopyDestination);
+                using var _1 = ResourceBarrierTransitionAndRestore(sourceBuffer, GraphicsResourceState.CopySource);
+                using var _2 = ResourceBarrierTransitionAndRestore(destinationBuffer, GraphicsResourceState.CopyDestination);
                 FlushResourceBarriers();
 
                 currentCommandList.NativeCommandList.CopyResource(destinationBuffer.NativeResource, sourceBuffer.NativeResource);
@@ -878,8 +896,8 @@ namespace Stride.Graphics
                     }
                     else
                     {
-                        ResourceBarrierTransition(source, GraphicsResourceState.CopySource);
-                        ResourceBarrierTransition(destination, GraphicsResourceState.CopyDestination);
+                        using var _1 = ResourceBarrierTransitionAndRestore(source, GraphicsResourceState.CopySource);
+                        using var _2 = ResourceBarrierTransitionAndRestore(destination, GraphicsResourceState.CopyDestination);
                         FlushResourceBarriers();
 
                         NativeDevice.GetCopyableFootprints(ref destinationTexture.NativeTextureDescription, destinationSubResource, 1, 0, footprints, numRows, rowSizeInBytes, out var totalBytes);
@@ -908,8 +926,8 @@ namespace Stride.Graphics
                 }
                 else
                 {
-                    ResourceBarrierTransition(source, GraphicsResourceState.CopySource);
-                    ResourceBarrierTransition(destination, GraphicsResourceState.CopyDestination);
+                    using var _1 = ResourceBarrierTransitionAndRestore(source, GraphicsResourceState.CopySource);
+                    using var _2 = ResourceBarrierTransitionAndRestore(destination, GraphicsResourceState.CopyDestination);
                     FlushResourceBarriers();
 
                     currentCommandList.NativeCommandList.CopyTextureRegion(
@@ -931,8 +949,8 @@ namespace Stride.Graphics
             }
             else if (source is Buffer sourceBuffer && destination is Buffer)
             {
-                ResourceBarrierTransition(source, GraphicsResourceState.CopySource);
-                ResourceBarrierTransition(destination, GraphicsResourceState.CopyDestination);
+                using var _1 = ResourceBarrierTransitionAndRestore(source, GraphicsResourceState.CopySource);
+                using var _2 = ResourceBarrierTransitionAndRestore(destination, GraphicsResourceState.CopyDestination);
                 FlushResourceBarriers();
 
                 currentCommandList.NativeCommandList.CopyBufferRegion(destination.NativeResource, dstX,
@@ -1007,7 +1025,7 @@ namespace Stride.Graphics
                 nativeUploadTexture.WriteToSubresource(0, dstBoxRef: null, databox.DataPointer, databox.RowPitch, databox.SlicePitch);
 
                 // Trigger copy
-                ResourceBarrierTransition(resource, GraphicsResourceState.CopyDestination);
+                using var _ = ResourceBarrierTransitionAndRestore(resource, GraphicsResourceState.CopyDestination);
                 FlushResourceBarriers();
                 currentCommandList.NativeCommandList.CopyTextureRegion(new TextureCopyLocation(resource.NativeResource, subResourceIndex), region.Left, region.Top, region.Front, new TextureCopyLocation(nativeUploadTexture, 0), srcBoxRef: null);
             }
@@ -1020,7 +1038,7 @@ namespace Stride.Graphics
 
                     Core.Utilities.CopyWithAlignmentFallback((void*) uploadMemory, (void*) databox.DataPointer, (uint) uploadSize);
 
-                    ResourceBarrierTransition(resource, GraphicsResourceState.CopyDestination);
+                    using var _ = ResourceBarrierTransitionAndRestore(resource, GraphicsResourceState.CopyDestination);
                     FlushResourceBarriers();
                     currentCommandList.NativeCommandList.CopyBufferRegion(resource.NativeResource, region.Left, uploadResource, uploadOffset, uploadSize);
                 }
