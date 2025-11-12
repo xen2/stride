@@ -37,8 +37,6 @@ namespace Stride.Graphics
         internal CommandQueue NativeCopyCommandQueue;
         internal CommandAllocator NativeCopyCommandAllocator;
         internal GraphicsCommandList NativeCopyCommandList;
-        private Fence nativeCopyFence;
-        private long nextCopyFenceValue = 1;
 
         internal CommandAllocatorPool CommandAllocators;
         internal HeapPool SrvHeaps;
@@ -59,9 +57,10 @@ namespace Stride.Graphics
         internal int SrvHandleIncrementSize;
         internal int SamplerHandleIncrementSize;
 
-        private Fence nativeFence;
-        private long lastCompletedFence;
-        internal long NextFenceValue = 1;
+        internal FenceHelper FrameFence;
+        internal FenceHelper CommandListFence;
+        internal FenceHelper CopyFence;
+
         private AutoResetEvent fenceEvent = new AutoResetEvent(false);
 
         // Temporary or destroyed resources kept around until the GPU doesn't need them anymore
@@ -157,6 +156,8 @@ namespace Stride.Graphics
         /// </summary>
         public void End()
         {
+            NativeCommandQueue.Signal(FrameFence.Fence, FrameFence.NextFenceValue);
+            FrameFence.NextFenceValue++;
         }
 
         /// <summary>
@@ -178,19 +179,24 @@ namespace Stride.Graphics
             if (commandLists == null) throw new ArgumentNullException(nameof(commandLists));
             if (count > commandLists.Length) throw new ArgumentOutOfRangeException(nameof(count));
 
-            var fenceValue = NextFenceValue++;
+            var commandListFenceValue = CommandListFence.NextFenceValue++;
 
             // Recycle resources
             for (int index = 0; index < count; index++)
             {
                 var commandList = commandLists[index];
                 nativeCommandLists.Add(commandList.NativeCommandList);
-                RecycleCommandListResources(commandList, fenceValue);
+                RecycleCommandListResources(commandList, commandListFenceValue);
             }
 
             // Submit and signal fence
             NativeCommandQueue.ExecuteCommandLists(count, nativeCommandLists.Items);
-            NativeCommandQueue.Signal(nativeFence, fenceValue);
+
+            // Wait on GPU side to complete so that next command list (i.e. for a draw) can access the newly copied resources
+            // TODO: move that to user side for more control? (once we have D3D12/Vulkan only)
+            NativeCommandQueue.Signal(CommandListFence.Fence, commandListFenceValue);
+            NativeCommandQueue.Wait(CommandListFence.Fence, commandListFenceValue);
+
 
             ReleaseTemporaryResources();
 
@@ -209,13 +215,6 @@ namespace Stride.Graphics
         private string GetRendererName()
         {
             return rendererName;
-        }
-
-        internal void WaitNativeCommandQueueComplete()
-        {
-            var fenceValue = NextFenceValue++;
-            NativeCommandQueue.Signal(nativeFence, fenceValue);
-            NativeCommandQueue.Wait(nativeFence, fenceValue);
         }
 
         /// <summary>
@@ -251,6 +250,10 @@ namespace Stride.Graphics
                     {
                         debugLayerLoaded = true;
                         DebugInterface.Get().EnableDebugLayer();
+                        // Probably should be added as extra debug flags (much slower)
+                        var debug1 = DebugInterface.Get().QueryInterface<Debug1>();
+                        debug1.EnableGPUBasedValidation = true;
+                        debug1.EnableSynchronizedCommandQueueValidation = true;
                     }
                 }
             }
@@ -350,8 +353,9 @@ namespace Stride.Graphics
             NativeCopyCommandList.Close();
 
             // Fence for next frame and resource cleaning
-            nativeFence = NativeDevice.CreateFence(0, FenceFlags.None);
-            nativeCopyFence = NativeDevice.CreateFence(0, FenceFlags.None);
+            FrameFence = new(NativeDevice.CreateFence(0, FenceFlags.None));
+            CopyFence = new(NativeDevice.CreateFence(0, FenceFlags.None));
+            CommandListFence = new(NativeDevice.CreateFence(0, FenceFlags.None));
         }
 
         internal IntPtr AllocateUploadBuffer(int size, out SharpDX.Direct3D12.Resource resource, out int offset, int alignment = 0)
@@ -367,7 +371,8 @@ namespace Stride.Graphics
                 if (nativeUploadBuffer != null)
                 {
                     nativeUploadBuffer.Unmap(0);
-                    TemporaryResources.Enqueue(new KeyValuePair<long, object>(NextFenceValue, nativeUploadBuffer));
+                    lock (TemporaryResources)
+                        TemporaryResources.Enqueue(new KeyValuePair<long, object>(FrameFence.NextFenceValue, nativeUploadBuffer));
                 }
 
                 // Allocate new buffer
@@ -386,12 +391,13 @@ namespace Stride.Graphics
             return nativeUploadBufferStart + offset;
         }
 
-        internal void WaitCopyQueue()
+        internal void ExecuteAndWaitCopyQueueGPU()
         {
             NativeCommandQueue.ExecuteCommandList(NativeCopyCommandList);
-            NativeCommandQueue.Signal(nativeCopyFence, nextCopyFenceValue);
-            NativeCommandQueue.Wait(nativeCopyFence, nextCopyFenceValue);
-            nextCopyFenceValue++;
+            NativeCommandQueue.Signal(CopyFence.Fence, CopyFence.NextFenceValue);
+            // Wait on GPU side to complete so that next command list (i.e. for a draw) can access the newly copied resources
+            NativeCommandQueue.Wait(CopyFence.Fence, CopyFence.NextFenceValue);
+            CopyFence.NextFenceValue++;
         }
 
         internal void ReleaseTemporaryResources()
@@ -399,10 +405,9 @@ namespace Stride.Graphics
             lock (TemporaryResources)
             {
                 // Release previous frame resources
-                while (TemporaryResources.Count > 0 && IsFenceCompleteInternal(TemporaryResources.Peek().Key))
+                while (TemporaryResources.Count > 0 && FrameFence.IsFenceCompleteInternal(TemporaryResources.Peek().Key))
                 {
                     var temporaryResource = TemporaryResources.Dequeue().Value;
-                    //temporaryResource.Value.Dispose();
                     var comObject = temporaryResource as SharpDX.ComObject;
                     if (comObject != null)
                         ((SharpDX.IUnknown)comObject).Release();
@@ -430,8 +435,8 @@ namespace Stride.Graphics
         private void ReleaseDevice()
         {
             // Wait for completion of everything queued
-            NativeCommandQueue.Signal(nativeFence, NextFenceValue);
-            NativeCommandQueue.Wait(nativeFence, NextFenceValue);
+            NativeCommandQueue.Signal(FrameFence.Fence, FrameFence.NextFenceValue);
+            FrameFence.WaitForFenceCPUInternal(FrameFence.NextFenceValue);
 
             // Release command queue
             NativeCommandQueue.Dispose();
@@ -447,10 +452,10 @@ namespace Stride.Graphics
 
             // Release temporary resources
             ReleaseTemporaryResources();
-            nativeFence.Dispose();
-            nativeFence = null;
-            nativeCopyFence.Dispose();
-            nativeCopyFence = null;
+
+            FrameFence.Dispose();
+            CopyFence.Dispose();
+            CommandListFence.Dispose();
 
             // Release pools
             CommandAllocators.Dispose();
@@ -483,24 +488,28 @@ namespace Stride.Graphics
 
         internal long ExecuteCommandListInternal(CompiledCommandList commandList)
         {
-            var fenceValue = NextFenceValue++;
+            var commandListFenceValue = CommandListFence.NextFenceValue++;
 
             // Submit and signal fence
             NativeCommandQueue.ExecuteCommandList(commandList.NativeCommandList);
-            NativeCommandQueue.Signal(nativeFence, fenceValue);
+
+            // Wait on GPU side to complete so that next command list (i.e. for a draw) can access the newly copied resources
+            // TODO: move that to user side for more control? (once we have D3D12/Vulkan only)
+            NativeCommandQueue.Signal(CommandListFence.Fence, commandListFenceValue);
+            NativeCommandQueue.Wait(CommandListFence.Fence, commandListFenceValue);
 
             // Recycle resources
-            RecycleCommandListResources(commandList, fenceValue);
+            RecycleCommandListResources(commandList, commandListFenceValue);
 
-            return fenceValue;
+            return commandListFenceValue;
         }
 
-        private void RecycleCommandListResources(CompiledCommandList commandList, long fenceValue)
+        private void RecycleCommandListResources(CompiledCommandList commandList, long commandListFenceValue)
         {
             // Set fence on staging textures
             foreach (var stagingResource in commandList.StagingResources)
             {
-                stagingResource.StagingFenceValue = fenceValue;
+                stagingResource.StagingFenceValue = commandListFenceValue;
             }
 
             StagingResourceLists.Release(commandList.StagingResources);
@@ -509,43 +518,20 @@ namespace Stride.Graphics
             // Recycle resources
             foreach (var heap in commandList.SrvHeaps)
             {
-                SrvHeaps.RecycleObject(fenceValue, heap);
+                SrvHeaps.RecycleObject(commandListFenceValue, heap);
             }
             commandList.SrvHeaps.Clear();
             DescriptorHeapLists.Release(commandList.SrvHeaps);
 
             foreach (var heap in commandList.SamplerHeaps)
             {
-                SamplerHeaps.RecycleObject(fenceValue, heap);
+                SamplerHeaps.RecycleObject(commandListFenceValue, heap);
             }
             commandList.SamplerHeaps.Clear();
             DescriptorHeapLists.Release(commandList.SamplerHeaps);
 
             commandList.Builder.NativeCommandLists.Enqueue(commandList.NativeCommandList);
-            CommandAllocators.RecycleObject(fenceValue, commandList.NativeCommandAllocator);
-        }
-
-        internal bool IsFenceCompleteInternal(long fenceValue)
-        {
-            // Try to avoid checking the fence if possible
-            if (fenceValue > lastCompletedFence)
-                lastCompletedFence = Math.Max(lastCompletedFence, nativeFence.CompletedValue); // Protect against race conditions
-
-            return fenceValue <= lastCompletedFence;
-        }
-
-        internal void WaitForFenceInternal(long fenceValue)
-        {
-            if (IsFenceCompleteInternal(fenceValue))
-                return;
-
-            // TODO D3D12 in case of concurrency, this lock could end up blocking too long a second thread with lower fenceValue then first one
-            lock (nativeFence)
-            {
-                nativeFence.SetEventOnCompletion(fenceValue, fenceEvent.SafeWaitHandle.DangerousGetHandle());
-                fenceEvent.WaitOne();
-                lastCompletedFence = fenceValue;
-            }
+            CommandAllocators.RecycleObject(commandListFenceValue, commandList.NativeCommandAllocator);
         }
 
         internal void TagResource(GraphicsResourceLink resourceLink)
@@ -555,7 +541,8 @@ namespace Stride.Graphics
             {
                 // Increase the reference count until GPU is done with the resource
                 resourceLink.ReferenceCount++;
-                TemporaryResources.Enqueue(new KeyValuePair<long, object>(NextFenceValue, resourceLink));
+                lock (TemporaryResources)
+                    TemporaryResources.Enqueue(new KeyValuePair<long, object>(FrameFence.NextFenceValue, resourceLink));
             }
 
             var buffer = resourceLink.Resource as Buffer;
@@ -563,7 +550,8 @@ namespace Stride.Graphics
             {
                 // Increase the reference count until GPU is done with the resource
                 resourceLink.ReferenceCount++;
-                TemporaryResources.Enqueue(new KeyValuePair<long, object>(NextFenceValue, resourceLink));
+                lock (TemporaryResources)
+                    TemporaryResources.Enqueue(new KeyValuePair<long, object>(FrameFence.NextFenceValue, resourceLink));
             }
         }
 
@@ -598,7 +586,7 @@ namespace Stride.Graphics
                     if (liveObjects.Count > 0)
                     {
                         var firstAllocator = liveObjects.Peek();
-                        if (firstAllocator.Key <= GraphicsDevice.nativeFence.CompletedValue)
+                        if (firstAllocator.Key <= GraphicsDevice.CommandListFence.Fence.CompletedValue)
                         {
                             liveObjects.Dequeue();
                             ResetObject(firstAllocator.Value);
@@ -723,6 +711,46 @@ namespace Stride.Graphics
                 remainingHandles -= count;
 
                 return result;
+            }
+        }
+
+        internal struct FenceHelper(Fence fence) : IDisposable
+        {
+            public Fence Fence = fence;
+            public long NextFenceValue = 1;
+            public long LastCompletedFence;
+
+            [ThreadStatic]
+            private static AutoResetEvent fenceEvent;
+
+            internal bool IsFenceCompleteInternal(long fenceValue)
+            {
+                // Try to avoid checking the fence if possible
+                if (fenceValue > LastCompletedFence)
+                    LastCompletedFence = Math.Max(LastCompletedFence, Fence.CompletedValue); // Protect against race conditions
+
+                return fenceValue <= LastCompletedFence;
+            }
+
+            internal void WaitForFenceCPUInternal(long fenceValue)
+            {
+                if (IsFenceCompleteInternal(fenceValue))
+                    return;
+
+                // TODO D3D12 in case of concurrency, this lock could end up blocking too long a second thread with lower fenceValue then first one
+                lock (Fence)
+                {
+                    var localFenceEvent = fenceEvent ??= new AutoResetEvent(false);
+
+                    Fence.SetEventOnCompletion(fenceValue, localFenceEvent.SafeWaitHandle.DangerousGetHandle());
+                    localFenceEvent.WaitOne();
+                    LastCompletedFence = fenceValue;
+                }
+            }
+
+            public void Dispose()
+            {
+                Fence.Dispose();
             }
         }
     }

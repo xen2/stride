@@ -161,7 +161,7 @@ namespace Stride.Graphics
 
                     commandList.Close();
 
-                    GraphicsDevice.WaitCopyQueue();
+                    GraphicsDevice.ExecuteAndWaitCopyQueueGPU();
                 }
             }
 

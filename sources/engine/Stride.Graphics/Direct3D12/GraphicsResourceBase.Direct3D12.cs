@@ -16,7 +16,7 @@ namespace Stride.Graphics
     {
         private SharpDX.Direct3D12.DeviceChild nativeDeviceChild;
 
-        protected internal SharpDX.Direct3D12.Resource NativeResource { get; private set; }
+        protected internal SharpDX.Direct3D12.Resource NativeResource { get; internal set; }
 
         protected bool IsDebugMode => GraphicsDevice != null && GraphicsDevice.IsDebugMode;
 
@@ -64,13 +64,19 @@ namespace Stride.Graphics
                 if (immediate)
                 {
                     // We make sure all previous command lists are completed (GPU->CPU sync point)
-                    GraphicsDevice.WaitNativeCommandQueueComplete();
+                    // Note: this is a huge perf-hit in realtime, so it should be only used in rare cases (i.e. backbuffer resize or application exit).
+                    //       also, we currently do that one by one but we might want to batch them if it proves too slow.
+                    var commandListFenceValue = GraphicsDevice.CommandListFence.NextFenceValue++;
+                    GraphicsDevice.NativeCommandQueue.Signal(GraphicsDevice.CommandListFence.Fence, commandListFenceValue);
+                    GraphicsDevice.CommandListFence.WaitForFenceCPUInternal(commandListFenceValue);
+
                     ((SharpDX.IUnknown)nativeDeviceChild).Release();
                 }
                 else
                 {
                     // Schedule the resource for destruction (as soon as we are done with it)
-                    GraphicsDevice.TemporaryResources.Enqueue(new KeyValuePair<long, object>(GraphicsDevice.NextFenceValue, nativeDeviceChild));
+                    lock (GraphicsDevice.TemporaryResources)
+                        GraphicsDevice.TemporaryResources.Enqueue(new KeyValuePair<long, object>(GraphicsDevice.FrameFence.NextFenceValue, nativeDeviceChild));
                 }
                 nativeDeviceChild = null;
             }
