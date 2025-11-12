@@ -1101,12 +1101,17 @@ namespace Stride.Graphics
                     throw new InvalidOperationException();
             }
 
+            // Note: this path is quite slow (it creates a new resource)
+            // Once we switch to D3D12/Vulkan only, we should probably get rid of this use case by pooling and reusing buffers internally, or explicitly managed at the caller side
             if (mapMode == MapMode.WriteDiscard)
             {
-                throw new InvalidOperationException("Can't use WriteDiscard on Graphics API that don't support renaming");
-            }
+                // Mark old resource for deletion once command list are executed
+                resource.OnDestroyed();
 
-            if (mapMode != MapMode.WriteNoOverwrite)
+                // Create new resource
+                resource.OnRecreate();
+            }
+            else if (mapMode != MapMode.WriteNoOverwrite)
             {
                 // Need to wait?
                 if (!resource.StagingFenceValue.HasValue || !GraphicsDevice.IsFenceCompleteInternal(resource.StagingFenceValue.Value))
