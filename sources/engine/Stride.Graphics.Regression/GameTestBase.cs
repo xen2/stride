@@ -115,7 +115,7 @@ namespace Stride.Graphics.Regression
         /// <remarks>Enabling this feature may cause an Out-of-Memory exception on 32-bit processes.</remarks>
         public static bool CaptureRenderDocOnError =
   #if STRIDE_TESTS_CAPTURE_RENDERDOC_ON_ERROR
-            true;
+            false;
   #else
             string.Equals(Environment.GetEnvironmentVariable("STRIDE_TESTS_CAPTURE_RENDERDOC_ON_ERROR"), "true", StringComparison.OrdinalIgnoreCase);
   #endif
