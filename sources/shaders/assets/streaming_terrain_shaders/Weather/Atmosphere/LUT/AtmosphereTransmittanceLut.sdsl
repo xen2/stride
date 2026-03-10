@@ -1,0 +1,50 @@
+﻿namespace StrideTerrain.Weather.Effects.Atmosphere.LUT
+{
+    shader AtmosphereTransmittanceLut : ComputeShaderBase, AtmosphereBase
+    {
+        stage Texture2D<float4> TransmittanceLUT; // Not bound
+        stage Texture2D<float4> MultiScatteringLUT; // Not bound
+
+        stage RWTexture2D<float4> OutputTexture;
+
+        cbuffer Atmosphere
+        {
+			AtmosphereParameters Atmosphere;
+            float3 SunDirection;
+            [Color] float3 SunColor;
+        }
+        
+        override void Compute()
+        {
+            float2 pixelPosition = streams.DispatchThreadId.xy + 0.5f;
+
+            AtmosphereParameters atmosphere = Atmosphere;
+            
+            const float2 uv = pixelPosition * rcp(TransmittanceLUTRes);
+            float viewHeight;
+            float viewZenithCosAngle;
+            UvToLutTransmittanceParams(atmosphere, viewHeight, viewZenithCosAngle, uv);
+
+            float3 worldPosition = float3(0, 0, viewHeight);
+            float3 worldDirection = float3(0.0f, sqrt(1.0 - viewZenithCosAngle * viewZenithCosAngle), viewZenithCosAngle);
+
+            float3 sunDirection = SunDirection;
+            float3 sunIlluminance = SunColor;
+
+            const float tDepth = 0.0;
+	        const float sampleCountIni = 40.0;
+	        const bool variableSampleCount = false;
+	        const bool opaque = false;
+	        const bool ground = false;
+	        const bool mieRayPhase = false;
+	        const bool multiScatteringApprox = false;
+	        SingleScatteringResult ss = IntegrateScatteredLuminance(
+                atmosphere, pixelPosition, worldPosition, worldDirection, sunDirection, sunIlluminance, tDepth, sampleCountIni, variableSampleCount,
+		        opaque, ground, mieRayPhase, multiScatteringApprox, TransmittanceLUT, MultiScatteringLUT);
+    
+	        float3 transmittance = exp(-ss.OpticalDepth);
+    
+	        OutputTexture[streams.DispatchThreadId.xy] = float4(transmittance, 1.0);
+        }
+    };
+}

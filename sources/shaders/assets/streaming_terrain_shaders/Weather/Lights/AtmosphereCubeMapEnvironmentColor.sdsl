@@ -1,0 +1,79 @@
+﻿namespace StrideTerrain.Weather.Effects.Lights
+{
+    shader AtmosphereCubeMapEnvironmentColor 
+        : EnvironmentLight, MaterialPixelShadingStream, NormalStream,Transformation, Texturing, WeatherForwardRendererBase
+    {
+        cbuffer PerView.Lighting
+        {
+            float MipCount;
+            float Intensity;
+            bool IsRenderingCubeMap;
+        }
+
+        rgroup PerView.Lighting
+        {
+            TextureCube CubeMap;
+        }
+
+        float4 SampleDiffuse(float3 direction)
+        {
+            if (IsRenderingCubeMap)
+            {
+                return float4(0, 0, 0, 0); // todo ...
+            }
+            else
+            {
+                return CubeMap.SampleLevel(LinearSampler, direction, MipCount);
+            }
+        }
+
+        float4 SampleSpecular(float3 direction)
+        {
+            if (IsRenderingCubeMap)
+            {
+                return float4(0, 0, 0, 0); // todo ...
+            }
+            else
+            {
+                var alpha = streams.alphaRoughness;
+                var mipLevel = sqrt(streams.alphaRoughness) * MipCount;
+
+                return CubeMap.SampleLevel(LinearSampler, direction, mipLevel);
+            }
+        }
+
+        override void PrepareEnvironmentLight()
+        {
+            base.PrepareEnvironmentLight();
+
+            var ambientAccessibility = streams.matAmbientOcclusion;
+
+            // -----------------------------------------
+            // Diffuse lighting
+            // -----------------------------------------
+            var sampleDirection = streams.normalWS;
+            sampleDirection = float3(sampleDirection.xy, -sampleDirection.z);
+
+            streams.envLightDiffuseColor = SampleDiffuse(sampleDirection).rgb * Intensity * ambientAccessibility * streams.matDiffuseSpecularAlphaBlend.x;
+
+            if (streams.subsurfaceLightingAmount > 0.0)
+            {
+                const float viewDependantSplit = 0.5;
+                float3 subsurfaceLighting = streams.envLightDiffuseColor * viewDependantSplit;
+                subsurfaceLighting += SampleDiffuse(-sampleDirection).rgb * Intensity * ambientAccessibility * streams.matDiffuseSpecularAlphaBlend.x * (1.0 - viewDependantSplit);
+
+                streams.envLightDiffuseColor += subsurfaceLighting * streams.subsurfaceLightingAmount;
+            }
+
+            // -----------------------------------------
+            // Specular lighting
+            // -----------------------------------------
+            sampleDirection = reflect( -streams.viewWS, streams.normalWS );
+            sampleDirection = float3(sampleDirection.xy, -sampleDirection.z);
+
+            var mipLevel = sqrt(streams.alphaRoughness) * MipCount;
+
+            streams.envLightSpecularColor = SampleSpecular(sampleDirection).rgb * Intensity * ambientAccessibility * streams.matDiffuseSpecularAlphaBlend.y;
+        }
+    };
+}

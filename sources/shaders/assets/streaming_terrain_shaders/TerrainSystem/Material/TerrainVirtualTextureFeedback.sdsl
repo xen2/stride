@@ -1,0 +1,30 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader TerrainVirtualTextureFeedback : TerrainVirtualTexture, ShaderBase, TerrainDisplacement, Transformation
+    {
+        stage override void VSMain()
+        {
+            SetTerrainVertexPosition();
+
+            streams.PositionWS = mul(streams.Position, World);
+            streams.ShadingPosition = mul(streams.Position, WorldViewProjection);
+        }
+
+        stage override void PSMain()
+        {
+            float mipF = ComputeVTMipLevel(streams.PositionWS.xyz);
+            int mipLevel = int(floor(mipF));
+            VTPageAddress addr = ComputePageAddress(streams.PositionWS.xyz, mipLevel);
+    
+            // Encode as color for readback
+            // R: tileX low byte, G: tileX high + tileY low, B: tileY high, A: mip
+            float4 encoded;
+            encoded.r = float(addr.tileIndex.x & 0xFF) / 255.0;
+            encoded.g = float(((addr.tileIndex.x >> 8) & 0xF) | ((addr.tileIndex.y & 0xF) << 4)) / 255.0;
+            encoded.b = float((addr.tileIndex.y >> 4) & 0xFF) / 255.0;
+            encoded.a = float(mipLevel) / 255.0;
+    
+            streams.ColorTarget = encoded;
+        }
+    };
+}

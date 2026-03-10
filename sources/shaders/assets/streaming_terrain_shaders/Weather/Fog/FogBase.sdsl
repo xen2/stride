@@ -1,0 +1,73 @@
+﻿namespace StrideTerrain.Weather.Effects.Fog
+{
+    shader FogBase : AtmosphereBase
+    {
+        struct FogParameters
+        {
+            float Start;
+            float HeightStart;
+            float HeightEnd;
+            float Density;
+            float3 Color;
+            float OverrideFogColor;
+        };
+
+        #define FOG_INSCATTERING_PHASE_G 0.6
+
+        float GetFogAmount(FogParameters fog, float distance, float3 O, float3 V)
+        {
+            float startDistanceFalloff = saturate((distance - fog.Start) / fog.Start);
+            float fogFalloffScale = 1.0 / max(0.01, fog.HeightEnd - fog.HeightStart);
+
+            float fogFalloff = 6.907755 * fogFalloffScale;
+            
+            float originHeight = O.y;
+            float Z = V.y;
+            float effectiveZ = max(abs(Z), 0.001);
+
+
+            float endLineHeight = mad(distance, Z, originHeight);
+            float minLineHeight = min(originHeight, endLineHeight);
+            float heightLineFalloff = max(minLineHeight - fog.HeightStart, 0);
+
+            float baseHeightFogDistance = clamp((fog.HeightStart - minLineHeight) / effectiveZ, 0, distance);
+            float exponentialFogDistance = distance - baseHeightFogDistance; // Exclude distance below base height
+            float exponentialHeightLineIntegral = exp(-heightLineFalloff * fogFalloff) * (1.0 - exp(-exponentialFogDistance * effectiveZ * fogFalloff)) / (effectiveZ * fogFalloff);
+
+            float opticalDepthHeightFog = fog.Density * startDistanceFalloff * (baseHeightFogDistance + exponentialHeightLineIntegral);
+            float transmittanceHeightFog = exp(-opticalDepthHeightFog);
+
+            float fogAmount = transmittanceHeightFog;
+		    return 1.0 - fogAmount;
+        }
+
+        float4 GetFogColor(FogParameters fog, AtmosphereParameters atmosphere, float distance, float3 O, float3 V, float3 sunDirection, float3 sunColor, Texture2D<float4> skyLuminanceLUT, Texture2D<float4> transmittanceLUT)
+        {
+            float3 fogColor = float3(0,0,0);
+            
+            if (fog.OverrideFogColor > 0)
+            {
+                fogColor = skyLuminanceLUT.SampleLevel(SamplerPointClamp, float2(0.5, 0.5), 0).rgb;
+            }
+            else
+            {
+                fogColor = fog.Color;
+            }
+
+            const float3 L = sunDirection;
+            float3 inscatteringColor = sunColor;
+            inscatteringColor *= GetAtmosphericLightTransmittance(atmosphere, float3(0.0, 0.0, 0.0), L, transmittanceLUT);
+
+            // Apply phase function solely for directionality:
+		    const float cosTheta = dot(-V, L);
+            inscatteringColor *= HgPhase(FOG_INSCATTERING_PHASE_G, cosTheta);
+
+            // Apply uniform phase since this medium is constant:
+		    inscatteringColor *= UniformPhase();
+
+            fogColor += inscatteringColor;
+
+            return float4(fogColor, GetFogAmount(fog, distance, O, V));
+        }
+    };
+}

@@ -1,0 +1,186 @@
+﻿namespace StrideTerrain.Vegetation
+{
+    shader GrassPopulateInstances : ComputeShaderBase, TerrainQuery, Math
+    {
+        stage float3 CameraPosition;
+        stage uint Size;
+        stage uint InstanceCount;
+        stage float CellSize;
+        stage float FadeStartFraction;
+        stage float MinScale;
+        stage float MaxScale;
+        stage float2 Seed;
+        stage bool RotateAlongTerrainNormal;
+        stage float Clumpiness = 0.5f;
+        stage float ClumpSize = 32.0f;
+        stage uint ValidBackgroundTexturesIds[5];
+
+        struct GrassInstance
+        {
+            float4 PositionScale;
+            float4 Rotation;
+        };
+
+        stage AppendStructuredBuffer<GrassInstance> Instances;
+
+        override void Compute()
+        {
+            uint2 tid = streams.DispatchThreadId.xy;
+            uint index = tid.y * Size + tid.x;
+            if (index >= InstanceCount)
+                return;
+
+            float radius = Size * CellSize * 0.5;
+
+            // Snap camera position to the grid to keep grass "fixed"
+            float2 snappedCameraXZ = floor(CameraPosition.xz / CellSize) * CellSize;
+
+            // Local grid position relative to the snapped origin
+            float2 localPos = (tid.xy * CellSize) - radius;
+
+            float2 cellSeed = floor((snappedCameraXZ + localPos) / CellSize); 
+            cellSeed += Seed;
+
+            float rndPosX = Hash21(cellSeed);
+            float rndPosZ = Hash21(cellSeed.yx + 19.19);
+            float rndScale = Hash21(cellSeed * 31.0);
+            float rndRot = Hash21(cellSeed * 73.0);
+
+            float2 jitter = (float2(rndPosX, rndPosZ) - 0.5f) * CellSize;
+            localPos += jitter;
+
+            // Clumping
+            if (Clumpiness > 0.0f)
+            {
+                // TODO: This does not look great
+                float2 clumpCell = floor((snappedCameraXZ + localPos) / ClumpSize);
+
+                float2 clumpCenter = clumpCell * ClumpSize + ClumpSize * 0.5;
+
+                float2 clumpSeed = clumpCell + Seed * 123.456;
+                float r = sqrt(Hash21(clumpSeed)) * (ClumpSize * 0.5);
+                float angle = Hash21(clumpSeed.yx) * 2.0*PI;
+                float2 circularOffset = float2(cos(angle), sin(angle)) * r;
+
+                clumpCenter += circularOffset;
+
+                float localClumpiness = lerp(0.3, 1, Hash21(cellSeed + 839.23)) * Clumpiness;
+
+                localPos = lerp(localPos, clumpCenter - snappedCameraXZ, localClumpiness);
+            }
+
+            // Final world-space position
+            float3 position;
+            position.xz = localPos + snappedCameraXZ;
+            position.y = 0;
+
+            float2 terrainUv = GetTerrainAtlasUv(position.x, position.z);
+
+            // Check if spawn location is valid
+            uint backgroundTextureIndex = GetBackgroundTextureIndexAt(terrainUv);
+            
+            bool isValid = false;
+            for (int i = 0; i < 5; i++)
+            {
+                if (ValidBackgroundTexturesIds[i] == backgroundTextureIndex)
+                {
+                    isValid = true;
+                }
+            }
+
+            if (!isValid)
+                return;
+
+            // Adjust height, fade out at distance and randomize scale + rotation
+            position.y = GetTerrainHeightAt(terrainUv);
+
+            float distanceToCamera = distance(CameraPosition.xz, position.xz);
+
+            float startFadeRadius = radius * FadeStartFraction; 
+
+            float fade = smoothstep(radius, startFadeRadius, distanceToCamera);
+            float scale = fade * lerp(MinScale, MaxScale, rndScale);
+            float rotationAngle = (rndRot * 2.0f - 1.0f) * PI;
+
+            float3 terrainNormal = RotateAlongTerrainNormal ? GetTerrainNormalAt(terrainUv) : float3(0, 1, 0);
+
+            // Build world matrix
+            float4 rotation = QuaternionMultiply(CreateRotationAxisYQuaternion(float3(0, 1, 0), rotationAngle), CreateQuaternionBetweenDirections(float3(0, 1, 0), terrainNormal));
+
+            GrassInstance grassInstance;
+            grassInstance.PositionScale = float4(position.xyz, scale);
+            grassInstance.Rotation = rotation;
+
+            Instances.Append(grassInstance);
+        }
+
+        float Hash21(float2 p)
+        {
+            p = frac(p * 0.1031);
+            p += dot(p, p.yx + 33.33);
+            return frac((p.x + p.y) * p.x * p.y);
+        }
+
+        float4 QuaternionMultiply(float4 left, float4 right)
+        {
+            float4 result;
+
+            float lx = left.x;
+            float ly = left.y;
+            float lz = left.z;
+            float lw = left.w;
+            float rx = right.x;
+            float ry = right.y;
+            float rz = right.z;
+            float rw = right.w;
+
+            result.x = (rx * lw + lx * rw + ry * lz) - (rz * ly);
+            result.y = (ry * lw + ly * rw + rz * lx) - (rx * lz);
+            result.z = (rz * lw + lz * rw + rx * ly) - (ry * lx);
+            result.w = (rw * lw) - (rx * lx + ry * ly + rz * lz);
+
+            return result;
+        }
+
+        float4 CreateRotationAxisYQuaternion(float3 axis, float angle)
+        {
+            float halfAngle = angle * 0.5f;
+            float s = sin(halfAngle);
+            float c = cos(halfAngle);
+
+            float4 result;
+            result.x = axis.x * s;
+            result.y = axis.y * s;
+            result.z = axis.z * s;
+            result.w = c;
+
+            return result;
+        }
+
+        float4 CreateQuaternionBetweenDirections(float3 source, float3 target)
+        {
+            float4 result;
+
+            float sourceLength = length(source);
+            float targetLength = length(target);
+
+            float norms = sqrt((sourceLength * sourceLength) * (targetLength * targetLength)); // todo: this is stupid
+            float real = norms + dot(source, target);
+            if (real < 1e-6f * norms)
+            {
+                // If source and target are exactly opposite, rotate 180 degrees around an arbitrary orthogonal axis.
+                // Axis normalisation can happen later, when we normalise the quaternion.
+                result = abs(source.x) > abs(source.z) ? float4(-source.y, source.x, 0, 0) : float4(0, -source.z, source.y, 0);
+            }
+            else
+            {
+                float3 axis = cross(source, target);
+                result = float4(axis, real);
+            }
+
+            result = normalize(result);
+
+            return result;
+        }
+    };
+}

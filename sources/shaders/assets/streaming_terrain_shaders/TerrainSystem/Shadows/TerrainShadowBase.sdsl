@@ -1,0 +1,23 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Shadows
+{
+    shader TerrainShadowBase : Texturing, TerrainData
+    {
+        float GetTerrainShadow(float3 worldPosition)
+        {
+            if (InvShadowMapSize == 0.0f)
+                return 1.0f;
+
+            float2 uv = (worldPosition.xz) * InvShadowMapSize;
+
+            if (uv.x < 0 || uv.y < 0 || uv.x > 1 || uv.y > 1)
+                return 1.0f;
+
+            float3 shadowData = TerrainShadowMap.SampleLevel(LinearSampler, uv, 0).xyz;
+
+            float heightWeight = worldPosition.y * InvMaxHeight;
+            heightWeight = (heightWeight - shadowData.y) * shadowData.z * 1023;
+
+            return lerp(shadowData.x, 1.0, saturate(heightWeight));
+        }
+    };
+}

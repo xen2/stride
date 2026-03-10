@@ -1,0 +1,12 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Shadows
+{   
+    shader ShadowMapReceiverTerrainDrectional<int TCascadeCount, int TLightCount, bool TBlendCascades, bool TDepthRangeAuto, bool TCascadeDebug,bool TComputeTransmittance>
+        : ShadowMapReceiverDirectional<TCascadeCount, TLightCount, TBlendCascades, TDepthRangeAuto, TCascadeDebug, TComputeTransmittance>, PositionStream4, Texturing, TerrainShadowBase
+    {
+        override float3 ComputeShadow(float3 position, int lightIndex)
+        {
+            float shadow = GetTerrainShadow(position);
+            return shadow * base.ComputeShadow(position, lightIndex);
+        }
+    };
+}

@@ -1,0 +1,10 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader TerrainMaterialStreams : TerrainStreams
+    {
+        // Material per pixel data
+        stage stream float3 TerrainDiffuse;
+        stage stream float3 TerrainNormal;
+        stage stream float TerrainRoughness;
+    };
+}

@@ -1,0 +1,167 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader TerrainMaterialStreamInitializer 
+        : IStreamInitializer, TerrainMaterialStreams, TerrainStreams, NormalStream, PositionStream4, TerrainMaterialSampling, TerrainVirtualTextureSampling, Transformation
+    {
+        void ApplyVirtualTexturing()
+        {
+            VTMaterialSample materialSample = SampleVirtualTerrain(streams.PositionWS.xyz, streams.meshNormal.xyz);
+
+            if (!materialSample.IsValid)
+            {
+                float4 terrainDiffuseRoughness = TerrainDiffuseRoughnessMap.SampleLevel(LinearSampler, streams.TexCoord, 0);
+                streams.TerrainDiffuse = terrainDiffuseRoughness.xyz;
+                streams.TerrainRoughness = terrainDiffuseRoughness.w;
+                streams.TerrainNormal = streams.meshNormal;
+            }
+            else
+            {
+                streams.TerrainDiffuse = materialSample.Diffuse;
+                streams.TerrainRoughness = materialSample.Roughness;
+                streams.TerrainNormal = materialSample.Normal;
+            }
+
+            streams.normalWS = streams.TerrainNormal;
+        }
+
+        void ApplySplatMap()
+        {
+            float2 positionFract = frac(streams.TexCoord * TerrainTextureSize - 0.5f);
+            float4 fractionalWeights = float4(
+                (1.0f - positionFract.x) * (1.0f - positionFract.y),
+                positionFract.x * (1.0f - positionFract.y),
+                positionFract.y * (1.0f - positionFract.x),
+                positionFract.x * positionFract.y
+            );
+
+            // https://www.reedbeta.com/blog/texture-gathers-and-coordinate-precision/
+            float2 controlMapUv = (floor(streams.TexCoord * TerrainTextureSize - 0.5) + 1.0) / TerrainTextureSize;
+            uint4 controlValues = (uint4)TerrainControlMap.Gather(PointSampler, controlMapUv);
+
+            uint controlValueA = controlValues.w;
+            uint controlValueB = controlValues.z;
+            uint controlValueC = controlValues.x;
+            uint controlValueD = controlValues.y;
+
+            uint4 backgroundTextureIndices = uint4(
+                (uint)((controlValueA & 0x1F)),
+                (uint)((controlValueB & 0x1F)),
+                (uint)((controlValueC & 0x1F)),
+                (uint)((controlValueD & 0x1F))
+            );
+
+            uint4 backgroundUvScaling = uint4(
+                (uint)((controlValueA >> 5) & 0x07),
+                (uint)((controlValueB >> 5) & 0x07),
+                (uint)((controlValueC >> 5) & 0x07),
+                (uint)((controlValueD >> 5) & 0x07)
+            );
+
+            float tighten = 0.576f;
+            float3 triPlanarWeights = saturate(abs(streams.meshNormal) - tighten);
+	        triPlanarWeights = triPlanarWeights / (triPlanarWeights.x + triPlanarWeights.y + triPlanarWeights.z);
+
+            MaterialSample background = SampleBackground(backgroundTextureIndices, backgroundUvScaling, triPlanarWeights, streams.meshNormal, streams.PositionWS.xyz, fractionalWeights);
+            float3 backgroundNormal = DecodeNormal(background.Normal);
+
+            float3 tangent = normalize(float3(1, 0, 0) - streams.meshNormal * dot(float3(1, 0, 0), streams.meshNormal));
+            float3 bitangent = cross(streams.meshNormal, tangent);
+            float3x3 tangentMatrix = float3x3(tangent, bitangent, streams.meshNormal);
+
+            backgroundNormal = mul(backgroundNormal, tangentMatrix);
+
+            streams.TerrainDiffuse = background.Diffuse;
+            streams.TerrainRoughness = background.Roughness;
+            streams.TerrainNormal = normalize(backgroundNormal);
+        }
+
+        void ApplySplatMapAndAtlas()
+        {
+            float3 toCamera = Eye.xyz - streams.PositionWS.xyz;
+            float distanceSq = dot(toCamera, toCamera);
+
+            // Blend range
+            float blendRegion = 32.0f;
+            float blendEnd   = 256.0f;
+            float blendStart = blendEnd - blendRegion;
+
+            float blendStartSq = blendStart * blendStart;
+            float blendEndSq   = blendEnd   * blendEnd;
+
+            // --- Fully simplified ---
+            if (distanceSq >= blendEndSq)
+            {
+                float4 terrainDiffuseRoughness =
+                    TerrainDiffuseRoughnessMap.SampleLevel(LinearSampler, streams.TexCoord, 0);
+
+                streams.TerrainDiffuse   = terrainDiffuseRoughness.xyz;
+                streams.TerrainRoughness = terrainDiffuseRoughness.w;
+                streams.TerrainNormal    = streams.meshNormal;
+            }
+            else
+            {
+                // --- Compute splat (only when needed) ---
+                ApplySplatMap();
+
+                // Fully detailed (no blending yet)
+                if (distanceSq <= blendStartSq)
+                {
+                    // streams already contains splat result
+                }
+                else
+                {
+                    // --- Blend region ---
+                    float alpha = saturate(
+                        (distanceSq - blendStartSq) /
+                        (blendEndSq - blendStartSq)
+                    );
+
+                    float3 splatDiffuse   = streams.TerrainDiffuse;
+                    float  splatRoughness = streams.TerrainRoughness;
+                    float3 splatNormal    = streams.TerrainNormal;
+
+                    float4 terrainDiffuseRoughness =
+                        TerrainDiffuseRoughnessMap.SampleLevel(LinearSampler, streams.TexCoord, 0);
+
+                    float3 lodDiffuse   = terrainDiffuseRoughness.xyz;
+                    float  lodRoughness = terrainDiffuseRoughness.w;
+                    float3 lodNormal    = streams.meshNormal;
+
+                    streams.TerrainDiffuse   = lerp(splatDiffuse,   lodDiffuse,   alpha);
+                    streams.TerrainRoughness = lerp(splatRoughness, lodRoughness, alpha);
+                    streams.TerrainNormal    = normalize(lerp(splatNormal, lodNormal, alpha));
+                }
+            }
+
+            streams.normalWS = streams.TerrainNormal;
+        }
+
+        override void ResetStream()
+        {
+            base.ResetStream();
+
+            float3 normal = float3(0, 0, 0);
+            normal.xz = TerrainNormalMap.SampleLevel(LinearSampler, streams.TexCoord, 0).xy * 2.0f - 1.0f;
+            normal.y = sqrt(max(0.0f, 1.0f - (normal.x * normal.x + normal.z * normal.z)));
+
+            streams.meshNormal = normal;
+			
+			ApplyVirtualTexturing();
+            //ApplySplatMapAndAtlas();
+
+            //const float3 LODColors[9] = {
+            //    float3(1.0, 0.0, 0.0),   // Red
+            //    float3(0.0, 1.0, 0.0),   // Green
+            //    float3(0.0, 0.0, 1.0),   // Blue
+            //    float3(1.0, 1.0, 0.0),   // Yellow
+            //    float3(1.0, 0.0, 1.0),   // Magenta
+            //    float3(0.0, 1.0, 1.0),   // Cyan
+            //    float3(1.0, 0.5, 0.0),   // Orange
+            //    float3(0.5, 0.0, 1.0),   // Purple
+            //    float3(0.5, 1.0, 0.5)    // Light green
+            //};
+
+            //streams.TerrainDiffuse *= LODColors[streams.LodLevel % 9];
+        }
+    };
+}

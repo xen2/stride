@@ -1,0 +1,118 @@
+﻿namespace StrideTerrain.Weather.Effects.Atmosphere.LUT
+{
+    shader AtmosphereSkyLuminanceLut : ComputeShaderBase, AtmosphereBase
+    {
+		stage Texture2D<float4> TransmittanceLUT;
+        stage Texture2D<float4> MultiScatteringLUT;
+
+        stage RWTexture2D<float4> OutputTexture;
+
+		static const float skyLuminanceSampleHeight = 6.0; // Sample height above ground in kilometers
+
+		groupshared float3 SkyLuminanceSharedMem[64];
+
+        cbuffer Atmosphere
+        {
+			AtmosphereParameters Atmosphere;
+			float3 SunDirection;
+            [Color] float3 SunColor;
+        }
+        
+        override void Compute()
+        {
+            float2 pixelPosition = streams.DispatchThreadId.xy + 0.5f;
+            float2 uv = pixelPosition * rcp(SkyLuminanceLUTRes);
+
+            AtmosphereParameters atmosphere = Atmosphere;
+
+            float viewHeight = atmosphere.BottomRadius + skyLuminanceSampleHeight;
+    
+			float3 worldPosition = float3(0.0, viewHeight, 0.0);
+			float3 worldDirection = float3(0.0, 0.0, 1.0);
+    
+			float3 sunIlluminance = SunColor;
+			float3 sunDirection = SunDirection;
+	
+			const float tDepth = 0.0;
+			const float sampleCountIni = 10.0;
+			const bool variableSampleCount = false;
+			const bool opaque = false;
+			const bool ground = false;
+			const bool mieRayPhase = false; // Perhabs?
+			const bool multiScatteringApprox = true;
+
+			const float sphereSolidAngle = 4.0 * PI;
+			const float isotropicPhase = 1.0 / sphereSolidAngle;
+        
+            // Same as multi-scattering, but this time we're sampling luminance
+#define SQRTSAMPLECOUNT 8
+			const float sqrtSample = float(SQRTSAMPLECOUNT);
+			float i = 0.5f + float(streams.DispatchThreadId.z / SQRTSAMPLECOUNT);
+			float j = 0.5f + float(streams.DispatchThreadId.z - float((streams.DispatchThreadId.z / SQRTSAMPLECOUNT) * SQRTSAMPLECOUNT));
+			{
+				float randA = i / sqrtSample;
+				float randB = j / sqrtSample;
+				float theta = 2.0f * PI * randA;
+				float phi = PI * randB;
+				float cosPhi = cos(phi);
+				float sinPhi = sin(phi);
+				float cosTheta = cos(theta);
+				float sinTheta = sin(theta);
+				worldDirection.x = cosTheta * sinPhi;
+				worldDirection.y = sinTheta * sinPhi;
+				worldDirection.z = cosPhi;
+				SingleScatteringResult result = IntegrateScatteredLuminance(
+					atmosphere, pixelPosition, worldPosition, worldDirection, sunDirection, sunIlluminance, tDepth, sampleCountIni, variableSampleCount,
+					opaque, ground, mieRayPhase, multiScatteringApprox, TransmittanceLUT, MultiScatteringLUT);
+
+				SkyLuminanceSharedMem[streams.DispatchThreadId.z] = result.L * sphereSolidAngle / (sqrtSample * sqrtSample);
+			}
+#undef SQRTSAMPLECOUNT
+    
+			GroupMemoryBarrierWithGroupSync();
+
+			// 64 to 32
+			if (streams.DispatchThreadId.z < 32)
+			{
+				SkyLuminanceSharedMem[streams.DispatchThreadId.z] += SkyLuminanceSharedMem[streams.DispatchThreadId.z + 32];
+			}
+			GroupMemoryBarrierWithGroupSync();
+
+			// 32 to 16
+			if (streams.DispatchThreadId.z < 16)
+			{
+				SkyLuminanceSharedMem[streams.DispatchThreadId.z] += SkyLuminanceSharedMem[streams.DispatchThreadId.z + 16];
+			}
+			GroupMemoryBarrierWithGroupSync();
+
+			// 16 to 8 (16 is thread group min hardware size with intel, no sync required from there)
+			if (streams.DispatchThreadId.z < 8)
+			{
+				SkyLuminanceSharedMem[streams.DispatchThreadId.z] += SkyLuminanceSharedMem[streams.DispatchThreadId.z + 8];
+			}
+			GroupMemoryBarrierWithGroupSync();
+			if (streams.DispatchThreadId.z < 4)
+			{
+				SkyLuminanceSharedMem[streams.DispatchThreadId.z] += SkyLuminanceSharedMem[streams.DispatchThreadId.z + 4];
+			}
+			GroupMemoryBarrierWithGroupSync();
+			if (streams.DispatchThreadId.z < 2)
+			{
+				SkyLuminanceSharedMem[streams.DispatchThreadId.z] += SkyLuminanceSharedMem[streams.DispatchThreadId.z + 2];
+			}
+			GroupMemoryBarrierWithGroupSync();
+			if (streams.DispatchThreadId.z < 1)
+			{
+				SkyLuminanceSharedMem[streams.DispatchThreadId.z] += SkyLuminanceSharedMem[streams.DispatchThreadId.z + 1];
+			}
+			GroupMemoryBarrierWithGroupSync();
+			if (streams.DispatchThreadId.z > 0)
+				return;
+
+			float3 InScatteredLuminance = SkyLuminanceSharedMem[0] * isotropicPhase;
+			float3 L = InScatteredLuminance;
+
+			OutputTexture[streams.DispatchThreadId.xy.xy] = float4(L, 1.0f);
+        }
+    };
+}

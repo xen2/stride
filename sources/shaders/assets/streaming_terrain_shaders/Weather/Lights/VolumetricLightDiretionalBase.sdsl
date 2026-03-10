@@ -1,0 +1,64 @@
+﻿namespace StrideTerrain.Weather.Effects.Lights
+{
+    shader VolumetricLightDiretionalBase : AtmosphereBase, FogBase, TerrainShadowBase, Camera
+    {
+        // Mie scaterring approximated with Henyey-Greenstein phase function.
+        //	https://www.alexandre-pestana.com/volumetric-lights/
+        #define G_SCATTERING 0.66
+        float ComputeScattering(float lightDotView)
+        {
+	        float result = 1.0f - G_SCATTERING * G_SCATTERING;
+	        result /= (4.0f * PI * pow(1.0f + G_SCATTERING * G_SCATTERING - (2.0f * G_SCATTERING) * lightDotView, 1.5f));
+	        return result;
+        }
+
+        float3 IntersectPlaneClampInfinite(in float3 rayOrigin, in float3 rayDirection, in float3 planeNormal, float planeHeight)
+        {
+	        float dist = (planeHeight - dot(planeNormal, rayOrigin)) / dot(planeNormal, rayDirection);
+	        if (dist < 0.0)
+		        return rayOrigin + rayDirection * dist;
+	        else
+		        return float3(rayOrigin.x, planeHeight, rayOrigin.z) - normalize(float3(rayDirection.x, 0, rayDirection.z)) * FarClipPlane;
+        }
+
+        float3 RayMarchVolumetricDirectionalLight(AtmosphereParameters atmosphere, FogParameters fog, float3 P, float3 V, float3 L, float3 lightColor, 
+            float3 cameraPosition, float cameraDistance, Texture2D<float4> transmittanceLUT)
+        {
+            const float scattering = ComputeScattering(saturate(dot(L, -V)));
+
+            float3 rayEnd = cameraPosition;
+
+            const uint SampleCount = 16;
+            const float stepSize = length(P - rayEnd) / SampleCount;
+
+            float marchedDistance = 0;
+            float3 accumulation = 0;
+
+            float fogFalloff = 0.0001;
+
+            for (uint i = 0; i < SampleCount; ++i)
+            {
+                float shadow = GetTerrainShadow(P);
+
+                shadow *= GetFogAmount(fog, cameraDistance - marchedDistance, P, 0);
+
+                float stepTransmittance = exp(-fogFalloff * marchedDistance);
+                shadow *= scattering * GetAtmosphericLightTransmittance(atmosphere, P, L, transmittanceLUT);
+                //shadow *= scattering * stepSize * stepTransmittance * GetAtmosphericLightTransmittance(atmosphere, P, L, transmittanceLUT);
+
+                accumulation += shadow;
+                marchedDistance += stepSize;
+
+                P = P + V * stepSize;
+            }
+
+            accumulation /= SampleCount;
+
+            float3 atmosphereTransmittance = GetAtmosphericLightTransmittance(atmosphere, P, L, transmittanceLUT);
+            
+            accumulation = max(0, accumulation * lightColor * atmosphereTransmittance);
+
+            return accumulation;
+        }
+    };
+}

@@ -1,0 +1,14 @@
+﻿namespace StrideTerrain.Weather.Effects
+{
+    shader WeatherLightDirectionalGroup<int TMaxLightCount> : LightDirectionalGroup<TMaxLightCount>, WeatherForwardRendererBase
+    {
+        override void PrepareDirectLightCore(int lightIndex)
+        {
+            base.PrepareDirectLightCore(lightIndex);
+
+            float3 transmittance = GetAtmosphericLightTransmittance(Atmosphere, streams.PositionWS.xyz / streams.PositionWS.w, streams.lightDirectionWS, TransmittanceLUT);
+
+            streams.lightColor *= transmittance;
+        }
+    };
+}

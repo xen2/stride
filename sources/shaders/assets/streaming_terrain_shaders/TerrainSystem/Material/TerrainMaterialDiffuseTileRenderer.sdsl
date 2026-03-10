@@ -1,0 +1,46 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader TerrainMaterialDiffuseTileRenderer : ShaderBase, FullscreenTriangle
+    {
+        cbuffer PerMaterial.TerrainTile
+        {
+            stage float2 UvMin;
+            stage float2 UvMax;
+            stage float2 WorldBoundsMin;
+            stage float2 WorldBoundsMax;
+            stage int AtlasSize;
+        };
+
+        rgroup PerMaterial
+        {
+            stage Texture2D<uint> TerrainControlMap;
+            stage Texture2DArray DiffuseRoughnessArray;
+        }
+
+        stage override void PSMain()
+        {
+            float2 uv = streams.TexCoord;
+
+            float2 controlMapUv = lerp(UvMin, UvMax, uv);
+
+            float3 positionWS = 0;
+            positionWS.xz = lerp(WorldBoundsMin, WorldBoundsMax, uv);
+
+            // Sample control map
+            // TODO: Gather would be better ... I guess ...
+            uint controlValue = (uint)TerrainControlMap.Load(int3(controlMapUv * AtlasSize, 0)).x;
+
+            uint backgroundTextureIndex = controlValue & 0x1F;
+            uint backgroundUvScaling = ((controlValue >> 5) & 0x07);
+
+            // Sample material
+            const float scaleValues[8] = { 0.33f, 0.166f, 0.05f, 0.025f, 0.0125f, 0.0075f, 0.00375f, 0.0f };
+            float uvScale = scaleValues[backgroundUvScaling];
+
+            float2 materialUv = positionWS.xz * uvScale;
+            float4 diffuseRoughness = DiffuseRoughnessArray.SampleLevel(LinearRepeatSampler, float3(materialUv, backgroundTextureIndex), 0);
+
+            streams.ColorTarget = float4(diffuseRoughness.xyz, diffuseRoughness.w);
+        }
+    };
+}

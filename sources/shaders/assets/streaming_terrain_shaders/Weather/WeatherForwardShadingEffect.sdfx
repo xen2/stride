@@ -1,0 +1,21 @@
+﻿namespace StrideTerrain.Weather.Effects
+{
+    params WeatherForwardShadingEffectParameters
+    {
+        bool EnableAerialPerspective = false;
+        bool EnableVolumetricSunLight = false;
+        bool EnableHeightFog = false;
+    }
+
+    effect WeatherForwardShadingEffect
+    {
+        using params WeatherForwardShadingEffectParameters;
+
+        mixin StrideForwardShadingEffect;
+        
+        mixin WeatherFordwardRenderer<
+            WeatherForwardShadingEffectParameters.EnableAerialPerspective, 
+            WeatherForwardShadingEffectParameters.EnableVolumetricSunLight, 
+            WeatherForwardShadingEffectParameters.EnableHeightFog>;
+    }
+}

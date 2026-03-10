@@ -1,0 +1,14 @@
+﻿namespace StrideTerrain.Rendering.Effects
+{
+    shader FullscreenTriangle : ShaderBase, Texturing
+    {
+        stage stream uint VertexId : SV_VERTEXID;
+
+        stage override void VSMain()
+        {
+            float2 uv = float2((streams.VertexId << 1) & 2, streams.VertexId & 2);
+            streams.ShadingPosition = float4(uv * 2.0 - 1.0, 0.0, 1.0);
+            streams.TexCoord = uv;
+        }
+	};
+}

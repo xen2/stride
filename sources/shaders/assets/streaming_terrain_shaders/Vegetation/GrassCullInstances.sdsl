@@ -1,0 +1,118 @@
+﻿namespace StrideTerrain.Vegetation
+{
+    shader GrassCullInstances : ComputeShaderBase, TerrainQuery, Math
+    {
+        struct GrassInstance
+        {
+            float4 PositionScale;
+            float4 Rotation;
+        };
+
+        struct GrassMatrix
+        {
+            float4x4 Matrix;
+        };
+
+        stage float BoundingRadius;
+        stage float4 FrustumPlanes[6];
+
+        stage StructuredBuffer<GrassInstance> Instances;
+        stage AppendStructuredBuffer<GrassMatrix> OutputWorld;
+        stage AppendStructuredBuffer<GrassMatrix> OutputWorldInverse;
+
+        override void Compute()
+        {
+            uint index = streams.DispatchThreadId.x;
+
+            float4 positionScale = Instances[index].PositionScale;
+            float4 rotation = Instances[index].Rotation;
+
+            if (!IsInsideFrustum(positionScale.xyz, BoundingRadius * positionScale.w))
+                return;
+
+            float4x4 world = CreateTransformationMatrix(positionScale.www, rotation, positionScale.xyz);
+            float4x4 worldInverse = transpose(world);
+
+            GrassMatrix m;
+            m.Matrix = world;
+            OutputWorld.Append(m);
+
+            m.Matrix = worldInverse;
+            OutputWorldInverse.Append(m);
+        }
+
+        bool IsInsideFrustum(float3 position, float radius)
+        {
+            [unroll]
+            for (int i = 0; i < 6; i++)
+            {
+                float3 n = FrustumPlanes[i].xyz;
+                float d = FrustumPlanes[i].w;
+
+                float dist = dot(n, position);
+
+                if (dist + radius <= -d)
+                    return false;
+            }
+
+            return true;
+        }
+
+        float4x4 CreateTransformationMatrix(float3 scaling, float4 rotation, float3 translation)
+        {
+            float4x4 result;
+
+            float xx = rotation.x * rotation.x;
+            float yy = rotation.y * rotation.y;
+            float zz = rotation.z * rotation.z;
+            float xy = rotation.x * rotation.y;
+            float zw = rotation.z * rotation.w;
+            float zx = rotation.z * rotation.x;
+            float yw = rotation.y * rotation.w;
+            float yz = rotation.y * rotation.z;
+            float xw = rotation.x * rotation.w;
+
+            result._11 = 1.0f - (2.0f * (yy + zz));
+            result._12 = 2.0f * (xy + zw);
+            result._13 = 2.0f * (zx - yw);
+            result._21 = 2.0f * (xy - zw);
+            result._22 = 1.0f - (2.0f * (zz + xx));
+            result._23 = 2.0f * (yz + xw);
+            result._31 = 2.0f * (zx + yw);
+            result._32 = 2.0f * (yz - xw);
+            result._33 = 1.0f - (2.0f * (yy + xx));
+
+            // position
+            result._41 = translation.x;
+            result._42 = translation.y;
+            result._43 = translation.z;
+
+            // scale
+            if (scaling.x != 1.0f)
+            {
+                result._11 *= scaling.x;
+                result._12 *= scaling.x;
+                result._13 *= scaling.x;
+            }
+            if (scaling.y != 1.0f)
+            {
+                result._21 *= scaling.y;
+                result._22 *= scaling.y;
+                result._23 *= scaling.y;
+            }
+            if (scaling.z != 1.0f)
+            {
+                result._31 *= scaling.z;
+                result._32 *= scaling.z;
+                result._33 *= scaling.z;
+            }
+
+            result._14 = 0.0f;
+            result._24 = 0.0f;
+            result._34 = 0.0f;
+            result._44 = 1.0f;
+            
+            return result;
+        }
+    };
+}

@@ -1,0 +1,88 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader TerrainDisplacement 
+        : PositionStream4, NormalStream, Texturing, ShaderBaseStream, TerrainData, TerrainStreams
+    {
+        stage stream uint VertexId : SV_VERTEXID;
+
+        rgroup PerMaterial
+        {
+            stage StructuredBuffer<int> ChunkInstanceData;
+        }
+
+        void SetTerrainVertexPosition()
+        {
+            int chunkIndex = ChunkInstanceData[streams.InstanceID];
+
+            int data0 = ChunkBuffer[chunkIndex].Data0;
+            int data1 = ChunkBuffer[chunkIndex].Data1;
+            float2 worldPosition = float2(UnpackPosition(ChunkBuffer[chunkIndex])) * UnitsPerTexel;
+            int2 uv = UnpackUv(ChunkBuffer[chunkIndex]);
+
+            int lodLevel = (data0 & 0xFF);
+            streams.LodLevel = (float)lodLevel;
+
+            float scale = (1 << lodLevel) * UnitsPerTexel;
+
+            uint ldN = (data0 >> 8) & 0xFF;
+            uint ldS = (data0 >> 16) & 0xFF;
+            uint ldW = (data0 >> 24) & 0xFF;
+            uint ldE = (data1) & 0xFF;
+
+            uint quadIndex = streams.VertexId / (uint)6;
+            uint offsetX = (quadIndex % ChunkSize);
+            uint offsetZ = (quadIndex / ChunkSize);
+            uint triangleVertex = streams.VertexId % (uint)6;
+
+            // Merge logic (based on edge LODs and even/odd alignment)
+            bool ldN0 = (ldN > 0) && (offsetZ == 0);
+            bool ldSmax = (ldS > 0) && (offsetZ == ChunkSize - 1);
+            bool ldW0 = (ldW > 0) && (offsetX == 0);
+            bool ldEmax = (ldE > 0) && (offsetX == ChunkSize - 1);
+
+            uint offsetXMod2 = offsetX & 1;
+            uint offsetZMod2 = offsetZ & 1;
+
+            bool mergeNorth    = ldN0 && (offsetXMod2 == 0);
+            bool mergeNorthAlt = ldN0 && (offsetXMod2 == 1);
+            bool mergeSouth    = ldSmax && (offsetXMod2 == 0);
+            bool mergeSouthAlt = ldSmax && (offsetXMod2 == 1);
+            bool mergeWest     = ldW0 && (offsetZMod2 == 0);
+            bool mergeWestAlt  = ldW0 && (offsetZMod2 == 1);
+            bool mergeEast     = ldEmax && (offsetZMod2 == 0);
+            bool mergeEastAlt  = ldEmax && (offsetZMod2 == 1);
+
+            // Base triangle positions
+            const float2 baseVerts[6] = {
+                float2(1, 0), float2(1, 1), float2(0, 1),
+                float2(1, 0), float2(0, 1), float2(0, 0)
+            };
+
+            // Merge offsets
+            float2 mergeOffset = 0;
+            switch (triangleVertex)
+            {
+                case 0: mergeOffset = float2(mergeNorth ? -1 : 0, mergeEastAlt ? +1 : 0); break;
+                case 1: mergeOffset = float2(mergeSouth ? +1 : 0, mergeEast ? +1 : 0); break;
+                case 2: mergeOffset = float2(mergeSouthAlt ? +1 : 0, mergeWest ? -1 : 0); break;
+                case 3: mergeOffset = float2(mergeNorth ? -1 : 0, mergeEastAlt ? +1 : 0); break;
+                case 4: mergeOffset = float2(mergeSouthAlt ? +1 : 0, mergeWest ? -1 : 0); break;
+                case 5: mergeOffset = float2(mergeNorthAlt ? -1 : 0, mergeWestAlt ? -1 : 0); break;
+            }
+
+            float3 vertexPosition;
+            vertexPosition.xz = baseVerts[triangleVertex] + mergeOffset + int2(offsetX, offsetZ);
+
+            // Compute final UV
+            int2 fullUV = uv + int2(vertexPosition.xz);
+            streams.TexCoord = (fullUV + 0.5f) * InvTerrainTextureSize;
+
+            // Position in world space
+            streams.Position = float4(vertexPosition * scale + float3(worldPosition.x, 0, worldPosition.y), 1);
+
+            // Sample height
+            float height = Heightmap.SampleLevel(LinearSampler, streams.TexCoord, 0).x;
+            streams.Position.y = height * MaxHeight;
+        }
+    };
+}

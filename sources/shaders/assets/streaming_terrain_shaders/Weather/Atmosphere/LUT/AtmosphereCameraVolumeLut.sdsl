@@ -1,0 +1,100 @@
+﻿namespace StrideTerrain.Weather.Effects.Atmosphere.LUT
+{
+    shader AtmosphereCameraVolumeLut : ComputeShaderBase, AtmosphereBase
+    {
+        stage Texture2D<float4> TransmittanceLUT;
+        stage Texture2D<float4> MultiScatteringLUT;
+
+        stage RWTexture3D<float4> OutputTexture;
+
+        cbuffer Atmosphere
+        {
+			AtmosphereParameters Atmosphere;
+            float4x4 InvViewProjection;
+            float3 SunDirection;
+            [Color] float3 SunColor;
+            float3 CameraPosition;
+        }
+
+        override void Compute()
+        {
+            float2 pixelPosition = float2(streams.DispatchThreadId.xy) + 0.5;
+	        float2 uv = pixelPosition * rcp(CameraVolumeLUTRes.xy);
+
+            AtmosphereParameters atmosphere = Atmosphere;
+
+            float4 unprojected = mul(float4(uv * float2(2.0, -2.0) - float2(1.0, -1.0), 0, 1), InvViewProjection);
+	        unprojected.xyz /= unprojected.w;
+
+            float3 rayOrigin = CameraPosition;
+            float3 rayDirection = normalize(unprojected.xyz - rayOrigin);
+
+            float3 cameraPosition = GetCameraPlanetPos(atmosphere, rayOrigin);
+
+            float3 worldPosition = cameraPosition;
+            float3 worldDirection = rayDirection;
+
+            float slice = ((float(streams.DispatchThreadId.z) + 0.5f) / AP_SLICE_COUNT);
+            slice *= slice; // squared distribution
+            slice *= AP_SLICE_COUNT;
+
+            // Compute position from froxel information
+            float tMax = AerialPerspectiveSliceToDepth(slice);
+            float3 newWorldPosition = worldPosition + worldDirection * tMax;
+
+            // If the voxel is under the ground, make sure to offset it out on the ground.
+            float viewHeight = length(newWorldPosition);
+            if (viewHeight <= (atmosphere.BottomRadius + PLANET_RADIUS_OFFSET))
+            {
+                // Apply a position offset to make sure no artefact are visible close to the earth boundaries for large voxel.
+                newWorldPosition = normalize(newWorldPosition) * (atmosphere.BottomRadius + PLANET_RADIUS_OFFSET + 0.001f);
+                worldDirection = normalize(newWorldPosition - cameraPosition);
+                tMax = length(newWorldPosition - cameraPosition);
+            }
+            float tMaxMax = tMax;
+
+            // Move ray marching start up to top atmosphere.
+            viewHeight = length(worldPosition);
+            if (viewHeight >= atmosphere.TopRadius)
+            {
+		        float3 prevWorldPosition = worldPosition;
+		        if (!MoveToTopAtmosphere(worldPosition, worldDirection, atmosphere.TopRadius))
+		        {
+			        // Ray is not intersecting the atmosphere
+			        OutputTexture[streams.DispatchThreadId] = float4(0.0, 0.0, 0.0, 1.0);
+			        return;
+		        }
+		        float lengthToAtmosphere = length(prevWorldPosition - worldPosition);
+		        if (tMaxMax < lengthToAtmosphere)
+		        {
+			        // tMaxMax for this voxel is not within earth atmosphere
+			        OutputTexture[streams.DispatchThreadId] = float4(0.0, 0.0, 0.0, 1.0);
+			        return;
+		        }
+		        // Now world position has been moved to the atmosphere boundary: we need to reduce tMaxMax accordingly. 
+		        tMaxMax = max(0.0, tMaxMax - lengthToAtmosphere);
+            }
+
+            // Apply the start offset after moving to the top of atmosphere to avoid black pixels
+            worldPosition += worldDirection * AP_START_OFFSET_KM;
+
+            float3 sunDirection = SunDirection;
+	        float3 sunIlluminance = SunColor;
+
+	        const float tDepth = 0.0;
+	        const float sampleCountIni = max(1.0, float(streams.DispatchThreadId.z + 1.0) * 2.0f); // Double sample count per slice
+	        const bool variableSampleCount = false;
+	        const bool opaque = false;
+	        const bool ground = false;
+	        const bool mieRayPhase = true;
+	        const bool multiScatteringApprox = true;
+	        const float opticalDepthScale = atmosphere.AerialPerspectiveScale;
+	        SingleScatteringResult ss = IntegrateScatteredLuminance(
+                atmosphere, pixelPosition, worldPosition, worldDirection, sunDirection, sunIlluminance, tDepth, sampleCountIni, variableSampleCount,
+		        opaque, ground, mieRayPhase, multiScatteringApprox, TransmittanceLUT, MultiScatteringLUT, opticalDepthScale, tMaxMax);
+
+	        const float transmittance = dot(ss.Transmittance, float3(1.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f));
+	        OutputTexture[streams.DispatchThreadId] = float4(ss.L, 1.0 - transmittance);
+        }
+    };
+}

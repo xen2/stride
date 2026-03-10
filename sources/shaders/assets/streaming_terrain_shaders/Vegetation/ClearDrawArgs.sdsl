@@ -1,0 +1,12 @@
+﻿namespace StrideTerrain.Vegetation
+{
+    shader ClearDrawArgs : ComputeShaderBase
+    {
+        stage RWByteAddressBuffer DrawArgsBuffer;
+
+        override void Compute()
+        {
+            DrawArgsBuffer.Store(4, 0);
+        }
+    };
+}

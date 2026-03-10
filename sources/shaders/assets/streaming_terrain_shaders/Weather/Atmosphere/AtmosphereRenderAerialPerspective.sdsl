@@ -1,0 +1,91 @@
+﻿namespace StrideTerrain.Weather.Effects.Atmosphere
+{
+    shader AtmosphereRenderAerialPerspective : ComputeShaderBase, AtmosphereBase
+    {
+        stage Texture2D<float4> TransmittanceLUT;
+        stage Texture2D<float4> MultiScatteringLUT;
+        stage Texture3D<float4> CameraVolumeLUT;
+        stage Texture2D Depth;
+        stage RWTexture2D<float4> OutputTexture;
+
+        cbuffer Atmosphere
+        {
+			AtmosphereParameters Atmosphere;
+            float4x4 InvViewProjection;
+            float3 SunDirection;
+            [Color] float3 SunColor;
+            float3 CameraPosition;
+            float2 InvResolution;
+        }
+
+        override void Compute()
+        {
+            float2 uv = (streams.DispatchThreadId.xy + 0.5f) * InvResolution;
+            float depth = Depth[streams.DispatchThreadId.xy].x;
+
+            if (depth == 0.0f)
+            {
+                OutputTexture[streams.DispatchThreadId.xy] = float4(0, 0, 0, 0);
+                return;
+            }
+
+            float2 clipSpace = uv * float2(2.0, -2.0) - float2(1.0, -1.0);
+
+			float4 depthWorldPosition = mul(float4(clipSpace, depth, 1.0), InvViewProjection);
+			depthWorldPosition /= depthWorldPosition.w;
+
+            float3 rayOrigin = CameraPosition;
+            float3 rayDirection = normalize(depthWorldPosition.xyz - rayOrigin);
+
+            float3 luminance = float3(0.0, 0.0, 0.0);
+	        float transmittance = 0.0;
+
+            AtmosphereParameters atmosphere = Atmosphere;
+
+            float3 worldPosition = GetCameraPlanetPos(atmosphere, rayOrigin);
+	        float3 worldDirection = rayDirection;
+	
+	        float viewHeight = length(worldPosition);
+
+            if (viewHeight < atmosphere.TopRadius)
+	        {
+                float4 AP = GetAerialPerspectiveTransmittance(uv, depthWorldPosition, rayOrigin, CameraVolumeLUT);
+                luminance = AP.rgb;
+                transmittance = AP.a;
+            }
+            else
+            {
+		        // Move to top atmosphere as the starting point for ray marching.
+		        // This is critical to be after the above to not disrupt above atmosphere tests and voxel selection.
+		        if (!MoveToTopAtmosphere(worldPosition, worldDirection, atmosphere.TopRadius))
+		        {
+			        return;
+		        }
+			
+		        // Apply the start offset after moving to the top of atmosphere to avoid black pixels
+		        worldPosition += worldDirection * AP_START_OFFSET_KM;
+		
+		        float3 sunDirection = SunDirection;
+		        float3 sunIlluminance = SunColor;
+		
+		        const float tDepth = length((depthWorldPosition.xyz * M_TO_SKY_UNIT) - (worldPosition + atmosphere.PlanetCenter)); // apply earth offset to go back to origin as top of earth mode
+		        const float sampleCountIni = 0.0;
+		        const bool variableSampleCount = true;
+		        const bool opaque = true;
+		        const bool ground = false;
+		        const bool mieRayPhase = true;
+		        const bool multiScatteringApprox = true;
+		        const float opticalDepthScale = atmosphere.AerialPerspectiveScale;
+		        SingleScatteringResult ss = IntegrateScatteredLuminance(
+			        atmosphere, streams.DispatchThreadId.xy, worldPosition, worldDirection, sunDirection, sunIlluminance, tDepth, sampleCountIni, variableSampleCount,
+			        opaque, ground, mieRayPhase, multiScatteringApprox, TransmittanceLUT, MultiScatteringLUT, opticalDepthScale);
+
+		        luminance = ss.L;
+		        transmittance = 1.0 - dot(ss.Transmittance, float3(1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0));
+            }
+
+            float4 result = float4(luminance, transmittance);
+            OutputTexture[streams.DispatchThreadId.xy] = result;
+        }
+    };
+}

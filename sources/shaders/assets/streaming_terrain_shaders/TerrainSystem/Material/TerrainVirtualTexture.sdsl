@@ -1,0 +1,109 @@
+namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader TerrainVirtualTexture : TerrainData, Texturing
+    {
+        static const float  VT_TILE_SIZE        = 256.0;
+        static const float  VT_TILE_BORDER      = 4.0;
+        static const float  VT_TILE_SIZE_PADDED = 264.0;  // 256 + 2*4
+        static const float  VT_ATLAS_SIZE       = 16384.0;
+        static const int    VT_CLIPMAP_TILES    = 22;
+        static const int    VT_ATLAS_TILES_PER_ROW = 62;  // floor(16384/264)
+        static const int    VT_MIP_COUNT        = 7;
+        static const float  VT_BASE_TILE_WORLD  = 0.5;    // mip 0 tile covers 0.5 m
+
+        cbuffer PerFrame.TerrainVT
+        {
+            stage float VTMipBias;
+            stage float VTMaxAniso;
+            stage float VTResolution;
+            stage float Padding0;
+            
+            // Clipmap origins: 2 mip levels packed per float4.
+            // Declared as separate uniforms (not an array) to avoid Stride/HLSL cbuffer array issues.
+            // Layout: Packed0.xy=mip0, .zw=mip1 | Packed1.xy=mip2, .zw=mip3 | ... | Packed4.xy=mip8
+            stage float4 ClipmapOriginsPacked0;
+            stage float4 ClipmapOriginsPacked1;
+            stage float4 ClipmapOriginsPacked2;
+            stage float4 ClipmapOriginsPacked3;
+            stage float4 ClipmapOriginsPacked4;
+        }
+
+        int2 GetClipmapOrigin(int mip)
+        {
+            float4 p;
+            if      (mip <= 1) p = ClipmapOriginsPacked0;
+            else if (mip <= 3) p = ClipmapOriginsPacked1;
+            else if (mip <= 5) p = ClipmapOriginsPacked2;
+            else if (mip <= 7) p = ClipmapOriginsPacked3;
+            else               p = ClipmapOriginsPacked4;
+            float2 o = (mip & 1) == 0 ? p.xy : p.zw;
+            return int2(o);
+        }
+
+        float ComputeVTMipLevel(float3 worldPos)
+        {
+            float texelsPerMeter = VT_TILE_SIZE / VT_BASE_TILE_WORLD;
+
+            float2 dWorlddx = ddx(worldPos.xz);
+            float2 dWorlddy = ddy(worldPos.xz);
+
+            float2 dTexdx = dWorlddx * texelsPerMeter;
+            float2 dTexdy = dWorlddy * texelsPerMeter;
+
+            float maxSqDeriv = max(dot(dTexdx, dTexdx), dot(dTexdy, dTexdy));
+            float mipLevel = 0.5 * log2(max(maxSqDeriv, 1.0)) + VTMipBias;
+
+            return clamp(mipLevel, 0.0, float(VT_MIP_COUNT - 1));
+        }
+
+        struct VTPageAddress
+        {
+            int2   tileIndex;    // which tile in the virtual grid at this mip
+            float2 intraTileUV;  // [0..1] position within the tile
+            int    mipLevel;
+        };
+
+        VTPageAddress ComputePageAddress(float3 worldPos, int mipLevel)
+        {
+            VTPageAddress addr;
+            addr.mipLevel = mipLevel;
+
+            float tileWorldSize = VT_BASE_TILE_WORLD * exp2(float(mipLevel));
+
+            float2 tileCoordF = worldPos.xz / tileWorldSize;
+            addr.tileIndex = int2(floor(tileCoordF));
+            addr.intraTileUV = frac(tileCoordF);
+
+            return addr;
+        }
+
+        // Returns float2(-1,-1) when the tile is outside the clipmap window.
+        float2 ComputePhysicalUV(VTPageAddress addr)
+        {
+            int mip = addr.mipLevel;
+            int2 origin = GetClipmapOrigin(mip);
+            int2 relTile = addr.tileIndex - origin;
+
+            if (any(relTile < 0) || any(relTile >= VT_CLIPMAP_TILES))
+                return float2(-1, -1);  // out-of-range sentinel
+
+            // Toroidal slot index — handles negative tileIndex correctly
+            int2 clipIdx = int2(
+                ((addr.tileIndex.x % VT_CLIPMAP_TILES) + VT_CLIPMAP_TILES) % VT_CLIPMAP_TILES,
+                ((addr.tileIndex.y % VT_CLIPMAP_TILES) + VT_CLIPMAP_TILES) % VT_CLIPMAP_TILES);
+
+            int slotIdx = mip * VT_CLIPMAP_TILES * VT_CLIPMAP_TILES
+                        + clipIdx.y * VT_CLIPMAP_TILES + clipIdx.x;
+
+            int physTileX = slotIdx % VT_ATLAS_TILES_PER_ROW;
+            int physTileY = slotIdx / VT_ATLAS_TILES_PER_ROW;
+
+            float tileStepUV = VT_TILE_SIZE_PADDED / VT_ATLAS_SIZE;
+            float borderUV   = VT_TILE_BORDER / VT_ATLAS_SIZE;
+            float2 physTileOrigin = float2(physTileX, physTileY) * tileStepUV + borderUV;
+
+            float tileSizeUV = VT_TILE_SIZE / VT_ATLAS_SIZE;
+            return physTileOrigin + addr.intraTileUV * tileSizeUV;
+        }
+    };
+}

@@ -1,0 +1,24 @@
+﻿namespace StrideTerrain.Vegetation.Effects
+{
+    shader MaterialTreeDisplacementFeature 
+        : IMaterialSurface, PositionStream4, TransformationInstancing, Global, TerrainQuery
+    {
+        override void Compute()
+        {
+        }
+
+        stage override void TransformPosition()
+        {
+            float4x4 instanceWorld = GetInstanceWorld(streams.InstanceID);
+            float2 originXZ = instanceWorld._m30_m32;
+
+            float terrainHeightOrigin = GetTerrainHeightAt(GetTerrainAtlasUv(originXZ.x, originXZ.y));
+            float terrainHeight = GetTerrainHeightAt(GetTerrainAtlasUv(streams.PositionWS.x, streams.PositionWS.z));
+            float diff = terrainHeightOrigin - terrainHeight;
+            if (diff > 0)
+            {
+                streams.PositionWS.y -= diff;
+            }
+        }
+    };
+}

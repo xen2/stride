@@ -1,0 +1,89 @@
+﻿namespace StrideTerrain.Vegetation.Effects
+{
+    shader MaterialImpostorDisplacementFeature 
+        : IMaterialSurface, PositionStream4, Transformation, Texturing, NormalStream
+    {
+        stage stream uint VertexId : SV_VERTEXID;
+
+        rgroup PerMaterial
+        {
+            stage StructuredBuffer<float4> Positions; // x,y,z,scale(half2)
+        }
+
+        stage float LodDistance;
+
+        override void Compute()
+        {
+            const float2 baseVerts[6] = {
+                float2(0.5, 0), float2(0.5, 1), float2(-0.5, 1),  // first tri
+                float2(0.5, 0), float2(-0.5, 1), float2(-0.5, 0)  // second tri
+            };
+
+            const float2 baseUVs[6] = {
+                float2(1, 1), float2(1, 0), float2(0, 0),
+                float2(1, 1), float2(0, 0), float2(0, 1)
+            };
+
+            // Load triangle data
+            uint triangleVertex = streams.VertexId % (uint)6;
+            
+            float2 quadPos = baseVerts[triangleVertex];
+            float2 quadUV  = baseUVs[triangleVertex];
+
+            // Unpack per instance data
+            uint itemIndex = streams.VertexId / 6;
+
+            float4 itemData = Positions[itemIndex];
+            float3 center = itemData.xyz;
+
+            uint packedScale = asuint(itemData.w);
+
+            uint hx = packedScale & 0xFFFF;
+            uint hy = (packedScale >> 16) & 0xFFFF;
+
+            float scaleX = f16tof32(hx);
+            float scaleY = f16tof32(hy);
+
+            quadPos.x *= scaleX;
+            quadPos.y *= scaleY;
+
+            // Billboard rotation
+            float3 toCamera = normalize(Eye - center);
+
+            float3 toCamXZ = normalize(float3(toCamera.x, 0, toCamera.z));
+
+            float3 right = float3(-toCamXZ.z, 0, toCamXZ.x);
+            float3 up = float3(0, 1, 0);
+
+            float3 vertexWorldPos = center + right * quadPos.x + up * quadPos.y;
+
+            streams.Position = float4(vertexWorldPos, 1);
+
+            // Normal
+            float3 normal = normalize(cross(up, right));
+            float3 viewDir = normalize(Eye - center);
+            if (dot(normal, viewDir) < 0)
+                normal = -normal;
+
+            streams.meshNormal = streams.normalWS = normal;
+            streams.meshTangent = float4(normalize(right), 1);
+
+            // UV
+            float angle = atan2(toCamera.x, toCamera.z);
+            if (angle < 0) angle += 6.2831853;
+
+            uint spriteIndex = (uint)(angle / (6.2831853 / 16.0));
+            float col = spriteIndex % 4;
+            float row = spriteIndex / 4;
+
+            float2 uvBase = float2(col * 0.25, row * 0.25);
+            streams.TexCoord = uvBase + quadUV * 0.25;
+
+            // Cull if too close (triangle rejected becuase of nan)
+            if (length(Eye.xz - center.xz) < 64)
+            {
+                streams.Position.y /= 0;
+            }
+        }
+    };
+}

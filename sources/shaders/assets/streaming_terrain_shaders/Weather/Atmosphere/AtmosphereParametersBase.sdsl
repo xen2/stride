@@ -1,0 +1,57 @@
+﻿namespace StrideTerrain.Weather.Effects.Atmosphere
+{
+	shader AtmosphereParametersBase
+	{
+		static const float M_TO_SKY_UNIT = 0.001f; // Assume engine units to be meters.
+		static const float SKY_UNIT_TO_M = 1000.0f;
+
+		struct AtmosphereParameters
+		{
+			// Radius of the planet (center to ground)
+			float BottomRadius;
+			// Maximum considered atmosphere height (center to atmosphere top)
+			float TopRadius;
+
+			float2 Padding0;
+
+			float3 PlanetCenter;
+
+			// Rayleigh scattering exponential distribution scale in the atmosphere
+			float RayleighDensityExpScale;
+			// Rayleigh scattering coefficients
+			float3 RayleighScattering;
+
+			// Mie scattering exponential distribution scale in the atmosphere
+			float MieDensityExpScale;
+			// Mie scattering coefficients
+			float3 MieScattering;
+			float Padding1;
+			// Mie extinction coefficients
+			float3 MieExtinction;
+			float Padding2;
+			// Mie absorption coefficients
+			float3 MieAbsorption;
+			// Mie phase function excentricity
+			float MiePhaseG;
+
+			// Another medium type in the atmosphere
+			float AbsorptionDensity0LayerWidth;
+			float AbsorptionDensity0ConstantTerm;
+			float AbsorptionDensity0LinearTerm;
+			float AbsorptionDensity1ConstantTerm;
+			// This other medium only absorb light, e.g. useful to represent ozone in the earth atmosphere
+			float3 AbsorptionExtinction;
+			float AbsorptionDensity1LinearTerm;
+
+			// The albedo of the ground.
+			float3 GroundAlbedo;
+			float Padding3;
+
+			float2 RayMarchMinMaxSPP;
+			float DistanceSPPMaxInv;
+
+			// Artist controlled distance scale of aerial perspective
+			float AerialPerspectiveScale;
+		};
+	};
+}

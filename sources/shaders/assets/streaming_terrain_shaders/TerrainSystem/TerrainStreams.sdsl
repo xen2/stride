@@ -1,0 +1,7 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects
+{
+    shader TerrainStreams
+    {
+        stage stream float LodLevel;
+    };
+}

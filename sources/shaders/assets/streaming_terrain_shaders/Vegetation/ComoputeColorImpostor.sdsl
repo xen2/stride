@@ -1,0 +1,16 @@
+﻿namespace StrideTerrain.Vegetation
+{
+    shader ComoputeColorImpostor : ComputeColor
+    {
+        compose ComputeColor Diffuse;
+        compose ComputeColor Brightness;
+
+        override float4 Compute()
+        {
+            float4 diffuse = Diffuse.Compute();
+            float brightness = Brightness.Compute().x;
+
+            return float4(pow(diffuse.rgb, 1.0 / brightness), diffuse.a);
+        }
+    };
+}

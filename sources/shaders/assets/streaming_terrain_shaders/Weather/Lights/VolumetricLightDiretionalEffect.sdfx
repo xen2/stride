@@ -1,0 +1,10 @@
+﻿namespace StrideTerrain.Weather.Effects.Lights
+{
+    effect VolumetricLightDiretionalEffect
+    {
+        using params VolumetricLightDiretionalEffectKeys;
+        mixin compose lightGroup = (VolumetricLightDiretionalEffectKeys.LightGroup);
+
+        mixin VolumetricLightDiretional;
+    }
+}

@@ -18,7 +18,17 @@ public class CompileShaderTests
     [MemberData(nameof(GetStracerShaderFiles))]
     public void StracerShaderTest(string shaderName)
     {
-        var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/stracer", "./assets/Stride/SDSL"));
+        ShaderTest(shaderName, "./assets/stracer");
+    }
+    [Theory]
+    [MemberData(nameof(GetStreamingTerrainShaderFiles))]
+    public void StreamingShaderTest(string shaderName)
+    {
+        ShaderTest(shaderName, "./assets/streaming_terrain_shaders");
+    }
+    private  void ShaderTest(string shaderName, string searchPath)
+    {
+        var shaderMixer = new ShaderMixer(new ShaderLoader(searchPath, "./assets/Stride/SDSL"));
 
         shaderMixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out var buffer, out _, out _);
 
@@ -69,6 +79,15 @@ public class CompileShaderTests
     public static IEnumerable<object[]> GetStracerShaderFiles()
     {
         foreach (var filename in Directory.EnumerateFiles("./assets/stracer", "*.sdsl"))
+        {
+            var shadername = Path.GetFileNameWithoutExtension(filename);
+            yield return [shadername];
+        }
+    }
+
+    public static IEnumerable<object[]> GetStreamingTerrainShaderFiles()
+    {
+        foreach (var filename in Directory.EnumerateFiles("./assets/streaming_terrain_shaders", "*.sdsl"))
         {
             var shadername = Path.GetFileNameWithoutExtension(filename);
             yield return [shadername];

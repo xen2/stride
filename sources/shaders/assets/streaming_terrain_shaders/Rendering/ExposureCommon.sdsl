@@ -1,0 +1,12 @@
+﻿namespace StrideTerrain.Rendering.Effects
+{
+    shader ExposureCommon : Texturing
+    {
+        stage StructuredBuffer<float> Exposure;
+
+        float GetExposure()
+	    {
+            return Exposure[0];
+	    }
+    };
+}

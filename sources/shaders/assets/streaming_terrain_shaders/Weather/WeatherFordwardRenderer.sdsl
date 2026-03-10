@@ -1,0 +1,41 @@
+﻿namespace StrideTerrain.Weather.Effects
+{
+    shader WeatherFordwardRenderer<bool EnableAerialPerspective, bool EnableVolumetricSunLight, bool EnableHeightFog> 
+        : WeatherForwardRendererBase, ShadingBase, PositionStream4, Camera, Transformation, VolumetricLightDiretionalBase
+    {
+        stage override float4 Shading()
+        {
+            float4 shading = base.Shading();
+
+            float2 pixelPosition = streams.ShadingPosition.xy;
+            float2 uv = pixelPosition / ViewSize;
+
+            float3 cameraPosition = Eye.xyz;
+
+            float3 V = streams.PositionWS.xyz - cameraPosition;
+            float cameraDistance = length(V);
+            V /= cameraDistance;
+
+            float3 result = shading.rgb;
+            if (EnableAerialPerspective)
+            {
+                float4 AP = GetAerialPerspectiveTransmittance(uv, streams.PositionWS.z, cameraPosition, CameraVolumeLUT);
+                result = result.rgb * (1.0 - AP.a) + AP.rgb;
+            }
+
+            if (EnableHeightFog)
+            {
+                float4 fogColor = GetFogColor(Fog, Atmosphere, cameraDistance, cameraPosition, V, SunDirection, SunColor, SkyLuminanceLUT, TransmittanceLUT);
+                result = lerp(result, fogColor.rgb, fogColor.a);
+            }
+
+            if (EnableVolumetricSunLight && EnableHeightFog)
+            {
+                float3 volumetricLight = RayMarchVolumetricDirectionalLight(Atmosphere, Fog, streams.PositionWS.xyz, -V, SunDirection, SunColor, cameraPosition, cameraDistance, TransmittanceLUT);
+                result.rgb += volumetricLight;
+            }
+
+            return float4(result.rgb, shading.a);
+        }
+    };
+}

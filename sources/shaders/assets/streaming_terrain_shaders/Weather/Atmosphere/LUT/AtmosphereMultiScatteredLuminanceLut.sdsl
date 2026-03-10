@@ -1,0 +1,146 @@
+﻿namespace StrideTerrain.Weather.Effects.Atmosphere.LUT
+{
+    shader AtmosphereMultiScatteredLuminanceLut : ComputeShaderBase, AtmosphereBase
+    {
+        stage Texture2D<float4> TransmittanceLUT;
+        stage Texture2D<float4> MultiScatteringLUT; // Not bound
+
+        stage RWTexture2D<float4> OutputTexture;
+
+		groupshared float3 MultiScatAs1SharedMem[64];
+		groupshared float3 LSharedMem[64];
+
+		static const float MultipleScatteringFactor = 1.0;
+
+        cbuffer Atmosphere
+        {
+			AtmosphereParameters Atmosphere;
+        }
+        
+        override void Compute()
+        {
+            float2 pixelPosition = streams.DispatchThreadId.xy + 0.5f;
+            
+            float2 uv = pixelPosition * rcp(MultiScatteringLUTRes);
+            uv = float2(FromSubUvsToUnit(uv.x, MultiScatteringLUTRes.x), FromSubUvsToUnit(uv.y, MultiScatteringLUTRes.y));
+
+            AtmosphereParameters atmosphere = Atmosphere;
+
+            float cosSunZenithAngle = uv.x * 2.0 - 1.0;
+            float3 sunDirection = float3(0.0, sqrt(saturate(1.0 - cosSunZenithAngle * cosSunZenithAngle)), cosSunZenithAngle);
+            // We adjust again viewHeight according to PLANET_RADIUS_OFFSET to be in a valid range.
+	        float viewHeight = atmosphere.BottomRadius + saturate(uv.y + PLANET_RADIUS_OFFSET) * (atmosphere.TopRadius - atmosphere.BottomRadius - PLANET_RADIUS_OFFSET);
+
+            float3 worldPosition = float3(0.0, 0.0, viewHeight);
+            float3 worldDirection = float3(0.0, 0.0, 1.0);
+
+            // When building the scattering factor, we assume light illuminance is 1 to compute a transfert function relative to identity illuminance of 1.
+	        // This make the scattering factor independent of the light. It is now only linked to the atmosphere properties.
+	        float3 sunIlluminance = 1.0;
+
+            const float tDepth = 0.0;
+	        const float sampleCountIni = 20.0;
+	        const bool variableSampleCount = false;
+	        const bool opaque = false;
+	        const bool ground = true;
+	        const bool mieRayPhase = false;
+	        const bool multiScatteringApprox = false;
+
+	        const float sphereSolidAngle = 4.0 * PI;
+	        const float isotropicPhase = 1.0 / sphereSolidAngle;
+        
+            // Reference. Since there are many sample, it requires MULTI_SCATTERING_POWER_SERIE to be true for accuracy and to avoid divergences (see declaration for explanations)
+#define SQRTSAMPLECOUNT 8
+			const float sqrtSample = float(SQRTSAMPLECOUNT);
+			float i = 0.5f + float(streams.DispatchThreadId.z / SQRTSAMPLECOUNT);
+			float j = 0.5f + float(streams.DispatchThreadId.z - float((streams.DispatchThreadId.z / SQRTSAMPLECOUNT) * SQRTSAMPLECOUNT));
+			{
+				float randA = i / sqrtSample;
+				float randB = j / sqrtSample;
+				float theta = 2.0f * PI * randA;
+				float phi = PI * randB;
+				float cosPhi = cos(phi);
+				float sinPhi = sin(phi);
+				float cosTheta = cos(theta);
+				float sinTheta = sin(theta);
+				worldDirection.x = cosTheta * sinPhi;
+				worldDirection.y = sinTheta * sinPhi;
+				worldDirection.z = cosPhi;
+				SingleScatteringResult result = IntegrateScatteredLuminance(
+					atmosphere, pixelPosition, worldPosition, worldDirection, sunDirection, sunIlluminance, tDepth, sampleCountIni, variableSampleCount,
+					opaque, ground, mieRayPhase, multiScatteringApprox, TransmittanceLUT, MultiScatteringLUT);
+
+				MultiScatAs1SharedMem[streams.DispatchThreadId.z] = result.MultiScatAs1 * sphereSolidAngle / (sqrtSample * sqrtSample);
+				LSharedMem[streams.DispatchThreadId.z] = result.L * sphereSolidAngle / (sqrtSample * sqrtSample);
+			}
+#undef SQRTSAMPLECOUNT
+
+			GroupMemoryBarrierWithGroupSync();
+
+			// 64 to 32
+			if (streams.DispatchThreadId.z < 32)
+			{
+				MultiScatAs1SharedMem[streams.DispatchThreadId.z] += MultiScatAs1SharedMem[streams.DispatchThreadId.z + 32];
+				LSharedMem[streams.DispatchThreadId.z] += LSharedMem[streams.DispatchThreadId.z + 32];
+			}
+			GroupMemoryBarrierWithGroupSync();
+
+			// 32 to 16
+			if (streams.DispatchThreadId.z < 16)
+			{
+				MultiScatAs1SharedMem[streams.DispatchThreadId.z] += MultiScatAs1SharedMem[streams.DispatchThreadId.z + 16];
+				LSharedMem[streams.DispatchThreadId.z] += LSharedMem[streams.DispatchThreadId.z + 16];
+			}
+			GroupMemoryBarrierWithGroupSync();
+
+			// 16 to 8 (16 is thread group min hardware size with intel, no sync required from there)
+			if (streams.DispatchThreadId.z < 8)
+			{
+				MultiScatAs1SharedMem[streams.DispatchThreadId.z] += MultiScatAs1SharedMem[streams.DispatchThreadId.z + 8];
+				LSharedMem[streams.DispatchThreadId.z] += LSharedMem[streams.DispatchThreadId.z + 8];
+			}
+			GroupMemoryBarrierWithGroupSync();
+			if (streams.DispatchThreadId.z < 4)
+			{
+				MultiScatAs1SharedMem[streams.DispatchThreadId.z] += MultiScatAs1SharedMem[streams.DispatchThreadId.z + 4];
+				LSharedMem[streams.DispatchThreadId.z] += LSharedMem[streams.DispatchThreadId.z + 4];
+			}
+			GroupMemoryBarrierWithGroupSync();
+			if (streams.DispatchThreadId.z < 2)
+			{
+				MultiScatAs1SharedMem[streams.DispatchThreadId.z] += MultiScatAs1SharedMem[streams.DispatchThreadId.z + 2];
+				LSharedMem[streams.DispatchThreadId.z] += LSharedMem[streams.DispatchThreadId.z + 2];
+			}
+			GroupMemoryBarrierWithGroupSync();
+			if (streams.DispatchThreadId.z < 1)
+			{
+				MultiScatAs1SharedMem[streams.DispatchThreadId.z] += MultiScatAs1SharedMem[streams.DispatchThreadId.z + 1];
+				LSharedMem[streams.DispatchThreadId.z] += LSharedMem[streams.DispatchThreadId.z + 1];
+			}
+			GroupMemoryBarrierWithGroupSync();
+			if (streams.DispatchThreadId.z > 0)
+				return;
+
+			float3 MultiScatAs1			= MultiScatAs1SharedMem[0] * isotropicPhase;	// Equation 7 f_ms
+			float3 InScatteredLuminance	= LSharedMem[0] * isotropicPhase;				// Equation 5 L_2ndOrder
+
+			// MultiScatAs1 represents the amount of luminance scattered as if the integral of scattered luminance over the sphere would be 1.
+			//  - 1st order of scattering: one can ray-march a straight path as usual over the sphere. That is InScatteredLuminance.
+			//  - 2nd order of scattering: the inscattered luminance is InScatteredLuminance at each of samples of fist order integration. Assuming a uniform phase function that is represented by MultiScatAs1,
+			//  - 3nd order of scattering: the inscattered luminance is (InScatteredLuminance * MultiScatAs1 * MultiScatAs1)
+			//  - etc.
+#define MULTI_SCATTERING_POWER_SERIE 1
+#if	MULTI_SCATTERING_POWER_SERIE==0
+			float3 MultiScatAs1SQR = MultiScatAs1 * MultiScatAs1;
+			float3 L = InScatteredLuminance * (1.0 + MultiScatAs1 + MultiScatAs1SQR + MultiScatAs1 * MultiScatAs1SQR + MultiScatAs1SQR * MultiScatAs1SQR);
+#else
+			// For a serie, sum_{n=0}^{n=+inf} = 1 + r + r^2 + r^3 + ... + r^n = 1 / (1.0 - r), see https://en.wikipedia.org/wiki/Geometric_series 
+			const float3 r = MultiScatAs1;
+			const float3 SumOfAllMultiScatteringEventsContribution = 1.0f / (1.0 - r);
+			float3 L = InScatteredLuminance * SumOfAllMultiScatteringEventsContribution;// Equation 10 Psi_ms
+#endif
+
+			OutputTexture[streams.DispatchThreadId.xy] = float4(MultipleScatteringFactor * L, 1.0f);
+        }
+    };
+}

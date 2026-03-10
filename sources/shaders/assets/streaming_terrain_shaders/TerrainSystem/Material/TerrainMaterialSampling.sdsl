@@ -1,0 +1,179 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader TerrainMaterialSampling : TerrainData, Texturing
+    {
+        rgroup PerMaterial
+        {
+            stage Texture2DArray DiffuseRoughnessArray;
+            stage Texture2DArray NormalArray;
+        }
+
+        struct MaterialSample
+        {
+            float3 Diffuse;
+            float3 Normal;
+            float Roughness;
+        };
+
+        float3 DecodeNormal(float3 normal)
+        {
+            float2 xy = mad(normal.xy, 2.0f, -1.0f);
+            xy.y = -xy.y;
+            float z = sqrt(saturate(1.0f - dot(xy, xy)));
+            return float3(xy, z);
+        }
+
+        MaterialSample SampleMaterialGrad(float2 uv, int index, float2 ddx_uv, float2 ddy_uv)
+        {
+            MaterialSample result;
+            float4 diffuseRoughness = DiffuseRoughnessArray.SampleGrad(AnisotropicRepeatSampler, float3(uv, index), ddx_uv, ddy_uv);
+            result.Diffuse = diffuseRoughness.rgb;
+            result.Roughness = diffuseRoughness.a;
+            result.Normal = NormalArray.SampleGrad(AnisotropicRepeatSampler, float3(uv, index), ddx_uv, ddy_uv).xyz;
+            return result;
+        }
+
+        MaterialSample SampleMaterialLevel(float2 uv, int index, float lod)
+        {
+            MaterialSample result;
+            float4 diffuseRoughness = DiffuseRoughnessArray.SampleLevel(AnisotropicRepeatSampler, float3(uv, index), lod);
+            result.Diffuse = diffuseRoughness.rgb;
+            result.Roughness = diffuseRoughness.a;
+            result.Normal = NormalArray.SampleLevel(AnisotropicRepeatSampler, float3(uv, index), lod).xyz;
+            return result;
+        }
+
+        MaterialSample TriPlanarMapping(uint textureIndex, float uvScale, float3 triPlanarWeights, float3 normalWS, float3 positionWS)
+        {
+            MaterialSample output;
+            output.Diffuse = float3(0, 0, 0);
+            output.Normal = float3(0, 0, 0);
+            output.Roughness = 0;
+
+            if (triPlanarWeights.x > 0.0f)
+            {
+                float2 uv = float2(-positionWS.z, positionWS.y) * uvScale; //-z +y
+
+                if (normalWS.x < 0.0f)
+                    uv = 1.0f - uv;
+
+                float2 ddx_uv = ddx(uv);
+                float2 ddy_uv = ddy(uv);
+
+                MaterialSample result = SampleMaterialGrad(uv, textureIndex, ddx_uv, ddy_uv);
+                output.Diffuse = result.Diffuse * triPlanarWeights.x;
+                output.Roughness = result.Roughness * triPlanarWeights.x;
+                output.Normal = result.Normal * triPlanarWeights.x;
+            }
+
+            if (triPlanarWeights.y > 0.0f)
+            {
+                float2 uv = positionWS.xz * uvScale; // +xz
+                
+                float2 ddx_uv = ddx(uv);
+                float2 ddy_uv = ddy(uv);
+
+                MaterialSample result = SampleMaterialGrad(uv, textureIndex, ddx_uv, ddy_uv);
+                output.Diffuse = output.Diffuse + result.Diffuse * triPlanarWeights.y;
+                output.Roughness = output.Roughness + result.Roughness * triPlanarWeights.y;
+                output.Normal = output.Normal + result.Normal * triPlanarWeights.y;
+            }
+
+            if (triPlanarWeights.z > 0.0f)
+            {
+                float2 uv = -positionWS.xy * uvScale; //-xy
+
+                if (normalWS.z < 0.0f)
+                    uv.y = 1.0f - uv.y;
+
+                float2 ddx_uv = ddx(uv);
+                float2 ddy_uv = ddy(uv);
+
+                MaterialSample result = SampleMaterialGrad(uv, textureIndex, ddx_uv, ddy_uv);
+                output.Diffuse = output.Diffuse + result.Diffuse * triPlanarWeights.z;
+                output.Roughness = output.Roughness + result.Roughness * triPlanarWeights.z;
+                output.Normal = output.Normal + result.Normal * triPlanarWeights.z;
+            }
+
+            return output;
+        }
+
+        MaterialSample SampleBackground(uint4 backgroundTextureIndices, uint4 backgroundUvScaling, float3 triPlanarWeights, float3 normalWS, float3 positionWS, float4 fractionalWeights)
+        {
+            const float scaleValues[8] = { 0.33f, 0.166f, 0.05f, 0.025f, 0.0125f, 0.0075f, 0.00375f, 0.0f };
+
+            MaterialSample a = TriPlanarMapping(backgroundTextureIndices.x, scaleValues[backgroundUvScaling.x], triPlanarWeights, normalWS, positionWS);
+            MaterialSample b = TriPlanarMapping(backgroundTextureIndices.y, scaleValues[backgroundUvScaling.y], triPlanarWeights, normalWS, positionWS);
+            MaterialSample c = TriPlanarMapping(backgroundTextureIndices.z, scaleValues[backgroundUvScaling.z], triPlanarWeights, normalWS, positionWS);
+            MaterialSample d = TriPlanarMapping(backgroundTextureIndices.w, scaleValues[backgroundUvScaling.w], triPlanarWeights, normalWS, positionWS);
+
+            MaterialSample result;
+            result.Diffuse = a.Diffuse * fractionalWeights.x + b.Diffuse * fractionalWeights.y + c.Diffuse * fractionalWeights.z + d.Diffuse * fractionalWeights.w;
+            result.Normal = a.Normal * fractionalWeights.x + b.Normal * fractionalWeights.y + c.Normal * fractionalWeights.z + d.Normal * fractionalWeights.w;
+            result.Roughness = a.Roughness * fractionalWeights.x + b.Roughness * fractionalWeights.y + c.Roughness * fractionalWeights.z + d.Roughness * fractionalWeights.w;
+
+            return result;
+        }
+
+        MaterialSample TriPlanarMappingLevel(uint textureIndex, float uvScale, float3 triPlanarWeights, float3 normalWS, float3 positionWS, float lod)
+        {
+            MaterialSample output;
+            output.Diffuse = float3(0, 0, 0);
+            output.Normal = float3(0, 0, 0);
+            output.Roughness = 0;
+
+            if (triPlanarWeights.x > 0.0f)
+            {
+                float2 uv = float2(-positionWS.z, positionWS.y) * uvScale;
+                if (normalWS.x < 0.0f)
+                    uv = 1.0f - uv;
+
+                MaterialSample result = SampleMaterialLevel(uv, textureIndex, lod);
+                output.Diffuse = result.Diffuse * triPlanarWeights.x;
+                output.Roughness = result.Roughness * triPlanarWeights.x;
+                output.Normal = result.Normal * triPlanarWeights.x;
+            }
+
+            if (triPlanarWeights.y > 0.0f)
+            {
+                float2 uv = positionWS.xz * uvScale;
+
+                MaterialSample result = SampleMaterialLevel(uv, textureIndex, lod);
+                output.Diffuse = output.Diffuse + result.Diffuse * triPlanarWeights.y;
+                output.Roughness = output.Roughness + result.Roughness * triPlanarWeights.y;
+                output.Normal = output.Normal + result.Normal * triPlanarWeights.y;
+            }
+
+            if (triPlanarWeights.z > 0.0f)
+            {
+                float2 uv = -positionWS.xy * uvScale;
+                if (normalWS.z < 0.0f)
+                    uv.y = 1.0f - uv.y;
+
+                MaterialSample result = SampleMaterialLevel(uv, textureIndex, lod);
+                output.Diffuse = output.Diffuse + result.Diffuse * triPlanarWeights.z;
+                output.Roughness = output.Roughness + result.Roughness * triPlanarWeights.z;
+                output.Normal = output.Normal + result.Normal * triPlanarWeights.z;
+            }
+
+            return output;
+        }
+
+        MaterialSample SampleBackgroundLevel(uint4 backgroundTextureIndices, uint4 backgroundUvScaling, float3 triPlanarWeights, float3 normalWS, float3 positionWS, float4 fractionalWeights, float lod)
+        {
+            const float scaleValues[8] = { 0.33f, 0.166f, 0.05f, 0.025f, 0.0125f, 0.0075f, 0.00375f, 0.0f };
+
+            MaterialSample a = TriPlanarMappingLevel(backgroundTextureIndices.x, scaleValues[backgroundUvScaling.x], triPlanarWeights, normalWS, positionWS, lod);
+            MaterialSample b = TriPlanarMappingLevel(backgroundTextureIndices.y, scaleValues[backgroundUvScaling.y], triPlanarWeights, normalWS, positionWS, lod);
+            MaterialSample c = TriPlanarMappingLevel(backgroundTextureIndices.z, scaleValues[backgroundUvScaling.z], triPlanarWeights, normalWS, positionWS, lod);
+            MaterialSample d = TriPlanarMappingLevel(backgroundTextureIndices.w, scaleValues[backgroundUvScaling.w], triPlanarWeights, normalWS, positionWS, lod);
+
+            MaterialSample result;
+            result.Diffuse = a.Diffuse * fractionalWeights.x + b.Diffuse * fractionalWeights.y + c.Diffuse * fractionalWeights.z + d.Diffuse * fractionalWeights.w;
+            result.Normal = a.Normal * fractionalWeights.x + b.Normal * fractionalWeights.y + c.Normal * fractionalWeights.z + d.Normal * fractionalWeights.w;
+            result.Roughness = a.Roughness * fractionalWeights.x + b.Roughness * fractionalWeights.y + c.Roughness * fractionalWeights.z + d.Roughness * fractionalWeights.w;
+
+            return result;
+        }
+    };
+}

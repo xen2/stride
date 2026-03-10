@@ -1,0 +1,75 @@
+﻿namespace StrideTerrain.Weather.Effects.Atmosphere.LUT
+{
+    shader AtmosphereSkyViewLut : ComputeShaderBase, AtmosphereBase
+    {
+        stage Texture2D<float4> TransmittanceLUT;
+        stage Texture2D<float4> MultiScatteringLUT;
+
+        stage RWTexture2D<float4> OutputTexture;
+
+        cbuffer Atmosphere
+        {
+			AtmosphereParameters Atmosphere;
+			float3 SunDirection;
+            [Color] float3 SunColor;
+            float3 CameraPosition;
+        }
+
+        override void Compute()
+        {
+            float2 pixelPosition = streams.DispatchThreadId.xy + 0.5f;
+            float2 uv = pixelPosition * rcp(SkyViewLUTRes);
+
+            AtmosphereParameters atmosphere = Atmosphere;
+
+            float3 skyRelativePosition = CameraPosition;
+            float3 worldPosition = GetCameraPlanetPos(atmosphere, skyRelativePosition);
+
+            float viewHeight = length(worldPosition);
+
+            float viewZenithCosAngle;
+	        float lightViewCosAngle;
+	        UvToSkyViewLutParams(atmosphere, viewZenithCosAngle, lightViewCosAngle, viewHeight, uv);
+
+            float3 sunDirection;
+            {
+		        float3 upVector = min(worldPosition / viewHeight, 1.0); // Causes flickering without min(x, 1.0) for untouched/edited directional lights
+		        float sunZenithCosAngle = dot(upVector, SunDirection);
+		        sunDirection = normalize(float3(sqrt(1.0 - sunZenithCosAngle * sunZenithCosAngle), 0.0, sunZenithCosAngle));
+	        }
+
+            worldPosition = float3(0.0, 0.0, viewHeight);
+
+	        float viewZenithSinAngle = sqrt(1 - viewZenithCosAngle * viewZenithCosAngle);
+	        float3 worldDirection = float3(
+		        viewZenithSinAngle * lightViewCosAngle,
+		        viewZenithSinAngle * sqrt(1.0 - lightViewCosAngle * lightViewCosAngle),
+		        viewZenithCosAngle);
+
+            // Move to top atmosphere
+	        if (!MoveToTopAtmosphere(worldPosition, worldDirection, atmosphere.TopRadius))
+	        {
+		        // Ray is not intersecting the atmosphere
+		        OutputTexture[streams.DispatchThreadId.xy] = float4(0, 0, 0, 1);
+		        return;
+	        }
+
+            float3 sunIlluminance = SunColor;
+
+            const float tDepth = 0.0;
+			const float sampleCountIni = 30.0;
+			const bool variableSampleCount = true;
+			const bool opaque = false;
+			const bool ground = false;
+			const bool mieRayPhase = true;
+			const bool multiScatteringApprox = true;
+			SingleScatteringResult ss = IntegrateScatteredLuminance(
+				atmosphere, pixelPosition, worldPosition, worldDirection, sunDirection, sunIlluminance, tDepth, sampleCountIni, variableSampleCount,
+				opaque, ground, mieRayPhase, multiScatteringApprox, TransmittanceLUT, MultiScatteringLUT);
+
+			float3 L = ss.L;
+    
+			OutputTexture[streams.DispatchThreadId.xy] = float4(L, 1.0);
+        }
+    };
+}

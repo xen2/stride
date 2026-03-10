@@ -1,0 +1,41 @@
+﻿namespace StrideTerrain.Weather.Effects.Fog
+{
+    shader FogRenderFog : ImageEffectShader, FogBase
+    {
+        stage Texture2D<float4> TransmittanceLUT;
+        stage Texture2D<float4> SkyLuminanceLUT;
+        stage Texture2D DepthTexture;
+
+        cbuffer Atmosphere
+        {
+			AtmosphereParameters Atmosphere;
+            FogParameters Fog;
+            float4x4 InvViewProjection;
+            float3 SunDirection;
+            [Color] float3 SunColor;
+            float3 CameraPosition;
+            float2 InvResolution;
+        }
+
+        stage override float4 Shading()
+        {
+            float2 pixelPosition = streams.ShadingPosition.xy;
+
+            float depth = DepthTexture[pixelPosition.xy].x;
+
+            float2 uv = pixelPosition * InvResolution;
+
+            float2 clipSpace = uv * float2(2.0, -2.0) - float2(1.0, -1.0);
+
+			float4 depthWorldPosition = mul(float4(clipSpace, depth, 1.0), InvViewProjection);
+			depthWorldPosition /= depthWorldPosition.w;
+
+            float3 V = depthWorldPosition.xyz - CameraPosition;
+            float dist = length(V);
+            V /= dist;
+
+            float4 fogColor = GetFogColor(Fog, Atmosphere, dist, CameraPosition, V, SunDirection, SunColor, SkyLuminanceLUT, TransmittanceLUT);
+            return float4(fogColor.xyz * fogColor.w, fogColor.w);
+        }
+    };
+}

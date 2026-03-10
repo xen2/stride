@@ -1,0 +1,59 @@
+﻿namespace StrideTerrain.Vegetation.Effects
+{
+	shader MaterialVegetationSurfaceSubsurfaceScatteringShading : IMaterialSurfaceShading, Math, ShaderBaseStream
+	{
+		compose ComputeColor SubsurfaceLightingAmount;
+		compose ComputeColor Extinction;
+
+		//stream float subsurfaceLightingAmount;
+		stream float3 extinction;
+
+		float3 CalculateSubSurfaceColor(float3 L, float3 V, float3 N, float subsurfaceLightingAmount, float3 diffuse, float3 extinction, float thickness)
+		{
+			float3 H = normalize(L + V);
+
+			// Backlight factor: only grazing/backlit surfaces get in-scatter
+			float backlight = saturate(dot(N, -L)); // 1 = backlit, 0 = front-lit
+			float inScatter = pow(backlight, 6) * 0.25;
+
+			float normalContribution = saturate(dot(N, H) * subsurfaceLightingAmount + 1 - subsurfaceLightingAmount);
+			float backScatter = normalContribution / (PI * 2);
+
+			float3 transmittance = exp(-extinction * thickness);
+			float3 scattered = diffuse * lerp(backScatter, 1.0, inScatter);
+
+			// Apply extinction/transmittance
+			return scattered * transmittance;
+		}
+
+		override void PrepareForLightingAndShading()
+		{
+			base.PrepareForLightingAndShading();
+			// streams.subsurfaceLightingAmount = SubsurfaceLightingAmount.Compute().x;
+			 streams.extinction = Extinction.Compute().xyz;
+			streams.subsurfaceLightingAmount = streams.matDiffuse.a * 2.5f;
+			//streams.extinction = float3(0.15, 0.35, 0.1);
+		}
+
+		override float3 ComputeDirectLightContribution()
+		{
+			float3 result = CalculateSubSurfaceColor(
+				streams.lightDirectionWS,
+				streams.viewWS,
+				streams.normalWS, 
+				streams.subsurfaceLightingAmount,
+				streams.lightColor * streams.matDiffuseVisible,
+				streams.extinction, 
+				lerp(0.2f, 0.5f, streams.matDiffuse.a)
+			);
+
+			return result;
+		}
+
+		override float3 ComputeEnvironmentLightContribution()
+		{
+			// Patched in Stride skybox light shader
+			return float3(0, 0, 0);
+		}
+	};
+}

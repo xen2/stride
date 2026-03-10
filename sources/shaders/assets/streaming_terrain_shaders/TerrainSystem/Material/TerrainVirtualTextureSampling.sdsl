@@ -1,0 +1,140 @@
+namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader TerrainVirtualTextureSampling : TerrainVirtualTexture
+    {
+        rgroup PerFrame.TerrainVT
+        {
+            stage Texture2D<float4> PhysicalDiffuseRoughness;
+            stage Texture2D<float2> PhysicalNormal;
+        }
+
+        struct VTMaterialSample
+        {
+            float3 Diffuse;
+            float Roughness;
+            float3 Normal;
+            bool IsValid;
+        };
+
+        stage SamplerState PhysicalSampler
+        {
+            Filter = ANISOTROPIC;
+            MaxAnisotropy = 4;
+        };
+
+        // Resolves a physical atlas UV for the given starting mip, walking to coarser mips
+        // if the tile is outside the clipmap window. Returns float2(-1,-1) on total miss.
+        float2 ResolvePhysUV(float3 worldPosition, int mip)
+        {
+            VTPageAddress addr = ComputePageAddress(worldPosition, mip);
+            float2 physUV = ComputePhysicalUV(addr);
+
+            [unroll(7)]
+            for (int fb = 0; fb < 7 && physUV.x < 0; fb++)
+            {
+                mip = min(mip + 1, VT_MIP_COUNT - 1);
+                addr = ComputePageAddress(worldPosition, mip);
+                physUV = ComputePhysicalUV(addr);
+            }
+
+            return physUV;
+        }
+
+        VTMaterialSample SampleVirtualTerrain(float3 worldPosition, float3 worldNormal)
+        {
+            VTMaterialSample result;
+
+            //--- Step 1: Compute desired mip level ---
+            float mipLevelF = ComputeVTMipLevel(worldPosition);
+            int   mipFine   = int(floor(mipLevelF));
+            int   mipCoarse = min(mipFine + 1, VT_MIP_COUNT - 1);
+            float blend     = frac(mipLevelF);  // 0 = fully fine, 1 = fully coarse
+
+            //--- Step 2: Resolve physical UVs for both mip levels (with coarser fallback) ---
+            float2 physUV_fine   = ResolvePhysUV(worldPosition, mipFine);
+            float2 physUV_coarse = ResolvePhysUV(worldPosition, mipCoarse);
+
+            //--- Step 3: Both out of range → debug/error color ---
+            if (physUV_fine.x < 0 && physUV_coarse.x < 0)
+            {
+                result.Diffuse   = float3(1.5, 0.5, 0.5);
+                result.Roughness = 0.5;
+                result.Normal    = worldNormal;
+                result.IsValid   = false;
+                return result;
+            }
+
+            // If one side is unavailable, use only the valid side
+            if (physUV_fine.x   < 0) blend = 1.0;
+            if (physUV_coarse.x < 0) blend = 0.0;
+
+            //--- Step 4: Compute and clamp gradients to prevent cross-tile filtering ---
+            float maxGrad = VT_TILE_SIZE / VT_ATLAS_SIZE * 0.5;
+
+            float2 dUVdx_fine   = clamp(ddx(physUV_fine),   -maxGrad, maxGrad);
+            float2 dUVdy_fine   = clamp(ddy(physUV_fine),   -maxGrad, maxGrad);
+            float2 dUVdx_coarse = clamp(ddx(physUV_coarse), -maxGrad, maxGrad);
+            float2 dUVdy_coarse = clamp(ddy(physUV_coarse), -maxGrad, maxGrad);
+
+            //--- Step 5: Sample fine mip ---
+            float4 diffuse_fine   = PhysicalDiffuseRoughness.SampleGrad(PhysicalSampler, physUV_fine, dUVdx_fine, dUVdy_fine);
+            float2 normalRaw_fine = PhysicalNormal.SampleGrad(PhysicalSampler, physUV_fine, dUVdx_fine, dUVdy_fine);
+
+            //--- Step 6: Sample coarse mip ---
+            float4 diffuse_coarse   = PhysicalDiffuseRoughness.SampleGrad(PhysicalSampler, physUV_coarse, dUVdx_coarse, dUVdy_coarse);
+            float2 normalRaw_coarse = PhysicalNormal.SampleGrad(PhysicalSampler, physUV_coarse, dUVdx_coarse, dUVdy_coarse);
+
+            //--- Step 7: Blend between fine and coarse ---
+            result.Diffuse   = lerp(diffuse_fine.rgb, diffuse_coarse.rgb, blend);
+            result.Roughness = lerp(diffuse_fine.a, diffuse_coarse.a, blend);
+            // Decode both normals then blend in world space to avoid octahedral non-linearity
+            result.Normal = normalize(lerp(
+                DecodeOctahedral(normalRaw_fine),
+                DecodeOctahedral(normalRaw_coarse),
+                blend));
+
+            result.IsValid = true;
+            return result;
+        }
+
+        // Samples only the diffuse colour from the VT atlas at a given world position.
+        // Intended for non-terrain objects (foliage, rocks, debris) that need to tint
+        // or blend against the underlying terrain colour. Returns a neutral gray when
+        // the position falls outside the current clipmap window.
+        float3 SampleVirtualTerrainDiffuse(float3 worldPosition)
+        {
+            float mipLevelF = ComputeVTMipLevel(worldPosition);
+            int   mipFine   = int(floor(mipLevelF));
+            int   mipCoarse = min(mipFine + 1, VT_MIP_COUNT - 1);
+            float blend     = frac(mipLevelF);
+
+            float2 physUV_fine   = ResolvePhysUV(worldPosition, mipFine);
+            float2 physUV_coarse = ResolvePhysUV(worldPosition, mipCoarse);
+
+            if (physUV_fine.x < 0 && physUV_coarse.x < 0)
+                return float3(0.5, 0.5, 0.5);
+
+            if (physUV_fine.x   < 0) blend = 1.0;
+            if (physUV_coarse.x < 0) blend = 0.0;
+
+            float maxGrad = VT_TILE_SIZE / VT_ATLAS_SIZE * 0.5;
+            float2 dUVdx_fine   = clamp(ddx(physUV_fine),   -maxGrad, maxGrad);
+            float2 dUVdy_fine   = clamp(ddy(physUV_fine),   -maxGrad, maxGrad);
+            float2 dUVdx_coarse = clamp(ddx(physUV_coarse), -maxGrad, maxGrad);
+            float2 dUVdy_coarse = clamp(ddy(physUV_coarse), -maxGrad, maxGrad);
+
+            float3 fine   = PhysicalDiffuseRoughness.SampleGrad(PhysicalSampler, physUV_fine,   dUVdx_fine,   dUVdy_fine).rgb;
+            float3 coarse = PhysicalDiffuseRoughness.SampleGrad(PhysicalSampler, physUV_coarse, dUVdx_coarse, dUVdy_coarse).rgb;
+
+            return lerp(fine, coarse, blend);
+        }
+
+        float3 DecodeOctahedral(float2 f) {
+            f = f * 2.0 - 1.0;
+            float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+            float t = saturate(-n.z);
+            n.xy += n.xy >= 0.0 ? -t : t;
+            return normalize(n);
+        }
+    };
+}

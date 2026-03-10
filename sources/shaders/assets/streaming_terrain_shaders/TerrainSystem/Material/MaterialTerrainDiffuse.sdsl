@@ -1,0 +1,26 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader MaterialTerrainDiffuse : IMaterialSurfacePixel, TerrainMaterialStreams
+    {
+        override void Compute()
+        {
+            streams.matDiffuse = streams.matColorBase = float4(streams.TerrainDiffuse, 1);
+
+            const float3 lodColors[9] = {
+                { 1, 0, 0 },
+                { 0, 1, 0 },
+                { 0, 0, 1 },
+                { 1, 1, 0 },
+                { 1, 0, 1 },
+                { 0, 1, 1 },
+                { 1, 0.5f, 0.25f },
+                { 0.5f, 1, 0.25f },
+                { 0.5f, 0.25f, 1 }
+            }; 
+
+            float3 lodColor = lodColors[min(8, streams.LodLevel)];
+            float lodAlpha = 0.0f;
+            streams.matDiffuse.xyz = streams.matColorBase.xyz = (streams.matColorBase.xyz * (1.0f - lodAlpha) + lodColor * lodAlpha);
+        }
+    };
+}

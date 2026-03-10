@@ -1,0 +1,17 @@
+﻿namespace StrideTerrain.Vegetation
+{
+    shader SetupIndirectDispatchArgs : ComputeShaderBase
+    {
+        stage RWByteAddressBuffer IndirectArgsBuffer;
+        stage uint ThreadsPerGroup;
+
+        override void Compute()
+        {
+            uint count = IndirectArgsBuffer.Load(0);
+            uint groups = (count + ThreadsPerGroup - 1) / ThreadsPerGroup;
+            IndirectArgsBuffer.Store(0, groups);
+            IndirectArgsBuffer.Store(4, 1);
+            IndirectArgsBuffer.Store(8, 1);
+        }
+    };
+}

@@ -1,0 +1,52 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects
+{
+    shader TerrainQuery : TerrainData, Texturing
+    {
+        float2 GetTerrainAtlasUv(float wx, float wz)
+        {
+            wx = wx * InvUnitsPerTexel;
+            wz = wz * InvUnitsPerTexel;
+
+            uint sectorX = min(ChunksPerRow, (uint)floor(wx / ChunkSize));
+            uint sectorZ = min(ChunksPerRow, (uint)floor(wz / ChunkSize));
+            uint sectorIndex = sectorZ * ChunksPerRow + sectorX;
+            uint chunkIndex = max(0, SectorToChunkMapBuffer[sectorIndex]);
+
+            uint lodLevel = ChunkBuffer[chunkIndex].Data0 & 0xFF;
+			uint scale = 1 << lodLevel;
+            float2 uv = UnpackUv(ChunkBuffer[chunkIndex]);
+
+            float positionInChunkX = ((float)wx / scale) % ChunkSize;
+            float positionInChunkZ = ((float)wz / scale) % ChunkSize;
+
+            uv.x += positionInChunkX + 0.5f;
+            uv.y += positionInChunkZ + 0.5f;
+
+            uv *= InvTerrainTextureSize;
+
+            return uv;
+        }
+
+        float GetTerrainHeightAt(float2 uv)
+        {
+            float height = Heightmap.SampleLevel(LinearSampler, uv, 0).x;
+
+            return height * MaxHeight;
+        }
+
+        float3 GetTerrainNormalAt(float2 uv)
+        {
+            float3 normal = float3(0, 0, 0);
+            normal.xz = TerrainNormalMap.SampleLevel(LinearSampler, uv, 0).xy * 2.0f - 1.0f;
+            normal.y = sqrt(max(0.0f, 1.0f - (normal.x * normal.x + normal.z * normal.z)));
+
+            return normalize(normal);
+        }
+
+        uint GetBackgroundTextureIndexAt(float2 uv)
+        {
+            uint controlValue = (uint)TerrainControlMap.Load(int3((uv.xy * TerrainTextureSize) - 0.5f, 0)).x;
+            return controlValue & 0x1F;
+        }
+    };
+}

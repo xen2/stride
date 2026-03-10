@@ -1,0 +1,11 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader MaterialTerrainDisplacement 
+        : IMaterialSurface, TerrainDisplacement
+    {
+        override void Compute()
+        {
+            SetTerrainVertexPosition();
+        }
+    };
+}

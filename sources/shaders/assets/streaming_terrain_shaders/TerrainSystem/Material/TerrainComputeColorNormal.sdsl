@@ -1,0 +1,10 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader TerrainComputeColorNormal : ComputeColor, TerrainMaterialStreams
+    {
+        override float4 Compute()
+        {
+            return float4(streams.TerrainNormal, 1);
+        }
+    };
+}

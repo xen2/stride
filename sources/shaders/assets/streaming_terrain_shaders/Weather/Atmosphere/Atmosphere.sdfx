@@ -1,0 +1,15 @@
+﻿namespace StrideTerrain.Weather.Effects.Atmosphere
+{
+    params AtmosphereEffectParameters
+    {
+        bool RenderSun = true;
+        bool EnableHeightFog = false;
+    }
+
+    effect AtmosphereRenderSkyEffect
+    {
+        using params AtmosphereEffectParameters;
+
+        mixin AtmosphereRenderSky<AtmosphereEffectParameters.RenderSun, AtmosphereEffectParameters.EnableHeightFog>;
+    }
+}

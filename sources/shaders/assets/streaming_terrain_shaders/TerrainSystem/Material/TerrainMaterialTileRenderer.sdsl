@@ -1,0 +1,117 @@
+﻿namespace StrideTerrain.TerrainSystem.Effects.Material
+{
+    shader TerrainMaterialTileRenderer : ShaderBase, FullscreenTriangle, TerrainQuery, TerrainMaterialSampling
+    {
+        cbuffer PerMaterial.TerrainTile
+        {
+            stage float2 WorldBoundsMin;
+            stage float2 WorldBoundsMax;
+            stage float MipLevel;
+        };
+
+        stage override void PSMain()
+        {
+            float2 uv = streams.TexCoord;
+            // Flip V: the fullscreen triangle gives V=1 at the top of the render target (NDC y=+1)
+            // but texture sampling has V=0 at the top. Without this flip, the Z-axis is mirrored.
+            uv.y = 1.0 - uv.y;
+
+            float3 positionWS = 0;
+            // Map render target pixel coordinates to world space using the tile bounds
+            positionWS.xz = lerp(WorldBoundsMin, WorldBoundsMax, uv);
+
+            TerrainMaterialSample res = SampleTerrain(positionWS);
+
+            streams.ColorTarget = float4(res.Diffuse, res.Roughness);
+            streams.ColorTarget1 = float4(EncodeOctahedral(res.NormalWS), 0, 0);
+            //streams.ColorTarget2  = float4(res.Roughness, 0, 0, 0);
+        }
+
+        float2 EncodeOctahedral(float3 n)
+        {
+            n /= (abs(n.x) + abs(n.y) + abs(n.z));
+            if (n.z < 0.0)
+            {
+                n.xy = (1.0 - abs(n.yx)) * (n.xy >= 0.0 ? 1.0 : -1.0);
+            }
+            return n.xy * 0.5 + 0.5;
+        }
+
+        struct TerrainMaterialSample
+        {
+            float3 Diffuse;
+            float Roughness;
+            float3 NormalWS;
+        };
+
+        TerrainMaterialSample SampleTerrain(float3 positionWS)
+        {
+            float2 terrainAtlasUv = GetTerrainAtlasUv(positionWS.x, positionWS.z);
+            positionWS.y = GetTerrainHeightAt(terrainAtlasUv);
+            
+            float3 normalWS = GetTerrainNormalAt(terrainAtlasUv);
+
+             // Calculate tri-planar weights
+            float tighten = 0.576f;
+            float3 triPlanarWeights = saturate(abs(normalWS) - tighten);
+            triPlanarWeights = triPlanarWeights / (triPlanarWeights.x + triPlanarWeights.y + triPlanarWeights.z);
+
+            // Calculate fractional weights for 4-way material blend
+            float2 positionFract = frac(terrainAtlasUv * TerrainTextureSize - 0.5f);
+            float4 fractionalWeights = float4(
+                (1.0f - positionFract.x) * (1.0f - positionFract.y),
+                positionFract.x * (1.0f - positionFract.y),
+                positionFract.y * (1.0f - positionFract.x),
+                positionFract.x * positionFract.y
+            );
+
+            // Sample control map to get material indices and UV scales
+            float2 controlMapUv = (floor(terrainAtlasUv * TerrainTextureSize - 0.5) + 1.0) / TerrainTextureSize;
+            uint4 controlValues = (uint4)TerrainControlMap.GatherRed(PointSampler, controlMapUv);
+
+            uint controlValueA = controlValues.w;
+            uint controlValueB = controlValues.z;
+            uint controlValueC = controlValues.x;
+            uint controlValueD = controlValues.y;
+
+            uint4 backgroundTextureIndices = uint4(
+                (controlValueA & 0x1F),
+                (controlValueB & 0x1F),
+                (controlValueC & 0x1F),
+                (controlValueD & 0x1F)
+            );
+
+            uint4 backgroundUvScaling = uint4(
+                ((controlValueA >> 5) & 0x07),
+                ((controlValueB >> 5) & 0x07),
+                ((controlValueC >> 5) & 0x07),
+                ((controlValueD >> 5) & 0x07)
+            );
+
+            // Sample material using shared function
+            MaterialSample material = SampleBackgroundLevel(
+                backgroundTextureIndices, 
+                backgroundUvScaling, 
+                triPlanarWeights, 
+                normalWS, 
+                positionWS, 
+                fractionalWeights,
+                MipLevel
+            );
+
+            // Decode and transform normal to world space
+            float3 decodedNormal = DecodeNormal(material.Normal);
+            
+            float3 tangent = normalize(float3(1, 0, 0) - normalWS * dot(float3(1, 0, 0), normalWS));
+            float3 bitangent = cross(normalWS, tangent);
+            float3x3 tangentMatrix = float3x3(tangent, bitangent, normalWS);
+            
+            TerrainMaterialSample res;
+            res.Diffuse = material.Diffuse;
+            res.Roughness = material.Roughness;
+            res.NormalWS = normalize(mul(decodedNormal, tangentMatrix));
+
+            return res;
+        }
+    };
+}
