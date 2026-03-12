@@ -3,6 +3,8 @@
     shader AtmosphereCubeMapEnvironmentColor 
         : EnvironmentLight, MaterialPixelShadingStream, NormalStream,Transformation, Texturing, WeatherForwardRendererBase
     {
+        stream float subsurfaceLightingAmount;
+
         cbuffer PerView.Lighting
         {
             float MipCount;

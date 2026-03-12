@@ -5,7 +5,7 @@
 		compose ComputeColor SubsurfaceLightingAmount;
 		compose ComputeColor Extinction;
 
-		//stream float subsurfaceLightingAmount;
+		stream float subsurfaceLightingAmount;
 		stream float3 extinction;
 
 		float3 CalculateSubSurfaceColor(float3 L, float3 V, float3 N, float subsurfaceLightingAmount, float3 diffuse, float3 extinction, float thickness)
