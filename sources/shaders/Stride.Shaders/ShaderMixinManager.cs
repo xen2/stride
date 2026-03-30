@@ -15,6 +15,12 @@ namespace Stride.Shaders
         private static readonly Dictionary<string, IShaderMixinBuilder> RegisteredBuilders = new Dictionary<string, IShaderMixinBuilder>();
 
         /// <summary>
+        /// Optional fallback evaluator for effects compiled as SPIR-V bytecode (set by Stride.Shaders.Compilers).
+        /// Returns a ShaderMixinSource tree, or null if the effect is not available as bytecode.
+        /// </summary>
+        public static Func<string, ParameterCollection, ShaderMixinSource> BytecodeEvaluator { get; set; }
+
+        /// <summary>
         /// Registers a <see cref="IShaderMixinBuilder"/> with the specified sdfx effect name.
         /// </summary>
         /// <param name="sdfxEffectName">Name of the mixin.</param>
@@ -103,10 +109,20 @@ namespace Stride.Shaders
             Dictionary<string, IShaderMixinBuilder> builders;
             lock (RegisteredBuilders)
             {
-                if (!TryGet(rootEffectName, out builder))
-                    throw new ArgumentException(string.Format("Xkfx effect [{0}] not found", rootEffectName), "sdfxEffectName");
-
+                TryGet(rootEffectName, out builder);
                 builders = new Dictionary<string, IShaderMixinBuilder>(RegisteredBuilders);
+            }
+
+            // If no C# builder is registered, try the SPIR-V bytecode evaluator
+            if (builder == null)
+            {
+                if (BytecodeEvaluator != null)
+                {
+                    var result = BytecodeEvaluator(sdfxEffectName, properties);
+                    if (result != null)
+                        return result;
+                }
+                throw new ArgumentException(string.Format("Xkfx effect [{0}] not found", rootEffectName), "sdfxEffectName");
             }
 
             // TODO cache mixin context and avoid to recreate one (check if if thread concurrency could occur here)
