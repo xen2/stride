@@ -148,6 +148,17 @@ namespace Stride.Shaders
         }
 
         /// <summary>
+        /// Returns a snapshot of the currently registered builders.
+        /// </summary>
+        public static Dictionary<string, IShaderMixinBuilder> GetRegisteredBuilders()
+        {
+            lock (RegisteredBuilders)
+            {
+                return new Dictionary<string, IShaderMixinBuilder>(RegisteredBuilders);
+            }
+        }
+
+        /// <summary>
         /// Un-register all registered <see cref="IShaderMixinBuilder"/>.
         /// </summary>
         public static void UnRegisterAll()

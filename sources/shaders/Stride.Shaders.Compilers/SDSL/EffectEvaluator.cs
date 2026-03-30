@@ -1,5 +1,10 @@
+using Stride.Core.Diagnostics;
+using Stride.Core.Storage;
 using Stride.Rendering;
 using Stride.Shaders.Core;
+using Stride.Shaders.Parsing;
+using Stride.Shaders.Parsing.SDFX.AST;
+using Stride.Shaders.Parsing.Analysis;
 using Stride.Shaders.Spirv.Building;
 using Stride.Shaders.Spirv.Core;
 using Stride.Shaders.Spirv.Core.Buffers;
@@ -11,36 +16,102 @@ namespace Stride.Shaders.Compilers.SDSL;
 /// Interprets SDFX effect bytecode (SPIR-V buffers containing OpEffectSDFX, OpMixinSDFX, etc.)
 /// to produce ShaderMixinSource trees — replacing the generated C# IShaderMixinBuilder approach.
 /// </summary>
-internal class EffectEvaluator(IExternalShaderLoader shaderLoader, Dictionary<string, IShaderMixinBuilder> registeredBuilders)
+internal class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceManager sourceManager, Dictionary<string, IShaderMixinBuilder> registeredBuilders)
 {
+    private static readonly Logger Log = GlobalLogger.GetLogger(nameof(EffectEvaluator));
+
     /// <summary>
     /// Evaluates an effect from a SPIR-V buffer containing SDFX instructions.
+    /// Returns null if the effect is not available as bytecode.
     /// </summary>
-    public ShaderMixinSource Evaluate(string effectName, ParameterCollection compilerParameters)
+    public ShaderMixinSource? Evaluate(string effectName, ParameterCollection compilerParameters)
     {
-        var mixinTree = new ShaderMixinSource();
+        var mixinTree = new ShaderMixinSource() { Name = effectName };
         var context = new ShaderMixinContext(mixinTree, compilerParameters, registeredBuilders);
 
         // Parse "RootEffect.ChildName" format
+        var rootEffectName = effectName;
         var dotIndex = effectName.IndexOf('.');
         if (dotIndex >= 0)
         {
             context.ChildEffectName = effectName[(dotIndex + 1)..];
-            effectName = effectName[..dotIndex];
+            rootEffectName = effectName[..dotIndex];
         }
 
-        // Load the effect's SPIR-V buffer
-        var shaderBuffers = shaderLoader.Cache.TryLoadFromCache(effectName, null, [], out var buffer, out _)
-            ? buffer
-            : throw new InvalidOperationException($"Effect '{effectName}' not found in shader cache");
+        // Try to load the compiled effect from cache
+        ShaderBuffers? shaderBuffers;
+        if (shaderLoader.Cache.TryLoadFromCache(rootEffectName, null, [], out var cached, out _))
+        {
+            shaderBuffers = cached;
+        }
+        else
+        {
+            // Not in cache — try to compile the .sdfx source on demand
+            shaderBuffers = CompileEffectOnDemand(rootEffectName);
+            if (shaderBuffers == null)
+                return null; // No .sdfx source found — let the caller try other paths
+        }
+
+        var buffers = shaderBuffers.Value;
 
         // Verify it's an SDFX effect
-        if (shaderBuffers.Buffer.Count == 0 || shaderBuffers.Buffer[0].Op != Op.OpEffectSDFX)
-            throw new InvalidOperationException($"'{effectName}' is not an SDFX effect (first instruction is not OpEffectSDFX)");
+        if (buffers.Buffer.Count == 0 || buffers.Buffer[0].Op != Op.OpEffectSDFX)
+            return null; // Not an SDFX effect — this is a shader class, not an effect
 
-        InterpretEffect(shaderBuffers, context, mixinTree);
+        InterpretEffect(buffers, context, mixinTree);
 
         return mixinTree;
+    }
+
+    /// <summary>
+    /// Compiles an .sdfx file on demand and registers the result in the cache.
+    /// Returns null if the .sdfx source file is not found.
+    /// </summary>
+    private ShaderBuffers? CompileEffectOnDemand(string effectName)
+    {
+        var effectSource = sourceManager.LoadEffectSource(effectName);
+        if (effectSource == null)
+            return null;
+
+        var source = effectSource.Value;
+        var parsed = SDSLParser.Parse(source.Source);
+        if (parsed.Errors.Count > 0)
+        {
+            foreach (var error in parsed.Errors)
+                Log.Error(error.ToString());
+            return null;
+        }
+
+        if (parsed.AST is not ShaderFile sf)
+            return null;
+
+        var declarations = sf.Namespaces.SelectMany(x => x.Declarations).Concat(sf.RootDeclarations);
+        foreach (var declaration in declarations)
+        {
+            if (declaration is ShaderEffect effect)
+            {
+                var compiler = new CompilerUnit();
+                var table = new SymbolTable(compiler.Context, shaderLoader);
+
+                try
+                {
+                    effect.Compile(table, compiler);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e.Message, e);
+                    return null;
+                }
+
+                var buffer = compiler.ToShaderBuffers();
+                shaderLoader.Cache.RegisterShader(effect.Name.Name, null, [], buffer, source.Hash);
+
+                if (effect.Name.Name == effectName)
+                    return buffer;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

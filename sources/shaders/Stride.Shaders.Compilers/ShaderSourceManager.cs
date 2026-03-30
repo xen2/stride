@@ -29,6 +29,7 @@ namespace Stride.Shaders.Compilers
         private readonly IVirtualFileProvider fileProvider;
 
         private const string DefaultEffectFileExtension = ".sdsl";
+        private const string SdfxEffectFileExtension = ".sdfx";
 
         /// <summary>
         /// Gets the directory list.
@@ -231,21 +232,100 @@ namespace Stride.Shaders.Compilers
             return FindFilePath(typeName) != null;
         }
 
+        /// <summary>
+        /// Loads an .sdfx effect source file by name.
+        /// Returns null if the file is not found (does not throw).
+        /// </summary>
+        public ShaderSourceWithHash? LoadEffectSource(string effectName)
+        {
+            lock (locker)
+            {
+                var path = FindFilePath(effectName, SdfxEffectFileExtension);
+                if (path == null)
+                    return null;
+
+                // Check cache first
+                var cacheKey = effectName + SdfxEffectFileExtension;
+                if (loadedShaderSources.TryGetValue(cacheKey, out var cached))
+                    return cached;
+
+                var shaderSource = new ShaderSourceWithHash { Path = path };
+
+                // On Windows, try to load from the original file path for latest version
+                if (Platform.IsWindowsDesktop)
+                {
+                    var pathUrl = path + "/path";
+                    if (FileExists(pathUrl))
+                    {
+                        using var fileStream = OpenStream(pathUrl);
+                        string shaderSourcePath;
+                        using (var sr = new StreamReader(fileStream, Encoding.UTF8))
+                            shaderSourcePath = sr.ReadToEnd();
+
+                        if (File.Exists(shaderSourcePath))
+                        {
+                            byte[]? fileData = null;
+                            for (int tries = 10; tries >= 0; --tries)
+                            {
+                                try { fileData = File.ReadAllBytes(shaderSourcePath); break; }
+                                catch (IOException) { }
+                            }
+                            if (fileData != null)
+                            {
+                                shaderSource.Path = Path.Combine(PlatformFolders.ApplicationBinaryDirectory, shaderSourcePath);
+                                shaderSource.Hash = ObjectId.FromBytes(fileData);
+                                using var reader = new StreamReader(new MemoryStream(fileData), Encoding.UTF8);
+                                shaderSource.Source = reader.ReadToEnd();
+                            }
+                        }
+                    }
+                }
+
+                if (shaderSource.Source == null)
+                {
+                    using var sourceStream = OpenStream(path);
+                    var databaseStream = sourceStream as IDatabaseStream;
+                    using var sr = new StreamReader(sourceStream);
+                    shaderSource.Source = sr.ReadToEnd();
+                    if (databaseStream == null)
+                    {
+                        sourceStream.Position = 0;
+                        var data = new byte[sourceStream.Length];
+                        sourceStream.ReadExactly(data, 0, (int)sourceStream.Length);
+                        shaderSource.Hash = ObjectId.FromBytes(data);
+                    }
+                    else
+                    {
+                        shaderSource.Hash = databaseStream.ObjectId;
+                    }
+                }
+
+                loadedShaderSources[cacheKey] = shaderSource;
+                return shaderSource;
+            }
+        }
+
         public string? FindFilePath(string type)
+        {
+            return FindFilePath(type, DefaultEffectFileExtension);
+        }
+
+        private string? FindFilePath(string type, string extension)
         {
             lock (locker)
             {
                 if (LookupDirectoryList == null)
                     return null;
 
+                var cacheKey = extension == DefaultEffectFileExtension ? type : type + extension;
                 string? path = null;
-                if (classNameToPath.TryGetValue(type, out path))
+                if (classNameToPath.TryGetValue(cacheKey, out path))
                     return path;
 
                 foreach (var directory in LookupDirectoryList)
                 {
-                    var fileName = Path.ChangeExtension(type, DefaultEffectFileExtension);
-                    var testPath = Path.Combine(directory, fileName).Replace('\\', '/'); // use / for directory separation to allow to work with both Storage and FileSystem.
+                    var fileName = Path.ChangeExtension(type, extension);
+                    var testPath = Path.Combine(directory, fileName).Replace('\\', '/');
                     if (FileExists(testPath))
                     {
                         path = testPath;
@@ -255,7 +335,7 @@ namespace Stride.Shaders.Compilers
 
                 if (path != null)
                 {
-                    classNameToPath.Add(type, path);
+                    classNameToPath.Add(cacheKey, path);
                 }
 
                 return path;

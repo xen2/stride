@@ -90,6 +90,10 @@ namespace Stride.Shaders.Compiler
                     shaderLoader.SourceManager.LookupDirectoryList.AddRange(SourceDirectories); // TODO: temp
                     shaderLoader.SourceManager.UseFileSystem = UseFileSystem;
                     shaderLoader.SourceManager.UrlToFilePath = UrlToFilePath; // TODO: temp
+
+                    // Wire up the bytecode evaluator for SDFX effects
+                    var evaluator = new EffectEvaluator(shaderLoader, shaderLoader.SourceManager, ShaderMixinManager.GetRegisteredBuilders());
+                    ShaderMixinManager.BytecodeEvaluator = evaluator.Evaluate;
                 }
 
                 return shaderLoader;
