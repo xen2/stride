@@ -60,7 +60,21 @@ public partial class ShaderSourceDeclaration(Identifier name, TextLocation info,
 
     public override void Compile(SymbolTable table, CompilerUnit compiler)
     {
-        throw new NotImplementedException();
+        var (builder, context) = compiler;
+
+        if (Value is AccessorChainExpression ace
+            && ace.Source is Identifier paramSource
+            && ace.Accessors.Count > 0
+            && ace.Accessors[0] is IdentifierBase fieldAccess)
+        {
+            // Pattern: var x = ParamsType.FieldName → OpLoadParamSDFX
+            builder.Insert(new OpLoadParamSDFX(context.Bound++, paramSource.Name, fieldAccess.ToString()!));
+        }
+        else if (Value != null)
+        {
+            // Fallback: compile as a general expression
+            Value.Compile(table, compiler);
+        }
     }
 
     public override string ToString()
@@ -96,7 +110,7 @@ public partial class EffectDiscardStatement(TextLocation info) : EffectStatement
 {
     public override void Compile(SymbolTable table, CompilerUnit compiler)
     {
-        throw new NotImplementedException();
+        compiler.Builder.Insert(new OpDiscardSDFX());
     }
 }
 
@@ -158,7 +172,66 @@ public partial class Mixin(Specification.MixinKindSDFX kind, Identifier? target,
     {
         var (builder, context) = compiler;
 
-        throw new NotImplementedException();
-        //builder.Insert(new OpMixinSDFX(Kind, Target?.Name ?? "", Value., Value.Generics));
+        // Extract mixin name and generic parameters from Value expression
+        ExtractGenericParameters(Value, out var mixinName, out var genericParameters);
+
+        // Emit mixin name as a string constant
+        var nameStr = mixinName.ToString()!;
+        var nameId = context.Bound++;
+        context.Add(new OpConstantStringSDSL(nameId, nameStr));
+
+        // Emit target name as a string constant (for compositions, child, macro)
+        int targetId = 0;
+        if (Target != null)
+        {
+            targetId = context.Bound++;
+            context.Add(new OpConstantStringSDSL(targetId, Target.Name));
+        }
+        else if (Kind == Specification.MixinKindSDFX.Child)
+        {
+            // mixin child MyEffect => target defaults to the mixin name
+            targetId = nameId;
+        }
+
+        // Compile generic parameters to constant IDs
+        int[] genericIds = [];
+        if (genericParameters != null && genericParameters.Values.Count > 0)
+        {
+            genericIds = new int[genericParameters.Values.Count];
+            for (int i = 0; i < genericParameters.Values.Count; i++)
+            {
+                var generic = genericParameters.Values[i];
+                generic.ProcessSymbol(table);
+                var compiledValue = generic.CompileConstantValue(table, context);
+                genericIds[i] = compiledValue.Id;
+            }
+        }
+
+        builder.Insert(new OpMixinSDFX(Kind, targetId, nameId, new LiteralArray<int>(genericIds)));
+    }
+
+    /// <summary>
+    /// Separates the mixin name from generic parameters in the Value expression.
+    /// Mirrors EffectCodeWriter.ExtractGenericParameters.
+    /// </summary>
+    private static void ExtractGenericParameters(Expression value, out Expression mixinName, out ShaderExpressionList? genericParameters)
+    {
+        // Pattern: A.B<Param1, Param2>
+        if (value is AccessorChainExpression ace && ace.Accessors.Count > 0 && ace.Accessors[^1] is GenericIdentifier gi1)
+        {
+            mixinName = new AccessorChainExpression(ace.Source, ace.Info) { Accessors = [.. ace.Accessors[..^1], gi1.Name] };
+            genericParameters = gi1.Generics;
+        }
+        // Pattern: A<Param1, Param2>
+        else if (value is GenericIdentifier gi2)
+        {
+            mixinName = gi2.Name;
+            genericParameters = gi2.Generics;
+        }
+        else
+        {
+            mixinName = value;
+            genericParameters = null;
+        }
     }
 }
