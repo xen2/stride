@@ -519,6 +519,11 @@ public partial class Identifier(string name, TextLocation info) : IdentifierBase
             return new(result.ResultId, context.GetOrRegister(new PointerType(new StreamsType(Specification.StreamsKindSDSL.Streams), Specification.StorageClass.Private)));
         }
 
+        // EffectParamsType: no SPIR-V variable to reference — the actual emission
+        // happens in AccessorChainExpression when accessing a field (OpLoadParamSDFX).
+        if (Type is EffectParamsType)
+            return default;
+
         return base.CompileSymbol(table, builder, context, constantOnly);
     }
 

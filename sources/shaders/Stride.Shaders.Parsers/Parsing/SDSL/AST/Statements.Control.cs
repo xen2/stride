@@ -31,6 +31,13 @@ public partial class ConditionalFlow(If first, TextLocation info) : Flow(info)
     {
         var (builder, context) = compiler;
 
+        // SDFX effect context: no function, emit flat OpLabel-based control flow
+        if (builder.CurrentFunction == null)
+        {
+            CompileFlat(table, compiler);
+            return;
+        }
+
         var blockTrueIds = stackalloc int[ElseIfs.Count + 1];
         var blockMergeIds = stackalloc int[ElseIfs.Count + 1];
         var isMergeBlockReachable = stackalloc bool[ElseIfs.Count + 1];
@@ -96,6 +103,54 @@ public partial class ConditionalFlow(If first, TextLocation info) : Flow(info)
         }
 
         builder.IfBlockCount += ElseIfs.Count + 1;
+    }
+
+    /// <summary>
+    /// Flat control flow for SDFX effects (no function context, uses OpLabel directly).
+    /// </summary>
+    private void CompileFlat(SymbolTable table, CompilerUnit compiler)
+    {
+        var (builder, context) = compiler;
+
+        var conditionValue = If.Condition.CompileAsValue(table, compiler);
+        conditionValue = builder.Convert(context, conditionValue, ScalarType.Boolean);
+
+        var mergeLabel = context.Bound++;
+        var trueLabel = context.Bound++;
+        int? falseLabel = (ElseIfs.Count > 0 || Else != null) ? context.Bound++ : null;
+
+        builder.Insert(new OpSelectionMerge(mergeLabel, Specification.SelectionControlMask.None));
+        builder.Insert(new OpBranchConditional(conditionValue.Id, trueLabel, falseLabel ?? mergeLabel, []));
+
+        builder.Insert(new OpLabel(trueLabel));
+        If.Body.Compile(table, compiler);
+        builder.Insert(new OpBranch(mergeLabel));
+
+        if (falseLabel != null)
+        {
+            builder.Insert(new OpLabel(falseLabel.Value));
+
+            if (ElseIfs.Count > 0)
+            {
+                // Chain elseifs as nested ConditionalFlow
+                var nested = new ConditionalFlow(
+                    new If(ElseIfs[0].Condition, ElseIfs[0].Body, ElseIfs[0].Info),
+                    ElseIfs[0].Info)
+                {
+                    ElseIfs = ElseIfs.Count > 1 ? [.. ElseIfs.Skip(1)] : [],
+                    Else = Else
+                };
+                nested.CompileFlat(table, compiler);
+            }
+            else if (Else != null)
+            {
+                Else.Body.Compile(table, compiler);
+            }
+
+            builder.Insert(new OpBranch(mergeLabel));
+        }
+
+        builder.Insert(new OpLabel(mergeLabel));
     }
 
     public override string ToString()

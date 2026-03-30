@@ -793,3 +793,13 @@ public sealed partial record ExternalType(string Name, ShaderExpressionList? Gen
 {
     public override string ToString() => Generics != null && Generics.Values.Count > 0 ? $"{Name}<{string.Join(",", Generics.Values)}>" : Name;
 }
+
+/// <summary>
+/// Represents an SDFX effect parameters type (e.g. "params BasicParams { bool MixA; }").
+/// Used during effect compilation so that expressions like "BasicParams.MixA" resolve
+/// and compile to OpLoadParamSDFX.
+/// </summary>
+public sealed partial record EffectParamsType(string Name) : SymbolType
+{
+    public override string ToString() => $"params({Name})";
+}

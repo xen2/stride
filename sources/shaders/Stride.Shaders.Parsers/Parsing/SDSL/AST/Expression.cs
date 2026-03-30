@@ -1388,6 +1388,24 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
 
                         break;
                     }
+                case (EffectParamsType paramsType, Identifier field):
+                    if (compiler == null)
+                    {
+                        // During ProcessSymbol: we don't know the exact field type at compile time,
+                        // use boolean as most params accesses are used in conditions.
+                        accessor.Type = ScalarType.Boolean;
+                        break;
+                    }
+                    else
+                    {
+                        // Emit OpLoadParamSDFX — resolved at runtime by the EffectEvaluator
+                        var (effBuilder, effContext) = compiler;
+                        var resultId = effContext.Bound++;
+                        var boolTypeId = effContext.GetOrRegister(ScalarType.Boolean);
+                        effBuilder.Insert(new OpLoadParamSDFX(resultId, paramsType.Name, field.Name));
+                        result = new SpirvValue(resultId, boolTypeId);
+                        break;
+                    }
                 default:
                     throw new NotImplementedException($"unknown accessor {accessor} on type {currentValueType} in expression {this}");
             }

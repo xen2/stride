@@ -7,6 +7,8 @@ namespace Stride.Shaders.Parsing.SDFX.AST;
 
 public partial class EffectFlow(TextLocation info) : EffectStatement(info)
 {
+    public override void ProcessSymbol(SymbolTable table) { }
+
     public override void Compile(SymbolTable table, CompilerUnit compiler)
     {
         // Base class — subclasses override
@@ -19,6 +21,12 @@ public partial class EffectForEach(TypeName typename, Identifier variable, Expre
     public Identifier Variable { get; set; } = variable;
     public Expression Collection { get; set; } = collection;
     public Statement Body { get; set; } = body;
+
+    public override void ProcessSymbol(SymbolTable table)
+    {
+        Collection.ProcessSymbol(table);
+        Body.ProcessSymbol(table);
+    }
 
     public override void Compile(SymbolTable table, CompilerUnit compiler)
     {
