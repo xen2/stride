@@ -453,6 +453,64 @@
           "name": "generics"
         }
       ]
+    },
+    {
+      "opname": "OpLoadParamSDFX",
+      "opcode": 9005,
+      "class": "Miscellaneous",
+      "operands": [
+        {
+          "kind": "IdResult"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "paramsType"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "fieldName"
+        }
+      ]
+    },
+    {
+      "opname": "OpSetParamSDFX",
+      "opcode": 9006,
+      "class": "Miscellaneous",
+      "operands": [
+        {
+          "kind": "LiteralString",
+          "name": "paramsType"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "fieldName"
+        },
+        {
+          "kind": "IdRef",
+          "name": "value"
+        }
+      ]
+    },
+    {
+      "opname": "OpPushParamsSDFX",
+      "opcode": 9007,
+      "class": "Miscellaneous",
+      "operands": [
+        {
+          "kind": "IdRef",
+          "name": "paramsCollection"
+        }
+      ]
+    },
+    {
+      "opname": "OpPopParamsSDFX",
+      "opcode": 9008,
+      "class": "Miscellaneous"
+    },
+    {
+      "opname": "OpDiscardSDFX",
+      "opcode": 9009,
+      "class": "Miscellaneous"
     }
   ],
   "operand_kinds": [
