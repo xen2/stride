@@ -115,9 +115,31 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                 if (options.RegisterInCache)
                     ShaderLoader.Cache.RegisterShader(shader.Name, null, macros, lastBuffer, hash);
             }
-            else if (declaration is ShaderEffect or EffectParameters)
+            else if (declaration is ShaderEffect effect)
             {
-                // Ignore (using C# codegen for now)
+                var effectCompiler = new CompilerUnit();
+                SymbolTable effectTable = new(effectCompiler.Context, ShaderLoader)
+                {
+                    CurrentMacros = [.. macros],
+                };
+
+                try
+                {
+                    effect.Compile(effectTable, effectCompiler);
+                }
+                catch (Exception e)
+                {
+                    log.Error(e.Message, e);
+                    return false;
+                }
+
+                var effectBuffer = effectCompiler.ToShaderBuffers();
+                if (options.RegisterInCache)
+                    ShaderLoader.Cache.RegisterShader(effect.Name.Name, null, macros, effectBuffer, hash);
+            }
+            else if (declaration is EffectParameters)
+            {
+                // EffectParameters are compiled as part of the ShaderEffect they belong to
             }
             else
             {
