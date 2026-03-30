@@ -16,7 +16,7 @@ namespace Stride.Shaders.Compilers.SDSL;
 /// Interprets SDFX effect bytecode (SPIR-V buffers containing OpEffectSDFX, OpMixinSDFX, etc.)
 /// to produce ShaderMixinSource trees — replacing the generated C# IShaderMixinBuilder approach.
 /// </summary>
-internal class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceManager sourceManager, Dictionary<string, IShaderMixinBuilder> registeredBuilders)
+public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceManager sourceManager, Dictionary<string, IShaderMixinBuilder> registeredBuilders)
 {
     private static readonly Logger Log = GlobalLogger.GetLogger(nameof(EffectEvaluator));
 

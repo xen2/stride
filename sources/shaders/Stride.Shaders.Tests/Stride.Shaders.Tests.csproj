@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <None Include="..\assets\SDFX\**" CopyToOutputDirectory="PreserveNewest" LinkBase="assets\SDFX\" />
     <StrideShaderFiles Include="..\assets\SDSL\RenderTests\**" CopyToOutputDirectory="PreserveNewest" LinkBase="assets\SDSL\RenderTests\" />
     <StrideShaderFiles Include="..\assets\SDSL\ComputeTests\**" CopyToOutputDirectory="PreserveNewest" LinkBase="assets\SDSL\ComputeTests\" />
     <StrideShaderFiles Include="..\assets\SDSL\StreamOutTests\**" CopyToOutputDirectory="PreserveNewest" LinkBase="assets\SDSL\StreamOutTests\" />

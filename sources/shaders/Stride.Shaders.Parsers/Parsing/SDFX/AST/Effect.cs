@@ -24,7 +24,101 @@ public partial class ShaderEffect(TypeName name, bool isPartial, TextLocation in
         var (builder, context) = compiler;
 
         builder.Insert(new OpEffectSDFX(Name.Name));
-        Block?.Compile(table, compiler);
+        if (Block != null)
+            CompileEffectStatements(Block.Statements, table, builder, context, compiler);
+    }
+
+    /// <summary>
+    /// Compiles a list of statements in SDFX effect context.
+    /// ConditionalFlow is handled specially: conditions that are param access patterns
+    /// (e.g. BasicParams.MixA) are compiled as OpLoadParamSDFX instead of regular expressions.
+    /// </summary>
+    private static void CompileEffectStatements(List<Statement> statements, SymbolTable table, SpirvBuilder builder, SpirvContext context, CompilerUnit compiler)
+    {
+        foreach (var s in statements)
+        {
+            if (s is ConditionalFlow cf)
+                CompileEffectConditional(cf, table, builder, context, compiler);
+            else
+                s.Compile(table, compiler);
+        }
+    }
+
+    private static void CompileEffectConditional(ConditionalFlow cf, SymbolTable table, SpirvBuilder builder, SpirvContext context, CompilerUnit compiler)
+    {
+        // Compile the condition as an OpLoadParamSDFX if it's a param access pattern
+        var conditionId = CompileEffectCondition(cf.If.Condition, table, builder, context, compiler);
+
+        var mergeLabel = context.Bound++;
+        var trueLabel = context.Bound++;
+
+        // Handle else/elseif
+        int? falseLabel = (cf.ElseIfs.Count > 0 || cf.Else != null) ? context.Bound++ : null;
+
+        builder.Insert(new OpSelectionMerge(mergeLabel, Specification.SelectionControlMask.None));
+        builder.Insert(new OpBranchConditional(conditionId, trueLabel, falseLabel ?? mergeLabel, []));
+
+        // True block
+        builder.Insert(new OpLabel(trueLabel));
+        CompileEffectBody(cf.If.Body, table, builder, context, compiler);
+        builder.Insert(new OpBranch(mergeLabel));
+
+        // ElseIf / Else blocks
+        if (cf.ElseIfs.Count > 0 || cf.Else != null)
+        {
+            builder.Insert(new OpLabel(falseLabel!.Value));
+
+            if (cf.ElseIfs.Count > 0)
+            {
+                // Chain elseifs recursively
+                var syntheticCf = new ConditionalFlow(
+                    new If(cf.ElseIfs[0].Condition, cf.ElseIfs[0].Body, cf.ElseIfs[0].Info),
+                    cf.ElseIfs[0].Info)
+                {
+                    ElseIfs = cf.ElseIfs.Count > 1 ? [.. cf.ElseIfs.Skip(1)] : [],
+                    Else = cf.Else
+                };
+                CompileEffectConditional(syntheticCf, table, builder, context, compiler);
+            }
+            else if (cf.Else != null)
+            {
+                CompileEffectBody(cf.Else.Body, table, builder, context, compiler);
+            }
+
+            builder.Insert(new OpBranch(mergeLabel));
+        }
+
+        // Merge block
+        builder.Insert(new OpLabel(mergeLabel));
+    }
+
+    private static int CompileEffectCondition(Expression condition, SymbolTable table, SpirvBuilder builder, SpirvContext context, CompilerUnit compiler)
+    {
+        // Check for param access pattern: ParamsType.FieldName
+        if (condition is AccessorChainExpression ace
+            && ace.Source is Identifier paramSource
+            && ace.Accessors.Count > 0
+            && ace.Accessors[0] is IdentifierBase fieldAccess)
+        {
+            var resultId = context.Bound++;
+            builder.Insert(new OpLoadParamSDFX(resultId, paramSource.Name, fieldAccess.ToString()!));
+            return resultId;
+        }
+
+        // Fallback: compile normally (for literal conditions, etc.)
+        condition.ProcessSymbol(table);
+        var value = condition.CompileAsValue(table, compiler);
+        return value.Id;
+    }
+
+    private static void CompileEffectBody(Statement body, SymbolTable table, SpirvBuilder builder, SpirvContext context, CompilerUnit compiler)
+    {
+        if (body is BlockStatement block)
+            CompileEffectStatements(block.Statements, table, builder, context, compiler);
+        else if (body is ConditionalFlow cf)
+            CompileEffectConditional(cf, table, builder, context, compiler);
+        else
+            body.Compile(table, compiler);
     }
 
     internal static ConstantExpression[] CompileGenerics(SymbolTable table, SpirvContext context, ShaderExpressionList? generics)
@@ -94,10 +188,14 @@ public partial class UsingParams(Expression name, TextLocation info) : EffectSta
 
     public override void Compile(SymbolTable table, CompilerUnit compiler)
     {
-        var (builder, _) = compiler;
+        var (builder, context) = compiler;
 
-        var paramsName = ParamsName.Compile(table, compiler);
-        builder.Insert(new OpParamsUseSDFX(paramsName.Id));
+        // Emit the params type name as a string constant — this is metadata only,
+        // the evaluator doesn't need to resolve it at interpret time.
+        var nameStr = ParamsName.ToString()!;
+        var nameId = context.Bound++;
+        context.Add(new OpConstantStringSDSL(nameId, nameStr));
+        builder.Insert(new OpParamsUseSDFX(nameId));
     }
 
     public override string ToString()
