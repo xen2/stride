@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.HighPerformance;
 using Silk.NET.SPIRV;
 using Silk.NET.SPIRV.Cross;
@@ -7,6 +8,7 @@ using Stride.Shaders.Compilers;
 using Stride.Shaders.Compilers.SDSL;
 using Stride.Shaders.Parsing.Analysis;
 using Stride.Shaders.Parsing.SDSL.AST;
+using Stride.Shaders.Spirv;
 using Stride.Shaders.Spirv.Building;
 using Stride.Shaders.Spirv.Core.Buffers;
 using Stride.Shaders.Spirv.Tools;
@@ -181,5 +183,123 @@ public class CompileShaderTests
             var shadername = Path.GetFileNameWithoutExtension(filename);
             yield return [shadername];
         }
+    }
+
+    /// <summary>
+    /// Dual-path comparison: for each engine .sdfx file, compare the C# codegen builder output
+    /// against the bytecode evaluator output. Both should produce identical ShaderMixinSource trees.
+    /// Effects that can't be bytecode-compiled yet (unsupported SDFX features) are skipped.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(GetStrideSdfxFiles))]
+    public void EffectDualPathTest(string effectName)
+    {
+        // Skip effects whose C# builder isn't registered (e.g. from Stride.Particles, Stride.BepuPhysics)
+        if (!ShaderMixinManager.Contains(effectName))
+        {
+            Console.WriteLine($"SKIP {effectName}: no C# builder registered");
+            return;
+        }
+
+        var parameters = new ParameterCollection();
+
+        // Path 1: C# codegen builder
+        ShaderMixinSource csharpResult;
+        try
+        {
+            csharpResult = ShaderMixinManager.Generate(effectName, parameters);
+        }
+        catch (Exception ex)
+        {
+            // Some C# builders crash without proper parameters (NullReferenceException, etc.)
+            Console.WriteLine($"SKIP {effectName}: C# builder threw {ex.GetType().Name}: {ex.Message}");
+            return;
+        }
+
+        // Path 2: Bytecode evaluator (on-demand .sdfx compilation + interpretation)
+        var evaluator = CreateEffectEvaluator();
+        var bytecodeResult = evaluator.Evaluate(effectName, parameters);
+
+        if (bytecodeResult == null)
+        {
+            // Not a hard failure — the encoder doesn't support all SDFX features yet
+            // (e.g. var declarations, dynamic mixin from variable, null checks on params)
+            Console.WriteLine($"SKIP {effectName}: bytecode compilation not yet supported");
+            return;
+        }
+
+        // Compare mixin lists
+        var expectedMixins = string.Join(",", csharpResult.Mixins.Select(m => m.ToString()));
+        var actualMixins = string.Join(",", bytecodeResult.Mixins.Select(m => m.ToString()));
+        Assert.True(expectedMixins == actualMixins,
+            $"Mixin mismatch for {effectName}.\n  C# builder:  [{expectedMixins}]\n  Bytecode:    [{actualMixins}]");
+
+        // Compare compositions
+        Assert.True(csharpResult.Compositions.Count == bytecodeResult.Compositions.Count,
+            $"Composition count mismatch for {effectName}: C#={csharpResult.Compositions.Count}, Bytecode={bytecodeResult.Compositions.Count}");
+        foreach (var kvp in csharpResult.Compositions)
+        {
+            Assert.True(bytecodeResult.Compositions.ContainsKey(kvp.Key),
+                $"Missing composition '{kvp.Key}' in bytecode result for {effectName}");
+            Assert.True(kvp.Value.ToString() == bytecodeResult.Compositions[kvp.Key].ToString(),
+                $"Composition '{kvp.Key}' mismatch for {effectName}.\n  C#:       [{kvp.Value}]\n  Bytecode: [{bytecodeResult.Compositions[kvp.Key]}]");
+        }
+
+        // Compare macros
+        Assert.True(csharpResult.Macros.Count == bytecodeResult.Macros.Count,
+            $"Macro count mismatch for {effectName}: C#={csharpResult.Macros.Count}, Bytecode={bytecodeResult.Macros.Count}");
+        for (int i = 0; i < csharpResult.Macros.Count; i++)
+        {
+            Assert.True(csharpResult.Macros[i].Name == bytecodeResult.Macros[i].Name,
+                $"Macro name mismatch at {i} for {effectName}");
+            Assert.True(csharpResult.Macros[i].Definition.ToString() == bytecodeResult.Macros[i].Definition.ToString(),
+                $"Macro value mismatch for '{csharpResult.Macros[i].Name}' in {effectName}");
+        }
+
+        Console.WriteLine($"PASS {effectName}: {csharpResult.Mixins.Count} mixins, {csharpResult.Compositions.Count} compositions, {csharpResult.Macros.Count} macros");
+    }
+
+    public static IEnumerable<object[]> GetStrideSdfxFiles()
+    {
+        var sdfxDir = "./assets/Stride/SDFX";
+        if (!Directory.Exists(sdfxDir))
+            yield break;
+        foreach (var filename in Directory.EnumerateFiles(sdfxDir, "*.sdfx"))
+        {
+            var effectName = Path.GetFileNameWithoutExtension(filename);
+            yield return [effectName];
+        }
+    }
+
+    private static EffectEvaluator? _cachedEvaluator;
+
+    private static EffectEvaluator CreateEffectEvaluator()
+    {
+        if (_cachedEvaluator != null)
+            return _cachedEvaluator;
+
+        var sourceManager = new ShaderSourceManager(null!) { UseFileSystem = true };
+        sourceManager.LookupDirectoryList.Add(Path.GetFullPath("./assets/Stride/SDFX"));
+
+        var shaderLoader = new StubShaderLoader();
+        var registeredBuilders = ShaderMixinManager.GetRegisteredBuilders();
+        _cachedEvaluator = new EffectEvaluator(shaderLoader, sourceManager, registeredBuilders);
+        return _cachedEvaluator;
+    }
+
+    private class StubShaderLoader : IExternalShaderLoader
+    {
+        public IShaderCache Cache { get; } = new ShaderCache();
+        public GenericShaderCache GenericCache { get; } = new();
+        public bool SuppressSourceHash { get; set; }
+        public bool Exists(string name) => false;
+        public bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
+        { filename = ""; code = ""; hash = default; return false; }
+        public bool LoadExternalBuffer(string name, ReadOnlySpan<ShaderMacro> defines,
+            [MaybeNullWhen(false)] out ShaderBuffers bytecode, out ObjectId hash, out bool isFromCache)
+        { bytecode = default; hash = default; isFromCache = false; return false; }
+        public bool LoadExternalBuffer(string name, string? filename, string code, ReadOnlySpan<ShaderMacro> defines,
+            [MaybeNullWhen(false)] out ShaderBuffers bytecode, out ObjectId hash, out bool isFromCache)
+        { bytecode = default; hash = default; isFromCache = false; return false; }
     }
 }

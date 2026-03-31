@@ -31,6 +31,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="xunit.v3" />
     <ProjectReference Include="..\..\engine\Stride.Graphics\Stride.Graphics.csproj" />
+    <ProjectReference Include="..\..\engine\Stride.Rendering\Stride.Rendering.csproj" />
   </ItemGroup>
 
   <ItemGroup>
