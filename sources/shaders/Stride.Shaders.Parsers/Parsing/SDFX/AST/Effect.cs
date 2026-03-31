@@ -44,9 +44,44 @@ public partial class ShaderEffect(TypeName name, bool isPartial, TextLocation in
         foreach (var s in Block.Statements)
             s.ProcessSymbol(table);
         foreach (var s in Block.Statements)
-            s.Compile(table, compiler);
+            CompileEffectStatement(s, table, compiler);
 
         table.Pop();
+    }
+
+    /// <summary>
+    /// Compiles a single statement within an SDFX effect block.
+    /// Handles Declare specially (var declarations map to OpLoadParamSDFX result IDs),
+    /// and delegates everything else to the standard Compile path.
+    /// </summary>
+    internal static void CompileEffectStatement(Statement s, SymbolTable table, CompilerUnit compiler)
+    {
+        switch (s)
+        {
+            // var x = ParamsKeys.Field; or ShaderSource x = ParamsKeys.Field;
+            case Declare declare:
+                for (int idx = 0; idx < declare.Variables.Count; idx++)
+                {
+                    var d = declare.Variables[idx];
+                    if (d.Value != null)
+                    {
+                        var compiled = d.Value.Compile(table, compiler);
+                        // Map the variable symbol to the compiled result ID so later
+                        // references (in conditions, mixin expressions) resolve to it
+                        declare.VariableSymbols[idx].IdRef = compiled.Id;
+                    }
+                }
+                break;
+
+            case ShaderSourceDeclaration decl:
+                if (decl.Value != null)
+                    decl.Value.Compile(table, compiler);
+                break;
+
+            default:
+                s.Compile(table, compiler);
+                break;
+        }
     }
 
     internal static ConstantExpression[] CompileGenerics(SymbolTable table, SpirvContext context, ShaderExpressionList? generics)
@@ -195,10 +230,22 @@ public partial class Mixin(Specification.MixinKindSDFX kind, Identifier? target,
         // Extract mixin name and generic parameters from Value expression
         ExtractGenericParameters(Value, out var mixinName, out var genericParameters);
 
-        // Emit mixin name as a string constant
-        var nameStr = mixinName.ToString()!;
-        var nameId = context.Bound++;
-        context.Add(new OpConstantStringSDSL(nameId, nameStr));
+        // For macros, the value may be a runtime param access — compile it as an expression
+        int nameId;
+        if (Kind == Specification.MixinKindSDFX.Macro)
+        {
+            // Compile the value expression (may emit OpLoadParamSDFX for param access)
+            Value.ProcessSymbol(table);
+            var compiledValue = Value.Compile(table, compiler);
+            nameId = compiledValue.Id;
+        }
+        else
+        {
+            // Emit mixin name as a string constant
+            var nameStr = mixinName.ToString()!;
+            nameId = context.Bound++;
+            context.Add(new OpConstantStringSDSL(nameId, nameStr));
+        }
 
         // Emit target name as a string constant (for compositions, child, macro)
         int targetId = 0;
@@ -213,7 +260,7 @@ public partial class Mixin(Specification.MixinKindSDFX kind, Identifier? target,
             targetId = nameId;
         }
 
-        // Compile generic parameters to constant IDs
+        // Compile generic parameters — may be constants or runtime param references
         int[] genericIds = [];
         if (genericParameters != null && genericParameters.Values.Count > 0)
         {
@@ -222,7 +269,8 @@ public partial class Mixin(Specification.MixinKindSDFX kind, Identifier? target,
             {
                 var generic = genericParameters.Values[i];
                 generic.ProcessSymbol(table);
-                var compiledValue = generic.CompileConstantValue(table, context);
+                // Use Compile() which handles both constants and param field accesses (OpLoadParamSDFX)
+                var compiledValue = generic.Compile(table, compiler);
                 genericIds[i] = compiledValue.Id;
             }
         }

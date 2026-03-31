@@ -2,6 +2,7 @@ using Stride.Shaders;
 using Stride.Shaders.Core;
 using Stride.Shaders.Spirv.Building;
 using Stride.Shaders.Parsing.Analysis;
+using Stride.Shaders.Parsing.SDFX.AST;
 using Stride.Shaders.Spirv;
 using Stride.Shaders.Spirv.Core;
 using Stride.Shaders.Spirv.Core.Buffers;
@@ -123,7 +124,7 @@ public partial class ConditionalFlow(If first, TextLocation info) : Flow(info)
         builder.Insert(new OpBranchConditional(conditionValue.Id, trueLabel, falseLabel ?? mergeLabel, []));
 
         builder.Insert(new OpLabel(trueLabel));
-        If.Body.Compile(table, compiler);
+        CompileFlatBody(If.Body, table, compiler);
         builder.Insert(new OpBranch(mergeLabel));
 
         if (falseLabel != null)
@@ -144,13 +145,30 @@ public partial class ConditionalFlow(If first, TextLocation info) : Flow(info)
             }
             else if (Else != null)
             {
-                Else.Body.Compile(table, compiler);
+                CompileFlatBody(Else.Body, table, compiler);
             }
 
             builder.Insert(new OpBranch(mergeLabel));
         }
 
         builder.Insert(new OpLabel(mergeLabel));
+    }
+
+    /// <summary>
+    /// Compiles a body statement in flat SDFX mode, routing through CompileEffectStatement
+    /// so that var declarations map to loaded param IDs instead of OpVariable/OpStore.
+    /// </summary>
+    private static void CompileFlatBody(Statement body, SymbolTable table, CompilerUnit compiler)
+    {
+        if (body is BlockStatement block)
+        {
+            foreach (var s in block.Statements)
+                ShaderEffect.CompileEffectStatement(s, table, compiler);
+        }
+        else
+        {
+            ShaderEffect.CompileEffectStatement(body, table, compiler);
+        }
     }
 
     public override string ToString()

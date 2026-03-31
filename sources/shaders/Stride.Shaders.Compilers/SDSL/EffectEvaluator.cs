@@ -142,16 +142,18 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                 case Op.OpMixinSDFX:
                 {
                     var mixin_inst = (OpMixinSDFX)instruction;
-                    var name = DecodeString(contextBuffer, mixin_inst.Value);
-                    var generics = DecodeGenerics(contextBuffer, mixin_inst.Generics);
+                    var generics = DecodeGenerics(contextBuffer, mixin_inst.Generics, locals);
+
+                    // Check if the mixin value is a runtime local (dynamic mixin from variable)
+                    bool isDynamic = locals.TryGetValue(mixin_inst.Value, out var dynamicValue);
 
                     switch (mixin_inst.Kind)
                     {
                         case MixinKindSDFX.Default:
-                            if (generics.Length > 0)
-                                context.Mixin(mixin, name, generics);
+                            if (isDynamic && dynamicValue is ShaderSource dynamicSource)
+                                context.Mixin(mixin, dynamicSource);
                             else
-                                context.Mixin(mixin, name);
+                                MixinByName(context, mixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             break;
 
                         case MixinKindSDFX.Child:
@@ -159,17 +161,14 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                             var targetName = DecodeString(contextBuffer, mixin_inst.Target);
                             if (context.ChildEffectName == targetName)
                             {
-                                if (generics.Length > 0)
-                                    context.Mixin(mixin, name, generics);
-                                else
-                                    context.Mixin(mixin, name);
+                                MixinByName(context, mixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                                 return; // Child effect found — stop processing
                             }
                             break;
                         }
 
                         case MixinKindSDFX.Remove:
-                            context.RemoveMixin(mixin, name);
+                            context.RemoveMixin(mixin, DecodeString(contextBuffer, mixin_inst.Value));
                             break;
 
                         case MixinKindSDFX.Macro:
@@ -177,8 +176,8 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                             var macroName = DecodeString(contextBuffer, mixin_inst.Target);
                             // The value is either a loaded local or a constant
                             object macroValue;
-                            if (locals.TryGetValue(mixin_inst.Value, out var localValue))
-                                macroValue = localValue;
+                            if (isDynamic)
+                                macroValue = dynamicValue!;
                             else
                                 macroValue = DecodeConstantValue(contextBuffer, mixin_inst.Value);
                             mixin.AddMacro(macroName, macroValue);
@@ -190,10 +189,10 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                             var compositionName = DecodeString(contextBuffer, mixin_inst.Target);
                             var subMixin = new ShaderMixinSource();
                             context.PushComposition(mixin, compositionName, subMixin);
-                            if (generics.Length > 0)
-                                context.Mixin(subMixin, name, generics);
+                            if (isDynamic && dynamicValue is ShaderSource composeSource)
+                                context.Mixin(subMixin, composeSource);
                             else
-                                context.Mixin(subMixin, name);
+                                MixinByName(context, subMixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             context.PopComposition();
                             break;
                         }
@@ -203,10 +202,10 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                             var compositionName = DecodeString(contextBuffer, mixin_inst.Target);
                             var subMixin = new ShaderMixinSource();
                             context.PushCompositionArray(mixin, compositionName, subMixin);
-                            if (generics.Length > 0)
-                                context.Mixin(subMixin, name, generics);
+                            if (isDynamic && dynamicValue is ShaderSource composeAddSource)
+                                context.Mixin(subMixin, composeAddSource);
                             else
-                                context.Mixin(subMixin, name);
+                                MixinByName(context, subMixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             context.PopComposition();
                             break;
                         }
@@ -341,34 +340,26 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                 case Op.OpMixinSDFX:
                 {
                     var mixin_inst = (OpMixinSDFX)instruction;
-                    // Check if the value references a local (foreach variable)
-                    string name;
-                    if (locals.TryGetValue(mixin_inst.Value, out var localVal) && localVal is ShaderSource shaderSource)
-                    {
-                        context.Mixin(mixin, shaderSource);
-                        i++;
-                        continue;
-                    }
-                    name = DecodeString(contextBuffer, mixin_inst.Value);
-                    var generics = DecodeGenerics(contextBuffer, mixin_inst.Generics);
+                    var generics = DecodeGenerics(contextBuffer, mixin_inst.Generics, locals);
+                    bool isDynamic = locals.TryGetValue(mixin_inst.Value, out var dynamicValue);
 
                     switch (mixin_inst.Kind)
                     {
                         case MixinKindSDFX.Default:
-                            if (generics.Length > 0)
-                                context.Mixin(mixin, name, generics);
+                            if (isDynamic && dynamicValue is ShaderSource dynamicSource)
+                                context.Mixin(mixin, dynamicSource);
                             else
-                                context.Mixin(mixin, name);
+                                MixinByName(context, mixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             break;
                         case MixinKindSDFX.ComposeSet:
                         {
                             var compositionName = DecodeString(contextBuffer, mixin_inst.Target);
                             var subMixin = new ShaderMixinSource();
                             context.PushComposition(mixin, compositionName, subMixin);
-                            if (generics.Length > 0)
-                                context.Mixin(subMixin, name, generics);
+                            if (isDynamic && dynamicValue is ShaderSource composeSource)
+                                context.Mixin(subMixin, composeSource);
                             else
-                                context.Mixin(subMixin, name);
+                                MixinByName(context, subMixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             context.PopComposition();
                             break;
                         }
@@ -377,10 +368,10 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                             var compositionName = DecodeString(contextBuffer, mixin_inst.Target);
                             var subMixin = new ShaderMixinSource();
                             context.PushCompositionArray(mixin, compositionName, subMixin);
-                            if (generics.Length > 0)
-                                context.Mixin(subMixin, name, generics);
+                            if (isDynamic && dynamicValue is ShaderSource composeAddSource)
+                                context.Mixin(subMixin, composeAddSource);
                             else
-                                context.Mixin(subMixin, name);
+                                MixinByName(context, subMixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             context.PopComposition();
                             break;
                         }
@@ -396,6 +387,28 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                         locals[loadInst.ResultId] = GetParamDynamic(context, paramKey);
                     break;
                 }
+
+                case Op.OpSelectionMerge:
+                {
+                    var selMerge = (OpSelectionMerge)instruction;
+                    int mergeLabel = selMerge.MergeBlock;
+                    i++;
+                    var branchCond = (OpBranchConditional)buffer[i];
+                    bool conditionValue = EvaluateCondition(locals, branchCond.Condition);
+                    int targetLabel = conditionValue ? branchCond.TrueLabel : branchCond.FalseLabel;
+                    i = FindLabel(buffer, end, i, targetLabel);
+                    continue;
+                }
+
+                case Op.OpBranch:
+                {
+                    var branch = (OpBranch)instruction;
+                    i = FindLabel(buffer, end, 0, branch.TargetLabel);
+                    continue;
+                }
+
+                case Op.OpLabel:
+                    break;
 
                 case Op.OpPushParamsSDFX:
                 {
@@ -415,6 +428,14 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
     }
 
     #region Helpers
+
+    private static void MixinByName(ShaderMixinContext context, ShaderMixinSource mixin, string name, object[] generics)
+    {
+        if (generics.Length > 0)
+            context.Mixin(mixin, name, generics);
+        else
+            context.Mixin(mixin, name);
+    }
 
     /// <summary>
     /// Decodes a string from a SPIR-V ID by looking up OpConstantStringSDSL in the context buffer.
@@ -438,8 +459,9 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
 
     /// <summary>
     /// Decodes generic argument values from a LiteralArray of SPIR-V IDs.
+    /// Values may be constants (in the context buffer) or runtime-resolved locals (from OpLoadParamSDFX).
     /// </summary>
-    private static object[] DecodeGenerics(SpirvContext context, LiteralArray<int> genericIds)
+    private static object[] DecodeGenerics(SpirvContext context, LiteralArray<int> genericIds, Dictionary<int, object>? locals = null)
     {
         if (genericIds.WordCount == 0) return [];
 
@@ -447,7 +469,10 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
         int idx = 0;
         foreach (var word in genericIds.Words)
         {
-            result[idx++] = context.GetConstantValue(word);
+            if (locals != null && locals.TryGetValue(word, out var localValue))
+                result[idx++] = localValue;
+            else
+                result[idx++] = context.GetConstantValue(word);
         }
         return result;
     }
