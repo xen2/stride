@@ -230,11 +230,12 @@ public partial class Mixin(Specification.MixinKindSDFX kind, Identifier? target,
         // Extract mixin name and generic parameters from Value expression
         ExtractGenericParameters(Value, out var mixinName, out var genericParameters);
 
-        // For macros, the value may be a runtime param access — compile it as an expression
+        // Check if the value is a runtime param access (e.g., ParamsKeys.Field)
         int nameId;
-        if (Kind == Specification.MixinKindSDFX.Macro)
+        bool isRuntimeValue = IsRuntimeParamAccess(mixinName, table);
+        if (Kind == Specification.MixinKindSDFX.Macro || isRuntimeValue)
         {
-            // Compile the value expression (may emit OpLoadParamSDFX for param access)
+            // Compile the value expression (emits OpLoadParamSDFX for param access)
             Value.ProcessSymbol(table);
             var compiledValue = Value.Compile(table, compiler);
             nameId = compiledValue.Id;
@@ -277,6 +278,28 @@ public partial class Mixin(Specification.MixinKindSDFX kind, Identifier? target,
 
         builder.Insert(new OpMixinSDFX(Kind, targetId, nameId, new LiteralArray<int>(genericIds)));
     }
+
+    /// <summary>
+    /// Checks if an expression resolves to a runtime param access (EffectParamsType.Field)
+    /// or a local variable reference.
+    /// </summary>
+    private static bool IsRuntimeParamAccess(Expression expr, SymbolTable table)
+    {
+        var rootName = GetRootIdentifier(expr);
+        if (rootName == null) return false;
+        // Check if the root identifier resolves to a params type or local variable
+        if (table.TryResolveSymbol(rootName, out var symbol))
+            return symbol.Type is EffectParamsType || symbol.Id.Kind == SymbolKind.Variable;
+        return false;
+    }
+
+    private static string? GetRootIdentifier(Expression expr) => expr switch
+    {
+        ParenthesisExpression paren => GetRootIdentifier(paren.Expression),
+        AccessorChainExpression ace => (ace.Source as Identifier)?.Name,
+        Identifier id => id.Name,
+        _ => null,
+    };
 
     /// <summary>
     /// Separates the mixin name from generic parameters in the Value expression.

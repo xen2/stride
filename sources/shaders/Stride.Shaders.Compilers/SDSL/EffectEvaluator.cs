@@ -150,8 +150,12 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                     switch (mixin_inst.Kind)
                     {
                         case MixinKindSDFX.Default:
-                            if (isDynamic && dynamicValue is ShaderSource dynamicSource)
-                                context.Mixin(mixin, dynamicSource);
+                            if (isDynamic)
+                            {
+                                if (dynamicValue is ShaderSource dynamicSource)
+                                    context.Mixin(mixin, dynamicSource);
+                                // null dynamic value = param not set, skip mixin
+                            }
                             else
                                 MixinByName(context, mixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             break;
@@ -189,8 +193,11 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                             var compositionName = DecodeString(contextBuffer, mixin_inst.Target);
                             var subMixin = new ShaderMixinSource();
                             context.PushComposition(mixin, compositionName, subMixin);
-                            if (isDynamic && dynamicValue is ShaderSource composeSource)
-                                context.Mixin(subMixin, composeSource);
+                            if (isDynamic)
+                            {
+                                if (dynamicValue is ShaderSource composeSource)
+                                    context.Mixin(subMixin, composeSource);
+                            }
                             else
                                 MixinByName(context, subMixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             context.PopComposition();
@@ -202,8 +209,11 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                             var compositionName = DecodeString(contextBuffer, mixin_inst.Target);
                             var subMixin = new ShaderMixinSource();
                             context.PushCompositionArray(mixin, compositionName, subMixin);
-                            if (isDynamic && dynamicValue is ShaderSource composeAddSource)
-                                context.Mixin(subMixin, composeAddSource);
+                            if (isDynamic)
+                            {
+                                if (dynamicValue is ShaderSource composeAddSource)
+                                    context.Mixin(subMixin, composeAddSource);
+                            }
                             else
                                 MixinByName(context, subMixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             context.PopComposition();
@@ -346,8 +356,12 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                     switch (mixin_inst.Kind)
                     {
                         case MixinKindSDFX.Default:
-                            if (isDynamic && dynamicValue is ShaderSource dynamicSource)
-                                context.Mixin(mixin, dynamicSource);
+                            if (isDynamic)
+                            {
+                                if (dynamicValue is ShaderSource dynamicSource)
+                                    context.Mixin(mixin, dynamicSource);
+                                // null dynamic value = param not set, skip mixin
+                            }
                             else
                                 MixinByName(context, mixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             break;
@@ -356,8 +370,11 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                             var compositionName = DecodeString(contextBuffer, mixin_inst.Target);
                             var subMixin = new ShaderMixinSource();
                             context.PushComposition(mixin, compositionName, subMixin);
-                            if (isDynamic && dynamicValue is ShaderSource composeSource)
-                                context.Mixin(subMixin, composeSource);
+                            if (isDynamic)
+                            {
+                                if (dynamicValue is ShaderSource composeSource)
+                                    context.Mixin(subMixin, composeSource);
+                            }
                             else
                                 MixinByName(context, subMixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             context.PopComposition();
@@ -368,8 +385,11 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                             var compositionName = DecodeString(contextBuffer, mixin_inst.Target);
                             var subMixin = new ShaderMixinSource();
                             context.PushCompositionArray(mixin, compositionName, subMixin);
-                            if (isDynamic && dynamicValue is ShaderSource composeAddSource)
-                                context.Mixin(subMixin, composeAddSource);
+                            if (isDynamic)
+                            {
+                                if (dynamicValue is ShaderSource composeAddSource)
+                                    context.Mixin(subMixin, composeAddSource);
+                            }
                             else
                                 MixinByName(context, subMixin, DecodeString(contextBuffer, mixin_inst.Value), generics);
                             context.PopComposition();
@@ -544,11 +564,15 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
     /// </summary>
     private static ParameterKey? ResolveParameterKey(string paramsType, string fieldName)
     {
-        // Try to find a type with the given name that has a static ParameterKey field
-        // Convention: paramsType is the class name (e.g. "MaterialKeys"), fieldName is the property (e.g. "DiffuseMap")
         var keyName = $"{paramsType}.{fieldName}";
 
-        // Search all loaded assemblies for the parameter key
+        lock (parameterKeyCache)
+        {
+            if (parameterKeyCache.TryGetValue(keyName, out var cached))
+                return cached;
+        }
+
+        ParameterKey? resolved = null;
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
             try
@@ -557,13 +581,20 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
                 {
                     if (type.Name == paramsType)
                     {
-                        var field = type.GetField(fieldName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
+                        var field = type.GetField(fieldName, flags);
                         if (field != null && typeof(ParameterKey).IsAssignableFrom(field.FieldType))
-                            return (ParameterKey)field.GetValue(null)!;
+                        {
+                            resolved = (ParameterKey)field.GetValue(null)!;
+                            goto done;
+                        }
 
-                        var prop = type.GetProperty(fieldName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                        var prop = type.GetProperty(fieldName, flags);
                         if (prop != null && typeof(ParameterKey).IsAssignableFrom(prop.PropertyType))
-                            return (ParameterKey)prop.GetValue(null)!;
+                        {
+                            resolved = (ParameterKey)prop.GetValue(null)!;
+                            goto done;
+                        }
                     }
                 }
             }
@@ -573,7 +604,9 @@ public class EffectEvaluator(IExternalShaderLoader shaderLoader, ShaderSourceMan
             }
         }
 
-        return null;
+        done:
+        lock (parameterKeyCache) { parameterKeyCache[keyName] = resolved; }
+        return resolved;
     }
 
     // Cache resolved parameter keys to avoid repeated reflection
