@@ -1,0 +1,43 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    Dev Packages Mode: when StrideDevPackages=true, skip NuGet auto-packing and use
+    redirect packages that point to dev-built DLLs. Generated automatically on first build.
+
+    Set StrideDevPackages=true in your repo-root Directory.Build.props (gitignored).
+  -->
+
+  <PropertyGroup Condition="'$(StrideDevPackages)' == 'true'">
+    <StrideSkipAutoPack>true</StrideSkipAutoPack>
+    <_StrideDevPackagesStamp>$(LocalAppData)/Stride/NugetDev/.devpackages-$(PackageVersion)</_StrideDevPackagesStamp>
+  </PropertyGroup>
+
+  <!-- Warn if dev packages are enabled but stamp is missing -->
+  <Target Name="_StrideCheckDevPackages"
+          BeforeTargets="CoreCompile"
+          Condition="'$(StrideDevPackages)' == 'true' And !Exists('$(_StrideDevPackagesStamp)') And '$(DesignTimeBuild)' != 'true'">
+
+    <Warning Text="StrideDevPackages is enabled but dev packages have not been generated yet. Run: dotnet run build/GenerateDevPackages.cs" />
+  </Target>
+
+  <!-- Cleanup: if flag is off but stamp exists, wipe dev packages so real packing resumes -->
+  <Target Name="_StrideCleanDevPackages"
+          BeforeTargets="CoreCompile"
+          Condition="'$(StrideDevPackages)' != 'true' And '$(DesignTimeBuild)' != 'true'">
+
+    <PropertyGroup>
+      <_StrideDevPackagesStampCheck>$(LocalAppData)/Stride/NugetDev/.devpackages-$(PackageVersion)</_StrideDevPackagesStampCheck>
+    </PropertyGroup>
+
+    <ItemGroup Condition="Exists('$(_StrideDevPackagesStampCheck)')">
+      <_StrideDevPackagesToDelete Include="$(LocalAppData)/Stride/NugetDev/*.$(PackageVersion).nupkg" />
+    </ItemGroup>
+
+    <Delete Files="@(_StrideDevPackagesToDelete)" Condition="Exists('$(_StrideDevPackagesStampCheck)')" />
+    <Delete Files="$(_StrideDevPackagesStampCheck)" Condition="Exists('$(_StrideDevPackagesStampCheck)')" />
+
+    <Message Importance="High" Text="Cleaned dev-redirect packages. Next build will generate real packages."
+             Condition="Exists('$(_StrideDevPackagesStampCheck)')" />
+  </Target>
+
+</Project>

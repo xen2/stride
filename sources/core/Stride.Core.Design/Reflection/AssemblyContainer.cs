@@ -278,6 +278,15 @@ public class AssemblyContainer
                                         // TODO: Properly deal with file duplicates (same file in multiple package, or RID conflicts)
                                         dependenciesMapping.TryAdd(assemblyName, fullPath);
                                     }
+                                    else
+                                    {
+                                        // DLL missing from NuGet cache — check for dev-redirect stub
+                                        var packageFolder = Path.Combine(globalPackagesFolder, library.Path);
+                                        var assemblyName = Path.GetFileNameWithoutExtension(runtimeFile.Path);
+                                        var redirectPath = TryResolveDevRedirect(packageFolder, library.Name, assemblyName);
+                                        if (redirectPath != null)
+                                            dependenciesMapping.TryAdd(assemblyName, redirectPath);
+                                    }
                                 }
                             }
 
@@ -391,6 +400,53 @@ public class AssemblyContainer
         {
             var assemblyName = new AssemblyName(args.Name);
             return container.LoadAssemblyByName(assemblyName, searchDirectory ?? string.Empty);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Checks if a NuGet package folder contains a dev-redirect stub props and resolves the assembly path from its HintPath.
+    /// </summary>
+    private static string? TryResolveDevRedirect(string packageFolder, string packageName, string assemblyName)
+    {
+        var propsPath = Path.Combine(packageFolder, "build", $"{packageName}.props");
+        if (!File.Exists(propsPath))
+            return null;
+
+        try
+        {
+            var doc = System.Xml.Linq.XDocument.Load(propsPath);
+            System.Xml.Linq.XNamespace ns = "http://schemas.microsoft.com/developer/msbuild/2003";
+
+            if (doc.Descendants(ns + "StrideDevRedirect").FirstOrDefault()?.Value != "true")
+                return null;
+
+            var devRoot = doc.Descendants(ns + "StrideDevRoot").FirstOrDefault()?.Value ?? "";
+            var devConfig = doc.Descendants(ns + "StrideDevConfiguration").FirstOrDefault()?.Value ?? "Debug";
+
+            foreach (var reference in doc.Descendants(ns + "Reference"))
+            {
+                var include = reference.Attribute("Include")?.Value;
+                if (!string.Equals(include, assemblyName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var hintPath = reference.Element(ns + "HintPath")?.Value;
+                if (hintPath == null)
+                    continue;
+
+                hintPath = hintPath
+                    .Replace("$(StrideDevRoot)", devRoot)
+                    .Replace("$(StrideDevConfiguration)", devConfig)
+                    .Replace("$(StrideGraphicsApi)", "Direct3D11"); // Default graphics API for runtime resolution
+
+                if (File.Exists(hintPath))
+                    return hintPath;
+            }
+        }
+        catch
+        {
+            // Ignore malformed props files
         }
 
         return null;

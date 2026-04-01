@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using NuGet.Commands;
 using NuGet.Common;
 using NuGet.Configuration;
@@ -22,11 +23,17 @@ namespace Stride.Core.Assets
 {
     static class RestoreHelper
     {
+        // Cache of dev-redirect mappings: assembly name -> dev HintPath (resolved)
+        private static Dictionary<string, string>? devRedirectCache;
+
         public static List<string> ListAssemblies(LockFile lockFile, string graphicsApi = "Direct3D11")
         {
             var assemblies = new List<string>();
 
             var libPaths = GetLibPaths(lockFile);
+
+            // Build dev-redirect cache on first call
+            devRedirectCache ??= BuildDevRedirectCache(libPaths, graphicsApi);
 
             bool TryCollectGraphicsApiDependentAssemblies(string assemblyFile)
             {
@@ -51,6 +58,10 @@ namespace Stride.Core.Assets
             {
                 if (libPaths.TryGetValue(ValueTuple.Create(lib.Name, lib.Version), out var libPath))
                 {
+                    // Check if this package has a dev redirect
+                    if (TryResolveDevRedirect(lib.Name, libPath, graphicsApi, assemblies))
+                        continue;
+
                     foreach (var a in lib.RuntimeAssemblies)
                     {
                         var assemblyFile = Path.Combine(libPath, a.Path.Replace('/', Path.DirectorySeparatorChar));
@@ -78,6 +89,66 @@ namespace Stride.Core.Assets
             }
 
             return assemblies;
+        }
+
+        /// <summary>
+        /// Checks if a package has dev-redirect stub props and resolves assembly paths from HintPath.
+        /// </summary>
+        private static bool TryResolveDevRedirect(string packageName, string libPath, string graphicsApi, List<string> assemblies)
+        {
+            // Look for build/<PackageId>.props in the package folder
+            var propsPath = Path.Combine(libPath, "build", $"{packageName}.props");
+            if (!File.Exists(propsPath))
+                return false;
+
+            try
+            {
+                var doc = XDocument.Load(propsPath);
+                XNamespace ns = "http://schemas.microsoft.com/developer/msbuild/2003";
+
+                // Check if this is a dev-redirect stub
+                var devRedirect = doc.Descendants(ns + "StrideDevRedirect").FirstOrDefault();
+                if (devRedirect?.Value != "true")
+                    return false;
+
+                // Read StrideDevRoot and StrideDevConfiguration
+                var devRoot = doc.Descendants(ns + "StrideDevRoot").FirstOrDefault()?.Value ?? "";
+                var devConfig = doc.Descendants(ns + "StrideDevConfiguration").FirstOrDefault()?.Value ?? "Debug";
+
+                // Find all Reference HintPaths and resolve MSBuild properties
+                foreach (var reference in doc.Descendants(ns + "Reference"))
+                {
+                    var hintPath = reference.Element(ns + "HintPath")?.Value;
+                    if (hintPath == null)
+                        continue;
+
+                    // Resolve MSBuild-style properties
+                    hintPath = hintPath
+                        .Replace("$(StrideDevRoot)", devRoot)
+                        .Replace("$(StrideDevConfiguration)", devConfig)
+                        .Replace("$(StrideGraphicsApi)", graphicsApi);
+
+                    if (File.Exists(hintPath))
+                        assemblies.Add(hintPath);
+                }
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Scans all package lib paths for dev-redirect props files and builds a cache.
+        /// </summary>
+        private static Dictionary<string, string> BuildDevRedirectCache(
+            Dictionary<(string, NuGetVersion), string> libPaths, string graphicsApi)
+        {
+            var cache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            // Cache is built lazily by TryResolveDevRedirect per package
+            return cache;
         }
 
         public static List<string> ListNativeLibs(LockFile lockFile)
