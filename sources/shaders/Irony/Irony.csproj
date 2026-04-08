@@ -4,6 +4,9 @@
     <StrideRuntime>true</StrideRuntime>
     <SignAssembly>false</SignAssembly>
     <AssemblyName>Stride.Irony</AssemblyName>
+    <!-- Disable Android Resource Designer: it generates a class in the Stride.Irony namespace,
+         which causes C# to resolve 'Irony.Parsing' as 'Stride.Irony.Parsing' (doesn't exist) -->
+    <AndroidGenerateResourceDesigner>false</AndroidGenerateResourceDesigner>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="**\*.cs" />
