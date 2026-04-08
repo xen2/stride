@@ -89,9 +89,9 @@
       </None>
     </ItemGroup>
 
-    <!-- Android -->
+    <!-- Android (exclude Windows-only native libs) -->
     <ItemGroup Condition=" '$(TargetFramework)' == '$(StrideFrameworkAndroid)' ">
-      <AndroidNativeLibrary Include="@(_StrideDependencyNativeLib)"/>
+      <AndroidNativeLibrary Include="@(_StrideDependencyNativeLib)" Condition="!$([System.String]::new('%(Identity)').Contains('runtimes\win-'))" />
     </ItemGroup>
 
     <!-- iOS -->
