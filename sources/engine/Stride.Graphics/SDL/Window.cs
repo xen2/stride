@@ -92,7 +92,7 @@ namespace Stride.Graphics.SDL
             }
             
 
-#if STRIDE_PLATFORM_ANDROID || STRIDE_PLATFORM_IOS
+#if (STRIDE_PLATFORM_ANDROID || STRIDE_PLATFORM_IOS) && STRIDE_GRAPHICS_API_OPENGLES
             GraphicsAdapter.DefaultWindow = sdlHandle;
 #endif
 

@@ -379,7 +379,7 @@ namespace Stride.Graphics
             return InitializeFrom(parentTexture: null, in description, in viewDescription, textureDatas);
         }
 
-#if STRIDE_PLATFORM_ANDROID //&& USE_GLES_EXT_OES_TEXTURE
+#if STRIDE_PLATFORM_ANDROID && STRIDE_GRAPHICS_API_OPENGLES
         internal Texture InitializeForExternalOES()
         {
             InitializeForExternalOESImpl();
@@ -1661,7 +1661,7 @@ namespace Stride.Graphics
             return texture.InitializeFrom(in description, in viewDescription, boxes);
         }
 
-#if STRIDE_PLATFORM_ANDROID //&& USE_GLES_EXT_OES_TEXTURE
+#if STRIDE_PLATFORM_ANDROID && STRIDE_GRAPHICS_API_OPENGLES
         //create a new GL_TEXTURE_EXTERNAL_OES texture which will be managed by external API
         //TODO: check how to integrate this properly in Stride API
         public static Texture NewExternalOES(GraphicsDevice graphicsDevice)

@@ -8,7 +8,7 @@
     <StrideCodeAnalysis>true</StrideCodeAnalysis>
     <StridePackAssets>true</StridePackAssets>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == '$(StrideFrameworkAndroid)'">
+  <PropertyGroup Condition="'$(TargetFramework)' == '$(StrideFrameworkAndroid)' And '$(StrideGraphicsApi)' == 'OpenGLES'">
     <DefineConstants>STRIDE_VIDEO_MEDIACODEC;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == '$(StrideFramework)'">
