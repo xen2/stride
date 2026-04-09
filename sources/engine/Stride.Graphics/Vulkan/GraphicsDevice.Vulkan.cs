@@ -374,26 +374,19 @@ namespace Stride.Graphics
                 pQueuePriorities = &queuePriorities,
             };
 
-            var enabledFeature = new VkPhysicalDeviceFeatures
-            {
-                fillModeNonSolid = true,
-                shaderClipDistance = true,
-                shaderCullDistance = true,
-                samplerAnisotropy = true,
-                depthClamp = true,
-            };
-
             NativeInstanceApi.vkGetPhysicalDeviceFeatures(NativePhysicalDevice, out var deviceFeatures);
 
-            if (deviceFeatures.shaderStorageImageReadWithoutFormat)
+            // Only request features that the device actually supports
+            var enabledFeature = new VkPhysicalDeviceFeatures
             {
-                enabledFeature.shaderStorageImageReadWithoutFormat = true;
-            }
-
-            if (deviceFeatures.shaderStorageImageWriteWithoutFormat)
-            {
-                enabledFeature.shaderStorageImageWriteWithoutFormat = true;
-            }
+                fillModeNonSolid = deviceFeatures.fillModeNonSolid,
+                shaderClipDistance = deviceFeatures.shaderClipDistance,
+                shaderCullDistance = deviceFeatures.shaderCullDistance,
+                samplerAnisotropy = deviceFeatures.samplerAnisotropy,
+                depthClamp = deviceFeatures.depthClamp,
+                shaderStorageImageReadWithoutFormat = deviceFeatures.shaderStorageImageReadWithoutFormat,
+                shaderStorageImageWriteWithoutFormat = deviceFeatures.shaderStorageImageWriteWithoutFormat,
+            };
 
             Span<VkUtf8String> supportedExtensionProperties = stackalloc VkUtf8String[]
             {
