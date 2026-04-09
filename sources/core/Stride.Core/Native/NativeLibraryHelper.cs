@@ -40,8 +40,9 @@ public static partial class NativeLibraryHelper
     private static readonly string libExtension = Platform.Type switch
     {
         PlatformType.Windows => ".dll",
-        PlatformType.Linux => ".so",
+        PlatformType.Linux or PlatformType.Android => ".so",
         PlatformType.macOS => ".dylib",
+        PlatformType.iOS => ".a",
 
         _ => throw new PlatformNotSupportedException()
     };
@@ -52,6 +53,8 @@ public static partial class NativeLibraryHelper
         PlatformType.Windows => "win",
         PlatformType.Linux => "linux",
         PlatformType.macOS => "osx",
+        PlatformType.Android => "android",
+        PlatformType.iOS => "ios",
 
         _ => throw new PlatformNotSupportedException()
     };
@@ -61,7 +64,7 @@ public static partial class NativeLibraryHelper
     {
         Architecture.X86 => "x86",
         Architecture.X64 => "x64",
-        Architecture.Arm => "ARM",
+        Architecture.Arm => "arm",
         Architecture.Arm64 => "arm64",
 
         _ => throw new PlatformNotSupportedException()
