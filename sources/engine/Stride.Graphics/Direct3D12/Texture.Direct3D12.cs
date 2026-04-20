@@ -1061,8 +1061,9 @@ namespace Stride.Graphics
             var format = (Format) textureDescription.Format;
             var flags = textureDescription.Flags;
 
-            // If the Texture is going to be bound on the Depth-Stencil, use Typeless format
-            if (IsDepthStencil)
+            // Depth formats bound as shader resources must be created as typeless — covers both DS+SR and SR-only.
+            var needsTypelessDepth = IsDepthStencil || (IsShaderResource && IsDepthFormat(textureDescription.Format));
+            if (needsTypelessDepth)
             {
                 if (IsShaderResource && GraphicsDevice.Features.CurrentProfile < GraphicsProfile.Level_10_0)
                 {
@@ -1123,6 +1124,14 @@ namespace Stride.Graphics
         ///   The View format corresponding to <paramref name="depthFormat"/>,
         ///   or <see cref="PixelFormat.None"/> if no compatible format could be computed.
         /// </returns>
+        internal static bool IsDepthFormat(PixelFormat format)
+        {
+            return format is PixelFormat.D16_UNorm
+                or PixelFormat.D32_Float
+                or PixelFormat.D24_UNorm_S8_UInt
+                or PixelFormat.D32_Float_S8X24_UInt;
+        }
+
         internal static PixelFormat ComputeShaderResourceFormatFromDepthFormat(PixelFormat format)
         {
             var viewFormat = format switch
