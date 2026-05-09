@@ -10,6 +10,10 @@ on:
         options:
           - Debug
           - Release
+  repository_dispatch:
+    # Fired by the chatops bot to test PRs. Works uniformly for same-repo and fork PRs by
+    # checking out refs/pull/<N>/merge — the virtual merge commit. Payload carries pr_number.
+    types: [test-samples-screenshots]
   schedule:
     # Daily at 04:37 UTC — offset off top-of-hour to avoid GitHub Actions cron load spikes.
     - cron: '37 4 * * *'
@@ -43,6 +47,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
+          # When triggered by the chatops bot, check out the PR's virtual merge commit so we
+          # test the post-merge state (catches drift from concurrent master changes too).
+          ref: ${{ github.event.client_payload.pr_number && format('refs/pull/{0}/merge', github.event.client_payload.pr_number) || github.ref }}
 
       - uses: actions/setup-dotnet@v4
         with:

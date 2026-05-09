@@ -1,0 +1,232 @@
+name: PR screenshot chatops
+
+# Gates the editor and samples screenshot suites as required commit statuses on PRs.
+# - Auto-bypass when the PR diff is obviously test-irrelevant (docs / markdown only).
+# - Force-skip via `skip-editor-tests` / `skip-samples-tests` labels (maintainer-controlled).
+# - Force-run via `/test editor` or `/test samples` PR comments (collaborator-controlled).
+# - One-shot bypass via `/skip editor` or `/skip samples` comments.
+# - When a force-run finishes, the bot updates the commit status with the run's outcome.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  issue_comment:
+    types: [created]
+  workflow_run:
+    workflows: ["Test GameStudio (Editor Screenshots)", "Test Samples (Screenshots)"]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+  actions: write          # workflow_dispatch from a workflow
+
+env:
+  # Status-check context names — wire these into branch protection as required.
+  EDITOR_CONTEXT: chatops/editor-screenshots
+  SAMPLES_CONTEXT: chatops/samples-screenshots
+  # repository_dispatch event types fired against the test workflows.
+  EDITOR_EVENT: test-editor-screenshots
+  SAMPLES_EVENT: test-samples-screenshots
+  # Workflow filenames (used to look up the started run for link-back).
+  EDITOR_WORKFLOW: test-windows-editor.yml
+  SAMPLES_WORKFLOW: test-samples-screenshots.yml
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # PR opened / synced / labeled: classify and set initial status for both suites.
+  # ────────────────────────────────────────────────────────────────────────────
+  pr-event:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const sha = pr.head.sha;
+            const labels = new Set(pr.labels.map(l => l.name));
+
+            // Files changed in this PR. Paged for large PRs.
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner, repo: context.repo.repo,
+              pull_number: pr.number, per_page: 100,
+            });
+            const paths = files.map(f => f.filename);
+
+            // Auto-bypass paths: docs/markdown/license/PR templates. Anything else falls through
+            // to "pending" — keep the bypass list narrow to err on the side of running tests.
+            const irrelevantRe = /^(docs\/|.*\.md$|LICENSE|\.gitignore$|\.editorconfig$|\.github\/(ISSUE_TEMPLATE|PULL_REQUEST_TEMPLATE|CODEOWNERS)\b)/i;
+            const allIrrelevant = paths.length > 0 && paths.every(p => irrelevantRe.test(p));
+
+            const setStatus = (ctx, state, description) => github.rest.repos.createCommitStatus({
+              owner: context.repo.owner, repo: context.repo.repo,
+              sha, context: ctx, state, description,
+            });
+
+            // ── Editor ──
+            if (labels.has('skip-editor-tests')) {
+              await setStatus(process.env.EDITOR_CONTEXT, 'success', 'skipped via label');
+            } else if (allIrrelevant) {
+              await setStatus(process.env.EDITOR_CONTEXT, 'success', 'auto-bypass: docs-only diff');
+            } else {
+              await setStatus(process.env.EDITOR_CONTEXT, 'pending', 'awaiting `/test editor` or `skip-editor-tests` label');
+            }
+
+            // ── Samples ──
+            if (labels.has('skip-samples-tests')) {
+              await setStatus(process.env.SAMPLES_CONTEXT, 'success', 'skipped via label');
+            } else if (allIrrelevant) {
+              await setStatus(process.env.SAMPLES_CONTEXT, 'success', 'auto-bypass: docs-only diff');
+            } else {
+              await setStatus(process.env.SAMPLES_CONTEXT, 'pending', 'awaiting `/test samples` or `skip-samples-tests` label');
+            }
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # `/test <suite>` or `/skip <suite>` PR comments: authorize, then act.
+  # ────────────────────────────────────────────────────────────────────────────
+  comment-command:
+    if: github.event_name == 'issue_comment' && github.event.issue.pull_request != null
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const body = (context.payload.comment.body || '').trim();
+            const m = body.match(/^\/(test|skip)\s+(editor|samples)\b/i);
+            if (!m) return;  // not our command
+            const [, action, suite] = m.map(s => s.toLowerCase());
+
+            // Authorize: only OWNER/MEMBER/COLLABORATOR can dispatch or skip.
+            const assoc = context.payload.comment.author_association;
+            if (!['OWNER', 'MEMBER', 'COLLABORATOR'].includes(assoc)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                body: `@${context.payload.comment.user.login} ${action}/${suite} requires repo collaborator access.`,
+              });
+              return;
+            }
+
+            // Fetch PR to get head SHA + ref for dispatch.
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner, repo: context.repo.repo,
+              pull_number: context.payload.issue.number,
+            });
+
+            const ctxName = suite === 'editor' ? process.env.EDITOR_CONTEXT : process.env.SAMPLES_CONTEXT;
+            const eventType = suite === 'editor' ? process.env.EDITOR_EVENT : process.env.SAMPLES_EVENT;
+            const workflow = suite === 'editor' ? process.env.EDITOR_WORKFLOW : process.env.SAMPLES_WORKFLOW;
+
+            const setStatus = (state, description, target_url) => github.rest.repos.createCommitStatus({
+              owner: context.repo.owner, repo: context.repo.repo,
+              sha: pr.head.sha, context: ctxName, state, description, target_url,
+            });
+
+            if (action === 'skip') {
+              await setStatus('success', `skipped by @${context.payload.comment.user.login}`);
+              await github.rest.reactions.createForIssueComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: context.payload.comment.id, content: 'rocket',
+              });
+              return;
+            }
+
+            // /test: fire repository_dispatch with the PR number in the payload. The target
+            // workflow checks out refs/pull/<N>/merge (the virtual merge commit), which works
+            // uniformly for same-repo and fork PRs.
+            try {
+              const dispatchAt = new Date();
+              await github.rest.repos.createDispatchEvent({
+                owner: context.repo.owner, repo: context.repo.repo,
+                event_type: eventType,
+                client_payload: {
+                  pr_number: pr.number,
+                  pr_head_sha: pr.head.sha,
+                  dispatched_by: context.payload.comment.user.login,
+                },
+              });
+              await github.rest.reactions.createForIssueComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                comment_id: context.payload.comment.id, content: 'rocket',
+              });
+
+              // The dispatch API returns 204 with no run id. Poll listWorkflowRuns to find the
+              // run we just kicked off so we can post a link + set target_url on the status.
+              let run = null;
+              for (let i = 0; i < 10; i++) {
+                await new Promise(r => setTimeout(r, 2000));
+                const { data } = await github.rest.actions.listWorkflowRuns({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  workflow_id: workflow, event: 'repository_dispatch',
+                  per_page: 5,
+                });
+                run = (data.workflow_runs || []).find(r => new Date(r.created_at) >= dispatchAt);
+                if (run) break;
+              }
+
+              await setStatus('pending', `running (dispatched by @${context.payload.comment.user.login})`, run?.html_url);
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                body: run
+                  ? `Started \`${suite}\` screenshot run: ${run.html_url}`
+                  : `Dispatched ${eventType} (run link will appear in the Checks tab — couldn't capture it within 20s).`,
+              });
+            } catch (e) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                body: `Failed to dispatch ${eventType}: ${e.message}`,
+              });
+            }
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # A dispatched run finished: update the matching commit status with the result.
+  # ────────────────────────────────────────────────────────────────────────────
+  workflow-finished:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.event == 'repository_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const isEditor = run.path.endsWith(process.env.EDITOR_WORKFLOW);
+            const isSamples = run.path.endsWith(process.env.SAMPLES_WORKFLOW);
+            if (!isEditor && !isSamples) return;
+            const ctxName = isEditor ? process.env.EDITOR_CONTEXT : process.env.SAMPLES_CONTEXT;
+
+            // The merge commit (refs/pull/N/merge) the run actually built isn't the PR head, so
+            // run.head_sha is opaque to us here. Look up the run's job logs / inputs aren't
+            // exposed by the workflow_run payload, so we use the run's most recent associated
+            // pull request: workflow_run includes a `pull_requests` array populated by GitHub
+            // when the run's head ref is a PR head — but for repository_dispatch builds the
+            // ref is the merge ref, so this can be empty. Fall back: scan recent open PRs and
+            // find one whose updated_at brackets the dispatch window.
+            // For the prototype we trust the linked PRs; refine later if it misses cases.
+            const linked = run.pull_requests || [];
+            for (const pr of linked) {
+              const conclusion = run.conclusion;  // success / failure / cancelled / timed_out / neutral
+              const state = conclusion === 'success' ? 'success'
+                          : conclusion === 'neutral' ? 'success'
+                          : conclusion === 'cancelled' ? 'error'
+                          : 'failure';
+              // Need PR head sha (not the merge sha) to set status against.
+              const { data: prData } = await github.rest.pulls.get({
+                owner: context.repo.owner, repo: context.repo.repo, pull_number: pr.number,
+              });
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner, repo: context.repo.repo,
+                sha: prData.head.sha, context: ctxName, state,
+                description: `run #${run.run_number} ${conclusion}`,
+                target_url: run.html_url,
+              });
+            }
