@@ -3,6 +3,7 @@
 
 // GameStudio capture for the "create a new game" flow: pick the New Game template in
 // ProjectSelectionWindow, accept GameTemplateWindow defaults, wait for GameStudioWindow.
+// (chatops bot test PR — trivial comment touch.)
 using System;
 using System.Threading.Tasks;
 using Stride.Assets;
