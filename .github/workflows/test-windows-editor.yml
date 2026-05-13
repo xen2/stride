@@ -106,6 +106,18 @@ jobs:
             -nr:false -v:m -p:WarningLevel=0 `
             -p:Configuration=${{ github.event.inputs.build-type || 'Debug' }}
 
+      # Diagnostic: what got auto-packed to bin/packages and which NuGet sources are visible
+      # to the sample restore that TemplateSampleGenerator triggers at test time.
+      - name: Diagnostic — bin/packages + nuget sources
+        shell: pwsh
+        run: |
+          Write-Host "=== Stride.* in bin/packages ==="
+          Get-ChildItem bin\packages\Stride.*.nupkg -ErrorAction SilentlyContinue | Select-Object Name | Format-Table -AutoSize
+          Write-Host "=== NuGet sources (user config) ==="
+          dotnet nuget list source --configfile "$env:APPDATA\NuGet\NuGet.Config"
+          Write-Host "=== User NuGet.Config contents ==="
+          if (Test-Path "$env:APPDATA\NuGet\NuGet.Config") { Get-Content "$env:APPDATA\NuGet\NuGet.Config" }
+
       # EditorScreenshotTests.Capture is an xunit [Theory] over Fixtures(); each entry spawns
       # the AutoTesting CLI as a subprocess (per-fixture WPF singleton-state isolation),
       # snapshots the runner output into <worktree>/ui-test-out-dpi<N>/<fixture>/, then runs
@@ -147,3 +159,18 @@ jobs:
           name: editor-crash-dumps
           path: crash-dumps/
           if-no-files-found: ignore
+
+      # Capture the generated sample's project.assets.json (definitive NuGet resolution record)
+      # + csproj/sln so we can diagnose which Stride.* versions/sources actually got resolved
+      # at sample-build time. Path: TemplateSampleGenerator writes to Path.GetTempPath().
+      - name: Upload generated sample obj/ for NuGet resolution debugging
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-sample-obj
+          path: |
+            C:\Users\runneradmin\AppData\Local\Temp\stride-editor-tests\**\obj\project.assets.json
+            C:\Users\runneradmin\AppData\Local\Temp\stride-editor-tests\**\*.csproj
+            C:\Users\runneradmin\AppData\Local\Temp\stride-editor-tests\**\*.sln
+          if-no-files-found: warn
+          retention-days: 7
