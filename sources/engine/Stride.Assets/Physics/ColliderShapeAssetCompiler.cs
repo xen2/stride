@@ -17,7 +17,6 @@ using Stride.Core.Assets;
 using Stride.Core.Assets.Analysis;
 using Stride.Core.Serialization.Contents;
 using Stride.Assets.Textures;
-using VHACDSharp;
 using Buffer = Stride.Graphics.Buffer;
 
 namespace Stride.Assets.Physics
@@ -27,7 +26,7 @@ namespace Stride.Assets.Physics
     {
         static ColliderShapeAssetCompiler()
         {
-            NativeLibraryHelper.PreloadLibrary("VHACD", typeof(ColliderShapeAssetCompiler));
+            NativeLibraryHelper.PreloadLibrary("stride_vhacd", typeof(ColliderShapeAssetCompiler));
         }
 
         public override IEnumerable<BuildDependencyInfo> GetInputTypes(AssetItem assetItem)
@@ -293,14 +292,14 @@ namespace Stride.Assets.Physics
                             IndicesCount = (uint)combinedIndices.Count,
                             Vertexes = combinedVerts.ToArray(),
                             Indices = combinedIndices.ToArray(),
-                            Depth = convexHullDesc.Decomposition.Depth,
-                            PosSampling = convexHullDesc.Decomposition.PosSampling,
-                            PosRefine = convexHullDesc.Decomposition.PosRefine,
-                            AngleSampling = convexHullDesc.Decomposition.AngleSampling,
-                            AngleRefine = convexHullDesc.Decomposition.AngleRefine,
-                            Alpha = convexHullDesc.Decomposition.Alpha,
-                            Threshold = convexHullDesc.Decomposition.Threshold,
                             SimpleHull = !convexHullDesc.Decomposition.Enabled,
+                            MaxConvexHulls = (uint)convexHullDesc.Decomposition.MaxConvexHulls,
+                            Resolution = (uint)convexHullDesc.Decomposition.Resolution,
+                            MaxRecursionDepth = (uint)convexHullDesc.Decomposition.MaxRecursionDepth,
+                            MinimumVolumePercentErrorAllowed = convexHullDesc.Decomposition.MinimumVolumePercentErrorAllowed,
+                            ShrinkWrap = convexHullDesc.Decomposition.ShrinkWrap,
+                            FillMode = convexHullDesc.Decomposition.FillMode,
+                            MaxNumVerticesPerCH = (uint)convexHullDesc.Decomposition.MaxNumVerticesPerCH,
                         };
 
                         var convexHullMesh = new ConvexHullMesh();

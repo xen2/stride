@@ -1,12 +1,25 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
-using System;
 using Stride.Core;
 using Stride.Core.Serialization.Contents;
 
 namespace Stride.Physics
 {
+    /// <summary>
+    /// How V-HACD fills the interior of the voxelized mesh during decomposition.
+    /// </summary>
+    [DataContract("VhacdFillMode")]
+    public enum VhacdFillMode
+    {
+        /// <summary>Flood-fill from a known-outside cell to mark inside vs outside. Default; meshes with holes can fail.</summary>
+        FloodFill = 0,
+        /// <summary>Only the voxelized surface is kept; produces shell-only hulls with hollow interior.</summary>
+        SurfaceOnly = 1,
+        /// <summary>Uses raycasting to classify inside vs outside; more robust for meshes with holes.</summary>
+        RaycastFill = 2,
+    }
+
     [ContentSerializer(typeof(DataContentSerializer<ConvexHullDecompositionParameters>))]
     [DataContract("DecompositionParameters")]
     [Display("DecompositionParameters")]
@@ -18,46 +31,46 @@ namespace Stride.Physics
         public bool Enabled { get; set; }
 
         /// <userdoc>
-        /// Control how many sub convex hulls will be created, more depth will result in a more complex decomposition.
+        /// Maximum number of output convex hulls. Lower values produce a coarser decomposition.
         /// </userdoc>
         [DataMember(60)]
-        public int Depth { get; set; } = 10;
+        public int MaxConvexHulls { get; set; } = 64;
 
         /// <userdoc>
-        /// How many position samples to internally compute clipping planes ( the higher the more complex ).
+        /// Voxel grid resolution (10,000 - 64,000,000). Higher values give finer decomposition but take longer.
         /// </userdoc>
         [DataMember(70)]
-        public int PosSampling { get; set; } = 10;
+        public int Resolution { get; set; } = 400000;
 
         /// <userdoc>
-        /// How many angle samples to internally compute clipping planes ( the higher the more complex ), nested with position samples, for each position sample it will compute the amount defined here.
+        /// Maximum recursion depth when splitting hulls (1 - 32).
         /// </userdoc>
         [DataMember(80)]
-        public int AngleSampling { get; set; } = 10;
+        public int MaxRecursionDepth { get; set; } = 10;
 
         /// <userdoc>
-        /// If higher then 0 the computation will try to further improve the shape position sampling (this will slow down the process).
+        /// Stop splitting once the voxel volume error is within this percentage of the source volume. Raising this gives simpler hulls.
         /// </userdoc>
         [DataMember(90)]
-        public int PosRefine { get; set; } = 5;
+        public double MinimumVolumePercentErrorAllowed { get; set; } = 1.0;
 
         /// <userdoc>
-        /// If higher then 0 the computation will try to further improve the shape angle sampling (this will slow down the process).
+        /// Shrink-wrap hull vertices to the source mesh surface. Improves visual fit.
         /// </userdoc>
         [DataMember(100)]
-        public int AngleRefine { get; set; } = 5;
+        public bool ShrinkWrap { get; set; } = true;
 
         /// <userdoc>
-        /// Applied to the concavity during crippling plane approximation.
+        /// How to classify interior voxels during voxelization. Use RaycastFill for meshes with holes.
         /// </userdoc>
         [DataMember(110)]
-        public float Alpha { get; set; } = 0.01f;
+        public VhacdFillMode FillMode { get; set; } = VhacdFillMode.FloodFill;
 
         /// <userdoc>
-        /// Threshold of concavity, rising this will make the shape simpler.
+        /// Maximum number of vertices allowed in any output convex hull (4 - 1024).
         /// </userdoc>
         [DataMember(120)]
-        public float Threshold { get; set; } = 0.01f;
+        public int MaxNumVerticesPerCH { get; set; } = 64;
 
         public bool Match(object obj)
         {
@@ -69,13 +82,13 @@ namespace Stride.Physics
             }
 
             return other.Enabled == Enabled &&
-                other.Depth == Depth &&
-                other.PosSampling == PosSampling &&
-                other.AngleSampling == AngleSampling &&
-                other.PosRefine == PosRefine &&
-                other.AngleRefine == AngleRefine &&
-                MathF.Abs(other.Alpha - Alpha) < float.Epsilon &&
-                MathF.Abs(other.Threshold - Threshold) < float.Epsilon;
+                other.MaxConvexHulls == MaxConvexHulls &&
+                other.Resolution == Resolution &&
+                other.MaxRecursionDepth == MaxRecursionDepth &&
+                other.MinimumVolumePercentErrorAllowed == MinimumVolumePercentErrorAllowed &&
+                other.ShrinkWrap == ShrinkWrap &&
+                other.FillMode == FillMode &&
+                other.MaxNumVerticesPerCH == MaxNumVerticesPerCH;
         }
     }
 }
