@@ -89,8 +89,10 @@ async function addLocalSource() {
 function showCiModal() {
   document.getElementById('ciModal').style.display = 'flex';
   selectedCiRun = null;
+  selectedCiRunRepo = null;
   document.getElementById('ciRunId').value = '';
   document.getElementById('ciDownloadBtn').disabled = true;
+  loadForks();
   loadCiRuns();
 }
 function closeCiModal() { document.getElementById('ciModal').style.display = 'none'; }
@@ -99,6 +101,10 @@ async function downloadCiRun() {
   const runId = String(document.getElementById('ciRunId').value).trim();
   if (!runId) { alert('Enter or select a run ID'); return; }
 
+  // Inherit repo from the selected run; manually-entered run IDs default to upstream.
+  const repo = selectedCiRunRepo || 'stride3d/stride';
+  const isUpstream = repo === 'stride3d/stride';
+  const labelPrefix = isUpstream ? 'CI' : repo.split('/')[0];
   const artifacts = selectedCiArtifacts.size > 0 ? [...selectedCiArtifacts] : ['test-artifacts-linux-vulkan'];
 
   const btn = document.getElementById('ciDownloadBtn');
@@ -110,14 +116,14 @@ async function downloadCiRun() {
       const res = await fetch('/api/sources/add-ci', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ runId: String(runId), artifactName: artifacts[i], label: `CI #${String(runId).substring(0, 5)}` })
+        body: JSON.stringify({ runId: String(runId), artifactName: artifacts[i], repo, label: `${labelPrefix} #${String(runId).substring(0, 5)}` })
       });
       if (!res.ok) { alert(`Failed to download ${artifacts[i]}: ${await res.text()}`); continue; }
       const src = await res.json();
       // Only add if not already in sources list
       if (!sources.find(s => s.id === src.id)) {
         sources.push(src);
-        sourceDefs.push({ type: 'ci', runId: String(runId), artifactName: artifacts[i], label: src.label });
+        sourceDefs.push({ type: 'ci', runId: String(runId), artifactName: artifacts[i], repo, label: src.label });
       }
     }
     closeCiModal();
@@ -1120,6 +1126,45 @@ function naturalSort(a, b) { return a.localeCompare(b, undefined, { numeric: tru
 // === CI Modal ===
 let ciRuns = [];
 let selectedCiRun = null;
+let selectedCiRunRepo = null;
+let forksList = [];
+
+async function loadForks() {
+  try {
+    const res = await fetch('/api/forks');
+    forksList = await res.json();
+  } catch { forksList = []; }
+  renderForks();
+}
+
+function renderForks() {
+  const el = document.getElementById('ciForksList');
+  if (!el) return;
+  el.innerHTML = forksList.length
+    ? forksList.map(r => `<span class="fork-chip">${esc(r)} <a href="#" onclick="removeFork('${esc(r)}');return false">×</a></span>`).join(' ')
+    : '<span class="meta">none — only stride3d/stride is queried</span>';
+}
+
+async function addFork() {
+  const input = document.getElementById('ciForkInput');
+  const repo = input.value.trim();
+  if (!repo) return;
+  const res = await fetch('/api/forks', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({repo}) });
+  if (!res.ok) {
+    const err = await res.text();
+    alert('Failed to add fork: ' + err);
+    return;
+  }
+  input.value = '';
+  await loadForks();
+  await loadCiRuns();
+}
+
+async function removeFork(repo) {
+  await fetch(`/api/forks?repo=${encodeURIComponent(repo)}`, { method: 'DELETE' });
+  await loadForks();
+  await loadCiRuns();
+}
 
 async function loadCiRuns() {
   document.getElementById('ciLoading').style.display = 'block';
@@ -1134,13 +1179,15 @@ async function loadCiRuns() {
     }
     const res = await fetch('/api/ci/runs?limit=30');
     const allRuns = await res.json();
-    // Deduplicate by SHA — keep one per commit, use the CI workflow (name "CI")
+    // Deduplicate by (repo, SHA) — keep one per commit per repo, prefer the CI workflow.
+    // Different forks at the same SHA still get separate rows so the user can tell them apart.
     const seen = new Map();
     for (const run of allRuns) {
-      const sha = run.head_sha ?? '';
+      const repo = run.repo ?? 'stride3d/stride';
+      const key = `${repo}|${run.head_sha ?? ''}`;
       const name = run.name ?? '';
-      if (!seen.has(sha) || name === 'CI')
-        seen.set(sha, run);
+      if (!seen.has(key) || name === 'CI')
+        seen.set(key, run);
     }
     ciRuns = [...seen.values()].slice(0, 15);
     console.log('CI runs:', ciRuns);
@@ -1155,6 +1202,7 @@ function renderCiRuns() {
   const list = document.getElementById('ciRunsList');
   list.innerHTML = ciRuns.map(run => {
     const id = run.id ?? run.Id;
+    const repo = run.repo ?? 'stride3d/stride';
     const branch = run.head_branch ?? run.HeadBranch ?? '';
     const sha = (run.head_sha ?? run.HeadSha ?? '').substring(0, 7);
     const date = run.created_at ?? run.CreatedAt ?? '';
@@ -1162,8 +1210,10 @@ function renderCiRuns() {
     const ago = timeAgo(date);
     const wfName = run.name ?? '';
     const statusIcon = conclusion === 'success' ? '✓' : conclusion === 'failure' ? '✗' : conclusion === 'cancelled' ? '⊘' : '○';
-    return `<div class="ci-run ${selectedCiRun === id ? 'selected' : ''}" onclick="selectCiRun(${id})">
-      <div><b>#${id}</b> ${esc(branch)} <span class="meta">${sha}</span></div>
+    const isUpstream = repo === 'stride3d/stride';
+    const repoChip = `<span class="repo-chip ${isUpstream ? 'upstream' : 'fork'}">${esc(repo)}</span>`;
+    return `<div class="ci-run ${selectedCiRun === id ? 'selected' : ''}" onclick="selectCiRun(${id}, '${esc(repo)}')">
+      <div>${repoChip} <b>#${id}</b> ${esc(branch)} <span class="meta">${sha}</span></div>
       <div><span class="meta">${esc(wfName)}</span> <span class="meta">${ago}</span> ${statusIcon}</div>
     </div>`;
   }).join('');
@@ -1172,16 +1222,17 @@ function renderCiRuns() {
 let ciArtifacts = [];
 let selectedCiArtifacts = new Set();
 
-async function selectCiRun(id) {
+async function selectCiRun(id, repo) {
   selectedCiRun = id;
+  selectedCiRunRepo = repo || 'stride3d/stride';
   document.getElementById('ciRunId').value = String(id);
   renderCiRuns();
 
-  // Load artifacts for this run
+  // Load artifacts for this run from the same repo as the run itself.
   const listEl = document.getElementById('ciArtifactsList');
   listEl.innerHTML = '<span class="spinner"></span> Loading artifacts...';
   try {
-    const res = await fetch(`/api/ci/artifacts?runId=${id}`);
+    const res = await fetch(`/api/ci/artifacts?runId=${id}&repo=${encodeURIComponent(selectedCiRunRepo)}`);
     ciArtifacts = await res.json();
     // Auto-select test-related artifacts
     selectedCiArtifacts = new Set(
