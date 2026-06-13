@@ -36,3 +36,5 @@ namespace Stride.Animations
         Subtract = 2,
     }
 }
+
+// B6 comment-only CI test (sources/engine: matches runtime+full filters; must still skip).
