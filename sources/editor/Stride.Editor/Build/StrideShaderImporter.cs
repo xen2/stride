@@ -66,7 +66,7 @@ namespace Stride.Editor.Build
             // Check if there are any new system projects to preload
             // TODO: PDX-1251: For now, allow non-system project as well (which means they will be loaded only once at startup)
             // Later, they should be imported depending on what project the currently previewed/built asset is
-            var systemPackages = session.AllPackages.Where(project => /*project.IsSystem &&*/ !systemProjectsLoaded.Contains(project.Package.Meta.Name)).ToList();
+            var systemPackages = session.AllPackages.Where(project => /*project.IsReadOnly &&*/ !systemProjectsLoaded.Contains(project.Package.Meta.Name)).ToList();
             if (systemPackages.Count == 0)
                 return null;
 
@@ -101,7 +101,7 @@ namespace Stride.Editor.Build
 
         public ListBuildStep CreateUserShaderBuildSteps(SessionViewModel session)
         {
-            var packages = session.AllPackages.Where(project => !project.Package.IsSystem).ToList();
+            var packages = session.AllPackages.Where(project => !project.Package.IsReadOnly).ToList();
             if (packages.Count == 0)
                 return null;
 
