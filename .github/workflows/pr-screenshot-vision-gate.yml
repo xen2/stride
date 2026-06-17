@@ -23,9 +23,15 @@ jobs:
     if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-24.04
     steps:
-      # Base checkout: trusted comparator source + the gold baselines to judge against. Deliberately NOT
-      # the PR's code/gold — a fork mustn't be able to swap the gold or the comparator to pass a regression.
+      # Base checkout: trusted comparator source + gold baselines to judge against — pinned EXPLICITLY to
+      # the repo default branch, never the PR. This is the key-exfiltration boundary: the gate runs with
+      # ANTHROPIC_API_KEY in scope, so it must execute only trusted (base) code over the PR's uploaded
+      # image artifacts (data). Do NOT change this ref to github.event.workflow_run.head_sha/head_branch —
+      # that would run fork-controlled code with the secret, and a fork mustn't be able to swap the gold
+      # or comparator to pass a regression either.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Download screenshot artifacts from the triggering run
         uses: actions/download-artifact@v4
