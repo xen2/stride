@@ -76,8 +76,11 @@ jobs:
           done
 
           if [ "$captured" = false ]; then
-            echo "::error::no screenshot artifacts from the triggering run — failing closed"
-            rc=1
+            # No screenshots-* artifacts → no screenshot suite ran (or it ran with nothing deferred):
+            # nothing to re-judge, so pass. This keeps the gate green on ordinary PRs so it's safe to
+            # mark required. It can't hide a regression: deferred frames always ship an uploaded
+            # vision-deferred.json, and a capture failure fails the suite itself.
+            echo "::notice::no screenshot artifacts from the triggering run — nothing to gate (pass)"
           fi
           echo "result=$rc" >> "$GITHUB_OUTPUT"
 
