@@ -210,25 +210,28 @@ jobs:
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
           CONFIG="${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}"
+          REPEAT="${{ github.event.inputs.repeat || inputs.repeat || '1' }}"
           worst=0
           for app in bin/Tests/*/macOS-Vulkan/$CONFIG/*.app; do
             [ -e "$app" ] || continue
             suite=$(basename "$app" .app)
-            echo "::group::Run $suite (.app)"
             args=(--xunit-command run --xunit-exit-on-complete true)
             if [ -n "$STRIDE_TEST_FILTER" ]; then args+=(--xunit-filter "$STRIDE_TEST_FILTER"); fi
-            "$app/Contents/MacOS/$suite" "${args[@]}" || worst=$?
-            # The binary's exit code doesn't reflect test failures; parse the TRX like the
-            # Android/iOS drivers do.
-            trx="$app/Contents/MonoBundle/TestResults/$suite.trx"
-            if [ -f "$trx" ]; then
-              cp "$trx" TestResults/
-              failed=$(grep -o 'outcome="Failed"' "$trx" | wc -l)
-              if [ "$failed" -gt 0 ]; then echo "::error::$suite: $failed failed test(s)"; worst=1; fi
-            else
-              echo "::error::$suite: no TRX produced"; worst=1
-            fi
-            echo "::endgroup::"
+            for i in $(seq 1 "$REPEAT"); do
+              echo "::group::Run $suite (.app) $i / $REPEAT"
+              "$app/Contents/MacOS/$suite" "${args[@]}" || worst=$?
+              # The binary's exit code doesn't reflect test failures; parse the TRX like the
+              # Android/iOS drivers do.
+              trx="$app/Contents/MonoBundle/TestResults/$suite.trx"
+              if [ -f "$trx" ]; then
+                cp "$trx" "TestResults/$suite-run-$i.trx"
+                failed=$(grep -o 'outcome="Failed"' "$trx" | wc -l)
+                if [ "$failed" -gt 0 ]; then echo "::error::$suite: $failed failed test(s) on run $i"; worst=1; echo "::endgroup::"; break; fi
+              else
+                echo "::error::$suite: no TRX produced"; worst=1; echo "::endgroup::"; break
+              fi
+              echo "::endgroup::"
+            done
           done
           exit $worst
       - name: Test non-GPU
