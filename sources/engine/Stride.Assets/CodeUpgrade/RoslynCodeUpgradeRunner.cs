@@ -127,7 +127,17 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
 
             IReadOnlyList<ProjectId> targets = [project.Id];
             foreach (var upgrade in upgrades)
-                solution = await upgrade(solution, targets, cancellationToken);
+            {
+                // A failing migration is skipped alone: the others of the project still apply
+                try
+                {
+                    solution = await upgrade(solution, targets, cancellationToken);
+                }
+                catch (Exception e) when (e is not NotImplementedException)
+                {
+                    log.Warning($"Code upgrade: a source migration of [{pendingItem.ProjectFullPath.GetFileName()}] failed and was skipped; its code is left unchanged.", e);
+                }
+            }
         }
 
         // Write back only the documents that actually changed, preserving each file's original encoding.
