@@ -571,6 +571,7 @@ partial class PackageSession
             // Update dependencies
             if (flattenedDependencies)
             {
+                project.HasRestoreErrors = projectAssets.LogMessages.Any(x => x.Level == NuGet.Common.LogLevel.Error);
                 var libPaths = new Dictionary<(string?, NuGet.Versioning.NuGetVersion?), LockFileLibrary>();
                 foreach (var lib in projectAssets.Libraries)
                 {
