@@ -2,7 +2,6 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using Stride.Core.Assets.Editor.Services;
 using Stride.Core.BuildEngine;
 using Stride.Core;
@@ -45,10 +44,6 @@ namespace Stride.Editor.Thumbnails
         /// The preview game system collection.
         /// </summary>
         private readonly GameSystemCollection gameSystems;
-
-        // Commands hold the read side while they run; Dispose takes the write side.
-        private readonly ReaderWriterLockSlim disposeLock = new ReaderWriterLockSlim();
-        private bool isDisposed;
 
         /// <summary>
         /// The asset manager to use when building thumbnails.
@@ -276,40 +271,8 @@ namespace Stride.Editor.Thumbnails
             return ProcessThumbnailRequests(new ThumbnailBuildRequest(thumbnailUrl, scene, graphicsCompositor, provider, thumbnailSize, colorSpace, renderingMode, logger, logLevel) { PostProcessThumbnail = postProcessThumbnail });
         }
 
-        /// <summary>
-        /// Marks the start of a command that uses the graphics device. Build threads keep running while
-        /// the session closes, so a command must hold this for as long as it uses the generator.
-        /// </summary>
-        /// <returns><c>false</c> if the generator is disposed; the command must not use it then.</returns>
-        public bool TryBeginUse()
-        {
-            disposeLock.EnterReadLock();
-            if (isDisposed)
-            {
-                disposeLock.ExitReadLock();
-                return false;
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Marks the end of a command started with <see cref="TryBeginUse"/>.
-        /// </summary>
-        public void EndUse()
-        {
-            disposeLock.ExitReadLock();
-        }
-
         public void Dispose()
         {
-            // Wait for the running commands; later ones see the generator as disposed
-            disposeLock.EnterWriteLock();
-            var alreadyDisposed = isDisposed;
-            isDisposed = true;
-            disposeLock.ExitWriteLock();
-            if (alreadyDisposed)
-                return;
-
             // destroy all game systems
             thumbnailGraphicsCompositors.ForEach(x => x.Dispose());
             sceneSystem.Dispose();
