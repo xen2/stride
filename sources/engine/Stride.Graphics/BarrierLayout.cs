@@ -32,7 +32,8 @@ public enum BarrierLayout
     DepthStencilWrite,
 
     /// <summary>
-    ///   The resource is used as a read-only depth-stencil buffer.
+    ///   The resource is used as a read-only depth-stencil buffer. Covers sampling it in a shader
+    ///   at the same time, as soft particles do.
     /// </summary>
     DepthStencilRead,
 
