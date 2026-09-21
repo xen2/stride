@@ -36,7 +36,7 @@ on:
     - cron: '17 5 * * *'
 
 concurrency:
-  group: test-windows-editor-${{ github.event.pull_request.number || github.sha }}
+  group: test-windows-editor-${{ github.event.pull_request.number || github.sha }}-${{ inputs.graphics-api }}
   cancel-in-progress: true
 
 jobs:
