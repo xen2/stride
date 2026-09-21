@@ -47,11 +47,9 @@ public class EditorScreenshotTests
         // (fixtureName, optional template GUID to instantiate and upgrade before opening, timeout-minutes,
         //  comparison prompt — ScriptEditor ignores the script's literal text (template content can change)
         //  and only checks it renders as syntax-highlighted C# in the editor theme)
-        yield return new object?[] { "EmptyEditor",   (Guid?)null,                                             3, EditorComparisonPrompt.Default };
-        yield return new object?[] { "TopDownCreate", (Guid?)null,                                             8, EditorComparisonPrompt.Default };
-        yield return new object?[] { "TopDownLoad",   (Guid?)new Guid("A363FBC5-89EF-4E7A-B870-6D070813D034"), 5, EditorComparisonPrompt.Default };
-        yield return new object?[] { "ScriptEditor",  (Guid?)new Guid("81d2adea-37b1-4711-834c-0d73a05c206c"), 6, EditorComparisonPrompt.ScriptEditor };
-        yield return new object?[] { "NewGameEditor", (Guid?)null,                                             5, EditorComparisonPrompt.Default };
+        // CANARY: only the early-exit fixture, several times, to give the shutdown race several tries.
+        for (var i = 0; i < 6; i++)
+            yield return new object?[] { "TopDownEarlyExit", (Guid?)new Guid("A363FBC5-89EF-4E7A-B870-6D070813D034"), 5, EditorComparisonPrompt.Default };
     }
 
     [Theory]
