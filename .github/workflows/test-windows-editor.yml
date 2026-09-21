@@ -10,10 +10,22 @@ on:
         options:
           - Debug
           - Release
+      graphics-api:
+        description: Graphics API Game Studio runs on (blank = its default, Direct3D11)
+        default: ''
+        type: choice
+        options:
+          - ''
+          - Direct3D11
+          - Direct3D12
+          - Vulkan
   workflow_call:
     inputs:
       build-type:
         default: Debug
+        type: string
+      graphics-api:
+        default: ''
         type: string
     secrets:
       ANTHROPIC_API_KEY:
@@ -40,9 +52,12 @@ jobs:
     if: >
       github.event_name != 'schedule'
       || vars.STRIDE_ENABLE_SCHEDULED_CI == 'true'
-    name: Windows (Editor, ${{ inputs.build-type || 'Debug' }})
+    name: Windows (Editor, ${{ inputs.graphics-api || 'default API' }}, ${{ inputs.build-type || 'Debug' }})
     runs-on: windows-2025-vs2026
     env:
+      # Read by GraphicsApiSelector at Game Studio startup; blank keeps the default.
+      STRIDE_GRAPHICS_API: ${{ inputs.graphics-api }}
+      STRIDE_VULKAN_SYNC_VALIDATION: ${{ inputs.graphics-api == 'Vulkan' && '1' || '' }}
       DOTNET_DbgEnableMiniDump: "1"
       DOTNET_DbgMiniDumpType: "1"
       DOTNET_DbgMiniDumpName: "${{ github.workspace }}\\crash-dumps\\dotnet_%p.dmp"
@@ -84,6 +99,38 @@ jobs:
         with:
           width: '3840'
           height: '2160'
+
+      # Vulkan needs a software driver (no GPU on the runner) and the validation layers.
+      # Same steps as test-windows-game.yml / test-enduser.yml.
+      - name: Install Vulkan SDK
+        if: inputs.graphics-api == 'Vulkan'
+        uses: jakoch/install-vulkan-sdk-action@v1
+        with:
+          vulkan_version: 1.4.341.1
+          install_runtime: true
+          cache: true
+          stripdown: true
+      - name: Enable Vulkan validation layers
+        if: inputs.graphics-api == 'Vulkan'
+        shell: pwsh
+        run: |
+          $manifest = Join-Path $env:VULKAN_SDK 'Bin\VkLayer_khronos_validation.json'
+          if (-not (Test-Path $manifest)) { throw "Validation layer manifest not found: $manifest" }
+          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\ExplicitLayers" -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\ExplicitLayers" -Name $manifest -Value 0 -PropertyType DWord -Force | Out-Null
+      - name: Install Lavapipe and register its Vulkan ICD
+        if: inputs.graphics-api == 'Vulkan'
+        shell: pwsh
+        run: |
+          $tmpDir = "${{ runner.temp }}\lavapipe-fetch"
+          New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
+          Set-Content -Path "$tmpDir\LavapipeFetch.csproj" -Value '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>'
+          dotnet add "$tmpDir\LavapipeFetch.csproj" package Stride.Dependencies.Lavapipe
+          $icd = Get-ChildItem -Recurse -Path "$env:USERPROFILE\.nuget\packages\stride.dependencies.lavapipe" -Filter "lvp_icd*.json" -ErrorAction SilentlyContinue | Where-Object { $_.DirectoryName -match 'win-x64' } | Select-Object -First 1
+          if (-not $icd) { throw "Lavapipe ICD not found in NuGet cache after restore." }
+          New-Item -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Force | Out-Null
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers" -Name $icd.FullName -Value 0 -PropertyType DWord -Force | Out-Null
+          Write-Host "Registered Lavapipe ICD: $($icd.FullName)"
 
       - name: Build Stride.GameStudio.AutoTesting
         run: |
