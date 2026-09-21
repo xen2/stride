@@ -2,7 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 using System;
 using System.Collections.Generic;
-using System.Threading;
+using System.Threading.Tasks;
 using Stride.Core.Assets.Editor.Services;
 using Stride.Core.BuildEngine;
 using Stride.Core;
@@ -46,9 +46,12 @@ namespace Stride.Editor.Thumbnails
         /// </summary>
         private readonly GameSystemCollection gameSystems;
 
-        // Commands hold the read side while they run; Dispose takes the write side.
-        private readonly ReaderWriterLockSlim disposeLock = new ReaderWriterLockSlim();
+        // Build threads keep running while the session closes, so the resources are destroyed only once no command uses them.
+        private readonly object useLock = new object();
+        private int useCount;
+        private bool isStopped;
         private bool isDisposed;
+        private TaskCompletionSource idleSource;
 
         /// <summary>
         /// The asset manager to use when building thumbnails.
@@ -277,19 +280,18 @@ namespace Stride.Editor.Thumbnails
         }
 
         /// <summary>
-        /// Marks the start of a command that uses the graphics device. Build threads keep running while
-        /// the session closes, so a command must hold this for as long as it uses the generator.
+        /// Marks the start of a command that uses the generator. The command must call <see cref="EndUse"/> when it is done.
         /// </summary>
-        /// <returns><c>false</c> if the generator is disposed; the command must not use it then.</returns>
+        /// <returns><c>false</c> if the generator is stopped; the command must not use it then.</returns>
         public bool TryBeginUse()
         {
-            disposeLock.EnterReadLock();
-            if (isDisposed)
+            lock (useLock)
             {
-                disposeLock.ExitReadLock();
-                return false;
+                if (isStopped)
+                    return false;
+                useCount++;
+                return true;
             }
-            return true;
         }
 
         /// <summary>
@@ -297,19 +299,57 @@ namespace Stride.Editor.Thumbnails
         /// </summary>
         public void EndUse()
         {
-            disposeLock.ExitReadLock();
+            TaskCompletionSource idle;
+            bool destroy;
+            lock (useLock)
+            {
+                if (--useCount > 0)
+                    return;
+                idle = idleSource;
+                destroy = isDisposed;
+            }
+
+            if (destroy)
+                DestroyResources();
+            idle?.TrySetResult();
         }
 
+        /// <summary>
+        /// Refuses new commands.
+        /// </summary>
+        /// <returns>A task that completes when no command uses the generator anymore.</returns>
+        public Task StopAsync()
+        {
+            lock (useLock)
+            {
+                isStopped = true;
+                if (useCount == 0)
+                    return Task.CompletedTask;
+                idleSource ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                return idleSource.Task;
+            }
+        }
+
+        /// <summary>
+        /// Never blocks: if a command still runs, the resources are destroyed when it ends.
+        /// </summary>
         public void Dispose()
         {
-            // Wait for the running commands; later ones see the generator as disposed
-            disposeLock.EnterWriteLock();
-            var alreadyDisposed = isDisposed;
-            isDisposed = true;
-            disposeLock.ExitWriteLock();
-            if (alreadyDisposed)
-                return;
+            lock (useLock)
+            {
+                if (isDisposed)
+                    return;
+                isDisposed = true;
+                isStopped = true;
+                if (useCount > 0)
+                    return;
+            }
 
+            DestroyResources();
+        }
+
+        private void DestroyResources()
+        {
             // destroy all game systems
             thumbnailGraphicsCompositors.ForEach(x => x.Dispose());
             sceneSystem.Dispose();
