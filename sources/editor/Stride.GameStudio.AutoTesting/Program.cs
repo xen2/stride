@@ -31,6 +31,11 @@ internal static class Program
         // Graphics assemblies live in per-API subfolders; pick one (--graphics-api or STRIDE_GRAPHICS_API)
         // before anything loads them. Game Studio's own exe does this through its NuGet resolver startup.
         Stride.Core.Assets.GraphicsApiHostResolver.Setup(Stride.Core.Assets.GraphicsApiSelector.Resolve());
+        if (Stride.Core.Assets.GraphicsApiSelector.StartupError is { } graphicsApiError)
+        {
+            Console.Error.WriteLine(graphicsApiError);
+            return 2;
+        }
 
         // Clear the "last startup-session load crashed" sticky flag — a previous AutoTesting run
         // that timed out / was killed leaves it on, which makes OpenInitialSession pop a "try

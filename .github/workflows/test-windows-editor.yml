@@ -58,6 +58,9 @@ jobs:
       # Read by GraphicsApiSelector at Game Studio startup; blank keeps the default.
       STRIDE_GRAPHICS_API: ${{ inputs.graphics-api }}
       STRIDE_VULKAN_SYNC_VALIDATION: ${{ inputs.graphics-api == 'Vulkan' && '1' || '' }}
+      # MSBuild property (read from the environment): a fresh checkout only builds Direct3D11, so
+      # stage the requested API next to it. Direct3D11 stays for the games the fixtures build and run.
+      StrideGraphicsApis: ${{ (inputs.graphics-api != '' && inputs.graphics-api != 'Direct3D11') && format('Direct3D11;{0}', inputs.graphics-api) || '' }}
       DOTNET_DbgEnableMiniDump: "1"
       DOTNET_DbgMiniDumpType: "1"
       DOTNET_DbgMiniDumpName: "${{ github.workspace }}\\crash-dumps\\dotnet_%p.dmp"
