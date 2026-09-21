@@ -48,8 +48,8 @@ public class EditorScreenshotTests
         //  comparison prompt — ScriptEditor ignores the script's literal text (template content can change)
         //  and only checks it renders as syntax-highlighted C# in the editor theme)
         // CANARY: only the early-exit fixture, several times, to give the shutdown race several tries.
-        for (var i = 0; i < 6; i++)
-            yield return new object?[] { "TopDownEarlyExit", (Guid?)new Guid("A363FBC5-89EF-4E7A-B870-6D070813D034"), 5, EditorComparisonPrompt.Default };
+        for (var i = 1; i <= 6; i++)
+            yield return new object?[] { "TopDownEarlyExit" + i, (Guid?)new Guid("A363FBC5-89EF-4E7A-B870-6D070813D034"), 5, EditorComparisonPrompt.Default };
     }
 
     [Theory]
