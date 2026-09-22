@@ -55,7 +55,7 @@ jobs:
       fail-fast: false
       matrix:
         # Game Studio runs on each API; the games the fixtures build stay on Direct3D11.
-        graphics-api: ${{ fromJSON(inputs.graphics-api && format('["{0}"]', inputs.graphics-api) || '["Direct3D11", "Vulkan"]') }}
+        graphics-api: ${{ fromJSON(inputs.graphics-api && format('["{0}"]', inputs.graphics-api) || '["Direct3D11", "Direct3D12", "Vulkan"]') }}
     env:
       # Read by GraphicsApiSelector at Game Studio startup.
       STRIDE_GRAPHICS_API: ${{ matrix.graphics-api }}
