@@ -1,7 +1,9 @@
 {
   "profiles": {
     "Stride.GameStudio": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "--graphics-api Vulkan /DebugEditorGraphics /DisableThumbnails /DisablePreview /RenderDoc",
+      "debugEngines": "managed,native"
     },
     "GameStudio (Direct3D12)": {
       "commandName": "Project",

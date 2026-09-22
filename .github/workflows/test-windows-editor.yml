@@ -59,7 +59,7 @@ jobs:
     env:
       # Read by GraphicsApiSelector at Game Studio startup.
       STRIDE_GRAPHICS_API: ${{ matrix.graphics-api }}
-      STRIDE_VULKAN_SYNC_VALIDATION: ${{ matrix.graphics-api == 'Vulkan' && '1' || '' }}
+      STRIDE_VULKAN_SYNC_VALIDATION: ''
       # MSBuild property (read from the environment): a fresh checkout only builds Direct3D11, so
       # stage the requested API next to it.
       StrideGraphicsApis: ${{ matrix.graphics-api != 'Direct3D11' && format('Direct3D11;{0}', matrix.graphics-api) || '' }}
