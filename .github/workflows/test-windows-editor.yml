@@ -30,6 +30,7 @@ on:
           - hyperv-1080
           - vdd-keep-hyperv
           - vdd-sdr
+          - amyuni
   workflow_call:
     inputs:
       build-type:
@@ -154,7 +155,7 @@ jobs:
       # GH runners default to a 0x0 fallback display; WPF clamps the editor to that. The
       # composite action installs an IDD virtual display so we get a real desktop surface.
       - name: Set display resolution
-        if: inputs.display != 'none' && inputs.display != 'hyperv-1080'
+        if: inputs.display != 'none' && inputs.display != 'hyperv-1080' && inputs.display != 'amyuni'
         uses: ./.github/actions/set-display-resolution-vdd
         with:
           width: ${{ inputs.display == '1920x1080' && '1920' || '3840' }}
@@ -162,9 +163,41 @@ jobs:
           keep-hyperv: ${{ inputs.display == 'vdd-keep-hyperv' && 'true' || 'false' }}
           extra-settings: ${{ inputs.display == 'vdd-sdr' && '<colour><SDR10bit>false</SDR10bit><HDRPlus>false</HDRPlus><ColourFormat>RGB</ColourFormat></colour><cursor><HardwareCursor>false</HardwareCursor></cursor>' || '' }}
 
-      # Experiment: the stock Hyper-V Video adapter, raised as far as it goes
-      - name: Set Hyper-V display resolution
-        if: inputs.display == 'hyperv-1080'
+      # Experiment: Amyuni usbmmidd_v2, another signed IDD virtual display, as the only display
+      - name: Install Amyuni virtual display
+        if: inputs.display == 'amyuni'
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:TEMP "usbmmidd"
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          Invoke-WebRequest -Uri "https://www.amyuni.com/downloads/usbmmidd_v2.zip" -OutFile "$dir\usbmmidd.zip" -UseBasicParsing
+          Expand-Archive -Path "$dir\usbmmidd.zip" -DestinationPath $dir -Force
+          $pkg = Join-Path $dir "usbmmidd_v2"
+          $certificates = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2Collection
+          $certificates.Import([System.IO.File]::ReadAllBytes("$pkg\usbmmidd.cat"))
+          foreach ($cert in $certificates) {
+              $certPath = Join-Path $dir "$($cert.Thumbprint).cer"
+              [System.IO.File]::WriteAllBytes($certPath, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
+              Import-Certificate -FilePath $certPath -CertStoreLocation "Cert:\LocalMachine\TrustedPublisher" | Out-Null
+          }
+          Push-Location $pkg
+          .\deviceinstaller64.exe install usbmmidd.inf usbmmidd
+          .\deviceinstaller64.exe enableidd 1
+          Pop-Location
+          Start-Sleep -Seconds 10
+          # The install may open an advertisement page
+          Get-Process msedge, chrome, firefox, iexplore -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-PnpDevice -Class Display | Format-Table FriendlyName, Status, InstanceId
+          $hyperv = Get-PnpDevice -Class Display | Where-Object { $_.FriendlyName -like "*Hyper-V*" }
+          foreach ($dev in $hyperv) { Disable-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction Continue }
+          Start-Sleep -Seconds 5
+          Get-PnpDevice -Class Display | Format-Table FriendlyName, Status
+          Get-PnpDevice -Class Monitor -ErrorAction SilentlyContinue | Format-Table FriendlyName, Status
+
+      # Experiment: the stock Hyper-V Video adapter (caps at 1920x1080), or the Amyuni display at 3840x2160
+      - name: Set display mode
+        if: inputs.display == 'hyperv-1080' || inputs.display == 'amyuni'
         shell: pwsh
         run: |
           Add-Type @'
@@ -201,16 +234,22 @@ jobs:
           }
           '@
           Write-Host "Modes: $([DisplayModes]::List() -join ', ')"
-          foreach ($size in @(@(3840, 2160), @(2560, 1440), @(1920, 1080))) {
-              try {
-                  Set-DisplayResolution -Width $size[0] -Height $size[1] -Force -ErrorAction Stop
-                  Write-Host "Set $($size[0])x$($size[1])"
-                  break
-              } catch {
-                  Write-Host "Failed $($size[0])x$($size[1]): $_"
-              }
-          }
+          # Set-DisplayResolution accepts an unsupported mode without changing anything: check the result
+          $width = ${{ inputs.display == 'amyuni' && '3840' || '1920' }}
+          $height = ${{ inputs.display == 'amyuni' && '2160' || '1080' }}
+          Set-DisplayResolution -Width $width -Height $height -Force
+          Start-Sleep -Seconds 5
           Get-CimInstance Win32_VideoController | Format-Table Name, CurrentHorizontalResolution, CurrentVerticalResolution
+          Add-Type -AssemblyName System.Windows.Forms
+          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          Write-Host "Primary screen: $($bounds.Width)x$($bounds.Height)"
+
+      - name: Set DPI for the Amyuni display
+        if: inputs.display == 'amyuni'
+        uses: ./.github/actions/set-monitor-dpi
+        with:
+          target-dpi: '100'
+          monitor-height: '2160'
 
       # No GPU on the runner: Lavapipe, with the validation layers
       - name: Set up Vulkan
