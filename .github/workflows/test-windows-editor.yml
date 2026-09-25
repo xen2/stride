@@ -19,6 +19,14 @@ on:
           - Direct3D11
           - Direct3D12
           - Vulkan
+      display:
+        description: Virtual display (none = runner default display)
+        default: '3840x2160'
+        type: choice
+        options:
+          - '3840x2160'
+          - '1920x1080'
+          - none
   workflow_call:
     inputs:
       build-type:
@@ -33,7 +41,7 @@ on:
     - cron: '17 5 * * *'
 
 concurrency:
-  group: test-windows-editor-${{ github.event.pull_request.number || github.sha }}
+  group: test-windows-editor-${{ github.event.pull_request.number || github.sha }}-${{ inputs.display }}
   cancel-in-progress: true
 
 jobs:
@@ -143,10 +151,11 @@ jobs:
       # GH runners default to a 0x0 fallback display; WPF clamps the editor to that. The
       # composite action installs an IDD virtual display so we get a real desktop surface.
       - name: Set display resolution
+        if: inputs.display != 'none'
         uses: ./.github/actions/set-display-resolution-vdd
         with:
-          width: '3840'
-          height: '2160'
+          width: ${{ inputs.display == '1920x1080' && '1920' || '3840' }}
+          height: ${{ inputs.display == '1920x1080' && '1080' || '2160' }}
 
       # No GPU on the runner: Lavapipe, with the validation layers
       - name: Set up Vulkan
