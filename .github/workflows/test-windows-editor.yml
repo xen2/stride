@@ -27,6 +27,9 @@ on:
           - '3840x2160'
           - '1920x1080'
           - none
+          - hyperv-1080
+          - vdd-keep-hyperv
+          - vdd-sdr
   workflow_call:
     inputs:
       build-type:
@@ -151,11 +154,63 @@ jobs:
       # GH runners default to a 0x0 fallback display; WPF clamps the editor to that. The
       # composite action installs an IDD virtual display so we get a real desktop surface.
       - name: Set display resolution
-        if: inputs.display != 'none'
+        if: inputs.display != 'none' && inputs.display != 'hyperv-1080'
         uses: ./.github/actions/set-display-resolution-vdd
         with:
           width: ${{ inputs.display == '1920x1080' && '1920' || '3840' }}
           height: ${{ inputs.display == '1920x1080' && '1080' || '2160' }}
+          keep-hyperv: ${{ inputs.display == 'vdd-keep-hyperv' && 'true' || 'false' }}
+          extra-settings: ${{ inputs.display == 'vdd-sdr' && '<colour><SDR10bit>false</SDR10bit><HDRPlus>false</HDRPlus><ColourFormat>RGB</ColourFormat></colour><cursor><HardwareCursor>false</HardwareCursor></cursor>' || '' }}
+
+      # Experiment: the stock Hyper-V Video adapter, raised as far as it goes
+      - name: Set Hyper-V display resolution
+        if: inputs.display == 'hyperv-1080'
+        shell: pwsh
+        run: |
+          Add-Type @'
+          using System;
+          using System.Collections.Generic;
+          using System.Runtime.InteropServices;
+          public static class DisplayModes
+          {
+              [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+              public struct DEVMODE
+              {
+                  [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;
+                  public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
+                  public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
+                  public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+                  [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;
+                  public short dmLogPixels;
+                  public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency;
+                  public int dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
+              }
+              [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+              static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+              public static List<string> List()
+              {
+                  var modes = new List<string>();
+                  var mode = new DEVMODE { dmSize = (short)Marshal.SizeOf(typeof(DEVMODE)) };
+                  for (var i = 0; EnumDisplaySettings(null, i, ref mode); i++)
+                  {
+                      var text = mode.dmPelsWidth + "x" + mode.dmPelsHeight;
+                      if (!modes.Contains(text)) modes.Add(text);
+                  }
+                  return modes;
+              }
+          }
+          '@
+          Write-Host "Modes: $([DisplayModes]::List() -join ', ')"
+          foreach ($size in @(@(3840, 2160), @(2560, 1440), @(1920, 1080))) {
+              try {
+                  Set-DisplayResolution -Width $size[0] -Height $size[1] -Force -ErrorAction Stop
+                  Write-Host "Set $($size[0])x$($size[1])"
+                  break
+              } catch {
+                  Write-Host "Failed $($size[0])x$($size[1]): $_"
+              }
+          }
+          Get-CimInstance Win32_VideoController | Format-Table Name, CurrentHorizontalResolution, CurrentVerticalResolution
 
       # No GPU on the runner: Lavapipe, with the validation layers
       - name: Set up Vulkan

@@ -23,6 +23,14 @@ inputs:
       to switch later in the same job.
     required: false
     default: '100'
+  keep-hyperv:
+    description: Leave the Hyper-V Video adapter enabled next to MttVDD
+    required: false
+    default: 'false'
+  extra-settings:
+    description: Extra XML elements appended inside vdd_settings
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -33,6 +41,7 @@ runs:
       env:
         VDD_WIDTH: ${{ inputs.width }}
         VDD_HEIGHT: ${{ inputs.height }}
+        VDD_EXTRA: ${{ inputs.extra-settings }}
       run: |
         $vddDir = "C:\VirtualDisplayDriver"
         New-Item -ItemType Directory -Path $vddDir -Force | Out-Null
@@ -52,6 +61,7 @@ runs:
               <refresh_rate>60</refresh_rate>
             </resolution>
           </resolutions>
+          $($env:VDD_EXTRA)
         </vdd_settings>
         "@
         Set-Content -Path "$vddDir\vdd_settings.xml" -Value $xml -Encoding utf8
@@ -114,6 +124,7 @@ runs:
     # MttVDD spawned a monitor at the requested resolution from vdd_settings.xml. Disable the
     # Hyper-V Video adapter via PnP so MttVDD is the only display and inherits primary.
     - name: Disable Hyper-V Video adapter (leave MttVDD as the only display)
+      if: inputs.keep-hyperv != 'true'
       shell: pwsh
       run: |
         Write-Host "Display adapters before disable:"
