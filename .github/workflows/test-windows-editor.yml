@@ -90,6 +90,48 @@ jobs:
           reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" /v DumpType /t REG_DWORD /d 1 /f
           reg add "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" /v DumpCount /t REG_DWORD /d 10 /f
 
+      # Temporary DWM out-of-memory instrumentation: one full dwm.exe dump, and a memory log for the whole job
+      - name: Start memory log
+        shell: pwsh
+        run: |
+          $fullDir = "${{ github.workspace }}\dwm-full-dumps"
+          New-Item -Path $fullDir -ItemType Directory -Force | Out-Null
+          $dwmKey = "HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\dwm.exe"
+          reg add $dwmKey /v DumpFolder /t REG_EXPAND_SZ /d $fullDir /f
+          reg add $dwmKey /v DumpType /t REG_DWORD /d 2 /f
+          reg add $dwmKey /v DumpCount /t REG_DWORD /d 1 /f
+          Get-CimInstance Win32_ComputerSystem | Format-List TotalPhysicalMemory, NumberOfLogicalProcessors
+          Get-CimInstance Win32_PageFileUsage | Format-Table Name, AllocatedBaseSize, CurrentUsage, PeakUsage
+          $script = "${{ runner.temp }}\memlog.ps1"
+          Set-Content -Path $script -Value @'
+          $log = $args[0]
+          $i = 0
+          while ($true) {
+              try {
+                  $os = Get-CimInstance Win32_OperatingSystem
+                  $limit = [int]($os.TotalVirtualMemorySize / 1024)
+                  $commit = $limit - [int]($os.FreeVirtualMemory / 1024)
+                  $avail = [int]($os.FreePhysicalMemory / 1024)
+                  $dwm = @(Get-Process dwm -ErrorAction SilentlyContinue | ForEach-Object {
+                      "dwm pid=$($_.Id) priv=$([int]($_.PrivateMemorySize64 / 1MB)) ws=$([int]($_.WorkingSet64 / 1MB)) handles=$($_.HandleCount)" })
+                  if ($dwm.Count -eq 0) { $dwm = @('dwm none') }
+                  $line = '{0:HH:mm:ss} commit={1}/{2}MB avail={3}MB {4}' -f (Get-Date).ToUniversalTime(), $commit, $limit, $avail, ($dwm -join ' ')
+                  if ($i % 5 -eq 0) {
+                      $top = Get-Process | Sort-Object PrivateMemorySize64 -Descending | Select-Object -First 6 |
+                          ForEach-Object { "$($_.ProcessName)($($_.Id))=$([int]($_.PrivateMemorySize64 / 1MB))" }
+                      $line += ' top: ' + ($top -join ' ')
+                  }
+                  Add-Content -Path $log -Value $line
+              } catch {
+                  Add-Content -Path $log -Value "error: $_"
+              }
+              $i++
+              Start-Sleep -Seconds 2
+          }
+          '@
+          $log = "${{ github.workspace }}\crash-dumps\memlog.txt"
+          Start-Process pwsh -WindowStyle Hidden -ArgumentList '-NoProfile', '-File', $script, $log
+
       # PackageStore.LoadDefaultSettings(null) only reads the user + machine NuGet configs,
       # not the workspace nuget.config — register bin/packages in the user config.
       - name: Register bin/packages with user NuGet config
@@ -160,6 +202,41 @@ jobs:
             --logger "trx;LogFileName=editor-screenshots.trx" `
             --results-directory TestResults `
             -p:Configuration=${{ inputs.build-type || 'Debug' }}
+
+      - name: Diagnostic — memory and DWM events
+        if: always()
+        shell: pwsh
+        run: |
+          $out = "${{ github.workspace }}\crash-dumps\events.txt"
+          & {
+              '=== Resource exhaustion (System log) ==='
+              Get-WinEvent -FilterHashtable @{ LogName = 'System'; ProviderName = 'Microsoft-Windows-Resource-Exhaustion-Detector' } -ErrorAction SilentlyContinue |
+                  Format-List TimeCreated, Id, Message
+              '=== dwm.exe crashes (Application log) ==='
+              $crashes = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
+                  Where-Object Message -match 'dwm\.exe')
+              "count=$($crashes.Count)"
+              if ($crashes.Count -gt 0) {
+                  "first=$($crashes[-1].TimeCreated.ToUniversalTime()) last=$($crashes[0].TimeCreated.ToUniversalTime()) (UTC)"
+                  $crashes | Select-Object -Last 2 | Format-List TimeCreated, Message
+              }
+              '=== Other DWM events (Application log) ==='
+              Get-WinEvent -LogName Application -MaxEvents 3000 -ErrorAction SilentlyContinue |
+                  Where-Object { $_.ProviderName -match 'Dwm|Desktop Window Manager' } | Select-Object -First 20 |
+                  Format-List TimeCreated, ProviderName, Id, Message
+              '=== Memory log tail ==='
+              Get-Content "${{ github.workspace }}\crash-dumps\memlog.txt" -Tail 10 -ErrorAction SilentlyContinue
+          } *>&1 | Tee-Object -FilePath $out
+          Get-ChildItem "${{ github.workspace }}\dwm-full-dumps" -ErrorAction SilentlyContinue | Format-Table Name, Length
+
+      - name: Upload full dwm.exe dump
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: editor-dwm-full-dump-${{ matrix.graphics-api }}
+          path: dwm-full-dumps/
+          if-no-files-found: ignore
+          retention-days: 3
 
       - name: Publish test report
         if: always()
