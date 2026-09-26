@@ -1,0 +1,115 @@
+name: Amyuni virtual display
+description: >-
+  Install the Amyuni usbmmidd_v2 indirect display (IDD) as the only display, at 100% DPI.
+  Experiment for the DWM crash loop seen with Direct3D12 on WARP and a virtual display.
+
+inputs:
+  width:
+    description: Display width
+    required: false
+    default: '3840'
+  height:
+    description: Display height
+    required: false
+    default: '2160'
+
+runs:
+  using: composite
+  steps:
+    - name: Install Amyuni virtual display
+      shell: pwsh
+      env:
+        DISPLAY_WIDTH: ${{ inputs.width }}
+        DISPLAY_HEIGHT: ${{ inputs.height }}
+      run: |
+        $dir = Join-Path $env:TEMP "usbmmidd"
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        Invoke-WebRequest -Uri "https://www.amyuni.com/downloads/usbmmidd_v2.zip" -OutFile "$dir\usbmmidd.zip" -UseBasicParsing
+        Expand-Archive -Path "$dir\usbmmidd.zip" -DestinationPath $dir -Force
+        $pkg = Join-Path $dir "usbmmidd_v2"
+        $certificates = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2Collection
+        $certificates.Import([System.IO.File]::ReadAllBytes("$pkg\usbmmidd.cat"))
+        foreach ($cert in $certificates) {
+            $certPath = Join-Path $dir "$($cert.Thumbprint).cer"
+            [System.IO.File]::WriteAllBytes($certPath, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
+            Import-Certificate -FilePath $certPath -CertStoreLocation "Cert:\LocalMachine\TrustedPublisher" | Out-Null
+        }
+        Push-Location $pkg
+        .\deviceinstaller64.exe install usbmmidd.inf usbmmidd
+        # The monitor's default mode; the install created the key with the list of modes
+        $monitors = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\WUDF\Services\usbmmIdd\Parameters\Monitors"
+        Set-ItemProperty -Path $monitors -Name '(Default)' -Value "$env:DISPLAY_WIDTH,$env:DISPLAY_HEIGHT"
+        Get-ItemProperty -Path $monitors | Format-List
+        .\deviceinstaller64.exe enableidd 1
+        Pop-Location
+        Start-Sleep -Seconds 10
+        # The install may open an advertisement page
+        Get-Process msedge, chrome, firefox, iexplore -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        Get-PnpDevice -Class Display | Format-Table FriendlyName, Status, InstanceId
+        Get-PnpDevice -Class Monitor -ErrorAction SilentlyContinue | Format-Table FriendlyName, Status, InstanceId
+
+    # No PnP cycle: it restarts the adapter, which then has no monitor. Disabling Hyper-V
+    # right after is the display change that applies it.
+    - name: Set DPI for the Amyuni display
+      uses: ./.github/actions/set-monitor-dpi
+      with:
+        target-dpi: '100'
+        monitor-height: ${{ inputs.height }}
+        pnp-cycle: 'false'
+
+    - name: Disable the Hyper-V display
+      shell: pwsh
+      run: |
+        $hyperv = Get-PnpDevice -Class Display | Where-Object { $_.FriendlyName -like "*Hyper-V*" }
+        foreach ($dev in $hyperv) { Disable-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction Continue }
+        Start-Sleep -Seconds 5
+        Get-PnpDevice -Class Display | Format-Table FriendlyName, Status
+        Get-PnpDevice -Class Monitor -ErrorAction SilentlyContinue | Format-Table FriendlyName, Status
+
+    - name: Set the Amyuni display mode
+      shell: pwsh
+      env:
+        DISPLAY_WIDTH: ${{ inputs.width }}
+        DISPLAY_HEIGHT: ${{ inputs.height }}
+      run: |
+        # Built from lines: a here-string's closing '@ conflicts with the YAML block indentation
+        $cs = @(
+          'using System;',
+          'using System.Collections.Generic;',
+          'using System.Runtime.InteropServices;',
+          'public static class DisplayModes {',
+          '  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]',
+          '  public struct DEVMODE {',
+          '    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;',
+          '    public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;',
+          '    public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;',
+          '    public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;',
+          '    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;',
+          '    public short dmLogPixels;',
+          '    public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency;',
+          '    public int dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;',
+          '  }',
+          '  [DllImport("user32.dll", CharSet = CharSet.Unicode)]',
+          '  static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);',
+          '  public static List<string> List() {',
+          '    var modes = new List<string>();',
+          '    var mode = new DEVMODE { dmSize = (short)Marshal.SizeOf(typeof(DEVMODE)) };',
+          '    for (var i = 0; EnumDisplaySettings(null, i, ref mode); i++) {',
+          '      var text = mode.dmPelsWidth + "x" + mode.dmPelsHeight;',
+          '      if (!modes.Contains(text)) modes.Add(text);',
+          '    }',
+          '    return modes;',
+          '  }',
+          '}'
+        ) -join "`n"
+        Add-Type -TypeDefinition $cs
+        Write-Host "Modes: $([DisplayModes]::List() -join ', ')"
+        # Set-DisplayResolution accepts an unsupported mode without changing anything: check the result
+        Set-DisplayResolution -Width ([int]$env:DISPLAY_WIDTH) -Height ([int]$env:DISPLAY_HEIGHT) -Force
+        Start-Sleep -Seconds 5
+        Add-Type -AssemblyName System.Windows.Forms
+        foreach ($screen in [System.Windows.Forms.Screen]::AllScreens) {
+            Write-Host "Screen $($screen.DeviceName) primary=$($screen.Primary) bounds=$($screen.Bounds.Width)x$($screen.Bounds.Height) work=$($screen.WorkingArea.Width)x$($screen.WorkingArea.Height)"
+        }
+        $metrics = Get-ItemProperty -Path "HKCU:\Control Panel\Desktop\WindowMetrics" -ErrorAction SilentlyContinue
+        Write-Host "AppliedDPI=$($metrics.AppliedDPI)"

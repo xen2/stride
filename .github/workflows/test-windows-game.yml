@@ -42,6 +42,13 @@ on:
         description: Capture and upload build binlog (off by default; adds some I/O overhead)
         default: false
         type: boolean
+      display:
+        description: Display (amyuni = Amyuni IDD virtual display, experiment for the D3D12 DWM crash)
+        default: none
+        type: choice
+        options:
+          - none
+          - amyuni
   workflow_call:
     inputs:
       build-type:
@@ -89,7 +96,7 @@ jobs:
   Game-GraphicsApi:
     name: Windows (${{ matrix.graphics-api }}, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
     runs-on: windows-2025-vs2026
-    timeout-minutes: 20
+    timeout-minutes: ${{ github.event.inputs.display == 'amyuni' && 60 || 20 }}
     strategy:
       fail-fast: false
       matrix:
@@ -119,6 +126,11 @@ jobs:
           # (works uniformly for same-repo and fork PRs).
           ref: ${{ (github.event.inputs.commit-sha != '' && github.event.inputs.commit-sha) || (inputs.commit-sha != '' && inputs.commit-sha) || github.ref }}
           exclude: samples
+      # Experiment: an IDD virtual display, where Game Studio's D3D12 rendering crashes DWM
+      - name: Amyuni virtual display
+        if: github.event.inputs.display == 'amyuni'
+        timeout-minutes: 5
+        uses: ./.github/actions/amyuni-display
       - name: Configure crash dumps
         shell: pwsh
         run: |
@@ -195,6 +207,19 @@ jobs:
               exit $LASTEXITCODE
             }
           }
+      # Crash times to match against the test start and end times in the .trx
+      - name: DWM crash times
+        if: always() && github.event.inputs.display == 'amyuni'
+        shell: pwsh
+        run: |
+          $crashes = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
+              Where-Object Message -match 'dwm\.exe' | Sort-Object TimeCreated)
+          Write-Host "dwm crashes: $($crashes.Count)"
+          $times = $crashes | ForEach-Object { $_.TimeCreated.ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss.fff') }
+          New-Item -ItemType Directory -Path TestResults -Force | Out-Null
+          $times | Set-Content TestResults\dwm-crashes.txt
+          $times | Select-Object -First 10
+          if ($crashes.Count -gt 0) { $crashes[0] | Format-List TimeCreated, Message }
       - name: Publish Test Report
         if: always() && env.STRIDE_TEST_TARGET != ''
         uses: phoenix-actions/test-reporting@v16
