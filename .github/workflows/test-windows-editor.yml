@@ -314,11 +314,12 @@ jobs:
               @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
                   Where-Object Message -match 'dwm\.exe').Count
           }
+          # The first run with clears only on BGRA had no DWM crash: these add Stride's swap chain setup
           $variants = @(
-              '',
-              '--tearing',
-              '--tearing --child',
-              '--tearing --child --windows 3 --resize-every 30'
+              '--rgba',
+              '--rgba --colorspace',
+              '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing --child',
+              '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing --child --devices 4 --windows 2 --resize-every 30'
           )
           foreach ($variant in $variants) {
               $before = DwmCrashCount

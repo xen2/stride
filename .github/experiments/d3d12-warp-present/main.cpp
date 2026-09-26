@@ -2,11 +2,18 @@
 // Used to check whether DWM survives it on an indirect display (IDD) without Game Studio.
 //
 //   d3d12-present [--seconds N] [--windows N] [--child] [--tearing] [--resize-every FRAMES] [--adapter0]
+//                 [--rgba] [--colorspace] [--srgb-rtv] [--copy] [--fullscreen-desc] [--devices N]
 //
-//   --child         swap chain on a child window, like a WPF HwndHost
-//   --tearing       DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING on the swap chain (presents still use interval 1)
-//   --resize-every  resize the windows (and ResizeBuffers) every N frames
-//   --adapter0      use the first DXGI adapter instead of EnumWarpAdapter
+//   --child            swap chain on a child window, like a WPF HwndHost
+//   --tearing          DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING on the swap chain (presents still use interval 1)
+//   --resize-every     resize the windows (and ResizeBuffers) every N frames
+//   --adapter0         use the first DXGI adapter instead of EnumWarpAdapter
+//   --rgba             R8G8B8A8_UNORM swap chain instead of B8G8R8A8_UNORM (Stride's default)
+//   --colorspace       SetColorSpace1(RGB_FULL_G22_NONE_P709), as Stride does
+//   --srgb-rtv         render target views in the sRGB variant of the swap chain format
+//   --copy             clear an offscreen texture and copy it into the back buffer
+//   --fullscreen-desc  pass a windowed DXGI_SWAP_CHAIN_FULLSCREEN_DESC, as Stride does
+//   --devices N        create N-1 more idle D3D12 devices on the same adapter
 //
 // Exit code: 0 = ran to the end, 2 = a D3D12/DXGI call failed.
 
@@ -38,10 +45,18 @@ struct Options
     int seconds = 60;
     int windows = 1;
     int resizeEvery = 0;
+    int devices = 1;
     bool child = false;
     bool tearing = false;
     bool adapter0 = false;
+    bool rgba = false;
+    bool colorSpace = false;
+    bool srgbRtv = false;
+    bool copy = false;
+    bool fullscreenDesc = false;
 };
+
+static const int BufferCount = 2;
 
 struct Target
 {
@@ -49,19 +64,22 @@ struct Target
     HWND hwnd{};
     RECT fullRect{};
     ComPtr<IDXGISwapChain3> swapChain;
-    ComPtr<ID3D12DescriptorHeap> rtvHeap;
-    ComPtr<ID3D12Resource> buffers[2];
+    ComPtr<ID3D12DescriptorHeap> rtvHeap; // back buffers, then the offscreen texture
+    ComPtr<ID3D12Resource> buffers[BufferCount];
+    ComPtr<ID3D12Resource> offscreen;
     int width{};
     int height{};
 };
 
-static const int BufferCount = 2;
+static Options g_options;
 static ComPtr<ID3D12CommandQueue> g_queue;
 static ComPtr<ID3D12Fence> g_fence;
 static HANDLE g_fenceEvent;
 static UINT64 g_fenceValue;
 static UINT g_rtvSize;
 static UINT g_swapChainFlags;
+static DXGI_FORMAT g_format = DXGI_FORMAT_B8G8R8A8_UNORM;
+static DXGI_FORMAT g_rtvFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -100,14 +118,40 @@ static void ClientSize(HWND hwnd, int& width, int& height)
     height = rect.bottom - rect.top > 8 ? rect.bottom - rect.top : 8;
 }
 
+static D3D12_CPU_DESCRIPTOR_HANDLE Rtv(Target& target, int index)
+{
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv = target.rtvHeap->GetCPUDescriptorHandleForHeapStart();
+    rtv.ptr += (SIZE_T)index * g_rtvSize;
+    return rtv;
+}
+
 static void CreateTargets(Target& target)
 {
+    D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
+    rtvDesc.Format = g_rtvFormat;
+    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
     for (int i = 0; i < BufferCount; ++i)
     {
         CHECK(target.swapChain->GetBuffer(i, IID_PPV_ARGS(&target.buffers[i])));
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv = target.rtvHeap->GetCPUDescriptorHandleForHeapStart();
-        rtv.ptr += (SIZE_T)i * g_rtvSize;
-        g_device->CreateRenderTargetView(target.buffers[i].Get(), nullptr, rtv);
+        g_device->CreateRenderTargetView(target.buffers[i].Get(), &rtvDesc, Rtv(target, i));
+    }
+
+    if (g_options.copy)
+    {
+        D3D12_HEAP_PROPERTIES heap{};
+        heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+        D3D12_RESOURCE_DESC desc{};
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        desc.Width = target.width;
+        desc.Height = target.height;
+        desc.DepthOrArraySize = 1;
+        desc.MipLevels = 1;
+        desc.Format = g_format;
+        desc.SampleDesc.Count = 1;
+        desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        CHECK(g_device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc,
+            D3D12_RESOURCE_STATE_RENDER_TARGET, nullptr, IID_PPV_ARGS(&target.offscreen)));
+        g_device->CreateRenderTargetView(target.offscreen.Get(), &rtvDesc, Rtv(target, BufferCount));
     }
 }
 
@@ -128,10 +172,22 @@ static void Resize(Target& target)
     WaitForGpu();
     for (auto& buffer : target.buffers)
         buffer.Reset();
+    target.offscreen.Reset();
     CHECK(target.swapChain->ResizeBuffers(BufferCount, width, height, DXGI_FORMAT_UNKNOWN, g_swapChainFlags));
     target.width = width;
     target.height = height;
     CreateTargets(target);
+}
+
+static void Barrier(ID3D12GraphicsCommandList* list, ID3D12Resource* resource, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
+{
+    D3D12_RESOURCE_BARRIER barrier{};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = resource;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    barrier.Transition.StateBefore = before;
+    barrier.Transition.StateAfter = after;
+    list->ResourceBarrier(1, &barrier);
 }
 
 static Options ParseOptions(int argc, char** argv)
@@ -143,9 +199,15 @@ static Options ParseOptions(int argc, char** argv)
         if (!std::strcmp(arg, "--seconds") && i + 1 < argc) options.seconds = std::atoi(argv[++i]);
         else if (!std::strcmp(arg, "--windows") && i + 1 < argc) options.windows = std::atoi(argv[++i]);
         else if (!std::strcmp(arg, "--resize-every") && i + 1 < argc) options.resizeEvery = std::atoi(argv[++i]);
+        else if (!std::strcmp(arg, "--devices") && i + 1 < argc) options.devices = std::atoi(argv[++i]);
         else if (!std::strcmp(arg, "--child")) options.child = true;
         else if (!std::strcmp(arg, "--tearing")) options.tearing = true;
         else if (!std::strcmp(arg, "--adapter0")) options.adapter0 = true;
+        else if (!std::strcmp(arg, "--rgba")) options.rgba = true;
+        else if (!std::strcmp(arg, "--colorspace")) options.colorSpace = true;
+        else if (!std::strcmp(arg, "--srgb-rtv")) options.srgbRtv = true;
+        else if (!std::strcmp(arg, "--copy")) options.copy = true;
+        else if (!std::strcmp(arg, "--fullscreen-desc")) options.fullscreenDesc = true;
         else { std::printf("unknown argument: %s\n", arg); std::exit(1); }
     }
     return options;
@@ -153,8 +215,14 @@ static Options ParseOptions(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-    Options options = ParseOptions(argc, argv);
+    g_options = ParseOptions(argc, argv);
+    const Options& options = g_options;
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+    if (options.rgba)
+        g_format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    g_rtvFormat = !options.srgbRtv ? g_format
+        : options.rgba ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
 
     ComPtr<IDXGIFactory6> factory;
     CHECK(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)));
@@ -180,6 +248,10 @@ int main(int argc, char** argv)
     ComPtr<ID3D12Device> device;
     CHECK(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device)));
     g_device = device.Get();
+
+    std::vector<ComPtr<ID3D12Device>> extraDevices(options.devices > 1 ? options.devices - 1 : 0);
+    for (auto& extraDevice : extraDevices)
+        CHECK(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&extraDevice)));
 
     if (options.tearing)
     {
@@ -238,20 +310,26 @@ int main(int argc, char** argv)
         DXGI_SWAP_CHAIN_DESC1 desc{};
         desc.Width = target.width;
         desc.Height = target.height;
-        desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        desc.Format = g_format;
         desc.SampleDesc.Count = 1;
         desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         desc.BufferCount = BufferCount;
+        desc.Scaling = DXGI_SCALING_STRETCH;
         desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         desc.Flags = g_swapChainFlags;
+        DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc{};
+        fullscreenDesc.Windowed = TRUE;
         ComPtr<IDXGISwapChain1> swapChain;
-        CHECK(factory->CreateSwapChainForHwnd(g_queue.Get(), target.hwnd, &desc, nullptr, nullptr, &swapChain));
-        CHECK(factory->MakeWindowAssociation(target.hwnd, DXGI_MWA_NO_ALT_ENTER));
+        CHECK(factory->CreateSwapChainForHwnd(g_queue.Get(), target.hwnd, &desc,
+            options.fullscreenDesc ? &fullscreenDesc : nullptr, nullptr, &swapChain));
         CHECK(swapChain.As(&target.swapChain));
+        if (options.colorSpace)
+            CHECK(target.swapChain->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709));
+        CHECK(factory->MakeWindowAssociation(target.hwnd, DXGI_MWA_NO_ALT_ENTER));
 
         D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
         heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        heapDesc.NumDescriptors = BufferCount;
+        heapDesc.NumDescriptors = BufferCount + 1;
         CHECK(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&target.rtvHeap)));
         CreateTargets(target);
         std::printf("window %d: swap chain %dx%d\n", i, target.width, target.height);
@@ -290,25 +368,27 @@ int main(int argc, char** argv)
         for (Target& target : targets)
         {
             UINT index = target.swapChain->GetCurrentBackBufferIndex();
+            ID3D12Resource* backBuffer = target.buffers[index].Get();
             CHECK(allocator->Reset());
             CHECK(list->Reset(allocator.Get(), nullptr));
 
-            D3D12_RESOURCE_BARRIER barrier{};
-            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-            barrier.Transition.pResource = target.buffers[index].Get();
-            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-            barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-            list->ResourceBarrier(1, &barrier);
-
-            D3D12_CPU_DESCRIPTOR_HANDLE rtv = target.rtvHeap->GetCPUDescriptorHandleForHeapStart();
-            rtv.ptr += (SIZE_T)index * g_rtvSize;
             float color[4] = { (frames % 256) / 255.0f, 0.3f, 0.6f, 1.0f };
-            list->ClearRenderTargetView(rtv, color, 0, nullptr);
-
-            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-            barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-            list->ResourceBarrier(1, &barrier);
+            if (options.copy)
+            {
+                ID3D12Resource* offscreen = target.offscreen.Get();
+                list->ClearRenderTargetView(Rtv(target, BufferCount), color, 0, nullptr);
+                Barrier(list.Get(), offscreen, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
+                Barrier(list.Get(), backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST);
+                list->CopyResource(backBuffer, offscreen);
+                Barrier(list.Get(), backBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
+                Barrier(list.Get(), offscreen, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            }
+            else
+            {
+                Barrier(list.Get(), backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                list->ClearRenderTargetView(Rtv(target, index), color, 0, nullptr);
+                Barrier(list.Get(), backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+            }
             CHECK(list->Close());
 
             ID3D12CommandList* lists[] = { list.Get() };
