@@ -31,6 +31,10 @@ on:
           - vdd-keep-hyperv
           - vdd-sdr
           - amyuni
+      dwm-repro:
+        description: Run the minimal D3D12 present repro instead of the editor tests
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       build-type:
@@ -132,6 +136,21 @@ jobs:
                       $top = Get-Process | Sort-Object PrivateMemorySize64 -Descending | Select-Object -First 6 |
                           ForEach-Object { "$($_.ProcessName)($($_.Id))=$([int]($_.PrivateMemorySize64 / 1MB))" }
                       $line += ' top: ' + ($top -join ' ')
+                  }
+                  # GPU allocations (WARP goes through the Basic Render Driver, so dxgkrnl counts them), in MB
+                  try {
+                      $samples = (Get-Counter -Counter '\GPU Process Memory(*)\Total Committed', '\GPU Adapter Memory(*)\Total Committed' -ErrorAction Stop).CounterSamples
+                      $perPid = @{}
+                      $adapters = @()
+                      foreach ($sample in $samples) {
+                          if ($sample.Path -match 'gpu process memory\(pid_(\d+)_') { $perPid[[int]$Matches[1]] += $sample.CookedValue }
+                          elseif ($sample.CookedValue -gt 0 -and $sample.InstanceName -match 'luid_(0x[0-9a-f]+_0x[0-9a-f]+)') { $adapters += '{0}={1}' -f $Matches[1], [int]($sample.CookedValue / 1MB) }
+                      }
+                      $gpuTop = $perPid.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 4 | ForEach-Object {
+                          '{0}({1})={2}' -f (Get-Process -Id $_.Key -ErrorAction SilentlyContinue).ProcessName, $_.Key, [int]($_.Value / 1MB) }
+                      $line += ' gpu: ' + ($gpuTop -join ' ') + ' adapters: ' + ($adapters -join ' ')
+                  } catch {
+                      $line += " gpu error: $_"
                   }
                   Add-Content -Path $log -Value $line
               } catch {
@@ -269,13 +288,55 @@ jobs:
         if: matrix.graphics-api == 'Vulkan'
         uses: ./.github/actions/setup-vulkan-windows
 
+      # Experiment: a minimal D3D12-on-WARP presenter, to see whether DWM survives it without Game Studio
+      - name: Build the D3D12 present repro
+        if: inputs.dwm-repro
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -host_arch=x64' | Out-Null
+          $source = "${{ github.workspace }}\.github\experiments\d3d12-warp-present\main.cpp"
+          $out = "${{ runner.temp }}\dwm-repro"
+          New-Item -ItemType Directory -Path $out -Force | Out-Null
+          Push-Location $out
+          cl /nologo /O2 /EHsc /W4 /std:c++17 $source /Fe:d3d12-present.exe d3d12.lib dxgi.lib user32.lib
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Pop-Location
+
+      # Each variant adds one thing Game Studio does; DWM crashes are counted per variant
+      - name: Run the D3D12 present repro
+        if: inputs.dwm-repro
+        shell: pwsh
+        run: |
+          $exe = "${{ runner.temp }}\dwm-repro\d3d12-present.exe"
+          function DwmCrashCount {
+              @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
+                  Where-Object Message -match 'dwm\.exe').Count
+          }
+          $variants = @(
+              '',
+              '--tearing',
+              '--tearing --child',
+              '--tearing --child --windows 3 --resize-every 30'
+          )
+          foreach ($variant in $variants) {
+              $before = DwmCrashCount
+              Write-Host "=== d3d12-present --seconds 45 $variant ($((Get-Date).ToUniversalTime().ToString('HH:mm:ss')) UTC)"
+              $process = Start-Process $exe -ArgumentList "--seconds 45 $variant" -NoNewWindow -Wait -PassThru
+              Start-Sleep -Seconds 10
+              Write-Host "=== exit=$($process.ExitCode) dwm crashes during the run and 10 s after: $((DwmCrashCount) - $before)"
+          }
+
       - name: Build Stride.GameStudio.AutoTesting
+        if: ${{ !inputs.dwm-repro }}
         run: |
           dotnet build sources\editor\Stride.GameStudio.AutoTesting\Stride.GameStudio.AutoTesting.csproj `
             -nr:false -v:m -p:WarningLevel=0 `
             -p:Configuration=${{ inputs.build-type || 'Debug' }}
 
       - name: Build Stride.Editor.Tests
+        if: ${{ !inputs.dwm-repro }}
         run: |
           dotnet build tests\editor\Stride.Editor.Tests.csproj `
             -nr:false -v:m -p:WarningLevel=0 `
@@ -285,6 +346,7 @@ jobs:
       # or out-of-order packing), NuGet global cache extractions for Stride.*, and the user
       # nuget config (which sources/mapping the sample restore will see).
       - name: Diagnostic — NuGet state pre-test
+        if: ${{ !inputs.dwm-repro }}
         shell: pwsh
         run: |
           Write-Host "=== bin/packages Stride.* (name, size, mtime) ==="
@@ -319,6 +381,7 @@ jobs:
           Write-Host "AppliedDPI=$($metrics.AppliedDPI)"
 
       - name: Run editor screenshot tests
+        if: ${{ !inputs.dwm-repro }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
@@ -365,7 +428,7 @@ jobs:
           retention-days: 3
 
       - name: Publish test report
-        if: always()
+        if: always() && !inputs.dwm-repro
         uses: phoenix-actions/test-reporting@v16
         with:
           name: 'Editor screenshot regression (${{ matrix.graphics-api }})'
