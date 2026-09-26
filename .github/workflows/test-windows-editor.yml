@@ -183,9 +183,8 @@ jobs:
           }
           Push-Location $pkg
           .\deviceinstaller64.exe install usbmmidd.inf usbmmidd
-          # The monitor's default mode, also the one it comes back in after a PnP cycle
+          # The monitor's default mode; the install created the key with the list of modes
           $monitors = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\WUDF\Services\usbmmIdd\Parameters\Monitors"
-          New-Item -Path $monitors -Force | Out-Null
           Set-ItemProperty -Path $monitors -Name '(Default)' -Value '3840,2160'
           Get-ItemProperty -Path $monitors | Format-List
           .\deviceinstaller64.exe enableidd 1
@@ -194,19 +193,27 @@ jobs:
           # The install may open an advertisement page
           Get-Process msedge, chrome, firefox, iexplore -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Get-PnpDevice -Class Display | Format-Table FriendlyName, Status, InstanceId
-          $hyperv = Get-PnpDevice -Class Display | Where-Object { $_.FriendlyName -like "*Hyper-V*" }
-          foreach ($dev in $hyperv) { Disable-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction Continue }
-          Start-Sleep -Seconds 5
-          Get-PnpDevice -Class Display | Format-Table FriendlyName, Status
-          Get-PnpDevice -Class Monitor -ErrorAction SilentlyContinue | Format-Table FriendlyName, Status
+          Get-PnpDevice -Class Monitor -ErrorAction SilentlyContinue | Format-Table FriendlyName, Status, InstanceId
 
-      # Before the display mode: its PnP cycle brings the monitor back in its default mode
+      # No PnP cycle: it restarts the adapter, which then has no monitor. Disabling Hyper-V
+      # right after is the display change that applies it.
       - name: Set DPI for the Amyuni display
         if: inputs.display == 'amyuni'
         uses: ./.github/actions/set-monitor-dpi
         with:
           target-dpi: '100'
           monitor-height: '2160'
+          pnp-cycle: 'false'
+
+      - name: Disable the Hyper-V display
+        if: inputs.display == 'amyuni'
+        shell: pwsh
+        run: |
+          $hyperv = Get-PnpDevice -Class Display | Where-Object { $_.FriendlyName -like "*Hyper-V*" }
+          foreach ($dev in $hyperv) { Disable-PnpDevice -InstanceId $dev.InstanceId -Confirm:$false -ErrorAction Continue }
+          Start-Sleep -Seconds 5
+          Get-PnpDevice -Class Display | Format-Table FriendlyName, Status
+          Get-PnpDevice -Class Monitor -ErrorAction SilentlyContinue | Format-Table FriendlyName, Status
 
       # Experiment: the stock Hyper-V Video adapter (caps at 1920x1080), or the Amyuni display at 3840x2160
       - name: Set display mode
@@ -308,6 +315,8 @@ jobs:
           foreach ($screen in [System.Windows.Forms.Screen]::AllScreens) {
               Write-Host "Screen $($screen.DeviceName) primary=$($screen.Primary) bounds=$($screen.Bounds.Width)x$($screen.Bounds.Height) work=$($screen.WorkingArea.Width)x$($screen.WorkingArea.Height)"
           }
+          $metrics = Get-ItemProperty -Path "HKCU:\Control Panel\Desktop\WindowMetrics" -ErrorAction SilentlyContinue
+          Write-Host "AppliedDPI=$($metrics.AppliedDPI)"
 
       - name: Run editor screenshot tests
         env:
