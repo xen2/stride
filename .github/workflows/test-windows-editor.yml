@@ -183,6 +183,11 @@ jobs:
           }
           Push-Location $pkg
           .\deviceinstaller64.exe install usbmmidd.inf usbmmidd
+          # The monitor's default mode, also the one it comes back in after a PnP cycle
+          $monitors = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\WUDF\Services\usbmmIdd\Parameters\Monitors"
+          New-Item -Path $monitors -Force | Out-Null
+          Set-ItemProperty -Path $monitors -Name '(Default)' -Value '3840,2160'
+          Get-ItemProperty -Path $monitors | Format-List
           .\deviceinstaller64.exe enableidd 1
           Pop-Location
           Start-Sleep -Seconds 10
@@ -194,6 +199,14 @@ jobs:
           Start-Sleep -Seconds 5
           Get-PnpDevice -Class Display | Format-Table FriendlyName, Status
           Get-PnpDevice -Class Monitor -ErrorAction SilentlyContinue | Format-Table FriendlyName, Status
+
+      # Before the display mode: its PnP cycle brings the monitor back in its default mode
+      - name: Set DPI for the Amyuni display
+        if: inputs.display == 'amyuni'
+        uses: ./.github/actions/set-monitor-dpi
+        with:
+          target-dpi: '100'
+          monitor-height: '2160'
 
       # Experiment: the stock Hyper-V Video adapter (caps at 1920x1080), or the Amyuni display at 3840x2160
       - name: Set display mode
@@ -244,13 +257,6 @@ jobs:
           $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
           Write-Host "Primary screen: $($bounds.Width)x$($bounds.Height)"
 
-      - name: Set DPI for the Amyuni display
-        if: inputs.display == 'amyuni'
-        uses: ./.github/actions/set-monitor-dpi
-        with:
-          target-dpi: '100'
-          monitor-height: '2160'
-
       # No GPU on the runner: Lavapipe, with the validation layers
       - name: Set up Vulkan
         if: matrix.graphics-api == 'Vulkan'
@@ -295,6 +301,14 @@ jobs:
       # ScreenshotComparator.Compare against tests/editor/baselines/dpi<N>/. ANTHROPIC_API_KEY
       # opts the comparator into Claude vision second-opinions on frames that exceed LPIPS —
       # cost is bounded because Claude only fires on already-failing frames.
+      - name: Display state before tests
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Windows.Forms
+          foreach ($screen in [System.Windows.Forms.Screen]::AllScreens) {
+              Write-Host "Screen $($screen.DeviceName) primary=$($screen.Primary) bounds=$($screen.Bounds.Width)x$($screen.Bounds.Height) work=$($screen.WorkingArea.Width)x$($screen.WorkingArea.Height)"
+          }
+
       - name: Run editor screenshot tests
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
