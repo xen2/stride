@@ -269,64 +269,52 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Pop-Location
 
-          # Copies next to the exe with the app-local WARP Game Studio ships (warp-only), and with the
-          # WARP + Agility SDK pair the game tests ship (paired). Versions from sources\Directory.Packages.props.
-          # warp21: the next WARP release, to see if it fixes the DWM crash
-          $packages = @(
-              @{ Id = 'Microsoft.Direct3D.WARP'; Version = '1.0.20' },
-              @{ Id = 'Microsoft.Direct3D.WARP'; Version = '1.0.21' },
-              @{ Id = 'Microsoft.Direct3D.D3D12'; Version = '1.619.3' }
-          )
-          foreach ($package in $packages) {
-              $name = "$($package.Id)-$($package.Version)"
-              Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/$($package.Id)/$($package.Version)" -OutFile "${{ runner.temp }}\$name.zip" -UseBasicParsing
-              Expand-Archive -Path "${{ runner.temp }}\$name.zip" -DestinationPath "${{ runner.temp }}\$name" -Force
+          # One copy of the exe per stable Microsoft.Direct3D.WARP release, with its d3d10warp.dll next to it
+          Write-Host "OS WARP: $((Get-Item "$env:SystemRoot\System32\d3d10warp.dll").VersionInfo.FileVersion)"
+          $versions = (Invoke-RestMethod "https://api.nuget.org/v3-flatcontainer/microsoft.direct3d.warp/index.json").versions |
+              Where-Object { $_ -notmatch '-' }
+          $available = @()
+          foreach ($version in $versions) {
+              $extract = "${{ runner.temp }}\warp-$version"
+              Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.WARP/$version" -OutFile "$extract.zip" -UseBasicParsing
+              Expand-Archive -Path "$extract.zip" -DestinationPath $extract -Force
+              $dll = Get-ChildItem $extract -Recurse -Filter d3d10warp.dll | Where-Object FullName -match '\\x64\\' | Select-Object -First 1
+              if (-not $dll) { Write-Host "$version`: no x64 d3d10warp.dll"; continue }
+              $dir = "${{ runner.temp }}\dwm-repro-warp-$version"
+              New-Item -ItemType Directory -Path $dir -Force | Out-Null
+              Copy-Item "$out\d3d12-present.exe", $dll.FullName $dir
+              Write-Host "$version`: $($dll.VersionInfo.FileVersion)"
+              $available += $version
           }
-          $agility = "${{ runner.temp }}\Microsoft.Direct3D.D3D12-1.619.3\build\native\bin\x64"
-          foreach ($name in 'warp-only', 'paired', 'warp21') {
-              $version = if ($name -eq 'warp21') { '1.0.21' } else { '1.0.20' }
-              $dir = "${{ runner.temp }}\dwm-repro-$name"
-              New-Item -ItemType Directory -Path "$dir\D3D12" -Force | Out-Null
-              Copy-Item "$out\d3d12-present.exe", "${{ runner.temp }}\Microsoft.Direct3D.WARP-$version\build\native\bin\x64\d3d10warp.dll" $dir
-              if ($name -eq 'paired') { Copy-Item "$agility\D3D12Core.dll", "$agility\d3d12SDKLayers.dll" "$dir\D3D12" }
-              (Get-Item "$dir\d3d10warp.dll").VersionInfo | Format-List FileName, FileVersion
-          }
-          $devMode = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -ErrorAction SilentlyContinue
-          Write-Host "Developer Mode (AllowDevelopmentWithoutDevLicense): $($devMode.AllowDevelopmentWithoutDevLicense)"
+          $available | Set-Content "${{ runner.temp }}\warp-versions.txt"
 
-      # Each variant adds one thing Game Studio does; DWM crashes are counted per variant
+      # With the app-local WARP 1.0.20 or 1.0.21, DWM crashes 0.1-0.3 s after the swap chain's window is
+      # moved with SetParent (--reparent); with the OS WARP it never does. The loop stops with the process.
+      # Sweep every stable WARP release to find the first one that crashes; the OS WARP runs first and last.
       - name: Run the D3D12 present repro
         if: inputs.dwm-repro
         shell: pwsh
         run: |
-          function DwmCrashes {
+          function DwmCrashCount {
               @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
-                  Where-Object Message -match 'dwm\.exe' | Sort-Object TimeCreated)
+                  Where-Object Message -match 'dwm\.exe').Count
           }
-          # Game Studio traces: DWM dies 0.3-0.6 s after the scene view is moved/shown (SetWindowPos + ShowWindow)
-          # or resized, with no present in between. Before that, the swap chain presented a few frames under
-          # the parking window, then was moved with SetParent while hidden, 0.2-2 s before being shown.
-          # With the OS WARP, no crash. With the app-local WARP 1.0.20 Game Studio ships (with or without the
-          # Agility SDK), DWM crashes 0.2-0.4 s after SetParent or the first show. The loop stops with the process.
-          # warp21 tests the next WARP release; the last variant is the 1.0.20 positive control.
-          $sequence = '--reparent --present-before-attach 3 --attach-delay-ms 2000 --quiet-ms 5000'
-          $stride = '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing'
-          $variants = @(
-              @{ Dir = 'warp21'; Args = "$stride $sequence" },
-              @{ Dir = 'warp21'; Args = '--reparent' },
-              @{ Dir = 'warp21'; Args = "$stride $sequence --debug" },
-              @{ Dir = 'warp-only'; Args = '--reparent' }
-          )
-          foreach ($variant in $variants) {
-              $exe = "${{ runner.temp }}\dwm-repro-$($variant.Dir)\d3d12-present.exe"
-              $before = (DwmCrashes).Count
-              Write-Host "=== [$($variant.Dir)] d3d12-present --seconds 30 $($variant.Args) ($((Get-Date).ToUniversalTime().ToString('HH:mm:ss.fff')) UTC)"
-              $process = Start-Process $exe -ArgumentList "--seconds 30 $($variant.Args)" -NoNewWindow -Wait -PassThru
-              Start-Sleep -Seconds 10
-              $new = @(DwmCrashes | Select-Object -Skip $before)
-              Write-Host "=== exit=$($process.ExitCode) dwm crashes during the run and 10 s after: $($new.Count)"
-              $new | Select-Object -First 3 | ForEach-Object { Write-Host "    dwm crash $($_.TimeCreated.ToUniversalTime().ToString('HH:mm:ss.fff'))" }
+          $runs = @('os') + @(Get-Content "${{ runner.temp }}\warp-versions.txt") + @('os')
+          $index = 0
+          $results = foreach ($version in $runs) {
+              $index++
+              $dir = if ($version -eq 'os') { "${{ runner.temp }}\dwm-repro" } else { "${{ runner.temp }}\dwm-repro-warp-$version" }
+              $before = DwmCrashCount
+              $output = "$dir\out-$index.txt"
+              $process = Start-Process "$dir\d3d12-present.exe" -ArgumentList '--seconds 10 --reparent' -NoNewWindow -Wait -PassThru `
+                  -RedirectStandardOutput $output
+              $during = (DwmCrashCount) - $before
+              Start-Sleep -Seconds 8
+              $after = (DwmCrashCount) - $before - $during
+              $failure = (Select-String -Path $output -Pattern 'FAILED' | Select-Object -Last 1).Line
+              [pscustomobject]@{ WARP = $version; Exit = $process.ExitCode; DwmCrashesDuring = $during; DwmCrashesAfterExit = $after; Failure = $failure }
           }
+          $results | Format-Table -AutoSize | Out-String -Width 250 | Write-Host
 
       - name: Build Stride.GameStudio.AutoTesting
         if: ${{ !inputs.dwm-repro }}
