@@ -47,6 +47,7 @@ on:
           - wpf-software
           - os-warp
           - agility
+          - warp21
   workflow_call:
     inputs:
       build-type:
@@ -270,19 +271,25 @@ jobs:
 
           # Copies next to the exe with the app-local WARP Game Studio ships (warp-only), and with the
           # WARP + Agility SDK pair the game tests ship (paired). Versions from sources\Directory.Packages.props.
-          $packages = @{ 'Microsoft.Direct3D.WARP' = '1.0.20'; 'Microsoft.Direct3D.D3D12' = '1.619.3' }
-          foreach ($package in $packages.Keys) {
-              $zip = "${{ runner.temp }}\$package.zip"
-              Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/$package/$($packages[$package])" -OutFile $zip -UseBasicParsing
-              Expand-Archive -Path $zip -DestinationPath "${{ runner.temp }}\$package" -Force
+          # warp21: the next WARP release, to see if it fixes the DWM crash
+          $packages = @(
+              @{ Id = 'Microsoft.Direct3D.WARP'; Version = '1.0.20' },
+              @{ Id = 'Microsoft.Direct3D.WARP'; Version = '1.0.21' },
+              @{ Id = 'Microsoft.Direct3D.D3D12'; Version = '1.619.3' }
+          )
+          foreach ($package in $packages) {
+              $name = "$($package.Id)-$($package.Version)"
+              Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/$($package.Id)/$($package.Version)" -OutFile "${{ runner.temp }}\$name.zip" -UseBasicParsing
+              Expand-Archive -Path "${{ runner.temp }}\$name.zip" -DestinationPath "${{ runner.temp }}\$name" -Force
           }
-          $warp = "${{ runner.temp }}\Microsoft.Direct3D.WARP\build\native\bin\x64\d3d10warp.dll"
-          $agility = "${{ runner.temp }}\Microsoft.Direct3D.D3D12\build\native\bin\x64"
-          foreach ($name in 'warp-only', 'paired') {
+          $agility = "${{ runner.temp }}\Microsoft.Direct3D.D3D12-1.619.3\build\native\bin\x64"
+          foreach ($name in 'warp-only', 'paired', 'warp21') {
+              $version = if ($name -eq 'warp21') { '1.0.21' } else { '1.0.20' }
               $dir = "${{ runner.temp }}\dwm-repro-$name"
               New-Item -ItemType Directory -Path "$dir\D3D12" -Force | Out-Null
-              Copy-Item "$out\d3d12-present.exe", $warp $dir
+              Copy-Item "$out\d3d12-present.exe", "${{ runner.temp }}\Microsoft.Direct3D.WARP-$version\build\native\bin\x64\d3d10warp.dll" $dir
               if ($name -eq 'paired') { Copy-Item "$agility\D3D12Core.dll", "$agility\d3d12SDKLayers.dll" "$dir\D3D12" }
+              (Get-Item "$dir\d3d10warp.dll").VersionInfo | Format-List FileName, FileVersion
           }
           $devMode = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -ErrorAction SilentlyContinue
           Write-Host "Developer Mode (AllowDevelopmentWithoutDevLicense): $($devMode.AllowDevelopmentWithoutDevLicense)"
@@ -299,15 +306,15 @@ jobs:
           # Game Studio traces: DWM dies 0.3-0.6 s after the scene view is moved/shown (SetWindowPos + ShowWindow)
           # or resized, with no present in between. Before that, the swap chain presented a few frames under
           # the parking window, then was moved with SetParent while hidden, 0.2-2 s before being shown.
-          # That sequence alone, with the OS WARP and D3D12, had no crash. Game Studio also ships an app-local
-          # WARP (d3d10warp.dll) without the Agility SDK the game tests pair it with.
-          # A DWM crash loop may outlive its process: only the first variant with crashes is conclusive.
+          # With the OS WARP, no crash. With the app-local WARP 1.0.20 Game Studio ships (with or without the
+          # Agility SDK), DWM crashes 0.2-0.4 s after SetParent or the first show. The loop stops with the process.
+          # warp21 tests the next WARP release; the last variant is the 1.0.20 positive control.
           $sequence = '--reparent --present-before-attach 3 --attach-delay-ms 2000 --quiet-ms 5000'
           $stride = '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing'
           $variants = @(
-              @{ Dir = 'paired'; Args = "$stride $sequence --agility 619" },
-              @{ Dir = 'warp-only'; Args = "$stride $sequence" },
-              @{ Dir = 'warp-only'; Args = "$stride $sequence --debug" },
+              @{ Dir = 'warp21'; Args = "$stride $sequence" },
+              @{ Dir = 'warp21'; Args = '--reparent' },
+              @{ Dir = 'warp21'; Args = "$stride $sequence --debug" },
               @{ Dir = 'warp-only'; Args = '--reparent' }
           )
           foreach ($variant in $variants) {
@@ -363,27 +370,31 @@ jobs:
       # ScreenshotComparator.Compare against tests/editor/baselines/dpi<N>/. ANTHROPIC_API_KEY
       # opts the comparator into Claude vision second-opinions on frames that exceed LPIPS —
       # cost is bounded because Claude only fires on already-failing frames.
-      # Experiment (DWM crash): Game Studio's host ships an app-local WARP without the Agility SDK the game
-      # tests pair it with. os-warp removes it (OS WARP + OS D3D12), agility adds the pair's D3D12Core.
+      # Experiment (DWM crash): Game Studio's host ships an app-local WARP 1.0.20, which crashes DWM on an IDD
+      # display with D3D12. os-warp removes it (OS WARP), agility adds the Agility SDK, warp21 swaps in WARP 1.0.21.
       - name: Experiment - WARP and Agility SDK next to the host
-        if: ${{ !inputs.dwm-repro && (inputs.experiment == 'os-warp' || inputs.experiment == 'agility') }}
+        if: ${{ !inputs.dwm-repro && (inputs.experiment == 'os-warp' || inputs.experiment == 'agility' || inputs.experiment == 'warp21') }}
         shell: pwsh
         run: |
           $hosts = Get-ChildItem sources\editor\Stride.GameStudio.AutoTesting\bin -Recurse -Filter Stride.GameStudio.AutoTesting.exe
-          if ('${{ inputs.experiment }}' -eq 'agility') {
-              $zip = "${{ runner.temp }}\d3d12.zip"
-              Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.619.3" -OutFile $zip -UseBasicParsing
-              Expand-Archive -Path $zip -DestinationPath "${{ runner.temp }}\d3d12" -Force
+          $package = switch ('${{ inputs.experiment }}') { 'agility' { 'Microsoft.Direct3D.D3D12/1.619.3' } 'warp21' { 'Microsoft.Direct3D.WARP/1.0.21' } }
+          if ($package) {
+              $zip = "${{ runner.temp }}\package.zip"
+              Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/$package" -OutFile $zip -UseBasicParsing
+              Expand-Archive -Path $zip -DestinationPath "${{ runner.temp }}\package" -Force
           }
+          $bin = "${{ runner.temp }}\package\build\native\bin\x64"
           foreach ($hostExe in $hosts) {
               $dir = $hostExe.DirectoryName
-              if ('${{ inputs.experiment }}' -eq 'os-warp') {
-                  Remove-Item "$dir\d3d10warp.dll" -ErrorAction SilentlyContinue
-              } else {
-                  New-Item -ItemType Directory -Path "$dir\D3D12" -Force | Out-Null
-                  Copy-Item "${{ runner.temp }}\d3d12\build\native\bin\x64\D3D12Core.dll", "${{ runner.temp }}\d3d12\build\native\bin\x64\d3d12SDKLayers.dll" "$dir\D3D12"
+              switch ('${{ inputs.experiment }}') {
+                  'os-warp' { Remove-Item "$dir\d3d10warp.dll" -ErrorAction SilentlyContinue }
+                  'agility' {
+                      New-Item -ItemType Directory -Path "$dir\D3D12" -Force | Out-Null
+                      Copy-Item "$bin\D3D12Core.dll", "$bin\d3d12SDKLayers.dll" "$dir\D3D12"
+                  }
+                  'warp21' { Copy-Item "$bin\d3d10warp.dll" $dir -Force }
               }
-              Get-ChildItem $dir -Recurse -Include d3d10warp.dll, D3D12Core.dll | Format-Table FullName, Length
+              Get-ChildItem $dir -Recurse -Include d3d10warp.dll, D3D12Core.dll | ForEach-Object { "$($_.FullName) $($_.VersionInfo.FileVersion)" }
           }
           $devMode = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -ErrorAction SilentlyContinue
           Write-Host "Developer Mode (AllowDevelopmentWithoutDevLicense): $($devMode.AllowDevelopmentWithoutDevLicense)"
