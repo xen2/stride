@@ -373,7 +373,7 @@ namespace Stride.Graphics
 
             HResult result = swapChain->Present((uint) presentInterval,  presentFlags);
 
-            if (Stride.Core.Diagnostics.ExperimentTrace.IsEnabled && (tracePresentCount++ % 120 == 0 || result.IsFailure))
+            if (Stride.Core.Diagnostics.ExperimentTrace.IsEnabled && (tracePresentCount++ < 5 || tracePresentCount % 120 == 0 || result.IsFailure))
                 Stride.Core.Diagnostics.ExperimentTrace.Write($"swapchain {(nint) swapChain:X} present #{tracePresentCount} interval={presentInterval} flags=0x{presentFlags:X} hr=0x{result.Value:X8} size={Description.BackBufferWidth}x{Description.BackBufferHeight}");
 
             if (result.IsFailure)

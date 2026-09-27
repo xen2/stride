@@ -44,6 +44,7 @@ on:
           - no-preview
           - no-debug-device
           - delay-show
+          - wpf-software
   workflow_call:
     inputs:
       build-type:
@@ -345,6 +346,17 @@ jobs:
           }
           $metrics = Get-ItemProperty -Path "HKCU:\Control Panel\Desktop\WindowMetrics" -ErrorAction SilentlyContinue
           Write-Host "AppliedDPI=$($metrics.AppliedDPI)"
+          # Experiment (DWM crash): WPF software rendering, so only our device draws on the adapter in Game Studio's window
+          if ('${{ inputs.experiment }}' -eq 'wpf-software') {
+              New-Item -Path "HKCU:\Software\Microsoft\Avalon.Graphics" -Force | Out-Null
+              Set-ItemProperty -Path "HKCU:\Software\Microsoft\Avalon.Graphics" -Name DisableHWAcceleration -Value 1 -Type DWord
+          }
+          try {
+              Add-Type -AssemblyName PresentationCore
+              Write-Host "WPF render tier=$([System.Windows.Media.RenderCapability]::Tier -shr 16)"
+          } catch {
+              Write-Host "WPF render tier: $_"
+          }
 
       - name: Run editor screenshot tests
         if: ${{ !inputs.dwm-repro }}
