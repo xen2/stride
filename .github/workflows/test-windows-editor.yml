@@ -45,6 +45,8 @@ on:
           - no-debug-device
           - delay-show
           - wpf-software
+          - os-warp
+          - agility
   workflow_call:
     inputs:
       build-type:
@@ -266,12 +268,30 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Pop-Location
 
+          # Copies next to the exe with the app-local WARP Game Studio ships (warp-only), and with the
+          # WARP + Agility SDK pair the game tests ship (paired). Versions from sources\Directory.Packages.props.
+          $packages = @{ 'Microsoft.Direct3D.WARP' = '1.0.20'; 'Microsoft.Direct3D.D3D12' = '1.619.3' }
+          foreach ($package in $packages.Keys) {
+              $zip = "${{ runner.temp }}\$package.zip"
+              Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/$package/$($packages[$package])" -OutFile $zip -UseBasicParsing
+              Expand-Archive -Path $zip -DestinationPath "${{ runner.temp }}\$package" -Force
+          }
+          $warp = "${{ runner.temp }}\Microsoft.Direct3D.WARP\build\native\bin\x64\d3d10warp.dll"
+          $agility = "${{ runner.temp }}\Microsoft.Direct3D.D3D12\build\native\bin\x64"
+          foreach ($name in 'warp-only', 'paired') {
+              $dir = "${{ runner.temp }}\dwm-repro-$name"
+              New-Item -ItemType Directory -Path "$dir\D3D12" -Force | Out-Null
+              Copy-Item "$out\d3d12-present.exe", $warp $dir
+              if ($name -eq 'paired') { Copy-Item "$agility\D3D12Core.dll", "$agility\d3d12SDKLayers.dll" "$dir\D3D12" }
+          }
+          $devMode = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -ErrorAction SilentlyContinue
+          Write-Host "Developer Mode (AllowDevelopmentWithoutDevLicense): $($devMode.AllowDevelopmentWithoutDevLicense)"
+
       # Each variant adds one thing Game Studio does; DWM crashes are counted per variant
       - name: Run the D3D12 present repro
         if: inputs.dwm-repro
         shell: pwsh
         run: |
-          $exe = "${{ runner.temp }}\dwm-repro\d3d12-present.exe"
           function DwmCrashes {
               @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
                   Where-Object Message -match 'dwm\.exe' | Sort-Object TimeCreated)
@@ -279,19 +299,22 @@ jobs:
           # Game Studio traces: DWM dies 0.3-0.6 s after the scene view is moved/shown (SetWindowPos + ShowWindow)
           # or resized, with no present in between. Before that, the swap chain presented a few frames under
           # the parking window, then was moved with SetParent while hidden, 0.2-2 s before being shown.
+          # That sequence alone, with the OS WARP and D3D12, had no crash. Game Studio also ships an app-local
+          # WARP (d3d10warp.dll) without the Agility SDK the game tests pair it with.
           # A DWM crash loop may outlive its process: only the first variant with crashes is conclusive.
           $sequence = '--reparent --present-before-attach 3 --attach-delay-ms 2000 --quiet-ms 5000'
           $stride = '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing'
           $variants = @(
-              "$stride $sequence --debug",
-              "$stride $sequence --frame-ms 2000",
-              "$sequence",
-              "$stride $sequence --no-resize-buffers"
+              @{ Dir = 'paired'; Args = "$stride $sequence --agility 619" },
+              @{ Dir = 'warp-only'; Args = "$stride $sequence" },
+              @{ Dir = 'warp-only'; Args = "$stride $sequence --debug" },
+              @{ Dir = 'warp-only'; Args = '--reparent' }
           )
           foreach ($variant in $variants) {
+              $exe = "${{ runner.temp }}\dwm-repro-$($variant.Dir)\d3d12-present.exe"
               $before = (DwmCrashes).Count
-              Write-Host "=== d3d12-present --seconds 30 $variant ($((Get-Date).ToUniversalTime().ToString('HH:mm:ss.fff')) UTC)"
-              $process = Start-Process $exe -ArgumentList "--seconds 30 $variant" -NoNewWindow -Wait -PassThru
+              Write-Host "=== [$($variant.Dir)] d3d12-present --seconds 30 $($variant.Args) ($((Get-Date).ToUniversalTime().ToString('HH:mm:ss.fff')) UTC)"
+              $process = Start-Process $exe -ArgumentList "--seconds 30 $($variant.Args)" -NoNewWindow -Wait -PassThru
               Start-Sleep -Seconds 10
               $new = @(DwmCrashes | Select-Object -Skip $before)
               Write-Host "=== exit=$($process.ExitCode) dwm crashes during the run and 10 s after: $($new.Count)"
@@ -340,6 +363,31 @@ jobs:
       # ScreenshotComparator.Compare against tests/editor/baselines/dpi<N>/. ANTHROPIC_API_KEY
       # opts the comparator into Claude vision second-opinions on frames that exceed LPIPS —
       # cost is bounded because Claude only fires on already-failing frames.
+      # Experiment (DWM crash): Game Studio's host ships an app-local WARP without the Agility SDK the game
+      # tests pair it with. os-warp removes it (OS WARP + OS D3D12), agility adds the pair's D3D12Core.
+      - name: Experiment - WARP and Agility SDK next to the host
+        if: ${{ !inputs.dwm-repro && (inputs.experiment == 'os-warp' || inputs.experiment == 'agility') }}
+        shell: pwsh
+        run: |
+          $hosts = Get-ChildItem sources\editor\Stride.GameStudio.AutoTesting\bin -Recurse -Filter Stride.GameStudio.AutoTesting.exe
+          if ('${{ inputs.experiment }}' -eq 'agility') {
+              $zip = "${{ runner.temp }}\d3d12.zip"
+              Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.619.3" -OutFile $zip -UseBasicParsing
+              Expand-Archive -Path $zip -DestinationPath "${{ runner.temp }}\d3d12" -Force
+          }
+          foreach ($hostExe in $hosts) {
+              $dir = $hostExe.DirectoryName
+              if ('${{ inputs.experiment }}' -eq 'os-warp') {
+                  Remove-Item "$dir\d3d10warp.dll" -ErrorAction SilentlyContinue
+              } else {
+                  New-Item -ItemType Directory -Path "$dir\D3D12" -Force | Out-Null
+                  Copy-Item "${{ runner.temp }}\d3d12\build\native\bin\x64\D3D12Core.dll", "${{ runner.temp }}\d3d12\build\native\bin\x64\d3d12SDKLayers.dll" "$dir\D3D12"
+              }
+              Get-ChildItem $dir -Recurse -Include d3d10warp.dll, D3D12Core.dll | Format-Table FullName, Length
+          }
+          $devMode = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" -ErrorAction SilentlyContinue
+          Write-Host "Developer Mode (AllowDevelopmentWithoutDevLicense): $($devMode.AllowDevelopmentWithoutDevLicense)"
+
       - name: Display state before tests
         shell: pwsh
         run: |

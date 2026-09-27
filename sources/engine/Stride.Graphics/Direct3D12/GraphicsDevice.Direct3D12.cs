@@ -869,6 +869,7 @@ namespace Stride.Graphics
                 // Path is relative to the exe and must end with a separator.
                 hr = sdkConfig.SetSDKVersion(AgilitySDKVersion, "D3D12\\");
                 sdkConfig.Release();
+                Stride.Core.Diagnostics.ExperimentTrace.Write($"agility SetSDKVersion({AgilitySDKVersion}) hr=0x{hr:X8}");
 
                 if (hr < 0)
                     Log.Warning($"[D3D12] Agility SDK SetSDKVersion({AgilitySDKVersion}) failed (0x{hr:X8}); using system D3D12.");

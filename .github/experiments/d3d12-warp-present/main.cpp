@@ -4,7 +4,7 @@
 //   d3d12-present [--seconds N] [--windows N] [--child] [--tearing] [--resize-every FRAMES] [--adapter0]
 //                 [--rgba] [--colorspace] [--srgb-rtv] [--copy] [--fullscreen-desc] [--devices N] [--reparent]
 //                 [--no-resize-buffers] [--frame-ms N] [--debug]
-//                 [--present-before-attach N] [--attach-delay-ms N] [--quiet-ms N]
+//                 [--present-before-attach N] [--attach-delay-ms N] [--quiet-ms N] [--agility N]
 //
 //   --child            swap chain on a child window, like a WPF HwndHost
 //   --tearing          DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING on the swap chain (presents still use interval 1)
@@ -26,10 +26,14 @@
 //   --present-before-attach N  with --reparent, present N frames while still under the parking window
 //   --attach-delay-ms N        with --reparent, wait N ms between SetParent and the first SetWindowPos + ShowWindow
 //   --quiet-ms N               with --reparent, no present for N ms after the window is shown (Game Studio: 3-9 s)
+//   --agility N        use the app-local D3D12 Agility SDK N from D3D12\ next to the exe
+//
+// A d3d10warp.dll next to the exe replaces the OS WARP; the one in use is printed.
 //
 // Exit code: 0 = ran to the end, 2 = a D3D12/DXGI call failed.
 
 #include <windows.h>
+#include <initguid.h> // defines CLSID_D3D12SDKConfiguration
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>
@@ -74,6 +78,7 @@ struct Options
     int presentBeforeAttach = 0;
     int attachDelayMs = 0;
     int quietMs = 0;
+    int agility = 0;
 };
 
 static const int BufferCount = 2;
@@ -404,6 +409,7 @@ static Options ParseOptions(int argc, char** argv)
         else if (!std::strcmp(arg, "--present-before-attach") && i + 1 < argc) options.presentBeforeAttach = std::atoi(argv[++i]);
         else if (!std::strcmp(arg, "--attach-delay-ms") && i + 1 < argc) options.attachDelayMs = std::atoi(argv[++i]);
         else if (!std::strcmp(arg, "--quiet-ms") && i + 1 < argc) options.quietMs = std::atoi(argv[++i]);
+        else if (!std::strcmp(arg, "--agility") && i + 1 < argc) options.agility = std::atoi(argv[++i]);
         else { std::printf("unknown argument: %s\n", arg); std::exit(1); }
     }
     return options;
@@ -440,6 +446,15 @@ int main(int argc, char** argv)
     std::printf("using: %ls luid=%08X:%08X\n", adapterDesc.Description,
         (unsigned)adapterDesc.AdapterLuid.HighPart, (unsigned)adapterDesc.AdapterLuid.LowPart);
 
+    if (options.agility > 0)
+    {
+        // SetSDKVersion needs Developer Mode; without it, the OS D3D12 stays in use (as in Stride)
+        ComPtr<ID3D12SDKConfiguration> sdkConfig;
+        CHECK(D3D12GetInterface(CLSID_D3D12SDKConfiguration, IID_PPV_ARGS(&sdkConfig)));
+        HRESULT hr = sdkConfig->SetSDKVersion(options.agility, "D3D12\\");
+        std::printf("Agility SDK %d from D3D12\\: hr=0x%08X\n", options.agility, (unsigned)hr);
+    }
+
     if (options.debug)
     {
         ComPtr<ID3D12Debug> debug;
@@ -451,6 +466,14 @@ int main(int argc, char** argv)
     ComPtr<ID3D12Device> device;
     CHECK(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device)));
     g_device = device.Get();
+
+    for (const wchar_t* module : { L"d3d10warp.dll", L"D3D12Core.dll" })
+    {
+        wchar_t path[MAX_PATH] = L"(not loaded)";
+        if (HMODULE handle = GetModuleHandleW(module))
+            GetModuleFileNameW(handle, path, MAX_PATH);
+        std::printf("%ls: %ls\n", module, path);
+    }
 
     std::vector<ComPtr<ID3D12Device>> extraDevices(options.devices > 1 ? options.devices - 1 : 0);
     for (auto& extraDevice : extraDevices)
