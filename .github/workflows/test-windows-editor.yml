@@ -271,8 +271,8 @@ jobs:
 
           # One copy of the exe per stable Microsoft.Direct3D.WARP release, with its d3d10warp.dll next to it
           Write-Host "OS WARP: $((Get-Item "$env:SystemRoot\System32\d3d10warp.dll").VersionInfo.FileVersion)"
-          $versions = (Invoke-RestMethod "https://api.nuget.org/v3-flatcontainer/microsoft.direct3d.warp/index.json").versions |
-              Where-Object { $_ -notmatch '-' }
+          # The sweep of every release found 1.0.12 good and 1.0.13+ bad; workarounds are tested with the pinned 1.0.20
+          $versions = @('1.0.20')
           $available = @()
           foreach ($version in $versions) {
               $extract = "${{ runner.temp }}\warp-$version"
@@ -288,9 +288,9 @@ jobs:
           }
           $available | Set-Content "${{ runner.temp }}\warp-versions.txt"
 
-      # With the app-local WARP 1.0.20 or 1.0.21, DWM crashes 0.1-0.3 s after the swap chain's window is
-      # moved with SetParent (--reparent); with the OS WARP it never does. The loop stops with the process.
-      # Sweep every stable WARP release to find the first one that crashes; the OS WARP runs first and last.
+      # WARP 1.0.13+ (app-local) crashes DWM 0.1-0.3 s after the swap chain's window is moved with SetParent
+      # (--reparent); the OS WARP and 1.0.12 never do. The loop stops with the process.
+      # Workarounds for Game Studio's hosting, with the pinned WARP 1.0.20; the first variant is the crashing control.
       - name: Run the D3D12 present repro
         if: inputs.dwm-repro
         shell: pwsh
@@ -299,20 +299,27 @@ jobs:
               @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
                   Where-Object Message -match 'dwm\.exe').Count
           }
-          $runs = @('os') + @(Get-Content "${{ runner.temp }}\warp-versions.txt") + @('os')
+          $dir = "${{ runner.temp }}\dwm-repro-warp-1.0.20"
+          $variants = @(
+              '--reparent',
+              '--reparent --present-before-attach 0 --quiet-ms 500',
+              '--reparent --create-after-attach',
+              '--reparent --present-before-attach 3 --recreate-after-attach',
+              '--reparent'
+          )
           $index = 0
-          $results = foreach ($version in $runs) {
+          $results = foreach ($variant in $variants) {
               $index++
-              $dir = if ($version -eq 'os') { "${{ runner.temp }}\dwm-repro" } else { "${{ runner.temp }}\dwm-repro-warp-$version" }
               $before = DwmCrashCount
               $output = "$dir\out-$index.txt"
-              $process = Start-Process "$dir\d3d12-present.exe" -ArgumentList '--seconds 10 --reparent' -NoNewWindow -Wait -PassThru `
+              $process = Start-Process "$dir\d3d12-present.exe" -ArgumentList "--seconds 10 $variant" -NoNewWindow -Wait -PassThru `
                   -RedirectStandardOutput $output
               $during = (DwmCrashCount) - $before
               Start-Sleep -Seconds 8
               $after = (DwmCrashCount) - $before - $during
+              Get-Content $output | ForEach-Object { Write-Host "  [$index] $_" }
               $failure = (Select-String -Path $output -Pattern 'FAILED' | Select-Object -Last 1).Line
-              [pscustomobject]@{ WARP = $version; Exit = $process.ExitCode; DwmCrashesDuring = $during; DwmCrashesAfterExit = $after; Failure = $failure }
+              [pscustomobject]@{ Variant = $variant; Exit = $process.ExitCode; DwmCrashesDuring = $during; DwmCrashesAfterExit = $after; Failure = $failure }
           }
           $results | Format-Table -AutoSize | Out-String -Width 250 | Write-Host
 

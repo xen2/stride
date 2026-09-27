@@ -5,6 +5,7 @@
 //                 [--rgba] [--colorspace] [--srgb-rtv] [--copy] [--fullscreen-desc] [--devices N] [--reparent]
 //                 [--no-resize-buffers] [--frame-ms N] [--debug]
 //                 [--present-before-attach N] [--attach-delay-ms N] [--quiet-ms N] [--agility N]
+//                 [--create-after-attach] [--recreate-after-attach]
 //
 //   --child            swap chain on a child window, like a WPF HwndHost
 //   --tearing          DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING on the swap chain (presents still use interval 1)
@@ -27,6 +28,9 @@
 //   --attach-delay-ms N        with --reparent, wait N ms between SetParent and the first SetWindowPos + ShowWindow
 //   --quiet-ms N               with --reparent, no present for N ms after the window is shown (Game Studio: 3-9 s)
 //   --agility N        use the app-local D3D12 Agility SDK N from D3D12\ next to the exe
+//   --create-after-attach    with --reparent, create the swap chain only once the window is moved and shown
+//   --recreate-after-attach  with --reparent, release the swap chain and create a new one once the window is
+//                            moved and shown
 //
 // A d3d10warp.dll next to the exe replaces the OS WARP; the one in use is printed.
 //
@@ -79,6 +83,8 @@ struct Options
     int attachDelayMs = 0;
     int quietMs = 0;
     int agility = 0;
+    bool createAfterAttach = false;
+    bool recreateAfterAttach = false;
 };
 
 static const int BufferCount = 2;
@@ -410,6 +416,8 @@ static Options ParseOptions(int argc, char** argv)
         else if (!std::strcmp(arg, "--attach-delay-ms") && i + 1 < argc) options.attachDelayMs = std::atoi(argv[++i]);
         else if (!std::strcmp(arg, "--quiet-ms") && i + 1 < argc) options.quietMs = std::atoi(argv[++i]);
         else if (!std::strcmp(arg, "--agility") && i + 1 < argc) options.agility = std::atoi(argv[++i]);
+        else if (!std::strcmp(arg, "--create-after-attach")) options.createAfterAttach = true;
+        else if (!std::strcmp(arg, "--recreate-after-attach")) options.recreateAfterAttach = true;
         else { std::printf("unknown argument: %s\n", arg); std::exit(1); }
     }
     return options;
@@ -555,20 +563,41 @@ int main(int argc, char** argv)
             Target& target = targets[i];
             target.hwnd = CreateWindowExW(0, L"D3D12Present", L"", WS_CHILD,
                 0, 0, 512, 512, parking, nullptr, windowClass.hInstance, nullptr);
-            CreateSwapChain(target, i);
+            if (!options.createAfterAttach)
+                CreateSwapChain(target, i);
         }
-        for (int frame = 0; frame < options.presentBeforeAttach; ++frame)
+        if (!options.createAfterAttach)
         {
-            RenderFrame(targets, frame);
-            PumpUntil(never, 200);
+            for (int frame = 0; frame < options.presentBeforeAttach; ++frame)
+            {
+                RenderFrame(targets, frame);
+                PumpUntil(never, 200);
+            }
+            LogTime("presented under the parking window");
         }
-        LogTime("presented under the parking window");
         SetEvent(ready);
-        if (options.quietMs > 0)
+        if (options.quietMs > 0 || options.createAfterAttach || options.recreateAfterAttach)
         {
             PumpUntil(shown, INFINITE);
-            PumpUntil(never, options.quietMs);
-            LogTime("quiet period over");
+            if (options.quietMs > 0)
+                PumpUntil(never, options.quietMs);
+            LogTime("window attached and shown");
+        }
+        for (int i = 0; i < options.windows; ++i)
+        {
+            Target& target = targets[i];
+            if (options.recreateAfterAttach)
+            {
+                // Release the swap chain made under the parking window, and make a new one on the moved window
+                WaitForGpu();
+                for (auto& buffer : target.buffers)
+                    buffer.Reset();
+                target.offscreen.Reset();
+                target.rtvHeap.Reset();
+                target.swapChain.Reset();
+            }
+            if (options.createAfterAttach || options.recreateAfterAttach)
+                CreateSwapChain(target, i);
         }
         RenderLoop(targets, false);
     });
