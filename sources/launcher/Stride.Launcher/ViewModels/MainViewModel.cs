@@ -178,6 +178,24 @@ public sealed class MainViewModel : DispatcherViewModel, IPackagesLogger, IDispo
 
     public bool AutoCloseLauncher { get { return autoCloseLauncher; } set { SetValue(ref autoCloseLauncher, value, () => _settings.CloseLauncherAutomatically = value); } }
 
+    public bool IncludePrereleaseUpdates
+    {
+        get => _settings.IncludePrereleaseUpdates;
+        set
+        {
+            if (_settings.IncludePrereleaseUpdates != value)
+            {
+                OnPropertyChanging(nameof(IncludePrereleaseUpdates));
+                _settings.IncludePrereleaseUpdates = value;
+                _settings.Save();
+                OnPropertyChanged(nameof(IncludePrereleaseUpdates));
+                // Opting in looks for a pre-release right away; the test constructor has no store
+                if (value && store is not null)
+                    CheckForLauncherUpdate().Forget();
+            }
+        }
+    }
+
     public string PreferredEditor
     {
         get => _settings.PreferredEditor;
@@ -285,30 +303,7 @@ public sealed class MainViewModel : DispatcherViewModel, IPackagesLogger, IDispo
         await Task.Run(async () =>
         {
             await RetrieveLocalStrideVersions();
-            await RunLockTask(async () =>
-            {
-                try
-                {
-                    await SelfUpdater.SelfUpdate(ServiceProvider, store);
-                }
-                catch (Exception e)
-                {
-                    var message = $@"**An error occurred while updating the launcher. If the problem persists, please reinstall this application.**
-### Log
-```
-{LogMessages}
-```
-
-### Exception
-```
-{e.FormatSummary(false).TrimEnd(Environment.NewLine.ToCharArray())}
-```";
-                    await ServiceProvider.Get<IDialogService>().MessageBoxAsync(message, MessageBoxButton.OK, MessageBoxImage.Error);
-                    // We do not want our users to use the old launcher when a new one is available.
-                    if (e is not HttpRequestException) // Prevent launcher closing when the user does not have internet access
-                        Environment.Exit(1);
-                }
-            });
+            await CheckForLauncherUpdate();
             // Run news task early so that it can run while we fetch package versions
             var newsTask = FetchNewsPages();
 
@@ -320,6 +315,34 @@ public sealed class MainViewModel : DispatcherViewModel, IPackagesLogger, IDispo
             await newsTask;
         });
         IsSynchronizing = false;
+    }
+
+    private async Task CheckForLauncherUpdate()
+    {
+        await RunLockTask(async () =>
+        {
+            try
+            {
+                await SelfUpdater.SelfUpdate(ServiceProvider, store, _settings.IncludePrereleaseUpdates);
+            }
+            catch (Exception e)
+            {
+                var message = $@"**An error occurred while updating the launcher. If the problem persists, please reinstall this application.**
+### Log
+```
+{LogMessages}
+```
+
+### Exception
+```
+{e.FormatSummary(false).TrimEnd(Environment.NewLine.ToCharArray())}
+```";
+                await ServiceProvider.Get<IDialogService>().MessageBoxAsync(message, MessageBoxButton.OK, MessageBoxImage.Error);
+                // We do not want our users to use the old launcher when a new one is available.
+                if (e is not HttpRequestException) // Prevent launcher closing when the user does not have internet access
+                    Environment.Exit(1);
+            }
+        });
     }
 
     internal void LoadRecentProjects()

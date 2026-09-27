@@ -34,10 +34,21 @@
                   Command="{Binding ReconnectCommand}">
             <TextBlock FontWeight="ExtraBold" Foreground="Gold" Text="Offline" />
           </Button>
-          <TextBlock Grid.Column="2"
-                     Foreground="{DynamicResource ChromeWhiteBrush}"
-                     Margin="8,4" HorizontalAlignment="Right" VerticalAlignment="Center"
-                     Text="{Binding Source={x:Static srv:SelfUpdater.Version}, StringFormat=Launcher v{0}}"/>
+          <!-- Launcher version, its menu holds the launcher update options -->
+          <Button Grid.Column="2"
+                  Classes="transparentButton"
+                  Margin="8,4" Padding="0" Cursor="Hand"
+                  HorizontalAlignment="Right" VerticalAlignment="Center">
+            <Button.Flyout>
+              <MenuFlyout Placement="TopEdgeAlignedRight">
+                <MenuItem Header="{x:Static l:Strings.IncludePrereleaseUpdates}"
+                          ToggleType="CheckBox"
+                          IsChecked="{Binding IncludePrereleaseUpdates, Mode=TwoWay}"/>
+              </MenuFlyout>
+            </Button.Flyout>
+            <TextBlock Foreground="{DynamicResource ChromeWhiteBrush}"
+                       Text="{Binding Source={x:Static srv:SelfUpdater.Version}, StringFormat=Launcher v{0}}"/>
+          </Button>
         </Grid>
       </Border>
       <Grid ColumnDefinitions="Auto, *" Margin="10">

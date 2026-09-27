@@ -92,7 +92,7 @@ dotnet build build/Stride.build -t:PackageCli   # -> bin/cli/Stride.Cli.<version
 
 # Versioning
 
-The launcher version is the single source of truth in [Stride.Launcher.nuspec](Stride.Launcher/Stride.Launcher.nuspec). The csproj reads the `<version>` element at build time, so bump the version there to release a new launcher.
+The launcher version is the single source of truth in [Stride.Launcher.nuspec](Stride.Launcher/Stride.Launcher.nuspec). The csproj and the build read the `<version>` element, so bump the version there to release a new launcher; the StrideSetup version and ProductCode are derived from it. A pre-release adds `-p:VersionSuffix=beta1`, and only launchers that opted in update to it. See [docs/launcher/packaging.md](../../docs/launcher/packaging.md#versions).
 
 The CLI is versioned independently of the engine (SemVer in [`Stride.Cli/Stride.Cli.csproj`](Stride.Cli/Stride.Cli.csproj)) and released by [`.github/workflows/release-cli.yml`](../../.github/workflows/release-cli.yml). See [docs/build/versioning.md](../../docs/build/versioning.md#stride-cli).
 

@@ -376,6 +376,9 @@
   <data name="AutoCloseLauncher" xml:space="preserve">
     <value>Close the launcher after starting Stride</value>
   </data>
+  <data name="IncludePrereleaseUpdates" xml:space="preserve">
+    <value>Receive launcher pre-releases</value>
+  </data>
   <data name="ButtonRoadmap" xml:space="preserve">
     <value>Check the roadmap</value>
     <comment>/!\ Text must be short</comment>

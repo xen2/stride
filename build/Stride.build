@@ -282,29 +282,133 @@ Example: dotnet build build/Stride.build -t:Package
 
   
   <!--
+  Launcher version: the nuspec <version> plus the optional VersionSuffix (-p:VersionSuffix=beta1), as in Stride.Launcher.csproj
+  -->
+  <Target Name="_StrideLauncherVersion">
+    <PropertyGroup>
+      <_StrideLauncherNuSpecLines>$([System.IO.File]::ReadAllText('$(StrideRoot)sources\launcher\Stride.Launcher\Stride.Launcher.nuspec'))</_StrideLauncherNuSpecLines>
+      <!-- Escaped: a literal <version> would be read as an XML element and get this file's xmlns -->
+      <StrideLauncherVersion>$([System.Text.RegularExpressions.Regex]::Match($(_StrideLauncherNuSpecLines), `&lt;version&gt;(.*)&lt;/version&gt;`).Groups[1].Value)</StrideLauncherVersion>
+      <StrideLauncherVersion Condition="'$(VersionSuffix)' != ''">$(StrideLauncherVersion)-$(VersionSuffix)</StrideLauncherVersion>
+      <!-- Launchers before 6.0 update to pre-releases too: a pre-release sends them to the release setup instead -->
+      <StrideLauncherForceReinstallMinVersion>5.0.1</StrideLauncherForceReinstallMinVersion>
+      <StrideLauncherForceReinstallMinVersion Condition="'$(VersionSuffix)' != ''">6.0.0</StrideLauncherForceReinstallMinVersion>
+      <!-- The website links StrideSetup.exe; pre-release setups only go to the GitHub release -->
+      <StrideSetupFileName>StrideSetup.exe</StrideSetupFileName>
+      <StrideSetupFileName Condition="'$(VersionSuffix)' != ''">StrideSetup-$(StrideLauncherVersion).exe</StrideSetupFileName>
+    </PropertyGroup>
+  </Target>
+
+  <!-- StrideSetup's MSI version and ProductCode for a launcher version. -->
+  <UsingTask TaskName="GetStrideSetupVersion" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Version ParameterType="System.String" Required="true" />
+      <MsiVersion ParameterType="System.String" Output="true" />
+      <ProductCode ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.Security.Cryptography" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        // NuGet compares "beta10" before "beta2" (text), so N stays a single digit
+        var match = Regex.Match(Version, @"^(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta|preview|rc)([1-9]))?$");
+        if (!match.Success)
+        {
+            Log.LogError("Launcher version '" + Version + "' must be X.Y.Z or X.Y.Z-(alpha|beta|preview|rc)N, with N from 1 to 9.");
+            return false;
+        }
+        int major = int.Parse(match.Groups[1].Value);
+        int minor = int.Parse(match.Groups[2].Value);
+        int patch = int.Parse(match.Groups[3].Value);
+        if (major > 255 || minor > 255 || patch > 654)
+        {
+            Log.LogError("Launcher version '" + Version + "' doesn't fit in an MSI version (major and minor up to 255, patch up to 654).");
+            return false;
+        }
+
+        // MSI versions are numbers only: build = patch * 100 + rank, with the rank sorting pre-releases
+        // before their release (alpha 11-19, beta 31-39, preview 51-59, rc 71-79, release 99)
+        int rank = 99;
+        switch (match.Groups[4].Value)
+        {
+            case "alpha": rank = 10; break;
+            case "beta": rank = 30; break;
+            case "preview": rank = 50; break;
+            case "rc": rank = 70; break;
+        }
+        if (rank != 99)
+            rank += int.Parse(match.Groups[5].Value);
+        MsiVersion = major + "." + minor + "." + (patch * 100 + rank);
+
+        // Name-based UUID (RFC 4122 version 5) of the version: a new ProductCode for each version
+        // (MSI major upgrade), the same one when a version is built again
+        var namespaceBytes = new Guid("A74B936D-BB1A-4633-A140-A51FCFD372EA").ToByteArray();
+        Array.Reverse(namespaceBytes, 0, 4);
+        Array.Reverse(namespaceBytes, 4, 2);
+        Array.Reverse(namespaceBytes, 6, 2);
+        var nameBytes = Encoding.UTF8.GetBytes("Stride.Launcher.Setup/" + Version);
+        var data = new byte[namespaceBytes.Length + nameBytes.Length];
+        Buffer.BlockCopy(namespaceBytes, 0, data, 0, namespaceBytes.Length);
+        Buffer.BlockCopy(nameBytes, 0, data, namespaceBytes.Length, nameBytes.Length);
+        byte[] hash;
+        using (var sha1 = SHA1.Create())
+            hash = sha1.ComputeHash(data);
+        var uuid = new byte[16];
+        Array.Copy(hash, uuid, 16);
+        uuid[6] = (byte)((uuid[6] & 0x0F) | 0x50);
+        uuid[8] = (byte)((uuid[8] & 0x3F) | 0x80);
+        Array.Reverse(uuid, 0, 4);
+        Array.Reverse(uuid, 4, 2);
+        Array.Reverse(uuid, 6, 2);
+        ProductCode = new Guid(uuid).ToString("B").ToUpperInvariant();
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="_StrideSetupVersion" DependsOnTargets="_StrideLauncherVersion">
+    <GetStrideSetupVersion Version="$(StrideLauncherVersion)">
+      <Output TaskParameter="MsiVersion" PropertyName="StrideSetupMsiVersion" />
+      <Output TaskParameter="ProductCode" PropertyName="StrideSetupProductCode" />
+    </GetStrideSetupVersion>
+    <Message Importance="high" Text="StrideSetup $(StrideLauncherVersion): MSI version $(StrideSetupMsiVersion), ProductCode $(StrideSetupProductCode), $(StrideSetupFileName)" />
+  </Target>
+
+  <!--
   Package Launcher
   -->
-  <Target Name="PackageLauncher">
+  <Target Name="PackageLauncher" DependsOnTargets="_StrideLauncherVersion">
     <ItemGroup>
       <FilesToDeleteLauncher Include="$(StrideRoot)bin\launcher\*.nupkg"/>
     </ItemGroup>
 
     <!-- Note: we avoid building again if BuildWindows was already ran just before -->
     <Delete Files="@(FilesToDeleteLauncher)"/>
-    
+
     <!-- Generate the nuget package for the launcher application -->
-    <Exec Command='"$(NuGetPath)" pack "$(StrideRoot)sources\launcher\Stride.Launcher\Stride.Launcher.nuspec" -BasePath "$(StrideRoot)sources\launcher\Stride.Launcher\bin\Release\publish" -OutputDirectory "$(StrideRoot)bin\launcher"' />
+    <Exec Command='"$(NuGetPath)" pack "$(StrideRoot)sources\launcher\Stride.Launcher\Stride.Launcher.nuspec" -Version $(StrideLauncherVersion) -Properties ForceReinstallMinVersion=$(StrideLauncherForceReinstallMinVersion) -BasePath "$(StrideRoot)sources\launcher\Stride.Launcher\bin\Release\publish" -OutputDirectory "$(StrideRoot)bin\launcher"' />
 
     <MSBuild Projects="$(MSBuildThisFileFullPath)" Targets="_SignFiles"
              Properties="StrideSign=$(StrideSign);StrideSignDir=$(MSBuildThisFileDirectory)..\bin\launcher" />
   </Target>
-  
+
   <!--
   Package Installer: StrideSetup.exe
   -->
-  <Target Name="PackageInstaller" DependsOnTargets="PackageLauncher">
-    <MSBuild Projects="$(MSBuildThisFileFullPath)" Targets="_BuildAdvancedInstaller" Properties="StrideInstallerAip=$(StrideRoot)sources\launcher\Setup\setup.aip" />
-    <Copy SourceFiles="$(StrideRoot)sources\launcher\Setup\setup-SetupFiles\StrideSetup.exe" DestinationFolder="$(StrideRoot)bin\launcher"/>
+  <Target Name="PackageInstaller" DependsOnTargets="PackageLauncher;_StrideSetupVersion">
+    <PropertyGroup>
+      <_StrideSetupDir>$(StrideRoot)sources\launcher\Setup\</_StrideSetupDir>
+      <!-- The version is set on a copy (next to the original, as its paths are relative) so the committed project stays as it is -->
+      <_StrideSetupAip>$(_StrideSetupDir)setup-generated.aip</_StrideSetupAip>
+    </PropertyGroup>
+    <Copy SourceFiles="$(_StrideSetupDir)setup.aip" DestinationFiles="$(_StrideSetupAip)" />
+    <Exec Command='"$(AdvancedInstallerPath)" /edit "$(_StrideSetupAip)" /SetVersion $(StrideSetupMsiVersion) -noprodcode' />
+    <Exec Command='"$(AdvancedInstallerPath)" /edit "$(_StrideSetupAip)" /SetProductCode -langid 1033 -guid $(StrideSetupProductCode)' />
+    <Exec Command='"$(AdvancedInstallerPath)" /edit "$(_StrideSetupAip)" /SetProperty StrideVersion=$(StrideLauncherVersion)' />
+    <Exec Command='"$(AdvancedInstallerPath)" /edit "$(_StrideSetupAip)" /SetPackageName $(StrideSetupFileName) -buildname DefaultBuild' />
+    <Exec Command='"$(AdvancedInstallerPath)" /edit "$(_StrideSetupAip)" /SetOutputLocation -buildname DefaultBuild -path "$(_StrideSetupDir)setup-SetupFiles"' />
+    <MSBuild Projects="$(MSBuildThisFileFullPath)" Targets="_BuildAdvancedInstaller" Properties="StrideInstallerAip=$(_StrideSetupAip)" />
+    <Copy SourceFiles="$(_StrideSetupDir)setup-SetupFiles\$(StrideSetupFileName)" DestinationFolder="$(StrideRoot)bin\launcher"/>
   </Target>
   
   <!--
