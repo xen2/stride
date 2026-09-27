@@ -31,6 +31,12 @@ namespace Stride.Core.Presentation.Controls
         private Int4 lastBoundingBox;
         private bool attached;
         private bool traceShown;
+
+        // Experiment (DWM crash): STRIDE_EXPERIMENT=delay-show keeps the game hidden for 20 s after its first
+        // attach, so its swap chain is resized to the host size before DWM shows it
+        private static readonly bool delayShow = Environment.GetEnvironmentVariable("STRIDE_EXPERIMENT") == "delay-show";
+        private static readonly TimeSpan showDelay = TimeSpan.FromSeconds(20);
+        private DateTime? firstAttachTime;
         private bool isDisposed;
 
         static GameEngineHost()
@@ -137,6 +143,11 @@ namespace Stride.Core.Presentation.Controls
             // Update the parent to be the parent of the host
             NativeHelper.SetParent(Handle, hwndParent);
             Stride.Core.Diagnostics.ExperimentTrace.Write($"host {Handle:X} attached: SetParent({hwndParent:X}) style=0x{style:X}");
+            if (delayShow && firstAttachTime is null)
+            {
+                firstAttachTime = DateTime.UtcNow;
+                System.Threading.Tasks.Task.Delay(showDelay).ContinueWith(_ => Dispatcher.InvokeAsync(UpdateWindowPosition));
+            }
 
             // Register keyboard sink to make shortcuts work
             ((IKeyboardInputSink)this).KeyboardInputSite = ((IKeyboardInputSink)hwndSource).RegisterKeyboardInputSink(this);
@@ -192,6 +203,9 @@ namespace Stride.Core.Presentation.Controls
 
                 if (root == null)
                     return;
+
+                if (delayShow && DateTime.UtcNow - firstAttachTime < showDelay)
+                    shouldShow = false;
 
                 // Find proper position for the game
                 var positionTransform = TransformToAncestor(root);

@@ -27,7 +27,8 @@ namespace Stride.Editor.Preview
 {
     public class GameStudioPreviewService : IAssetPreviewService, IPreviewBuilder
     {
-        public static bool DisablePreview = false;
+        // Experiment (DWM crash): STRIDE_EXPERIMENT=no-preview runs no preview game
+        public static bool DisablePreview = Environment.GetEnvironmentVariable("STRIDE_EXPERIMENT") == "no-preview";
 
         private readonly SessionViewModel session;
 

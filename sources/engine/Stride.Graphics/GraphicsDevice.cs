@@ -166,6 +166,11 @@ namespace Stride.Graphics
             ArgumentNullException.ThrowIfNull(graphicsProfiles); // TODO: Why different from Array.Empty?
 
             Adapter = adapter;
+
+            // Experiment (DWM crash): STRIDE_EXPERIMENT=no-debug-device creates the device without the Debug flag
+            if (Environment.GetEnvironmentVariable("STRIDE_EXPERIMENT") == "no-debug-device")
+                creationFlags &= ~DeviceCreationFlags.Debug;
+
             IsDebugMode = creationFlags.HasFlag(DeviceCreationFlags.Debug);
 
             // Default fallback
