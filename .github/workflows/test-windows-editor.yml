@@ -48,6 +48,7 @@ on:
           - os-warp
           - agility
           - warp21
+          - warp12
   workflow_call:
     inputs:
       build-type:
@@ -267,6 +268,8 @@ jobs:
           Push-Location $out
           cl /nologo /O2 /EHsc /W4 /std:c++17 $source /Fe:d3d12-present.exe d3d12.lib dxgi.lib user32.lib
           if ($LASTEXITCODE -ne 0) { exit 1 }
+          cl /nologo /O2 /EHsc /W4 /std:c++17 "${{ github.workspace }}\.github\experiments\d3d12-warp-present\present-via-d3d11.cpp" /Fe:present-via-d3d11.exe d3d12.lib d3d11.lib dxgi.lib user32.lib
+          if ($LASTEXITCODE -ne 0) { exit 1 }
           Pop-Location
 
           # One copy of the exe per stable Microsoft.Direct3D.WARP release, with its d3d10warp.dll next to it
@@ -282,15 +285,16 @@ jobs:
               if (-not $dll) { Write-Host "$version`: no x64 d3d10warp.dll"; continue }
               $dir = "${{ runner.temp }}\dwm-repro-warp-$version"
               New-Item -ItemType Directory -Path $dir -Force | Out-Null
-              Copy-Item "$out\d3d12-present.exe", $dll.FullName $dir
+              Copy-Item "$out\d3d12-present.exe", "$out\present-via-d3d11.exe", $dll.FullName $dir
               Write-Host "$version`: $($dll.VersionInfo.FileVersion)"
               $available += $version
           }
           $available | Set-Content "${{ runner.temp }}\warp-versions.txt"
 
-      # WARP 1.0.13+ (app-local) crashes DWM 0.1-0.3 s after the swap chain's window is moved with SetParent
-      # (--reparent); the OS WARP and 1.0.12 never do. The loop stops with the process.
-      # Workarounds for Game Studio's hosting, with the pinned WARP 1.0.20; the first variant is the crashing control.
+      # WARP 1.0.13+ (app-local) crashes DWM whenever a D3D12 swap chain presents on screen on an IDD display,
+      # with or without SetParent; D3D11 swap chains do not crash (Game Studio's D3D11 lane). The OS WARP and
+      # 1.0.12 never crash. The loop stops with the process.
+      # Workaround with the pinned WARP 1.0.20: D3D12 renders, D3D11 presents (shared texture, or CPU readback).
       - name: Run the D3D12 present repro
         if: inputs.dwm-repro
         shell: pwsh
@@ -300,19 +304,13 @@ jobs:
                   Where-Object Message -match 'dwm\.exe').Count
           }
           $dir = "${{ runner.temp }}\dwm-repro-warp-1.0.20"
-          $variants = @(
-              '--reparent',
-              '--reparent --present-before-attach 0 --quiet-ms 500',
-              '--reparent --create-after-attach',
-              '--reparent --present-before-attach 3 --recreate-after-attach',
-              '--reparent'
-          )
+          $variants = foreach ($present in 'd3d12', 'd3d11', 'shared', 'readback') { "--present $present"; "--present $present --reparent" }
           $index = 0
           $results = foreach ($variant in $variants) {
               $index++
               $before = DwmCrashCount
               $output = "$dir\out-$index.txt"
-              $process = Start-Process "$dir\d3d12-present.exe" -ArgumentList "--seconds 10 $variant" -NoNewWindow -Wait -PassThru `
+              $process = Start-Process "$dir\present-via-d3d11.exe" -ArgumentList "--seconds 10 $variant" -NoNewWindow -Wait -PassThru `
                   -RedirectStandardOutput $output
               $during = (DwmCrashCount) - $before
               Start-Sleep -Seconds 8
@@ -366,13 +364,13 @@ jobs:
       # opts the comparator into Claude vision second-opinions on frames that exceed LPIPS —
       # cost is bounded because Claude only fires on already-failing frames.
       # Experiment (DWM crash): Game Studio's host ships an app-local WARP 1.0.20, which crashes DWM on an IDD
-      # display with D3D12. os-warp removes it (OS WARP), agility adds the Agility SDK, warp21 swaps in WARP 1.0.21.
+      # display with D3D12. os-warp removes it (OS WARP), agility adds the Agility SDK, warp21 and warp12 swap in WARP 1.0.21 or 1.0.12.
       - name: Experiment - WARP and Agility SDK next to the host
-        if: ${{ !inputs.dwm-repro && (inputs.experiment == 'os-warp' || inputs.experiment == 'agility' || inputs.experiment == 'warp21') }}
+        if: ${{ !inputs.dwm-repro && (inputs.experiment == 'os-warp' || inputs.experiment == 'agility' || inputs.experiment == 'warp21' || inputs.experiment == 'warp12') }}
         shell: pwsh
         run: |
           $hosts = Get-ChildItem sources\editor\Stride.GameStudio.AutoTesting\bin -Recurse -Filter Stride.GameStudio.AutoTesting.exe
-          $package = switch ('${{ inputs.experiment }}') { 'agility' { 'Microsoft.Direct3D.D3D12/1.619.3' } 'warp21' { 'Microsoft.Direct3D.WARP/1.0.21' } }
+          $package = switch ('${{ inputs.experiment }}') { 'agility' { 'Microsoft.Direct3D.D3D12/1.619.3' } 'warp21' { 'Microsoft.Direct3D.WARP/1.0.21' } 'warp12' { 'Microsoft.Direct3D.WARP/1.0.12' } }
           if ($package) {
               $zip = "${{ runner.temp }}\package.zip"
               Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/$package" -OutFile $zip -UseBasicParsing
@@ -387,7 +385,7 @@ jobs:
                       New-Item -ItemType Directory -Path "$dir\D3D12" -Force | Out-Null
                       Copy-Item "$bin\D3D12Core.dll", "$bin\d3d12SDKLayers.dll" "$dir\D3D12"
                   }
-                  'warp21' { Copy-Item "$bin\d3d10warp.dll" $dir -Force }
+                  { $_ -in 'warp21', 'warp12' } { Copy-Item "$bin\d3d10warp.dll" $dir -Force }
               }
               Get-ChildItem $dir -Recurse -Include d3d10warp.dll, D3D12Core.dll | ForEach-Object { "$($_.FullName) $($_.VersionInfo.FileVersion)" }
           }
