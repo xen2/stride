@@ -266,12 +266,14 @@ jobs:
               @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
                   Where-Object Message -match 'dwm\.exe').Count
           }
-          # The first run with clears only on BGRA had no DWM crash: these add Stride's swap chain setup
+          # Earlier runs: no DWM crash with plain presents nor with Stride's swap chain setup. These add
+          # Game Studio's hosting: swap chain made under a parking window, then SetParent into the visible one
+          $stride = '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing'
           $variants = @(
-              '--rgba',
-              '--rgba --colorspace',
-              '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing --child',
-              '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing --child --devices 4 --windows 2 --resize-every 30'
+              '--reparent',
+              "$stride --reparent",
+              "$stride --reparent --resize-every 1",
+              "$stride --reparent --resize-every 1 --windows 2 --devices 4"
           )
           foreach ($variant in $variants) {
               $before = DwmCrashCount

@@ -2,11 +2,11 @@
 // Used to check whether DWM survives it on an indirect display (IDD) without Game Studio.
 //
 //   d3d12-present [--seconds N] [--windows N] [--child] [--tearing] [--resize-every FRAMES] [--adapter0]
-//                 [--rgba] [--colorspace] [--srgb-rtv] [--copy] [--fullscreen-desc] [--devices N]
+//                 [--rgba] [--colorspace] [--srgb-rtv] [--copy] [--fullscreen-desc] [--devices N] [--reparent]
 //
 //   --child            swap chain on a child window, like a WPF HwndHost
 //   --tearing          DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING on the swap chain (presents still use interval 1)
-//   --resize-every     resize the windows (and ResizeBuffers) every N frames
+//   --resize-every     resize the windows (and ResizeBuffers) every N frames; with --reparent, every 500 ms
 //   --adapter0         use the first DXGI adapter instead of EnumWarpAdapter
 //   --rgba             R8G8B8A8_UNORM swap chain instead of B8G8R8A8_UNORM (Stride's default)
 //   --colorspace       SetColorSpace1(RGB_FULL_G22_NONE_P709), as Stride does
@@ -14,6 +14,9 @@
 //   --copy             clear an offscreen texture and copy it into the back buffer
 //   --fullscreen-desc  pass a windowed DXGI_SWAP_CHAIN_FULLSCREEN_DESC, as Stride does
 //   --devices N        create N-1 more idle D3D12 devices on the same adapter
+//   --reparent         Game Studio's hosting: a render thread creates a hidden child window under a hidden
+//                      parking window and its swap chain, then the main thread moves it into the visible
+//                      window with SetParent, and keeps positioning it with SWP_ASYNCWINDOWPOS and ShowWindow
 //
 // Exit code: 0 = ran to the end, 2 = a D3D12/DXGI call failed.
 
@@ -24,6 +27,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <thread>
 #include <vector>
 
 using Microsoft::WRL::ComPtr;
@@ -54,6 +58,7 @@ struct Options
     bool srgbRtv = false;
     bool copy = false;
     bool fullscreenDesc = false;
+    bool reparent = false;
 };
 
 static const int BufferCount = 2;
@@ -72,7 +77,10 @@ struct Target
 };
 
 static Options g_options;
+static ComPtr<IDXGIFactory6> g_factory;
 static ComPtr<ID3D12CommandQueue> g_queue;
+static ComPtr<ID3D12CommandAllocator> g_allocator;
+static ComPtr<ID3D12GraphicsCommandList> g_list;
 static ComPtr<ID3D12Fence> g_fence;
 static HANDLE g_fenceEvent;
 static UINT64 g_fenceValue;
@@ -155,9 +163,43 @@ static void CreateTargets(Target& target)
     }
 }
 
+static void CreateSwapChain(Target& target, int index)
+{
+    ClientSize(target.hwnd, target.width, target.height);
+
+    DXGI_SWAP_CHAIN_DESC1 desc{};
+    desc.Width = target.width;
+    desc.Height = target.height;
+    desc.Format = g_format;
+    desc.SampleDesc.Count = 1;
+    desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    desc.BufferCount = BufferCount;
+    desc.Scaling = DXGI_SCALING_STRETCH;
+    desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    desc.Flags = g_swapChainFlags;
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc{};
+    fullscreenDesc.Windowed = TRUE;
+    ComPtr<IDXGISwapChain1> swapChain;
+    CHECK(g_factory->CreateSwapChainForHwnd(g_queue.Get(), target.hwnd, &desc,
+        g_options.fullscreenDesc ? &fullscreenDesc : nullptr, nullptr, &swapChain));
+    CHECK(swapChain.As(&target.swapChain));
+    if (g_options.colorSpace)
+        CHECK(target.swapChain->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709));
+    CHECK(g_factory->MakeWindowAssociation(target.hwnd, DXGI_MWA_NO_ALT_ENTER));
+
+    D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+    heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    heapDesc.NumDescriptors = BufferCount + 1;
+    CHECK(g_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&target.rtvHeap)));
+    CreateTargets(target);
+    std::printf("window %d: swap chain %dx%d\n", index, target.width, target.height);
+    std::fflush(stdout);
+}
+
 static void Resize(Target& target)
 {
-    if (target.hwnd != target.top)
+    // With --reparent, the main thread positions the child window
+    if (target.hwnd != target.top && !g_options.reparent)
     {
         int width, height;
         ClientSize(target.top, width, height);
@@ -190,6 +232,121 @@ static void Barrier(ID3D12GraphicsCommandList* list, ID3D12Resource* resource, D
     list->ResourceBarrier(1, &barrier);
 }
 
+// Resizes the top-level windows between their full and 3/4 size
+static void ToggleSize(std::vector<Target>& targets, bool shrunk)
+{
+    for (Target& target : targets)
+    {
+        RECT rect = target.fullRect;
+        int width = rect.right - rect.left;
+        int height = rect.bottom - rect.top;
+        if (shrunk)
+        {
+            width = width * 3 / 4;
+            height = height * 3 / 4;
+        }
+        SetWindowPos(target.top, nullptr, rect.left, rect.top, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+}
+
+// Renders and presents until --seconds is over. Without ownsResize, it only follows the window size.
+static void RenderLoop(std::vector<Target>& targets, bool ownsResize)
+{
+    const Options& options = g_options;
+    ULONGLONG start = GetTickCount64();
+    ULONGLONG lastReport = start;
+    UINT64 frames = 0;
+    UINT64 lastFrames = 0;
+    bool shrunk = false;
+    while (GetTickCount64() - start < (ULONGLONG)options.seconds * 1000)
+    {
+        PumpMessages();
+
+        if (ownsResize && options.resizeEvery > 0 && frames > 0 && frames % options.resizeEvery == 0)
+        {
+            shrunk = !shrunk;
+            ToggleSize(targets, shrunk);
+            PumpMessages();
+        }
+        for (Target& target : targets)
+            Resize(target);
+
+        for (Target& target : targets)
+        {
+            UINT index = target.swapChain->GetCurrentBackBufferIndex();
+            ID3D12Resource* backBuffer = target.buffers[index].Get();
+            ID3D12GraphicsCommandList* list = g_list.Get();
+            CHECK(g_allocator->Reset());
+            CHECK(list->Reset(g_allocator.Get(), nullptr));
+
+            float color[4] = { (frames % 256) / 255.0f, 0.3f, 0.6f, 1.0f };
+            if (options.copy)
+            {
+                ID3D12Resource* offscreen = target.offscreen.Get();
+                list->ClearRenderTargetView(Rtv(target, BufferCount), color, 0, nullptr);
+                Barrier(list, offscreen, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
+                Barrier(list, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST);
+                list->CopyResource(backBuffer, offscreen);
+                Barrier(list, backBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
+                Barrier(list, offscreen, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            }
+            else
+            {
+                Barrier(list, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                list->ClearRenderTargetView(Rtv(target, index), color, 0, nullptr);
+                Barrier(list, backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+            }
+            CHECK(list->Close());
+
+            ID3D12CommandList* lists[] = { list };
+            g_queue->ExecuteCommandLists(1, lists);
+            CHECK(target.swapChain->Present(1, 0));
+            WaitForGpu();
+        }
+        ++frames;
+
+        ULONGLONG now = GetTickCount64();
+        if (now - lastReport >= 5000)
+        {
+            std::printf("t=%llus frames=%llu (+%llu) swap chain %dx%d removed-reason=0x%08X\n", (now - start) / 1000,
+                frames, frames - lastFrames, targets[0].width, targets[0].height, (unsigned)g_device->GetDeviceRemovedReason());
+            std::fflush(stdout);
+            lastReport = now;
+            lastFrames = frames;
+        }
+    }
+
+    WaitForGpu();
+    std::printf("rendered %llu frames\n", frames);
+    std::fflush(stdout);
+}
+
+// Pumps this thread's messages until the handle is signaled (true) or the timeout expires (false)
+static bool PumpUntil(HANDLE handle, DWORD timeout)
+{
+    ULONGLONG end = timeout == INFINITE ? ~0ull : GetTickCount64() + timeout;
+    for (;;)
+    {
+        ULONGLONG now = GetTickCount64();
+        DWORD wait = timeout == INFINITE ? INFINITE : now >= end ? 0 : (DWORD)(end - now);
+        DWORD result = MsgWaitForMultipleObjects(1, &handle, FALSE, wait, QS_ALLINPUT);
+        PumpMessages();
+        if (result == WAIT_OBJECT_0)
+            return true;
+        if (result == WAIT_TIMEOUT)
+            return false;
+    }
+}
+
+// GameEngineHost.UpdateWindowPosition: fill the parent's client area, asynchronously, and show
+static void PlaceChild(Target& target)
+{
+    int width, height;
+    ClientSize(target.top, width, height);
+    SetWindowPos(target.hwnd, HWND_TOP, 0, 0, width, height, SWP_ASYNCWINDOWPOS | SWP_NOACTIVATE | SWP_NOZORDER);
+    ShowWindow(target.hwnd, SW_SHOWNOACTIVATE);
+}
+
 static Options ParseOptions(int argc, char** argv)
 {
     Options options;
@@ -208,6 +365,7 @@ static Options ParseOptions(int argc, char** argv)
         else if (!std::strcmp(arg, "--srgb-rtv")) options.srgbRtv = true;
         else if (!std::strcmp(arg, "--copy")) options.copy = true;
         else if (!std::strcmp(arg, "--fullscreen-desc")) options.fullscreenDesc = true;
+        else if (!std::strcmp(arg, "--reparent")) options.reparent = true;
         else { std::printf("unknown argument: %s\n", arg); std::exit(1); }
     }
     return options;
@@ -224,11 +382,10 @@ int main(int argc, char** argv)
     g_rtvFormat = !options.srgbRtv ? g_format
         : options.rgba ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
 
-    ComPtr<IDXGIFactory6> factory;
-    CHECK(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)));
+    CHECK(CreateDXGIFactory2(0, IID_PPV_ARGS(&g_factory)));
 
     ComPtr<IDXGIAdapter1> adapter;
-    for (UINT i = 0; factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i)
+    for (UINT i = 0; g_factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i)
     {
         DXGI_ADAPTER_DESC1 desc;
         adapter->GetDesc1(&desc);
@@ -237,9 +394,9 @@ int main(int argc, char** argv)
     }
     adapter.Reset();
     if (options.adapter0)
-        CHECK(factory->EnumAdapters1(0, &adapter));
+        CHECK(g_factory->EnumAdapters1(0, &adapter));
     else
-        CHECK(factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter)));
+        CHECK(g_factory->EnumWarpAdapter(IID_PPV_ARGS(&adapter)));
     DXGI_ADAPTER_DESC1 adapterDesc;
     adapter->GetDesc1(&adapterDesc);
     std::printf("using: %ls luid=%08X:%08X\n", adapterDesc.Description,
@@ -256,7 +413,7 @@ int main(int argc, char** argv)
     if (options.tearing)
     {
         BOOL allowTearing = FALSE;
-        factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
+        g_factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
         std::printf("tearing supported: %d\n", allowTearing);
         if (allowTearing)
             g_swapChainFlags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
@@ -268,12 +425,9 @@ int main(int argc, char** argv)
     CHECK(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&g_fence)));
     g_fenceEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
     g_rtvSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-    ComPtr<ID3D12CommandAllocator> allocator;
-    CHECK(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&allocator)));
-    ComPtr<ID3D12GraphicsCommandList> list;
-    CHECK(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr, IID_PPV_ARGS(&list)));
-    CHECK(list->Close());
+    CHECK(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&g_allocator)));
+    CHECK(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, g_allocator.Get(), nullptr, IID_PPV_ARGS(&g_list)));
+    CHECK(g_list->Close());
 
     WNDCLASSW windowClass{};
     windowClass.lpfnWndProc = WndProc;
@@ -296,120 +450,68 @@ int main(int argc, char** argv)
         target.top = CreateWindowExW(0, L"D3D12Present", L"D3D12Present", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
             target.fullRect.left, target.fullRect.top, tileWidth, work.bottom - work.top,
             nullptr, nullptr, windowClass.hInstance, nullptr);
-        target.hwnd = target.top;
-        if (options.child)
-        {
-            int width, height;
-            ClientSize(target.top, width, height);
-            target.hwnd = CreateWindowExW(0, L"D3D12Present", L"", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
-                0, 0, width, height, target.top, nullptr, windowClass.hInstance, nullptr);
-        }
-        PumpMessages();
-        ClientSize(target.hwnd, target.width, target.height);
-
-        DXGI_SWAP_CHAIN_DESC1 desc{};
-        desc.Width = target.width;
-        desc.Height = target.height;
-        desc.Format = g_format;
-        desc.SampleDesc.Count = 1;
-        desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        desc.BufferCount = BufferCount;
-        desc.Scaling = DXGI_SCALING_STRETCH;
-        desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        desc.Flags = g_swapChainFlags;
-        DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc{};
-        fullscreenDesc.Windowed = TRUE;
-        ComPtr<IDXGISwapChain1> swapChain;
-        CHECK(factory->CreateSwapChainForHwnd(g_queue.Get(), target.hwnd, &desc,
-            options.fullscreenDesc ? &fullscreenDesc : nullptr, nullptr, &swapChain));
-        CHECK(swapChain.As(&target.swapChain));
-        if (options.colorSpace)
-            CHECK(target.swapChain->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709));
-        CHECK(factory->MakeWindowAssociation(target.hwnd, DXGI_MWA_NO_ALT_ENTER));
-
-        D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
-        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        heapDesc.NumDescriptors = BufferCount + 1;
-        CHECK(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&target.rtvHeap)));
-        CreateTargets(target);
-        std::printf("window %d: swap chain %dx%d\n", i, target.width, target.height);
     }
-    std::fflush(stdout);
 
-    ULONGLONG start = GetTickCount64();
-    ULONGLONG lastReport = start;
-    UINT64 frames = 0;
-    UINT64 lastFrames = 0;
-    bool shrunk = false;
-    while (GetTickCount64() - start < (ULONGLONG)options.seconds * 1000)
+    if (!options.reparent)
     {
-        PumpMessages();
-
-        if (options.resizeEvery > 0 && frames > 0 && frames % options.resizeEvery == 0)
+        for (int i = 0; i < options.windows; ++i)
         {
-            shrunk = !shrunk;
-            for (Target& target : targets)
+            Target& target = targets[i];
+            target.hwnd = target.top;
+            if (options.child)
             {
-                RECT rect = target.fullRect;
-                int width = rect.right - rect.left;
-                int height = rect.bottom - rect.top;
-                if (shrunk)
-                {
-                    width = width * 3 / 4;
-                    height = height * 3 / 4;
-                }
-                SetWindowPos(target.top, nullptr, rect.left, rect.top, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
+                int width, height;
+                ClientSize(target.top, width, height);
+                target.hwnd = CreateWindowExW(0, L"D3D12Present", L"", WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+                    0, 0, width, height, target.top, nullptr, windowClass.hInstance, nullptr);
             }
             PumpMessages();
-            for (Target& target : targets)
-                Resize(target);
+            CreateSwapChain(target, i);
         }
-
-        for (Target& target : targets)
-        {
-            UINT index = target.swapChain->GetCurrentBackBufferIndex();
-            ID3D12Resource* backBuffer = target.buffers[index].Get();
-            CHECK(allocator->Reset());
-            CHECK(list->Reset(allocator.Get(), nullptr));
-
-            float color[4] = { (frames % 256) / 255.0f, 0.3f, 0.6f, 1.0f };
-            if (options.copy)
-            {
-                ID3D12Resource* offscreen = target.offscreen.Get();
-                list->ClearRenderTargetView(Rtv(target, BufferCount), color, 0, nullptr);
-                Barrier(list.Get(), offscreen, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
-                Barrier(list.Get(), backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST);
-                list->CopyResource(backBuffer, offscreen);
-                Barrier(list.Get(), backBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
-                Barrier(list.Get(), offscreen, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            }
-            else
-            {
-                Barrier(list.Get(), backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-                list->ClearRenderTargetView(Rtv(target, index), color, 0, nullptr);
-                Barrier(list.Get(), backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-            }
-            CHECK(list->Close());
-
-            ID3D12CommandList* lists[] = { list.Get() };
-            g_queue->ExecuteCommandLists(1, lists);
-            CHECK(target.swapChain->Present(1, 0));
-            WaitForGpu();
-        }
-        ++frames;
-
-        ULONGLONG now = GetTickCount64();
-        if (now - lastReport >= 5000)
-        {
-            std::printf("t=%llus frames=%llu (+%llu) removed-reason=0x%08X\n", (now - start) / 1000, frames,
-                frames - lastFrames, (unsigned)device->GetDeviceRemovedReason());
-            std::fflush(stdout);
-            lastReport = now;
-            lastFrames = frames;
-        }
+        RenderLoop(targets, true);
+        return 0;
     }
 
-    WaitForGpu();
-    std::printf("done: %llu frames\n", frames);
+    // Render thread: hidden child windows under a hidden parking window, as WinForms does for a
+    // TopLevel = false form without a parent, then their swap chains and the render loop
+    HANDLE ready = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    std::thread render([&]
+    {
+        HWND parking = CreateWindowExW(0, L"D3D12Present", L"Parking", WS_OVERLAPPED,
+            0, 0, 300, 300, nullptr, nullptr, windowClass.hInstance, nullptr);
+        for (int i = 0; i < options.windows; ++i)
+        {
+            Target& target = targets[i];
+            target.hwnd = CreateWindowExW(0, L"D3D12Present", L"", WS_CHILD,
+                0, 0, 300, 300, parking, nullptr, windowClass.hInstance, nullptr);
+            CreateSwapChain(target, i);
+        }
+        SetEvent(ready);
+        RenderLoop(targets, false);
+    });
+    PumpUntil(ready, INFINITE);
+
+    // GameEngineHost.Attach
+    for (Target& target : targets)
+    {
+        LONG style = GetWindowLongW(target.hwnd, GWL_STYLE);
+        SetWindowLongW(target.hwnd, GWL_STYLE, style | WS_CHILD);
+        ShowWindow(target.hwnd, SW_HIDE);
+        SetParent(target.hwnd, target.top);
+        PlaceChild(target);
+    }
+
+    bool shrunk = false;
+    while (!PumpUntil(render.native_handle(), 500))
+    {
+        if (options.resizeEvery > 0)
+        {
+            shrunk = !shrunk;
+            ToggleSize(targets, shrunk);
+        }
+        for (Target& target : targets)
+            PlaceChild(target);
+    }
+    render.join();
     return 0;
 }
