@@ -266,14 +266,16 @@ jobs:
               @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
                   Where-Object Message -match 'dwm\.exe').Count
           }
-          # Earlier runs: no DWM crash with plain presents nor with Stride's swap chain setup. These add
-          # Game Studio's hosting: swap chain made under a parking window, then SetParent into the visible one
-          $stride = '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing'
+          # Earlier runs: no DWM crash with plain presents, Stride's swap chain setup, nor Game Studio's
+          # hosting. The trace shows Game Studio's scene view shown with a 512x512 swap chain stretched over
+          # 1606x968 for up to 10 s, presenting rarely, on a device with the debug layer. A DWM crash loop
+          # may outlive its process: only the first variant with crashes is conclusive.
+          $stride = '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing --reparent'
           $variants = @(
-              '--reparent',
-              "$stride --reparent",
-              "$stride --reparent --resize-every 1",
-              "$stride --reparent --resize-every 1 --windows 2 --devices 4"
+              "$stride --debug",
+              "$stride --no-resize-buffers",
+              "$stride --no-resize-buffers --frame-ms 500",
+              "$stride --no-resize-buffers --frame-ms 500 --debug"
           )
           foreach ($variant in $variants) {
               $before = DwmCrashCount

@@ -3,6 +3,7 @@
 //
 //   d3d12-present [--seconds N] [--windows N] [--child] [--tearing] [--resize-every FRAMES] [--adapter0]
 //                 [--rgba] [--colorspace] [--srgb-rtv] [--copy] [--fullscreen-desc] [--devices N] [--reparent]
+//                 [--no-resize-buffers] [--frame-ms N] [--debug]
 //
 //   --child            swap chain on a child window, like a WPF HwndHost
 //   --tearing          DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING on the swap chain (presents still use interval 1)
@@ -17,6 +18,10 @@
 //   --reparent         Game Studio's hosting: a render thread creates a hidden child window under a hidden
 //                      parking window and its swap chain, then the main thread moves it into the visible
 //                      window with SetParent, and keeps positioning it with SWP_ASYNCWINDOWPOS and ShowWindow
+//   --no-resize-buffers  never ResizeBuffers: DWM stretches the back buffers over the window, as in Game Studio
+//                        between showing the scene view and its first resize (up to 10 s)
+//   --frame-ms N       wait N ms between frames (Game Studio's scene view presents rarely)
+//   --debug            enable the D3D12 debug layer (Game Studio creates its device with the Debug flag)
 //
 // Exit code: 0 = ran to the end, 2 = a D3D12/DXGI call failed.
 
@@ -59,6 +64,9 @@ struct Options
     bool copy = false;
     bool fullscreenDesc = false;
     bool reparent = false;
+    bool noResizeBuffers = false;
+    int frameMs = 0;
+    bool debug = false;
 };
 
 static const int BufferCount = 2;
@@ -208,7 +216,7 @@ static void Resize(Target& target)
 
     int width, height;
     ClientSize(target.hwnd, width, height);
-    if (width == target.width && height == target.height)
+    if ((width == target.width && height == target.height) || g_options.noResizeBuffers)
         return;
 
     WaitForGpu();
@@ -304,6 +312,8 @@ static void RenderLoop(std::vector<Target>& targets, bool ownsResize)
             WaitForGpu();
         }
         ++frames;
+        if (options.frameMs > 0)
+            Sleep(options.frameMs);
 
         ULONGLONG now = GetTickCount64();
         if (now - lastReport >= 5000)
@@ -366,6 +376,9 @@ static Options ParseOptions(int argc, char** argv)
         else if (!std::strcmp(arg, "--copy")) options.copy = true;
         else if (!std::strcmp(arg, "--fullscreen-desc")) options.fullscreenDesc = true;
         else if (!std::strcmp(arg, "--reparent")) options.reparent = true;
+        else if (!std::strcmp(arg, "--no-resize-buffers")) options.noResizeBuffers = true;
+        else if (!std::strcmp(arg, "--frame-ms") && i + 1 < argc) options.frameMs = std::atoi(argv[++i]);
+        else if (!std::strcmp(arg, "--debug")) options.debug = true;
         else { std::printf("unknown argument: %s\n", arg); std::exit(1); }
     }
     return options;
@@ -401,6 +414,14 @@ int main(int argc, char** argv)
     adapter->GetDesc1(&adapterDesc);
     std::printf("using: %ls luid=%08X:%08X\n", adapterDesc.Description,
         (unsigned)adapterDesc.AdapterLuid.HighPart, (unsigned)adapterDesc.AdapterLuid.LowPart);
+
+    if (options.debug)
+    {
+        ComPtr<ID3D12Debug> debug;
+        CHECK(D3D12GetDebugInterface(IID_PPV_ARGS(&debug)));
+        debug->EnableDebugLayer();
+        std::printf("D3D12 debug layer enabled\n");
+    }
 
     ComPtr<ID3D12Device> device;
     CHECK(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device)));
@@ -483,7 +504,7 @@ int main(int argc, char** argv)
         {
             Target& target = targets[i];
             target.hwnd = CreateWindowExW(0, L"D3D12Present", L"", WS_CHILD,
-                0, 0, 300, 300, parking, nullptr, windowClass.hInstance, nullptr);
+                0, 0, 512, 512, parking, nullptr, windowClass.hInstance, nullptr);
             CreateSwapChain(target, i);
         }
         SetEvent(ready);
