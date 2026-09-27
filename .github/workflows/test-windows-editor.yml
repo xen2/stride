@@ -272,27 +272,30 @@ jobs:
         shell: pwsh
         run: |
           $exe = "${{ runner.temp }}\dwm-repro\d3d12-present.exe"
-          function DwmCrashCount {
+          function DwmCrashes {
               @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
-                  Where-Object Message -match 'dwm\.exe').Count
+                  Where-Object Message -match 'dwm\.exe' | Sort-Object TimeCreated)
           }
-          # Earlier runs: no DWM crash with plain presents, Stride's swap chain setup, nor Game Studio's
-          # hosting. The trace shows Game Studio's scene view shown with a 512x512 swap chain stretched over
-          # 1606x968 for up to 10 s, presenting rarely, on a device with the debug layer. A DWM crash loop
-          # may outlive its process: only the first variant with crashes is conclusive.
-          $stride = '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing --reparent'
+          # Game Studio traces: DWM dies 0.3-0.6 s after the scene view is moved/shown (SetWindowPos + ShowWindow)
+          # or resized, with no present in between. Before that, the swap chain presented a few frames under
+          # the parking window, then was moved with SetParent while hidden, 0.2-2 s before being shown.
+          # A DWM crash loop may outlive its process: only the first variant with crashes is conclusive.
+          $sequence = '--reparent --present-before-attach 3 --attach-delay-ms 2000 --quiet-ms 5000'
+          $stride = '--rgba --colorspace --srgb-rtv --copy --fullscreen-desc --tearing'
           $variants = @(
-              "$stride --debug",
-              "$stride --no-resize-buffers",
-              "$stride --no-resize-buffers --frame-ms 500",
-              "$stride --no-resize-buffers --frame-ms 500 --debug"
+              "$stride $sequence --debug",
+              "$stride $sequence --frame-ms 2000",
+              "$sequence",
+              "$stride $sequence --no-resize-buffers"
           )
           foreach ($variant in $variants) {
-              $before = DwmCrashCount
-              Write-Host "=== d3d12-present --seconds 45 $variant ($((Get-Date).ToUniversalTime().ToString('HH:mm:ss')) UTC)"
-              $process = Start-Process $exe -ArgumentList "--seconds 45 $variant" -NoNewWindow -Wait -PassThru
+              $before = (DwmCrashes).Count
+              Write-Host "=== d3d12-present --seconds 30 $variant ($((Get-Date).ToUniversalTime().ToString('HH:mm:ss.fff')) UTC)"
+              $process = Start-Process $exe -ArgumentList "--seconds 30 $variant" -NoNewWindow -Wait -PassThru
               Start-Sleep -Seconds 10
-              Write-Host "=== exit=$($process.ExitCode) dwm crashes during the run and 10 s after: $((DwmCrashCount) - $before)"
+              $new = @(DwmCrashes | Select-Object -Skip $before)
+              Write-Host "=== exit=$($process.ExitCode) dwm crashes during the run and 10 s after: $($new.Count)"
+              $new | Select-Object -First 3 | ForEach-Object { Write-Host "    dwm crash $($_.TimeCreated.ToUniversalTime().ToString('HH:mm:ss.fff'))" }
           }
 
       - name: Build Stride.GameStudio.AutoTesting

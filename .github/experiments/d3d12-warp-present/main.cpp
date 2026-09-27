@@ -4,6 +4,7 @@
 //   d3d12-present [--seconds N] [--windows N] [--child] [--tearing] [--resize-every FRAMES] [--adapter0]
 //                 [--rgba] [--colorspace] [--srgb-rtv] [--copy] [--fullscreen-desc] [--devices N] [--reparent]
 //                 [--no-resize-buffers] [--frame-ms N] [--debug]
+//                 [--present-before-attach N] [--attach-delay-ms N] [--quiet-ms N]
 //
 //   --child            swap chain on a child window, like a WPF HwndHost
 //   --tearing          DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING on the swap chain (presents still use interval 1)
@@ -22,6 +23,9 @@
 //                        between showing the scene view and its first resize (up to 10 s)
 //   --frame-ms N       wait N ms between frames (Game Studio's scene view presents rarely)
 //   --debug            enable the D3D12 debug layer (Game Studio creates its device with the Debug flag)
+//   --present-before-attach N  with --reparent, present N frames while still under the parking window
+//   --attach-delay-ms N        with --reparent, wait N ms between SetParent and the first SetWindowPos + ShowWindow
+//   --quiet-ms N               with --reparent, no present for N ms after the window is shown (Game Studio: 3-9 s)
 //
 // Exit code: 0 = ran to the end, 2 = a D3D12/DXGI call failed.
 
@@ -67,6 +71,9 @@ struct Options
     bool noResizeBuffers = false;
     int frameMs = 0;
     bool debug = false;
+    int presentBeforeAttach = 0;
+    int attachDelayMs = 0;
+    int quietMs = 0;
 };
 
 static const int BufferCount = 2;
@@ -257,6 +264,43 @@ static void ToggleSize(std::vector<Target>& targets, bool shrunk)
     }
 }
 
+// Clears (or copies) and presents each target once
+static void RenderFrame(std::vector<Target>& targets, UINT64 frame)
+{
+    for (Target& target : targets)
+    {
+        UINT index = target.swapChain->GetCurrentBackBufferIndex();
+        ID3D12Resource* backBuffer = target.buffers[index].Get();
+        ID3D12GraphicsCommandList* list = g_list.Get();
+        CHECK(g_allocator->Reset());
+        CHECK(list->Reset(g_allocator.Get(), nullptr));
+
+        float color[4] = { (frame % 256) / 255.0f, 0.3f, 0.6f, 1.0f };
+        if (g_options.copy)
+        {
+            ID3D12Resource* offscreen = target.offscreen.Get();
+            list->ClearRenderTargetView(Rtv(target, BufferCount), color, 0, nullptr);
+            Barrier(list, offscreen, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            Barrier(list, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST);
+            list->CopyResource(backBuffer, offscreen);
+            Barrier(list, backBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
+            Barrier(list, offscreen, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        }
+        else
+        {
+            Barrier(list, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            list->ClearRenderTargetView(Rtv(target, index), color, 0, nullptr);
+            Barrier(list, backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+        }
+        CHECK(list->Close());
+
+        ID3D12CommandList* lists[] = { list };
+        g_queue->ExecuteCommandLists(1, lists);
+        CHECK(target.swapChain->Present(1, 0));
+        WaitForGpu();
+    }
+}
+
 // Renders and presents until --seconds is over. Without ownsResize, it only follows the window size.
 static void RenderLoop(std::vector<Target>& targets, bool ownsResize)
 {
@@ -279,38 +323,7 @@ static void RenderLoop(std::vector<Target>& targets, bool ownsResize)
         for (Target& target : targets)
             Resize(target);
 
-        for (Target& target : targets)
-        {
-            UINT index = target.swapChain->GetCurrentBackBufferIndex();
-            ID3D12Resource* backBuffer = target.buffers[index].Get();
-            ID3D12GraphicsCommandList* list = g_list.Get();
-            CHECK(g_allocator->Reset());
-            CHECK(list->Reset(g_allocator.Get(), nullptr));
-
-            float color[4] = { (frames % 256) / 255.0f, 0.3f, 0.6f, 1.0f };
-            if (options.copy)
-            {
-                ID3D12Resource* offscreen = target.offscreen.Get();
-                list->ClearRenderTargetView(Rtv(target, BufferCount), color, 0, nullptr);
-                Barrier(list, offscreen, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE);
-                Barrier(list, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_COPY_DEST);
-                list->CopyResource(backBuffer, offscreen);
-                Barrier(list, backBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
-                Barrier(list, offscreen, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            }
-            else
-            {
-                Barrier(list, backBuffer, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-                list->ClearRenderTargetView(Rtv(target, index), color, 0, nullptr);
-                Barrier(list, backBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-            }
-            CHECK(list->Close());
-
-            ID3D12CommandList* lists[] = { list };
-            g_queue->ExecuteCommandLists(1, lists);
-            CHECK(target.swapChain->Present(1, 0));
-            WaitForGpu();
-        }
+        RenderFrame(targets, frames);
         ++frames;
         if (options.frameMs > 0)
             Sleep(options.frameMs);
@@ -328,6 +341,15 @@ static void RenderLoop(std::vector<Target>& targets, bool ownsResize)
 
     WaitForGpu();
     std::printf("rendered %llu frames\n", frames);
+    std::fflush(stdout);
+}
+
+// Prints the UTC time, to match against DWM crash times from the event log
+static void LogTime(const char* what)
+{
+    SYSTEMTIME time;
+    GetSystemTime(&time);
+    std::printf("%02u:%02u:%02u.%03u %s\n", time.wHour, time.wMinute, time.wSecond, time.wMilliseconds, what);
     std::fflush(stdout);
 }
 
@@ -379,6 +401,9 @@ static Options ParseOptions(int argc, char** argv)
         else if (!std::strcmp(arg, "--no-resize-buffers")) options.noResizeBuffers = true;
         else if (!std::strcmp(arg, "--frame-ms") && i + 1 < argc) options.frameMs = std::atoi(argv[++i]);
         else if (!std::strcmp(arg, "--debug")) options.debug = true;
+        else if (!std::strcmp(arg, "--present-before-attach") && i + 1 < argc) options.presentBeforeAttach = std::atoi(argv[++i]);
+        else if (!std::strcmp(arg, "--attach-delay-ms") && i + 1 < argc) options.attachDelayMs = std::atoi(argv[++i]);
+        else if (!std::strcmp(arg, "--quiet-ms") && i + 1 < argc) options.quietMs = std::atoi(argv[++i]);
         else { std::printf("unknown argument: %s\n", arg); std::exit(1); }
     }
     return options;
@@ -496,6 +521,8 @@ int main(int argc, char** argv)
     // Render thread: hidden child windows under a hidden parking window, as WinForms does for a
     // TopLevel = false form without a parent, then their swap chains and the render loop
     HANDLE ready = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    HANDLE shown = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    HANDLE never = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     std::thread render([&]
     {
         HWND parking = CreateWindowExW(0, L"D3D12Present", L"Parking", WS_OVERLAPPED,
@@ -507,7 +534,19 @@ int main(int argc, char** argv)
                 0, 0, 512, 512, parking, nullptr, windowClass.hInstance, nullptr);
             CreateSwapChain(target, i);
         }
+        for (int frame = 0; frame < options.presentBeforeAttach; ++frame)
+        {
+            RenderFrame(targets, frame);
+            PumpUntil(never, 200);
+        }
+        LogTime("presented under the parking window");
         SetEvent(ready);
+        if (options.quietMs > 0)
+        {
+            PumpUntil(shown, INFINITE);
+            PumpUntil(never, options.quietMs);
+            LogTime("quiet period over");
+        }
         RenderLoop(targets, false);
     });
     PumpUntil(ready, INFINITE);
@@ -519,8 +558,14 @@ int main(int argc, char** argv)
         SetWindowLongW(target.hwnd, GWL_STYLE, style | WS_CHILD);
         ShowWindow(target.hwnd, SW_HIDE);
         SetParent(target.hwnd, target.top);
-        PlaceChild(target);
     }
+    LogTime("SetParent done");
+    if (options.attachDelayMs > 0)
+        PumpUntil(never, options.attachDelayMs);
+    for (Target& target : targets)
+        PlaceChild(target);
+    LogTime("SetWindowPos + ShowWindow done");
+    SetEvent(shown);
 
     bool shrunk = false;
     while (!PumpUntil(render.native_handle(), 500))
