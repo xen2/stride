@@ -339,6 +339,8 @@ jobs:
         if: ${{ !inputs.dwm-repro }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Experiment: swap chain and GameEngineHost trace, one file per process (Stride.Core ExperimentTrace)
+          STRIDE_DWM_TRACE_DIR: ${{ github.workspace }}\crash-dumps\dwm-trace
         run: |
           dotnet test tests\editor\Stride.Editor.Tests.csproj `
             --no-build `
@@ -360,6 +362,8 @@ jobs:
               $crashes = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -ErrorAction SilentlyContinue |
                   Where-Object Message -match 'dwm\.exe')
               "count=$($crashes.Count)"
+              $crashes | Sort-Object TimeCreated | ForEach-Object { $_.TimeCreated.ToUniversalTime().ToString('HH:mm:ss.fff') } |
+                  Set-Content "${{ github.workspace }}\crash-dumps\dwm-crashes.txt"
               if ($crashes.Count -gt 0) {
                   "first=$($crashes[-1].TimeCreated.ToUniversalTime()) last=$($crashes[0].TimeCreated.ToUniversalTime()) (UTC)"
                   $crashes | Select-Object -Last 2 | Format-List TimeCreated, Message

@@ -96,6 +96,7 @@ namespace Stride.Graphics
 
         private int bufferCount;
         private uint bufferSwapIndex;
+        private int tracePresentCount;
 
         // TODO: This boxes the ComPtr, which is not ideal
         /// <inheritdoc/>
@@ -372,6 +373,9 @@ namespace Stride.Graphics
 
             HResult result = swapChain->Present((uint) presentInterval,  presentFlags);
 
+            if (Stride.Core.Diagnostics.ExperimentTrace.IsEnabled && (tracePresentCount++ % 120 == 0 || result.IsFailure))
+                Stride.Core.Diagnostics.ExperimentTrace.Write($"swapchain {(nint) swapChain:X} present #{tracePresentCount} interval={presentInterval} flags=0x{presentFlags:X} hr=0x{result.Value:X8} size={Description.BackBufferWidth}x{Description.BackBufferHeight}");
+
             if (result.IsFailure)
             {
                 var deviceStatus = GraphicsDevice.GraphicsDeviceStatus;
@@ -414,6 +418,8 @@ namespace Stride.Graphics
         /// <inheritdoc/>
         protected internal override void OnDestroyed(bool immediately = false)
         {
+            Stride.Core.Diagnostics.ExperimentTrace.Write($"swapchain {(nint) swapChain:X} destroyed after {tracePresentCount} presents");
+
             // Drain the GPU before releasing the swap-chain and its buffers: the last Present may
             // still be in flight, and DXGI only tears the swap-chain down once it completes.
             GraphicsDevice.WaitForGpuIdle();
@@ -503,6 +509,7 @@ namespace Stride.Graphics
                 format = PixelFormat.None;
 
             result = swapChain->ResizeBuffers((uint) bufferCount, (uint) width, (uint) height, (Format) format, (uint) GetSwapChainFlags());
+            Stride.Core.Diagnostics.ExperimentTrace.Write($"swapchain {(nint) swapChain:X} ResizeBuffers {width}x{height} format={format} hr=0x{result.Value:X8}");
 
             if (result.IsFailure)
                 result.Throw();
@@ -768,6 +775,7 @@ namespace Stride.Graphics
             ComPtr<IDXGISwapChain1> newSwapChain = default;
 
             HResult result = nativeFactory.CreateSwapChainForHwnd(device, handle, in description, in fullscreenDescription, doNotRestrictOutput, ref newSwapChain);
+            Stride.Core.Diagnostics.ExperimentTrace.Write($"swapchain {(nint) newSwapChain.Handle:X} created hwnd={handle:X} {description.Width}x{description.Height} format={description.Format} buffers={description.BufferCount} effect={description.SwapEffect} flags=0x{description.Flags:X} hr=0x{result.Value:X8}");
 
             if (result.IsFailure)
                 result.Throw();

@@ -408,6 +408,7 @@ namespace Stride.Assets.Presentation.AssetEditors.GameEditor.Services
                 Visible = false,
             };
             windowHandle = GameForm.Handle;
+            Stride.Core.Diagnostics.ExperimentTrace.Write($"editor game form {windowHandle:X} created for {GetType().Name}");
             var context = new GameContextWinforms(GameForm) { InitializeDatabase = false };
             RegisterToDragDropEvents();
 

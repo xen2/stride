@@ -134,6 +134,7 @@ namespace Stride.Editor.Preview
         {
             gameForm = new EmbeddedGameForm { TopLevel = false, Visible = false };
             windowHandle = gameForm.Handle;
+            Stride.Core.Diagnostics.ExperimentTrace.Write($"preview game form {windowHandle:X} created");
 
             initializationSignal.Set();
 

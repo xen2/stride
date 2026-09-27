@@ -30,6 +30,7 @@ namespace Stride.Core.Presentation.Controls
         private DpiScale dpiScale;
         private Int4 lastBoundingBox;
         private bool attached;
+        private bool traceShown;
         private bool isDisposed;
 
         static GameEngineHost()
@@ -135,6 +136,7 @@ namespace Stride.Core.Presentation.Controls
 
             // Update the parent to be the parent of the host
             NativeHelper.SetParent(Handle, hwndParent);
+            Stride.Core.Diagnostics.ExperimentTrace.Write($"host {Handle:X} attached: SetParent({hwndParent:X}) style=0x{style:X}");
 
             // Register keyboard sink to make shortcuts work
             ((IKeyboardInputSink)this).KeyboardInputSite = ((IKeyboardInputSink)hwndSource).RegisterKeyboardInputSink(this);
@@ -148,6 +150,8 @@ namespace Stride.Core.Presentation.Controls
 
             // Hide window, clear parent
             NativeHelper.ShowWindow(Handle, NativeHelper.SW_HIDE);
+            Stride.Core.Diagnostics.ExperimentTrace.Write($"host {Handle:X} detached (hidden)");
+            traceShown = false;
 
             // Unregister keyboard sink
             var site = ((IKeyboardInputSink)this).KeyboardInputSite;
@@ -200,11 +204,17 @@ namespace Stride.Core.Presentation.Controls
                     // TODO: do we want SWP_NOCOPYBITS?
                     const int flags = NativeHelper.SWP_ASYNCWINDOWPOS | NativeHelper.SWP_NOACTIVATE | NativeHelper.SWP_NOZORDER;
                     NativeHelper.SetWindowPos(Handle, NativeHelper.HWND_TOP, boundingBox.X, boundingBox.Y, boundingBox.Z, boundingBox.W, flags);
+                    Stride.Core.Diagnostics.ExperimentTrace.Write($"host {Handle:X} SetWindowPos {boundingBox.X},{boundingBox.Y} {boundingBox.Z}x{boundingBox.W}");
                 }
-                
+
                 if (attached)
                 {
                     NativeHelper.ShowWindow(Handle, shouldShow ? NativeHelper.SW_SHOWNOACTIVATE : NativeHelper.SW_HIDE);
+                    if (shouldShow != traceShown)
+                    {
+                        traceShown = shouldShow;
+                        Stride.Core.Diagnostics.ExperimentTrace.Write($"host {Handle:X} {(shouldShow ? "shown" : "hidden")}");
+                    }
                 }
             }, DispatcherPriority.Input); // This code must be dispatched after the DispatcherPriority.Loaded to properly work since it's checking the IsLoaded flag!
         }
@@ -228,6 +238,7 @@ namespace Stride.Core.Presentation.Controls
                     int style = NativeHelper.GetWindowLong(Handle, NativeHelper.GWL_STYLE);
                     style &= ~NativeHelper.WS_CHILD;
                     NativeHelper.SetWindowLong(Handle, NativeHelper.GWL_STYLE, style);
+                    Stride.Core.Diagnostics.ExperimentTrace.Write($"host {Handle:X} WS_CHILD removed");
 
                     mouseMoveCount = 0;
                     task = Dispatcher.InvokeAsync(() =>
@@ -243,6 +254,7 @@ namespace Stride.Core.Presentation.Controls
                     int style2 = NativeHelper.GetWindowLong(Handle, NativeHelper.GWL_STYLE);
                     style2 |= NativeHelper.WS_CHILD;
                     NativeHelper.SetWindowLong(Handle, NativeHelper.GWL_STYLE, style2);
+                    Stride.Core.Diagnostics.ExperimentTrace.Write($"host {Handle:X} WS_CHILD restored");
 
                     task = Dispatcher.InvokeAsync(() =>
                     {

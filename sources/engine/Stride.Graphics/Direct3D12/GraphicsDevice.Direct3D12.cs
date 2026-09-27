@@ -482,6 +482,7 @@ namespace Stride.Graphics
 
                 nativeDevice = device;
                 deviceRemovedLogged = false;
+                Stride.Core.Diagnostics.ExperimentTrace.Write($"d3d12 device {(nint) nativeDevice:X} created on '{Adapter.Description}' level={featureLevel} flags={deviceCreationFlags}");
                 lock (nativeDeviceUsers)
                     nativeDeviceUsers[(nint)nativeDevice] = nativeDeviceUsers.GetValueOrDefault((nint)nativeDevice) + 1;
 
