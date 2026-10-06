@@ -825,6 +825,11 @@ namespace Stride.Core.Assets.Editor.ViewModel
         public abstract string Name { get; }
 
         public abstract DependencyRange DependencyRange { get; }
+
+        /// <summary>
+        /// A note shown next to the name (a package already available through another dependency).
+        /// </summary>
+        public string Note { get => field; set => SetValue(ref field, value); }
     }
 
     public class LoadedPickablePackageViewModel : PickablePackageViewModel
