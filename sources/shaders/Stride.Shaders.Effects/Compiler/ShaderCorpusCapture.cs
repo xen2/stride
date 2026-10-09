@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 
 namespace Stride.Shaders.Compiler
 {
@@ -16,10 +17,29 @@ namespace Stride.Shaders.Compiler
     public static class ShaderCorpusCapture
     {
         private static readonly string? CaptureDirectory = Environment.GetEnvironmentVariable("STRIDE_SHADER_CORPUS_CAPTURE");
+        private static readonly AsyncLocal<bool> NotRecording = new();
+
+        /// <summary>
+        /// Runs <paramref name="compile"/> without recording. Used for the replay of an effect log: a log is a corpus source of
+        /// its own, given explicitly to the corpus tool, not something a capture finds.
+        /// </summary>
+        public static T WithoutRecording<T>(Func<T> compile)
+        {
+            var previous = NotRecording.Value;
+            NotRecording.Value = true;
+            try
+            {
+                return compile();
+            }
+            finally
+            {
+                NotRecording.Value = previous;
+            }
+        }
 
         public static void Record(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters)
         {
-            if (string.IsNullOrEmpty(CaptureDirectory) || string.IsNullOrEmpty(mixinTree.Name))
+            if (string.IsNullOrEmpty(CaptureDirectory) || NotRecording.Value || string.IsNullOrEmpty(mixinTree.Name))
                 return;
 
             try
