@@ -23,11 +23,15 @@ namespace Stride.Shaders.Compiler
 
             try
             {
+                var tag = Environment.GetEnvironmentVariable("STRIDE_SHADER_CORPUS_TAG") ?? Process.GetCurrentProcess().ProcessName;
                 var entry = new ShaderCorpusEntry(mixinTree.Name, effectParameters.Profile, mixinTree);
-                entry.Sources.Add(Environment.GetEnvironmentVariable("STRIDE_SHADER_CORPUS_TAG") ?? Process.GetCurrentProcess().ProcessName);
+                entry.Sources.Add(tag);
 
+                // One file per permutation and tag: processes never write the same file, and merging the folder gives each
+                // permutation every source that compiled it, whatever the order
                 Directory.CreateDirectory(CaptureDirectory);
-                var path = Path.Combine(CaptureDirectory, $"{entry.Id}.json");
+                var safeTag = string.Concat(Array.ConvertAll(tag.ToCharArray(), c => char.IsLetterOrDigit(c) || c is '.' or '-' or '_' ? c : '_'));
+                var path = Path.Combine(CaptureDirectory, $"{entry.Id}.{safeTag}.json");
                 if (File.Exists(path))
                     return;
 
