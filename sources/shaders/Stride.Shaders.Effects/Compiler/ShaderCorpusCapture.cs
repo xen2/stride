@@ -4,13 +4,14 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 
 namespace Stride.Shaders.Compiler
 {
     /// <summary>
     /// Records every mixin tree given to an effect compiler as a <see cref="ShaderCorpusEntry"/> file, when the
     /// <c>STRIDE_SHADER_CORPUS_CAPTURE</c> environment variable names a folder. <c>STRIDE_SHADER_CORPUS_TAG</c> is stored as the
-    /// entry source (the process name if unset). Used to refresh the shader corpus from a running game or an asset build.
+    /// entry source (the entry assembly name if unset, e.g. the game or the asset compiler). Used to refresh the shader corpus from a running game or an asset build.
     /// </summary>
     public static class ShaderCorpusCapture
     {
@@ -23,7 +24,10 @@ namespace Stride.Shaders.Compiler
 
             try
             {
-                var tag = Environment.GetEnvironmentVariable("STRIDE_SHADER_CORPUS_TAG") ?? Process.GetCurrentProcess().ProcessName;
+                // The entry assembly names tools run by the dotnet host (e.g. the asset compiler), which all share one process name
+                var tag = Environment.GetEnvironmentVariable("STRIDE_SHADER_CORPUS_TAG")
+                    ?? Assembly.GetEntryAssembly()?.GetName().Name
+                    ?? Process.GetCurrentProcess().ProcessName;
                 var entry = new ShaderCorpusEntry(mixinTree.Name, effectParameters.Profile, mixinTree);
                 entry.Sources.Add(tag);
 
