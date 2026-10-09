@@ -65,9 +65,10 @@ generic parameter since): reported, not a failure. A permutation that compiled b
 The corpus is rebuilt from empty, out of what the current code really compiles, by the **Refresh Shader Corpus**
 workflow (`.github/workflows/refresh-shader-corpus.yml`, manual dispatch). It runs with capture on:
 
-- the samples (`test-enduser.yml`, Windows Direct3D11 leg) and the editor (`test-windows-editor.yml`, Direct3D11 leg),
-  each with its `capture-shader-corpus` input,
-- the engine test suites that render (`Stride.Engine.Tests`, `Stride.Particles.Tests`, `Stride.Graphics.Tests`),
+- the samples (`test-enduser.yml`, Windows Direct3D11 leg), the editor (`test-windows-editor.yml`, Direct3D11 leg) and
+  the game test suites (`test-windows-game.yml`, Direct3D11 leg, all of `build/Stride.Tests.Game.Desktop.slnf`), each
+  with its `capture-shader-corpus` input. `Stride.Engine.Tests` has `RenderFeaturesTest` for the features no sample
+  uses (MSAA, ambient occlusion, depth of field, local reflections, temporal anti-aliasing),
 
 adds the two `Stride.Graphics` effect logs (hand-kept specs of the bytecode embedded in `SpriteBatch`, `UIBatch`,
 `PrimitiveQuad` and the text renderer, which runtime never compiles), writes `corpus.json`, updates `snapshot.txt`, and
@@ -75,9 +76,9 @@ uploads both as the `shader-corpus-refresh` artifact (or opens a PR with `open-p
 permutations per source. A refresh is expected after rendering or material changes; a compiler PR should not need one.
 
 Capture: with `STRIDE_SHADER_CORPUS_CAPTURE=<folder>` set (and optionally `STRIDE_SHADER_CORPUS_TAG=<source name>`,
-the entry assembly name otherwise, e.g. the game or `Stride.GameStudio`), every effect compile writes its mixin tree
-there (`ShaderCorpusCapture`). The replay of an effect log by an asset build is not recorded: effect logs are only a
-source when given to the tool. Captures are taken on one platform: the tree is recorded before the platform macros, and
+the test suite for a game test, the entry assembly name otherwise, e.g. the game or `Stride.GameStudio`), every
+effect compile writes its mixin tree there (`ShaderCorpusCapture`). The replay of an effect log by an asset build is
+not recorded: effect logs are only a source when given to the tool. Captures are taken on one platform: the tree is recorded before the platform macros, and
 the test compiles it for every platform.
 
 The tool builds `corpus.json` from empty out of the sources it is given, for a local run:
