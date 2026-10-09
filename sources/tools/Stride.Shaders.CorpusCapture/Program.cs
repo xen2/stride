@@ -4,6 +4,7 @@
 // Builds the shader corpus used by the Stride.Shaders.Tests snapshot test, from empty, out of the given sources:
 //   --logs <file or folder>      effect logs (*.sdeffectlog), evaluated into the mixin tree the effect compiler would mix
 //   --capture <folder>           folders written by ShaderCorpusCapture (STRIDE_SHADER_CORPUS_CAPTURE), searched recursively
+//   --exclude-source <tag>       ignore what this capture source recorded (a permutation only it recorded is dropped)
 //   --out <corpus.json>          default: sources/shaders/Stride.Shaders.Tests/Corpus/corpus.json
 // Paths are relative to the repository root. A permutation found in several sources is stored once, with all of them.
 // See sources/shaders/Stride.Shaders.Tests/Corpus/README.md for the refresh recipe.
@@ -22,6 +23,7 @@ var root = FindRepositoryRoot();
 var output = Path.Combine(root, "sources", "shaders", "Stride.Shaders.Tests", "Corpus", "corpus.json");
 var logSources = new List<string>();
 var captureFolders = new List<string>();
+var excludedSources = new HashSet<string>(StringComparer.Ordinal);
 for (int i = 0; i < args.Length; ++i)
 {
     switch (args[i])
@@ -29,6 +31,7 @@ for (int i = 0; i < args.Length; ++i)
         case "--out": output = Path.GetFullPath(args[++i], root); break;
         case "--logs": logSources.Add(Path.GetFullPath(args[++i], root)); break;
         case "--capture": captureFolders.Add(Path.GetFullPath(args[++i], root)); break;
+        case "--exclude-source": excludedSources.Add(args[++i]); break;
         default: Console.Error.WriteLine($"Unknown argument {args[i]}"); return 1;
     }
 }
@@ -105,9 +108,17 @@ foreach (var log in logs)
 foreach (var folder in captureFolders)
 {
     var files = Directory.EnumerateFiles(folder, "*.json", SearchOption.AllDirectories).Order(StringComparer.Ordinal).ToList();
+    var excluded = 0;
     foreach (var file in files)
-        Add(ShaderCorpusEntry.FromJson(File.ReadAllText(file)));
-    Console.WriteLine($"{Path.GetRelativePath(root, folder)}: {files.Count} captured permutations");
+    {
+        var entry = ShaderCorpusEntry.FromJson(File.ReadAllText(file));
+        entry.Sources.ExceptWith(excludedSources);
+        if (entry.Sources.Count == 0)
+            excluded++;
+        else
+            Add(entry);
+    }
+    Console.WriteLine($"{Path.GetRelativePath(root, folder)}: {files.Count} captured files{(excluded > 0 ? $", {excluded} from excluded sources only" : "")}");
 }
 
 ShaderCorpusEntry.WriteFile(output, entries.Values);

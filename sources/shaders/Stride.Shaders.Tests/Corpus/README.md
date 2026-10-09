@@ -69,22 +69,25 @@ workflow (`.github/workflows/refresh-shader-corpus.yml`, manual dispatch). It ru
   each with its `capture-shader-corpus` input,
 - the engine test suites that render (`Stride.Engine.Tests`, `Stride.Particles.Tests`, `Stride.Graphics.Tests`),
 
-adds every effect log (`*.sdeffectlog`: what the asset builds precompile, including what no capture run reaches, such as
-the bytecode embedded in `SpriteBatch` / `UIBatch` / `PrimitiveQuad` / the text renderer, the editor's post effects, and
-samples without a screenshot fixture), writes `corpus.json`, updates `snapshot.txt`, and
+adds the two `Stride.Graphics` effect logs (hand-kept specs of the bytecode embedded in `SpriteBatch`, `UIBatch`,
+`PrimitiveQuad` and the text renderer, which runtime never compiles), writes `corpus.json`, updates `snapshot.txt`, and
 uploads both as the `shader-corpus-refresh` artifact (or opens a PR with `open-pr`). The run summary lists the
 permutations per source. A refresh is expected after rendering or material changes; a compiler PR should not need one.
 
 Capture: with `STRIDE_SHADER_CORPUS_CAPTURE=<folder>` set (and optionally `STRIDE_SHADER_CORPUS_TAG=<source name>`,
-the process name otherwise), every effect compile writes its mixin tree there (`ShaderCorpusCapture`), including asset
+the entry assembly name otherwise, e.g. the game or `Stride.Core.Assets.CompilerApp`), every effect compile writes its mixin tree there (`ShaderCorpusCapture`), including asset
 builds (clean build: cached build steps don't compile again). Captures are taken on one platform: the tree is recorded
 before the platform macros, and the test compiles it for every platform.
 
 The tool builds `corpus.json` from empty out of the sources it is given, for a local run:
 
 ```
-dotnet run --project sources/tools/Stride.Shaders.CorpusCapture -- --logs samples --logs sources/editor --logs sources/engine --capture <folder> [--capture <folder>...]
+dotnet run --project sources/tools/Stride.Shaders.CorpusCapture -- --logs sources/engine/Stride.Graphics --capture <folder> [--capture <folder>...]
 ```
 
-`--logs` takes effect log files or folders, `--capture` capture folders (searched recursively). Then run
-`UpdateSnapshot`.
+`--logs` takes effect log files or folders, `--capture` capture folders (searched recursively), `--exclude-source <tag>`
+ignores what one capture source recorded. Then run `UpdateSnapshot`.
+
+The other effect logs (samples, templates, editor package) are not a source: they record what games compiled at some
+point, with the parameter values of that time, not what the current code builds. Features no capture run reaches are
+covered by adding a scenario (a fixture or an engine test), not a log.
