@@ -80,7 +80,8 @@ namespace Stride.Assets.Effect
             }
             commandContext.Logger.Verbose($"Trying permutation #{permutationCount} for effect [{effectName}]: \n{compilerParameters.ToStringPermutationsDetailed()}");
 
-            var compilerResults = compiler.Compile(source, compilerParameters);
+            // The permutations of an effect log are not shader corpus captures: the log itself is the source
+            var compilerResults = ShaderCorpusCapture.WithoutRecording(() => compiler.Compile(source, compilerParameters));
 
             // Copy logs and if there are errors, exit directly
             compilerResults.CopyTo(commandContext.Logger);
