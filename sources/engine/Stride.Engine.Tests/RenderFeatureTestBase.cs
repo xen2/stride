@@ -24,6 +24,11 @@ public abstract class RenderFeatureTestBase : EngineTestBase
         // settings profile otherwise)
         GraphicsDeviceManager.PreferredGraphicsProfile = [GraphicsProfile.Level_11_0];
         GraphicsDeviceManager.ShaderProfile = GraphicsProfile.Level_11_0;
+
+        // A fixed time step: effects that jitter with time (e.g. local reflections) render the same on every run
+        IsFixedTimeStep = true;
+        ForceOneUpdatePerDraw = true;
+        IsDrawDesynchronized = false;
     }
 
     protected void CreateScene()
