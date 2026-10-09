@@ -1,9 +1,10 @@
 name: Refresh Shader Corpus
 
-# Rebuilds sources/shaders/Stride.Shaders.Tests/Corpus/corpus.json from empty, out of what the current code really compiles
-# (see Corpus/README.md): the samples and the editor run with capture on, the engine test suites too, and the two
-# Stride.Graphics effect logs add the effects whose bytecode is embedded at build time (never compiled at runtime).
-# Then snapshot.txt is updated. The result is uploaded as an artifact, and optionally opened as a PR.
+# Rebuilds sources/shaders/Stride.Shaders.Tests/Corpus/corpus.json from empty (see Corpus/README.md), out of what the
+# current code compiles: the samples and the editor run with capture on, the engine test suites too, and every effect
+# log adds what the asset builds precompile from it (some of it no capture run reaches: embedded Stride.Graphics
+# bytecode, editor post effects, samples without a screenshot fixture). Then snapshot.txt is updated. The result is
+# uploaded as an artifact, and optionally opened as a PR.
 
 on:
   workflow_dispatch:
@@ -93,7 +94,7 @@ jobs:
       - name: Build the corpus from empty
         run: |
           dotnet run --project sources\tools\Stride.Shaders.CorpusCapture -p:StridePlatforms=Windows -p:StrideGraphicsApis=Direct3D11 -- `
-            --logs sources\engine\Stride.Graphics --capture captures | Tee-Object corpus-sources.txt
+            --logs samples --logs sources\editor --logs sources\engine --capture captures | Tee-Object corpus-sources.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Update the snapshot
         run: |
@@ -128,7 +129,7 @@ jobs:
           title: "Refresh the shader corpus (run ${{ github.run_id }})"
           body: |
             Automated refresh of the shader corpus from [run #${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}):
-            samples, editor and engine test suites captured, plus the Stride.Graphics effect logs.
+            samples, editor and engine test suites captured, plus every effect log.
 
             The run summary lists the permutations per source. A corpus change is expected after rendering or material
             changes; a compiler PR should not need one.

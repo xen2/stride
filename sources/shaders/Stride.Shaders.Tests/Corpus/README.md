@@ -69,8 +69,9 @@ workflow (`.github/workflows/refresh-shader-corpus.yml`, manual dispatch). It ru
   each with its `capture-shader-corpus` input,
 - the engine test suites that render (`Stride.Engine.Tests`, `Stride.Particles.Tests`, `Stride.Graphics.Tests`),
 
-adds the two `Stride.Graphics` effect logs (they define the bytecode embedded in `SpriteBatch`, `UIBatch`,
-`PrimitiveQuad` and the text renderer, which runtime never compiles), writes `corpus.json`, updates `snapshot.txt`, and
+adds every effect log (`*.sdeffectlog`: what the asset builds precompile, including what no capture run reaches, such as
+the bytecode embedded in `SpriteBatch` / `UIBatch` / `PrimitiveQuad` / the text renderer, the editor's post effects, and
+samples without a screenshot fixture), writes `corpus.json`, updates `snapshot.txt`, and
 uploads both as the `shader-corpus-refresh` artifact (or opens a PR with `open-pr`). The run summary lists the
 permutations per source. A refresh is expected after rendering or material changes; a compiler PR should not need one.
 
@@ -82,7 +83,7 @@ before the platform macros, and the test compiles it for every platform.
 The tool builds `corpus.json` from empty out of the sources it is given, for a local run:
 
 ```
-dotnet run --project sources/tools/Stride.Shaders.CorpusCapture -- --logs sources/engine/Stride.Graphics --capture <folder> [--capture <folder>...]
+dotnet run --project sources/tools/Stride.Shaders.CorpusCapture -- --logs samples --logs sources/editor --logs sources/engine --capture <folder> [--capture <folder>...]
 ```
 
 `--logs` takes effect log files or folders, `--capture` capture folders (searched recursively). Then run
