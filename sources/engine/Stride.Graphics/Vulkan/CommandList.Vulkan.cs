@@ -1772,7 +1772,7 @@ namespace Stride.Graphics
             // Clear attachments if needed
             for (int index = 0; index < RenderTargetCount; index++)
             {
-                if (!renderTarget.IsInitialized)
+                if (!renderTargets[index].IsInitialized)
                 {
                     Clear(renderTargets[index], Color.Transparent);
                 }
