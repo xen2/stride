@@ -339,7 +339,8 @@ namespace Stride.Shaders.Compiler
                 }
                 else
                 {
-                    var spirvBytecodeArray = spirvBytecode.ToArray();
+                    // MoltenVK otherwise declares a storage image written only through a parameter as read-only
+                    var spirvBytecodeArray = MemoryMarshal.AsBytes(SpirvTools.InlineResourceArguments(MemoryMarshal.Cast<byte, uint>(spirvBytecode)).AsSpan()).ToArray();
                     var spirvBytecodeId = ObjectId.FromBytes(spirvBytecodeArray);
                     foreach (var entryPoint in entryPoints)
                     {
