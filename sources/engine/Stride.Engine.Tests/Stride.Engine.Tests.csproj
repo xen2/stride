@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\tests\xunit.runner.stride\xunit.runner.stride.csproj" />
     <ProjectReference Include="..\Stride.Engine\Stride.Engine.csproj" />
     <ProjectReference Include="..\Stride.Graphics.Regression\Stride.Graphics.Regression.csproj" />
+    <ProjectReference Include="..\Stride.Voxels\Stride.Voxels.csproj" />
     <ProjectReference Include="..\..\core\Stride.Core.MicroThreading\Stride.Core.MicroThreading.csproj" />
   </ItemGroup>
   <ItemGroup>
@@ -46,6 +47,7 @@
     <Compile Include="TestCameraProcessor.cs" />
     <Compile Include="TestTransformComponent.cs" />
     <Compile Include="TestUpdateEngine.cs" />
+    <Compile Include="VoxelGITest.cs" />
     <None Include="Build\TestSerializer.cs" />
     <!-- TODO: Investigate [Ignore] attribute not found - excluded for now -->
     <None Include="Build\TestStorage.cs" />
