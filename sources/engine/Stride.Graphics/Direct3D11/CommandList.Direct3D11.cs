@@ -27,7 +27,7 @@ namespace Stride.Graphics
     {
         private const int ConstantBufferCount = D3D11.CommonshaderConstantBufferApiSlotCount; // 14 actually
         private const int SamplerStateCount = D3D11.CommonshaderSamplerSlotCount;
-        private const int ShaderResourceViewCount = D3D11.CommonshaderInputResourceSlotCount; // TODO: Unused?
+        private const int ShaderResourceViewCount = D3D11.CommonshaderInputResourceSlotCount;
         private const int SimultaneousRenderTargetCount = D3D11.SimultaneousRenderTargetCount;
         private const int UnorderedAcccesViewCount = D3D11.D3D111UavSlotCount;
 
@@ -44,6 +44,11 @@ namespace Stride.Graphics
 
         private readonly Buffer[] constantBuffers = new Buffer[StageCount * ConstantBufferCount];
         private readonly SamplerState[] samplerStates = new SamplerState[StageCount * SamplerStateCount];
+
+        // The resources bound as shader inputs, so that one bound for writing is unbound as input first (Direct3D 11 would
+        // unbind it itself, with a debug layer warning). Per stage, the slots in use are below the count.
+        private readonly GraphicsResource[] shaderResourceViews = new GraphicsResource[StageCount * ShaderResourceViewCount];
+        private readonly int[] shaderResourceViewCounts = new int[StageCount];
 
         private PipelineState currentPipelineState;
 
@@ -145,6 +150,8 @@ namespace Stride.Graphics
 
             Array.Clear(samplerStates);
             Array.Clear(constantBuffers);
+            Array.Clear(shaderResourceViews);
+            Array.Clear(shaderResourceViewCounts);
 
             Array.Clear(unorderedAccessViews);
             Array.Clear(currentRenderTargetViews);
@@ -412,6 +419,48 @@ namespace Stride.Graphics
                 case ShaderStage.Pixel: nativeDeviceContext->PSSetShaderResources((uint) slot, NumViews: 1, ref nativeShaderResourceView); break;
                 case ShaderStage.Compute: nativeDeviceContext->CSSetShaderResources((uint) slot, NumViews: 1, ref nativeShaderResourceView); break;
             }
+
+            int stageIndex = (int) stage - 1;
+            shaderResourceViews[stageIndex * ShaderResourceViewCount + slot] = shaderResourceView;
+            if (shaderResourceView is not null && slot >= shaderResourceViewCounts[stageIndex])
+                shaderResourceViewCounts[stageIndex] = slot + 1;
+        }
+
+        /// <summary>
+        ///   Unbinds a resource from the shader inputs of every stage, before it is bound for writing.
+        /// </summary>
+        private void UnsetShaderResourceViews(GraphicsResource resource)
+        {
+            for (int stageIndex = 0; stageIndex < StageCount; stageIndex++)
+            {
+                for (int slot = 0; slot < shaderResourceViewCounts[stageIndex]; slot++)
+                {
+                    var boundResource = shaderResourceViews[stageIndex * ShaderResourceViewCount + slot];
+                    if (boundResource is not null && Overlap(boundResource, resource))
+                        SetShaderResourceView((ShaderStage) (stageIndex + 1), slot, shaderResourceView: null);
+                }
+            }
+
+            // Views of one Texture conflict only where their subresources overlap: reading a mip while writing the next is fine
+            static bool Overlap(GraphicsResource first, GraphicsResource second)
+            {
+                if (first is not Texture firstTexture || second is not Texture secondTexture)
+                    return first == second;
+                if ((firstTexture.ParentTexture ?? firstTexture) != (secondTexture.ParentTexture ?? secondTexture))
+                    return false;
+
+                GetSubresources(firstTexture, out var firstArray, out var firstArrayCount, out var firstMip, out var firstMipCount);
+                GetSubresources(secondTexture, out var secondArray, out var secondArrayCount, out var secondMip, out var secondMipCount);
+                return firstArray < secondArray + secondArrayCount && secondArray < firstArray + firstArrayCount
+                    && firstMip < secondMip + secondMipCount && secondMip < firstMip + firstMipCount;
+            }
+
+            static void GetSubresources(Texture texture, out int arrayOrDepth, out int arrayOrDepthCount, out int mip, out int mipCount)
+            {
+                arrayOrDepth = texture.ArraySlice;
+                mip = texture.MipLevel;
+                texture.GetViewSliceBounds(texture.ViewType, ref arrayOrDepth, ref mip, out arrayOrDepthCount, out mipCount);
+            }
         }
 
         /// <summary>
@@ -493,6 +542,9 @@ namespace Stride.Graphics
                 {
                     unorderedAccessViews[slot] = nativeUnorderedAccessView;
 
+                    if (unorderedAccessView is not null)
+                        UnsetShaderResourceViews(unorderedAccessView);
+
                     nativeDeviceContext->CSSetUnorderedAccessViews((uint) slot, NumUAVs: 1, ref nativeUnorderedAccessView, (uint*) &uavInitialOffset);
                 }
             }
@@ -500,6 +552,9 @@ namespace Stride.Graphics
             {
                 if (currentUARenderTargetViews[slot].Handle != nativeUnorderedAccessView.Handle)
                 {
+                    if (unorderedAccessView is not null)
+                        UnsetShaderResourceViews(unorderedAccessView);
+
                     OMSetSingleUnorderedAccessView(slot, nativeUnorderedAccessView, uavInitialOffset);
                 }
             }
