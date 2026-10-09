@@ -343,6 +343,13 @@ public static unsafe class SpirvTools
         => Optimize(words, LegalizeForHlslKeepInterface, preserveInterface: true, env);
 
     /// <summary>
+    /// Inlines the calls passing a resource, as SPIRV-Cross only tracks storage image writes on the variable itself.
+    /// </summary>
+    public static uint[] InlineResourceArguments(ReadOnlySpan<uint> words, TargetEnv env = TargetEnv.Vulkan_1_3)
+        // merge-return first: the inliner warns on early returns and the shim has no message consumer (abort)
+        => Optimize(words, ["--merge-return", "--inline-entry-points-opaque", "--eliminate-dead-functions"], preserveInterface: true, env);
+
+    /// <summary>
     /// Runs the performance pass list (equivalent to <c>spirv-opt -O</c>). Produces
     /// smaller, faster SPIR-V with no semantic change. Don't use before SPIRV-Cross
     /// — the aggressive inlining and reordering hurts HLSL output quality.

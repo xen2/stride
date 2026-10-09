@@ -14,6 +14,7 @@ using Stride.Shaders.Spirv.Building;
 using Stride.Shaders.Spirv.Core.Buffers;
 using Stride.Shaders.Spirv.Tools;
 using Spv = Stride.Shaders.Spirv.Tools.Spv;
+using SpvOp = Stride.Shaders.Spirv.Specification.Op;
 
 namespace Stride.Shaders.Parsers.Tests;
 
@@ -1313,6 +1314,46 @@ new ShaderMacro("class", "shader"),
         var hlsl = translator.Translate(Backend.Hlsl, geometry);
 
         Assert.Contains("Append", hlsl);
+    }
+
+    // Vulkan inlines calls passing a resource, or MoltenVK declares a buffer written through a parameter read-only.
+    [Fact]
+    public void InlineResourceArgumentsRemovesResourceParameters()
+    {
+        var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/ComputeTests"));
+        shaderMixer.ShaderLoader.LoadExternalBuffer("CSBufferAtomicAsParameter", [], out _, out _, out _);
+
+        var log = new Stride.Core.Diagnostics.LoggerResult();
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("CSBufferAtomicAsParameter"), new ShaderMixer.Options(false, StripGoogleUserType: true), log, out var bytecode, out _, out _, out _),
+            string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
+
+        var words = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bytecode);
+        Assert.True(HasResourceParameter(words));
+
+        var inlined = SpirvTools.InlineResourceArguments(words);
+        var disassembly = Spv.Dis(SpirvBytecode.CreateFromSpan(System.Runtime.InteropServices.MemoryMarshal.AsBytes(inlined.AsSpan())), DisassemblerFlags.Name | DisassemblerFlags.Id, true);
+        Assert.False(HasResourceParameter(inlined), disassembly);
+        Assert.Contains("OpAtomicUMax", disassembly);
+
+        static bool HasResourceParameter(ReadOnlySpan<uint> words)
+        {
+            var resourceTypes = new HashSet<uint>();
+            for (var index = 5; index < words.Length; index += (int)(words[index] >> 16))
+            {
+                switch ((SpvOp)(words[index] & 0xFFFF))
+                {
+                    case SpvOp.OpTypeImage or SpvOp.OpTypeSampler or SpvOp.OpTypeSampledImage:
+                        resourceTypes.Add(words[index + 1]);
+                        break;
+                    case SpvOp.OpTypePointer when resourceTypes.Contains(words[index + 3]):
+                        resourceTypes.Add(words[index + 1]);
+                        break;
+                    case SpvOp.OpFunctionParameter when resourceTypes.Contains(words[index + 1]):
+                        return true;
+                }
+            }
+            return false;
+        }
     }
 
     // A static call (Utils.Method(x)) from a stage method is not a non-stage member access.

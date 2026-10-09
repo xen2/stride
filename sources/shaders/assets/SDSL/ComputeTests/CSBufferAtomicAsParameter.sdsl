@@ -1,0 +1,27 @@
+// PSMain(ExpectedResult=#00000000)
+
+// An atomic on a typed buffer handed to another method, like the voxel fragment writers.
+
+namespace Stride.Shaders.Tests;
+
+shader CSBufferAtomicAsParameter
+{
+    stage stream uint3 DispatchThreadId : SV_DispatchThreadID;
+
+    RWBuffer<uint> Output;
+
+    // The early return needs merge-return before inlining
+    void MaxAt(RWBuffer<uint> target, uint index, uint value)
+    {
+        if (value == 0)
+            return;
+        uint previous;
+        InterlockedMax(target[index], value, previous);
+    }
+
+    [numthreads(32, 32, 1)]
+    void CSMain()
+    {
+        MaxAt(Output, 0, streams.DispatchThreadId.x);
+    }
+}
