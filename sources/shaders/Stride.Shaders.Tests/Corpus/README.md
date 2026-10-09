@@ -75,9 +75,10 @@ uploads both as the `shader-corpus-refresh` artifact (or opens a PR with `open-p
 permutations per source. A refresh is expected after rendering or material changes; a compiler PR should not need one.
 
 Capture: with `STRIDE_SHADER_CORPUS_CAPTURE=<folder>` set (and optionally `STRIDE_SHADER_CORPUS_TAG=<source name>`,
-the entry assembly name otherwise, e.g. the game or `Stride.Core.Assets.CompilerApp`), every effect compile writes its mixin tree there (`ShaderCorpusCapture`), including asset
-builds (clean build: cached build steps don't compile again). Captures are taken on one platform: the tree is recorded
-before the platform macros, and the test compiles it for every platform.
+the entry assembly name otherwise, e.g. the game or `Stride.AssetCompiler`), every effect compile writes its mixin tree
+there (`ShaderCorpusCapture`), including asset builds (clean build: cached build steps don't compile again). Captures are
+taken on one platform: the tree is recorded before the platform macros, and the test compiles it for every platform.
+The workflow ignores `Stride.AssetCompiler`: a sample asset build only compiles the permutations of its effect log.
 
 The tool builds `corpus.json` from empty out of the sources it is given, for a local run:
 

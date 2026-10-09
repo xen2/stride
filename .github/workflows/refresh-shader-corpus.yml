@@ -91,9 +91,10 @@ jobs:
             if ($count -eq 0) { Write-Host "::error::No capture from $source"; exit 1 }
           }
       - name: Build the corpus from empty
+        # The sample asset builds only replay the sample effect logs, which are not a source
         run: |
           dotnet run --project sources\tools\Stride.Shaders.CorpusCapture -p:StridePlatforms=Windows -p:StrideGraphicsApis=Direct3D11 -- `
-            --logs sources\engine\Stride.Graphics --capture captures | Tee-Object corpus-sources.txt
+            --logs sources\engine\Stride.Graphics --capture captures --exclude-source Stride.AssetCompiler | Tee-Object corpus-sources.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Update the snapshot
         run: |
