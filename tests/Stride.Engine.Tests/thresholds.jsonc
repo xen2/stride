@@ -18,6 +18,18 @@
     "allow": { "3-5": 10, "6-15": 6, "16+": 3 }
   },
   {
+    // The same knight edges, in the rendering feature tests (seen on WARP across
+    // CPU models and on the iOS simulator).
+    "image": "RenderFeatureTests*.png",
+    "allow": { "3-5": 10, "6-15": 6, "16+": 3 }
+  },
+  {
+    // Local reflections march rays through the depth buffer: on WARP, the CPU float
+    // divergence between CPU models moves a few more reflected pixels (15 seen).
+    "image": "RenderFeatureTests.*LocalReflections.png",
+    "allow": { "3-5": 50, "6-15": 6, "16+": 3 }
+  },
+  {
     // One pixel on the sprite's anti-aliased edge varies by diff 3 between runs.
     "image": "SpriteRenderer3DTests*.png",
     "allow": { "3-5": 2 }
