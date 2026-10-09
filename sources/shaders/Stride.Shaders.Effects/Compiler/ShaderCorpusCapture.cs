@@ -20,6 +20,12 @@ namespace Stride.Shaders.Compiler
         private static readonly AsyncLocal<bool> NotRecording = new();
 
         /// <summary>
+        /// The entry source when <c>STRIDE_SHADER_CORPUS_TAG</c> is unset, for a process whose entry assembly doesn't name it
+        /// (e.g. a test assembly run by the test host).
+        /// </summary>
+        public static string? Source { get; set; }
+
+        /// <summary>
         /// Runs <paramref name="compile"/> without recording. Used for the replay of an effect log: a log is a corpus source of
         /// its own, given explicitly to the corpus tool, not something a capture finds.
         /// </summary>
@@ -46,6 +52,7 @@ namespace Stride.Shaders.Compiler
             {
                 // The entry assembly names tools run by the dotnet host (e.g. the asset compiler), which all share one process name
                 var tag = Environment.GetEnvironmentVariable("STRIDE_SHADER_CORPUS_TAG")
+                    ?? Source
                     ?? Assembly.GetEntryAssembly()?.GetName().Name
                     ?? Process.GetCurrentProcess().ProcessName;
                 var entry = new ShaderCorpusEntry(mixinTree.Name, effectParameters.Profile, mixinTree);
