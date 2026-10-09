@@ -48,7 +48,9 @@ namespace Stride.Graphics
             for (int i = 0; i < mapFeaturesPerFormat.Length; i++)
             {
                 var pixelFormat = (PixelFormat) i;
-                var maximumMultisampleCount = GetMaximumMultisampleCount(deviceRoot, instanceApi, physicalDevice, pixelFormat);
+                // The backend doesn't implement multisampled textures (image views, pipeline sample count): none, so that
+                // renderers fall back to single sampling. GetMaximumMultisampleCount is the device limit.
+                var maximumMultisampleCount = MultisampleCount.None;
                 mapFeaturesPerFormat[i] = new FeaturesPerFormat(pixelFormat, maximumMultisampleCount, ComputeShaderFormatSupport.None, FormatSupport.None);
             }
             //// Check features for each DXGI.Format
