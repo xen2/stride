@@ -20,7 +20,7 @@ on:
           - Direct3D12
           - Vulkan
       capture-shader-corpus:
-        description: Also record every compiled mixin tree for the shader corpus (Direct3D11 leg, artifact shader-corpus-editor)
+        description: Record every compiled mixin tree for the shader corpus (runs only the Direct3D11 leg, artifact shader-corpus-editor)
         type: boolean
         default: false
   workflow_call:
@@ -28,6 +28,9 @@ on:
       build-type:
         default: Debug
         type: string
+      capture-shader-corpus:
+        default: false
+        type: boolean
     secrets:
       ANTHROPIC_API_KEY:
         required: false
@@ -59,7 +62,8 @@ jobs:
       fail-fast: false
       matrix:
         # Game Studio runs on each API; the games the fixtures build stay on Direct3D11.
-        graphics-api: ${{ fromJSON(inputs.graphics-api && format('["{0}"]', inputs.graphics-api) || '["Direct3D11", "Direct3D12", "Vulkan"]') }}
+        # A shader corpus capture only needs the Direct3D11 leg
+        graphics-api: ${{ fromJSON(inputs.graphics-api && format('["{0}"]', inputs.graphics-api) || inputs.capture-shader-corpus && '["Direct3D11"]' || '["Direct3D11", "Direct3D12", "Vulkan"]') }}
     env:
       # Read by GraphicsApiSelector at Game Studio startup.
       STRIDE_GRAPHICS_API: ${{ matrix.graphics-api }}

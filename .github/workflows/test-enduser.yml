@@ -18,7 +18,7 @@ on:
         type: string
         default: ''
       capture-shader-corpus:
-        description: Also record every compiled mixin tree for the shader corpus (Windows Direct3D11 leg, artifact shader-corpus-samples)
+        description: Record every compiled mixin tree for the shader corpus (runs only the Windows Direct3D11 leg, artifact shader-corpus-samples)
         type: boolean
         default: false
   workflow_call:
@@ -26,6 +26,9 @@ on:
       build-type:
         default: Debug
         type: string
+      capture-shader-corpus:
+        default: false
+        type: boolean
     secrets:
       ANTHROPIC_API_KEY:
         required: false
@@ -59,11 +62,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { os: windows-2025-vs2026, platform: Windows, graphics-api: Direct3D11, rid: win-x64 }
-          - { os: windows-2025-vs2026, platform: Windows, graphics-api: Direct3D12, rid: win-x64 }
-          - { os: windows-2025-vs2026, platform: Windows, graphics-api: Vulkan,     rid: win-x64 }
-          - { os: ubuntu-24.04,        platform: Linux,   graphics-api: Vulkan,     rid: linux-x64 }
+        # A shader corpus capture only needs the Windows Direct3D11 leg
+        include: >-
+          ${{ fromJSON(inputs.capture-shader-corpus && '[
+            {"os":"windows-2025-vs2026","platform":"Windows","graphics-api":"Direct3D11","rid":"win-x64"}
+          ]' || '[
+            {"os":"windows-2025-vs2026","platform":"Windows","graphics-api":"Direct3D11","rid":"win-x64"},
+            {"os":"windows-2025-vs2026","platform":"Windows","graphics-api":"Direct3D12","rid":"win-x64"},
+            {"os":"windows-2025-vs2026","platform":"Windows","graphics-api":"Vulkan","rid":"win-x64"},
+            {"os":"ubuntu-24.04","platform":"Linux","graphics-api":"Vulkan","rid":"linux-x64"}
+          ]') }}
     runs-on: ${{ matrix.os }}
     defaults:
       run:
