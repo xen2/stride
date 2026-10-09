@@ -40,6 +40,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         effectReflection = default;
         usedHashSources = default;
         entryPoints = default;
+        Explanation = null;
 
         // Create new buffer for the merged result
         using var temp = new SpirvBuffer();
@@ -77,6 +78,9 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
             ShaderClass.ProcessNameAndTypes(context);
 
             rootMixin = MergeMixinNode(globalContext, context, temp, shaderSource2);
+
+            if (CollectExplanation)
+                Explanation = Explain(rootMixin);
         }
         catch (Exception e)
         {
@@ -784,6 +788,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         foreach (var structType in structTypes)
             shaderInfo.StructTypes.Add(structType.Key, structType.Value);
         shaderInfo.CompositionPath = mixinNode.CompositionPath;
+        shaderInfo.ImportStageOnly = shaderClass.ImportStageOnly;
         if (mixinNode.Stage != null && mixinNode.Stage.ShadersByName.TryGetValue(shaderClass.ClassName, out var stageShaderInfo))
             shaderInfo.Stage = stageShaderInfo;
 
