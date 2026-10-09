@@ -75,10 +75,10 @@ uploads both as the `shader-corpus-refresh` artifact (or opens a PR with `open-p
 permutations per source. A refresh is expected after rendering or material changes; a compiler PR should not need one.
 
 Capture: with `STRIDE_SHADER_CORPUS_CAPTURE=<folder>` set (and optionally `STRIDE_SHADER_CORPUS_TAG=<source name>`,
-the entry assembly name otherwise, e.g. the game or `Stride.AssetCompiler`), every effect compile writes its mixin tree
-there (`ShaderCorpusCapture`), including asset builds (clean build: cached build steps don't compile again). Captures are
-taken on one platform: the tree is recorded before the platform macros, and the test compiles it for every platform.
-The workflow ignores `Stride.AssetCompiler`: a sample asset build only compiles the permutations of its effect log.
+the entry assembly name otherwise, e.g. the game or `Stride.GameStudio`), every effect compile writes its mixin tree
+there (`ShaderCorpusCapture`). The replay of an effect log by an asset build is not recorded: effect logs are only a
+source when given to the tool. Captures are taken on one platform: the tree is recorded before the platform macros, and
+the test compiles it for every platform.
 
 The tool builds `corpus.json` from empty out of the sources it is given, for a local run:
 
@@ -86,8 +86,8 @@ The tool builds `corpus.json` from empty out of the sources it is given, for a l
 dotnet run --project sources/tools/Stride.Shaders.CorpusCapture -- --logs sources/engine/Stride.Graphics --capture <folder> [--capture <folder>...]
 ```
 
-`--logs` takes effect log files or folders, `--capture` capture folders (searched recursively), `--exclude-source <tag>`
-ignores what one capture source recorded. Then run `UpdateSnapshot`.
+`--logs` takes effect log files or folders, `--capture` capture folders (searched recursively). Then run
+`UpdateSnapshot`.
 
 The other effect logs (samples, templates, editor package) are not a source: they record what games compiled at some
 point, with the parameter values of that time, not what the current code builds. Features no capture run reaches are
