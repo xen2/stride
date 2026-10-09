@@ -568,6 +568,10 @@ public partial class ShaderMethod(
                     {
                         context.Add(new OpExecutionMode(function.Id, Specification.ExecutionMode.OutputVertices, new(EvaluateAttributeParameter(anyAttribute, 0))));
                     }
+                    else if (anyAttribute.Name == "instance")
+                    {
+                        context.Add(new OpExecutionMode(function.Id, Specification.ExecutionMode.Invocations, new(EvaluateAttributeParameter(anyAttribute, 0))));
+                    }
                     else if (anyAttribute.Name == "outputcontrolpoints")
                     {
                         context.Add(new OpExecutionMode(function.Id, Specification.ExecutionMode.OutputVertices, new(EvaluateAttributeParameter(anyAttribute, 0))));
@@ -630,6 +634,10 @@ public partial class ShaderMethod(
                 }
             }
         }
+
+        // Vulkan requires the invocation count of a geometry shader; HLSL's default without [instance] is 1
+        if (EntryPoint == EntryPoint.GeometryShader && Attributes?.Any(x => x is AnyShaderAttribute attribute && attribute.Name == "instance") != true)
+            context.Add(new OpExecutionMode(function.Id, Specification.ExecutionMode.Invocations, new(1)));
 
         if (Type is not FunctionType ftype)
             throw new InvalidOperationException();
