@@ -19,6 +19,7 @@ using Stride.Rendering.Materials.ComputeColors;
 using Stride.Rendering.ProceduralModels;
 using Stride.Rendering.Voxels;
 using Stride.Rendering.Voxels.VoxelGI;
+using Stride.Shaders.Compiler;
 
 namespace Stride.Engine.Tests;
 
@@ -39,6 +40,10 @@ public class VoxelGITest : RenderFeatureTestBase
     protected override async Task LoadContent()
     {
         await base.LoadContent();
+
+        // The volume fills over the first frames once its effects are compiled: compiling them before their first draw
+        // keeps the screenshot independent of how fast the machine compiles
+        ((EffectCompilerCache)EffectSystem.Compiler).CompileEffectAsynchronously = false;
 
         // The voxel parts of DefaultGraphicsCompositorVoxels (Stride.Voxels), added to the test compositor
         var compositor = SceneSystem.GraphicsCompositor;
