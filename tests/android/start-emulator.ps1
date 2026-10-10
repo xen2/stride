@@ -104,7 +104,9 @@ if (-not (Test-Path $emulator)) {
 #   Linux emulator:   -gpu host + -feature ForceGpuHost (no -use-host-vulkan in that build)
 # Both routes make gfxstream call vulkan via the system loader so it honours
 # VK_DRIVER_FILES.
-$emuArgs = @("-avd", $Avd, "-port", $Port, "-no-snapshot-load", "-no-audio", "-no-boot-anim")
+# -crash-report-mode disabled: an emulator crash leaves a core dump instead of a crashpad minidump
+# (see emulator-crash-capture.sh).
+$emuArgs = @("-avd", $Avd, "-port", $Port, "-no-snapshot-load", "-no-audio", "-no-boot-anim", "-crash-report-mode", "disabled")
 if ($isWin) {
     $emuArgs += "-gpu", "swiftshader_indirect", "-use-host-vulkan"
 } else {
