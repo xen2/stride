@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 using Xunit;
@@ -136,17 +137,31 @@ public class VoxelGITest : RenderFeatureTestBase
         Scene.Entities.Add(entity);
     }
 
+    // False when the voxelization method needs geometry shaders and the device has none: the voxel renderer skips the
+    // volume, so there is nothing to check
+    private bool supported = true;
+
     protected override void RegisterTests()
     {
         base.RegisterTests();
-        FrameGameSystem.TakeScreenshot(ScreenshotFrame);
+        supported = !VoxelizationMethod.RequireGeometryShader() || GraphicsDevice.Features.HasGeometryShaders;
+        if (supported)
+            FrameGameSystem.TakeScreenshot(ScreenshotFrame);
+        else
+            FrameGameSystem.Draw(1, () => { });
     }
 
-    // Needs geometry shaders: skipped by the voxel renderer where there are none (e.g. MoltenVK)
+    private static void Run(VoxelGITest game, [CallerMemberName] string callerName = null)
+    {
+        RunGameTest(game, callerName);
+        Skip.IfNot(game.supported, $"{game.VoxelizationMethod.GetType().Name} needs geometry shaders, which this device does not support.");
+    }
+
+    // Needs geometry shaders: skipped where there are none (e.g. MoltenVK)
     [SkippableFact]
-    public void DominantAxis() => RunGameTest(new VoxelGITest { VoxelizationMethod = new VoxelizationMethodDominantAxis(), TestName = nameof(DominantAxis) });
+    public void DominantAxis() => Run(new VoxelGITest { VoxelizationMethod = new VoxelizationMethodDominantAxis(), TestName = nameof(DominantAxis) });
 
     // Three single axis passes, without geometry shaders
     [SkippableFact]
-    public void TriAxis() => RunGameTest(new VoxelGITest { VoxelizationMethod = new VoxelizationMethodTriAxis(), TestName = nameof(TriAxis) });
+    public void TriAxis() => Run(new VoxelGITest { VoxelizationMethod = new VoxelizationMethodTriAxis(), TestName = nameof(TriAxis) });
 }
