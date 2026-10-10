@@ -153,6 +153,10 @@ jobs:
             exit 1
           fi
           LIB_ABS=$(readlink -f "$LIB")
+          # TEMP (LLVM 22 test): Lavapipe from dep-lavapipe run 38041192750 instead of the package
+          GH_TOKEN="${{ github.token }}" gh run download 38041192750 -R "$GITHUB_REPOSITORY" -n lavapipe-linux-x64-nodmabuf -D "$PWD/lvp-override"
+          LIB_ABS="$PWD/lvp-override/libvulkan_lvp.so"
+          ls -la "$LIB_ABS"
           ICD_JSON="$PWD/lvp_icd.json"
           echo "{\"file_format_version\":\"1.0.0\",\"ICD\":{\"library_path\":\"$LIB_ABS\",\"api_version\":\"1.3.0\"}}" > "$ICD_JSON"
           echo "VK_DRIVER_FILES=$ICD_JSON" >> $GITHUB_ENV
