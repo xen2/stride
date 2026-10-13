@@ -4,6 +4,8 @@ run-name: >-
   ${{ github.event.inputs.commit-sha != '' && format('Test End-User @ {0}', github.event.inputs.commit-sha) || '' }}
 
 on:
+  push:
+    branches: [tmp/packaging-lavapipe]
   workflow_dispatch:
     inputs:
       build-type:
