@@ -33,7 +33,9 @@
     <StrideAssetBuildManifestPath>$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', '$(MSBuildProjectName).sdbuild'))</StrideAssetBuildManifestPath>
   </PropertyGroup>
 
-  <Target Name="GetStrideAssetBuildManifestPath" Returns="$(StrideAssetBuildManifestPath)" />
+  <!-- The manifest is written when its path is returned. Another build's Build of this project can return while the
+       manifest is still being written: it is a hook of ResolveProjectReferences, which that Build finds completed. -->
+  <Target Name="GetStrideAssetBuildManifestPath" DependsOnTargets="StrideWriteAssetBuildManifest" Returns="$(StrideAssetBuildManifestPath)" />
 
   <!-- This project's declared project-asset extensions, harvested across ProjectReferences below
        (a ProjectReference doesn't import the referenced project's buildTransitive targets, so its
@@ -507,7 +509,7 @@
 
   <Target Name="StrideWriteAssetBuildManifest"
           AfterTargets="ResolveProjectReferences"
-          DependsOnTargets="$(GetPackageVersionDependsOn);_StrideResolveCompanionProjects;_StrideBuildCompanionProjects"
+          DependsOnTargets="ResolveProjectReferences;$(GetPackageVersionDependsOn);_StrideResolveCompanionProjects;_StrideBuildCompanionProjects"
           Condition="'$(StrideAssetBuildManifest)' == 'true' And '$(DesignTimeBuild)' != 'true' And '$(StrideAssetBuildManifestPath)' != '' And '$(_ComputeFilesToPublishForRuntimeIdentifiers)' != 'true'">
     <ItemGroup>
       <_StrideManifestProjectReference Include="@(_MSBuildProjectReferenceExistent)"
