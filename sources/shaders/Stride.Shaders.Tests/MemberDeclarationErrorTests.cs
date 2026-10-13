@@ -52,8 +52,8 @@ public class MemberDeclarationErrorTests : IDisposable
 
     [Theory]
     // Stride3D_Demos' AtmosphereForwardRender
-    [InlineData("float BottomRadius; stage float4 Slices;")]
-    [InlineData("stage float4 Slices; float BottomRadius;")]
+    [InlineData("float BottomRadius; module float4 Slices;")]
+    [InlineData("module float4 Slices; float BottomRadius;")]
     public void CBufferWithStageAndNonStageMembersIsAnError(string members)
     {
         var message = CompileError("MixedStageCBuffer", $$"""
