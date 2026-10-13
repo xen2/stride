@@ -1,6 +1,8 @@
 name: Check Parallel Build
 
 on:
+  push:
+    branches: [tmp/hook-fix-check]
   pull_request:
     paths:
       - '.github/workflows/check-parallel-build.yml'
@@ -24,7 +26,7 @@ jobs:
     # PRs, where base-repo `vars` aren't readable from a fork PR's context.
     # workflow_dispatch always runs.
     if: >
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'workflow_dispatch' || github.event_name == 'push'
       || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && (github.repository == 'stride3d/stride' || vars.STRIDE_ENABLE_PUSH_CI == 'true'))
       || (github.event_name == 'schedule' && vars.STRIDE_ENABLE_SCHEDULED_CI == 'true')
     name: Detect property-leak duplicate builds

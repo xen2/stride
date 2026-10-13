@@ -1,0 +1,70 @@
+name: Temp - iOS manifest race hunt
+
+# Temp branch only: the iOS Combined build, 5 times in parallel, each with a binlog
+on:
+  push:
+    branches: [tmp/hook-fix-check]
+
+jobs:
+  iOS-Build:
+    name: iOS build (try ${{ matrix.attempt }})
+    runs-on: macos-26
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        attempt: [1, 2, 3, 4, 5]
+    env:
+      DOTNET_NUGET_SIGNATURE_VERIFICATION: "false"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github
+      - uses: ./.github/actions/stride-checkout
+        with:
+          ref: ${{ github.ref }}
+          exclude: samples
+
+      - name: Install iOS + macOS Workloads
+        uses: ./.github/actions/stride-workload
+        with:
+          workloads: ios macos
+
+      - name: Select newest Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$latest"
+          xcodebuild -version
+
+      - name: Ensure Xcode toolchain utilities resolve
+        run: |
+          dev="$(xcode-select -p)"
+          tcbin="$dev/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          for tool in install_name_tool mdimport dsymutil strip lipo bitcode_strip actool ibtool derq; do
+            xcrun -find "$tool" >/dev/null 2>&1 && continue
+            for cand in \
+              "/Library/Developer/CommandLineTools/usr/bin/$tool" \
+              "$dev/usr/bin/$tool" \
+              "$(command -v "$tool" 2>/dev/null || true)" \
+              "$tcbin/llvm-$tool"; do
+              [ -x "$cand" ] && { sudo ln -sf "$cand" "$tcbin/$tool"; break; }
+            done
+          done
+
+      - name: Build iOS test .app bundle
+        run: |
+          dotnet build sources/tests/Stride.Tests.Combined/Stride.Tests.Combined.csproj \
+            -nr:false -v:m -p:WarningLevel=0 \
+            -p:StrideSkipAutoPack=true \
+            -p:StrideCombinedSuites="" \
+            -bl:build.binlog \
+            -p:Configuration=Debug \
+            -p:StridePlatforms=iOS
+
+      - name: Upload build binlog
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-binlog-ios-${{ matrix.attempt }}
+          path: build.binlog
+          if-no-files-found: ignore
