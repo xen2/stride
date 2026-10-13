@@ -28,7 +28,7 @@ public class ThisMemberTests : IDisposable
         File.WriteAllText(Path.Combine(sourceDir.FullName, "ThisMemberError.sdsl"), $$"""
             shader ThisMemberError
             {
-                stage float Shared;
+                module float Shared;
                 float Scale;
                 float Twice() { return Scale * 2; }
 
@@ -37,7 +37,7 @@ public class ThisMemberTests : IDisposable
                     {{body}}
                 }
 
-                cbuffer Globals { stage float Exposure; }
+                cbuffer Globals { module float Exposure; }
             };
             """);
         var exception = Assert.Throws<InvalidOperationException>(() => new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL").LoadExternalBuffer("ThisMemberError", [], out _, out _, out _));
