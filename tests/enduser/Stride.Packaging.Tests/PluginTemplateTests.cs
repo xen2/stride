@@ -86,10 +86,7 @@ public class PluginTemplateTests
                            : "Windows";
         var executableDir = Path.Combine(solutionDir, $"{gameName}.{platformSuffix}");
         NuGetConsumerFeed.WriteStrictNuGetConfig(solutionDir);
-        // Off Windows, the packaging job sets up no Vulkan device to compile the game's skybox: the build stops before
-        // the asset compiler, after the executable built the Assets companion and wrote its build manifest
-        string[] buildArgs = OperatingSystem.IsWindows() ? [] : ["-p:StrideCompilerSkipBuild=true"];
-        var build = ConsumerBuild.Run(Path.Combine(executableDir, $"{gameName}.{platformSuffix}.csproj"), solutionDir, output, timeoutMin: 10, buildArgs);
+        var build = ConsumerBuild.Run(Path.Combine(executableDir, $"{gameName}.{platformSuffix}.csproj"), solutionDir, output, timeoutMin: 10);
         Assert.True(build.ExitCode == 0, $"Game build should succeed (exit {build.ExitCode}).");
         Assert.DoesNotContain("was not found", build.Output);
         // The runtime declares the asset file extension its Assets companion's asset type compiles to
