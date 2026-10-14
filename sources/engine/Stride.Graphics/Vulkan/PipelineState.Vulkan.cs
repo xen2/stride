@@ -264,9 +264,56 @@ namespace Stride.Graphics
                         pViewportState = &viewportState,
                         pTessellationState = &tessellationState,
                     };
+                    var captureStatistics = R3PipelineSpike.CaptureStatistics && R3PipelineSpike.HasExecutableProperties;
+                    if (captureStatistics)
+                        createInfo.flags |= VkPipelineCreateFlags.CaptureStatisticsKHR;
+                    var driverTime = System.Diagnostics.Stopwatch.StartNew();
                     fixed (VkPipeline* nativePipelinePtr = &NativePipeline)
                         GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateGraphicsPipelines(GraphicsDevice.NativeDevice, VkPipelineCache.Null, createInfoCount: 1, &createInfo, allocator: null, nativePipelinePtr));
+                    R3PipelineSpike.LastDriverMilliseconds = driverTime.Elapsed.TotalMilliseconds;
+                    if (captureStatistics)
+                        R3ReadStatistics();
                 }
+            }
+        }
+
+        // Spike R3: VK_KHR_pipeline_executable_properties statistics of NativePipeline
+        private unsafe void R3ReadStatistics()
+        {
+            R3PipelineSpike.LastStatistics.Clear();
+            var api = GraphicsDevice.NativeDeviceApi;
+            var pipelineInfo = new VkPipelineInfoKHR { sType = VkStructureType.PipelineInfoKHR, pipeline = NativePipeline };
+            uint executableCount = 0;
+            api.vkGetPipelineExecutablePropertiesKHR(GraphicsDevice.NativeDevice, &pipelineInfo, &executableCount, null).CheckResult();
+            var executables = stackalloc VkPipelineExecutablePropertiesKHR[(int)executableCount];
+            for (int e = 0; e < executableCount; e++)
+                executables[e].sType = VkStructureType.PipelineExecutablePropertiesKHR;
+            api.vkGetPipelineExecutablePropertiesKHR(GraphicsDevice.NativeDevice, &pipelineInfo, &executableCount, executables).CheckResult();
+            for (uint e = 0; e < executableCount; e++)
+            {
+                var executableInfo = new VkPipelineExecutableInfoKHR { sType = VkStructureType.PipelineExecutableInfoKHR, pipeline = NativePipeline, executableIndex = e };
+                uint statisticCount = 0;
+                api.vkGetPipelineExecutableStatisticsKHR(GraphicsDevice.NativeDevice, &executableInfo, &statisticCount, null).CheckResult();
+                var statistics = new VkPipelineExecutableStatisticKHR[statisticCount];
+                for (int s = 0; s < statisticCount; s++)
+                    statistics[s].sType = VkStructureType.PipelineExecutableStatisticKHR;
+                fixed (VkPipelineExecutableStatisticKHR* statisticsPtr = statistics)
+                    api.vkGetPipelineExecutableStatisticsKHR(GraphicsDevice.NativeDevice, &executableInfo, &statisticCount, statisticsPtr).CheckResult();
+                var builder = new System.Text.StringBuilder();
+                builder.Append($"{executables[e].stages}: ");
+                foreach (var statistic in statistics)
+                {
+                    var name = Marshal.PtrToStringUTF8((nint)statistic.name);
+                    var value = statistic.format switch
+                    {
+                        VkPipelineExecutableStatisticFormatKHR.Bool32 => statistic.value.b32.ToString(),
+                        VkPipelineExecutableStatisticFormatKHR.Int64 => statistic.value.i64.ToString(),
+                        VkPipelineExecutableStatisticFormatKHR.Uint64 => statistic.value.u64.ToString(),
+                        _ => statistic.value.f64.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    };
+                    builder.Append($"{name}={value}; ");
+                }
+                R3PipelineSpike.LastStatistics.Add(builder.ToString());
             }
         }
 
@@ -410,6 +457,21 @@ namespace Stride.Graphics
                     pName = entryPoint,
                     module = shaderModule,
                 };
+
+                // Spike R3: specialization constants given at pipeline creation (leaked, spike only)
+                if (R3PipelineSpike.SpecializationValues is { } values)
+                {
+                    var entries = (VkSpecializationMapEntry*)NativeMemory.Alloc((nuint)(values.Length * sizeof(VkSpecializationMapEntry)));
+                    var data = (uint*)NativeMemory.Alloc((nuint)(values.Length * sizeof(uint)));
+                    for (int k = 0; k < values.Length; k++)
+                    {
+                        entries[k] = new VkSpecializationMapEntry { constantID = (uint)k, offset = (uint)(k * sizeof(uint)), size = sizeof(uint) };
+                        data[k] = values[k];
+                    }
+                    var info = (VkSpecializationInfo*)NativeMemory.Alloc((nuint)sizeof(VkSpecializationInfo));
+                    *info = new VkSpecializationInfo { mapEntryCount = (uint)values.Length, pMapEntries = entries, dataSize = (nuint)(values.Length * sizeof(uint)), pData = data };
+                    nativeStages[i].pSpecializationInfo = info;
+                }
             }
 
             return nativeStages;

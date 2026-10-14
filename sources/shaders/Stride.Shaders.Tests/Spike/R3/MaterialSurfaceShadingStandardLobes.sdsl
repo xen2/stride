@@ -1,0 +1,234 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.Rendering.Materials
+{
+    /// <summary>
+    /// Spike R3: the feature lobes of a principled "Standard" BSDF, each behind a flag. Added as an extra surface next to
+    /// the Lambert + microfacet base. Formulas follow glTF / Filament; only the cost matters here, not the look.
+    /// A flag is on when its generic value is not 0. UseRuntimeFlags = 1 reads the flags from RuntimeFlags instead
+    /// (one shader for every combination, runtime branches).
+    /// </summary>
+    shader MaterialSurfaceShadingStandardLobes<uint HasCoat, uint HasAnisotropy, uint HasSheen, uint HasTransmission, uint HasThinFilm, uint HasSubsurface, uint HasMetalTint, uint UseRuntimeFlags>
+        : IMaterialSurfaceShading, MaterialPixelShadingStream, Math, BRDFMicrofacet, Texturing
+    {
+        cbuffer PerMaterial
+        {
+            stage uint   RuntimeFlags;
+            stage float  CoatWeight;
+            stage float  CoatRoughness;
+            stage float3 CoatColor;
+            stage float  Anisotropy;
+            stage float  AnisotropyRotation;
+            stage float3 SheenColor;
+            stage float  SheenRoughness;
+            stage float3 TransmissionColor;
+            stage float  TransmissionWeight;
+            stage float  ThinFilmThickness;
+            stage float  ThinFilmIor;
+            stage float3 SubsurfaceColor;
+            stage float  SubsurfaceWrap;
+            stage float3 MetalTintColor;
+        }
+
+        rgroup PerMaterial
+        {
+            stage Texture2D CoatMap;
+            stage Texture2D AnisotropyMap;
+            stage Texture2D SheenMap;
+            stage Texture2D TransmissionMap;
+            stage Texture2D ThinFilmMap;
+            stage Texture2D SubsurfaceMap;
+            stage Texture2D MetalTintMap;
+        }
+
+        stream float  lobeCoatWeight;
+        stream float  lobeCoatAlpha;
+        stream float3 lobeTangent;
+        stream float3 lobeBitangent;
+        stream float  lobeAnisotropy;
+        stream float3 lobeSheenColor;
+        stream float  lobeSheenAlpha;
+        stream float3 lobeTransmission;
+        stream float3 lobeFilmTint;
+        stream float3 lobeSubsurfaceColor;
+        stream float  lobeSubsurfaceWrap;
+        stream float3 lobeMetalTint;
+
+        bool LobeOn(uint flag, uint bit)
+        {
+            if (UseRuntimeFlags != 0)
+                return (RuntimeFlags & bit) != 0;
+            return flag != 0;
+        }
+
+        float Square(float x)
+        {
+            return x * x;
+        }
+
+        override void PrepareForLightingAndShading()
+        {
+            float2 uv = streams.TexCoord;
+            if (LobeOn(HasCoat, 1))
+            {
+                float4 c = CoatMap.Sample(LinearRepeatSampler, uv);
+                streams.lobeCoatWeight = CoatWeight * c.r;
+                float r = CoatRoughness * c.g;
+                streams.lobeCoatAlpha = max(0.002, r * r);
+            }
+            if (LobeOn(HasAnisotropy, 2))
+            {
+                float2 a = AnisotropyMap.Sample(LinearRepeatSampler, uv).rg * 2 - 1;
+                float2 rotation = float2(cos(AnisotropyRotation), sin(AnisotropyRotation));
+                float2 direction = normalize(float2(rotation.x * a.x - rotation.y * a.y, rotation.x * a.y + rotation.y * a.x) + 0.0001);
+                float3 t = normalize(streams.tangentToWorld[0] * direction.x + streams.tangentToWorld[1] * direction.y);
+                streams.lobeTangent = t;
+                streams.lobeBitangent = cross(streams.normalWS, t);
+                streams.lobeAnisotropy = Anisotropy * saturate(length(a));
+            }
+            if (LobeOn(HasSheen, 4))
+            {
+                float4 s = SheenMap.Sample(LinearRepeatSampler, uv);
+                streams.lobeSheenColor = SheenColor * s.rgb;
+                streams.lobeSheenAlpha = max(0.07, Square(SheenRoughness * s.a));
+            }
+            if (LobeOn(HasTransmission, 8))
+            {
+                float4 t = TransmissionMap.Sample(LinearRepeatSampler, uv);
+                streams.lobeTransmission = TransmissionColor * t.rgb * TransmissionWeight * t.a;
+            }
+            if (LobeOn(HasThinFilm, 16))
+            {
+                // Thin-film interference, three wavelengths, one bounce (Belcour-Barla simplified)
+                float thickness = ThinFilmThickness * ThinFilmMap.Sample(LinearRepeatSampler, uv).r;
+                float sinT2 = (1 - streams.NdotV * streams.NdotV) / (ThinFilmIor * ThinFilmIor);
+                float cosT = sqrt(saturate(1 - sinT2));
+                float opd = 2 * ThinFilmIor * thickness * cosT;
+                float3 phase = 2 * PI * opd / float3(650, 532, 450);
+                streams.lobeFilmTint = 0.5 + 0.5 * cos(phase);
+            }
+            if (LobeOn(HasSubsurface, 32))
+            {
+                float4 s = SubsurfaceMap.Sample(LinearRepeatSampler, uv);
+                streams.lobeSubsurfaceColor = SubsurfaceColor * s.rgb;
+                streams.lobeSubsurfaceWrap = SubsurfaceWrap * s.a;
+            }
+            if (LobeOn(HasMetalTint, 64))
+            {
+                streams.lobeMetalTint = MetalTintColor * MetalTintMap.Sample(LinearRepeatSampler, uv).rgb;
+            }
+        }
+
+        override float3 ComputeDirectLightContribution()
+        {
+            float3 result = 0;
+            float3 under = 1;
+            float3 N = streams.normalWS;
+            float3 L = streams.lightDirectionWS;
+            float3 H = streams.H;
+            float NdotL = max(streams.NdotL, 0.0001);
+            float NdotV = streams.NdotV;
+            float NdotH = streams.NdotH;
+            float LdotH = streams.LdotH;
+            float3 lightNdotL = streams.lightColorNdotL;
+
+            if (LobeOn(HasCoat, 1))
+            {
+                float alpha = streams.lobeCoatAlpha;
+                float fresnel = FresnelSchlick(float3(0.04, 0.04, 0.04), LdotH).x * streams.lobeCoatWeight;
+                float d = NormalDistributionGGX(alpha, NdotH);
+                float v = VisibilitySmithGGXCorrelated(alpha, NdotL, NdotV);
+                result += CoatColor * (fresnel * d * v) * lightNdotL;
+                under *= 1 - fresnel;
+            }
+
+            if (LobeOn(HasAnisotropy, 2))
+            {
+                float alpha = streams.alphaRoughness;
+                float at = max(alpha * (1 + streams.lobeAnisotropy), 0.002);
+                float ab = max(alpha * (1 - streams.lobeAnisotropy), 0.002);
+                float3 T = streams.lobeTangent;
+                float3 B = streams.lobeBitangent;
+                float3 V = streams.viewWS;
+                float TdotH = dot(T, H);
+                float BdotH = dot(B, H);
+                float a2 = at * ab;
+                float3 dv = float3(ab * TdotH, at * BdotH, a2 * NdotH);
+                float w2 = a2 / dot(dv, dv);
+                float d = a2 * w2 * w2 / PI;
+                float lambdaV = NdotL * length(float3(at * dot(T, V), ab * dot(B, V), NdotV));
+                float lambdaL = NdotV * length(float3(at * dot(T, L), ab * dot(B, L), NdotL));
+                float v = 0.5 / (lambdaV + lambdaL);
+                float3 f = FresnelSchlick(streams.matSpecularVisible, LdotH);
+                result += under * f * (d * v) * streams.lightSpecularColorNdotL;
+            }
+
+            if (LobeOn(HasMetalTint, 64))
+            {
+                // F82-tint (OpenPBR / Adobe): Schlick plus a correction lobe peaking near 82 degrees
+                float3 f0 = streams.matSpecularVisible;
+                float3 f82 = streams.lobeMetalTint;
+                float cosMax = 1.0 / 7.0;
+                float oneMinusCosMax = 1 - cosMax;
+                float3 schlickMax = f0 + (1 - f0) * pow(oneMinusCosMax, 5);
+                float3 b = schlickMax * (1 - f82) / (cosMax * pow(oneMinusCosMax, 6));
+                float3 fresnel = saturate(f0 + (1 - f0) * pow(1 - LdotH, 5) - b * LdotH * pow(1 - LdotH, 6));
+                float alpha = streams.alphaRoughness;
+                float d = NormalDistributionGGX(alpha, NdotH);
+                float v = VisibilitySmithGGXCorrelated(alpha, NdotL, NdotV);
+                result += under * fresnel * (d * v) * streams.lightSpecularColorNdotL;
+            }
+
+            if (LobeOn(HasSheen, 4))
+            {
+                // Charlie distribution + Neubelt visibility
+                float alpha = streams.lobeSheenAlpha;
+                float invAlpha = 1 / alpha;
+                float sin2h = max(1 - NdotH * NdotH, 0.0078125);
+                float d = (2 + invAlpha) * pow(sin2h, invAlpha * 0.5) / (2 * PI);
+                float v = 1 / (4 * (NdotL + NdotV - NdotL * NdotV));
+                result += under * streams.lobeSheenColor * (d * v) * lightNdotL;
+                under *= 1 - 0.157 * max(max(streams.lobeSheenColor.r, streams.lobeSheenColor.g), streams.lobeSheenColor.b);
+            }
+
+            if (LobeOn(HasThinFilm, 16))
+            {
+                result *= streams.lobeFilmTint;
+            }
+
+            if (LobeOn(HasSubsurface, 32))
+            {
+                float w = streams.lobeSubsurfaceWrap;
+                float wrapped = saturate((dot(N, L) + w) / Square(1 + w));
+                result += under * streams.matDiffuseVisible * streams.lobeSubsurfaceColor * wrapped * streams.lightColor / PI;
+            }
+
+            if (LobeOn(HasTransmission, 8))
+            {
+                // Thin-walled: light from behind goes through the surface
+                float back = saturate(-dot(N, L));
+                result += under * streams.lobeTransmission * streams.matDiffuseVisible * back * streams.lightColor / PI;
+            }
+
+            return result * streams.matDiffuseSpecularAlphaBlend.y;
+        }
+
+        override float3 ComputeEnvironmentLightContribution()
+        {
+            float3 result = 0;
+            float NdotV = streams.NdotV;
+            if (LobeOn(HasCoat, 1))
+                result += CoatColor * EnvironmentLightingDFG_GGX_Schlick_SmithSchlickGGX(float3(0.04, 0.04, 0.04), streams.lobeCoatAlpha, NdotV) * streams.envLightSpecularColor * streams.lobeCoatWeight;
+            if (LobeOn(HasSheen, 4))
+                result += streams.lobeSheenColor * streams.envLightDiffuseColor * (0.1 + 0.2 * (1 - NdotV));
+            if (LobeOn(HasThinFilm, 16))
+                result *= streams.lobeFilmTint;
+            if (LobeOn(HasSubsurface, 32))
+                result += streams.lobeSubsurfaceColor * streams.matDiffuseVisible * streams.envLightDiffuseColor * 0.5;
+            if (LobeOn(HasTransmission, 8))
+                result += streams.lobeTransmission * streams.matDiffuseVisible * streams.envLightDiffuseColor;
+            return result;
+        }
+    };
+}

@@ -104,6 +104,11 @@ static class ShaderCorpus
     /// </summary>
     public static ShaderLoaderBase CreateLoader() => new IndexShaderLoader(ShaderIndex.Value);
 
+    /// <summary>
+    /// Same as <see cref="CreateLoader()"/>, plus one shader file found by its file name first (spike R3).
+    /// </summary>
+    public static ShaderLoaderBase CreateLoader(string extraFile) => new IndexShaderLoader(ShaderIndex.Value, extraFile);
+
     /// <param name="optimize">Also fills <see cref="CorpusResult.Optimized"/> (slower; for baseline runs).</param>
     public static CorpusResult Compile(CorpusItem item, GraphicsPlatform platform, ShaderLoaderBase sharedLoader, bool optimize = false)
     {

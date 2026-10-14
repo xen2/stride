@@ -256,7 +256,9 @@ namespace Stride.Graphics
                     }
                 }
 
+                var driverTime = System.Diagnostics.Stopwatch.StartNew();
                 result = NativeDevice.CreateGraphicsPipelineState(in nativePipelineStateDescription, out ComPtr<ID3D12PipelineState> pipelineState);
+                R3PipelineSpike.LastDriverMilliseconds = driverTime.Elapsed.TotalMilliseconds;
 
                 if (result.IsFailure)
                     result.Throw();

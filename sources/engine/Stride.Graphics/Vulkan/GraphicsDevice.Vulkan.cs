@@ -448,6 +448,7 @@ namespace Stride.Graphics
             {
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME,
                 VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
+                VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME,
 #if STRIDE_PLATFORM_IOS || STRIDE_PLATFORM_MACOS
                 // IOSurface-backed VkImage import (zero-copy CVPixelBuffer upload on Apple platforms).
                 VK_EXT_METAL_OBJECTS_EXTENSION_NAME,
@@ -580,6 +581,20 @@ namespace Stride.Graphics
             };
 
             void* pNextChainHead = &enabledVulkan11Features;
+
+            // Spike R3: driver statistics per pipeline
+            var executablePropertiesFeatures = new VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR
+            {
+                sType = VkStructureType.PhysicalDevicePipelineExecutablePropertiesFeaturesKHR,
+                pipelineExecutableInfo = VkBool32.True,
+            };
+            R3PipelineSpike.HasExecutableProperties = availableExtensionProperties.Contains(VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME);
+            if (R3PipelineSpike.HasExecutableProperties)
+            {
+                desiredExtensionProperties.Add(VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME);
+                executablePropertiesFeatures.pNext = pNextChainHead;
+                pNextChainHead = &executablePropertiesFeatures;
+            }
             // Re-attach portability subset at the head of the create-info chain so MoltenVK sees the
             // feature flags it reported. The values were populated by the query above; pass them back as-is.
             if (isPortabilitySubsetDevice)
