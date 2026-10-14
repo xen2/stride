@@ -57,13 +57,18 @@ public abstract class CodePackageUpgrader : PackageUpgrader, ICodeUpgradeProvide
         // Snapshot the original csproj before the passes below rewrite it.
         session.UpgradeBackup?.Snapshot(projectFullPath.ToOSPath());
 
+        var registry = new UpgradeRegistry();
+        DeclareUpgrades(registry);
+
+        // Shader language changes (r.Shader): the project's .sdsl files
+        if (registry.ShaderUpgrades.Any(version => UpgradingFromBefore(dependency, version)))
+            ShaderSourceUpgrade.Run(projectFullPath.GetFullDirectory().ToOSPath(), session.UpgradeBackup, log);
+
         // Bump the upgrader's own package family to the current version (subclass hook).
         UpgradeProjectReferences(projectFullPath, log);
 
         // Version-gated structural csproj migrations declared via the upgrade registry (r.Project):
         // load the project once, run each registration the project is upgrading across, save once.
-        var registry = new UpgradeRegistry();
-        DeclareUpgrades(registry);
         var applicable = registry.ProjectUpgrades
             .Where(registration => UpgradingFromBefore(dependency, registration.GateVersion))
             .ToArray();

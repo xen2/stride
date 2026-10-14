@@ -40,11 +40,6 @@ OutlineEffect  # sources/engine/Stride.Rendering/Rendering/Images/Outline/Outlin
 SubsurfaceScatteringBlurShader  # sources/engine/Stride.Rendering/Rendering/Images/SubsurfaceScattering/SubsurfaceScatteringBlurShader.sdsl
 ComputeSphericalHarmonics  # sources/engine/Stride.Rendering/Rendering/LightProbes/ComputeSphericalHarmonics.sdsl
 DirectLightGroupFixed  # sources/engine/Stride.Rendering/Rendering/Lights/DirectLightGroupFixed.sdsl
-LightSpotAttenuationRectangular  # sources/engine/Stride.Rendering/Rendering/Lights/LightSpotAttenuationRectangular.sdsl
-TextureProjectionCommon  # sources/engine/Stride.Rendering/Rendering/Lights/TextureProjection/TextureProjectionCommon.sdsl
-TextureProjectionFilterDefault  # sources/engine/Stride.Rendering/Rendering/Lights/TextureProjection/TextureProjectionFilterDefault.sdsl
-TextureProjectionReceiverBase  # sources/engine/Stride.Rendering/Rendering/Lights/TextureProjection/TextureProjectionReceiverBase.sdsl
-TextureProjectionReceiverSpot  # sources/engine/Stride.Rendering/Rendering/Lights/TextureProjection/TextureProjectionReceiverSpot.sdsl
 IMaterialCelShadingLightFunction  # sources/engine/Stride.Rendering/Rendering/Materials/CelShading/IMaterialCelShadingLightFunction.sdsl
 MaterialCelShadingLightDefault  # sources/engine/Stride.Rendering/Rendering/Materials/CelShading/MaterialCelShadingLightDefault.sdsl
 MaterialCelShadingLightRamp  # sources/engine/Stride.Rendering/Rendering/Materials/CelShading/MaterialCelShadingLightRamp.sdsl
@@ -125,9 +120,7 @@ MaterialHairShadowingFunctionShadowing  # sources/engine/Stride.Rendering/Render
 MaterialStreamAdditiveBlend  # sources/engine/Stride.Rendering/Rendering/Materials/MaterialStreamAdditiveBlend.sdsl
 GBufferOutputSubsurfaceScatteringMaterialIndex  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/GBufferOutputSubsurfaceScatteringMaterialIndex.sdsl
 MaterialSpecularMicrofacetEnvironmentGGXPolynomial  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSpecularMicrofacetEnvironmentGGXPolynomial.sdsl
-MaterialSpecularMicrofacetEnvironmentThinGlass  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSpecularMicrofacetEnvironmentThinGlass.sdsl
 MaterialSpecularMicrofacetFresnelNone  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSpecularMicrofacetFresnelNone.sdsl
-MaterialSpecularMicrofacetFresnelThinGlass  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSpecularMicrofacetFresnelThinGlass.sdsl
 MaterialSpecularMicrofacetNormalDistributionBeckmann  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSpecularMicrofacetNormalDistributionBeckmann.sdsl
 MaterialSpecularMicrofacetVisibilityCookTorrance  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSpecularMicrofacetVisibilityCookTorrance.sdsl
 MaterialSpecularMicrofacetVisibilityKelemen  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSpecularMicrofacetVisibilityKelemen.sdsl
@@ -138,9 +131,7 @@ MaterialSurfaceDiffuseMetalFlakes  # sources/engine/Stride.Rendering/Rendering/M
 MaterialSurfaceGlossinessMapMetalFlakes  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSurfaceGlossinessMapMetalFlakes.sdsl
 MaterialSurfaceNormalStreamShading  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSurfaceNormalStreamShading.sdsl
 MaterialSurfaceStreamShading  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSurfaceStreamShading.sdsl
-MaterialSurfaceTransmittanceShading  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSurfaceTransmittanceShading.sdsl
 MaterialSurfaceVertexDisplacement  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialSurfaceVertexDisplacement.sdsl
-MaterialTransmittanceReflectanceStream  # sources/engine/Stride.Rendering/Rendering/Materials/Shaders/MaterialTransmittanceReflectanceStream.sdsl
 MaterialSurfaceSubsurfaceScatteringShading  # sources/engine/Stride.Rendering/Rendering/Materials/SubsurfaceScattering/MaterialSurfaceSubsurfaceScatteringShading.sdsl
 IMaterialSubsurfaceScatteringScatteringProfile  # sources/engine/Stride.Rendering/Rendering/Materials/SubsurfaceScattering/ScatteringProfileFunction/IMaterialSubsurfaceScatteringScatteringProfile.sdsl
 MaterialSubsurfaceScatteringScatteringProfileCustomUniform  # sources/engine/Stride.Rendering/Rendering/Materials/SubsurfaceScattering/ScatteringProfileFunction/MaterialSubsurfaceScatteringScatteringProfileCustomUniform.sdsl
