@@ -1207,7 +1207,13 @@ public static partial class Specification
     public enum MixinInheritFlagsMask
     {
         None = 0,
-        Module = 2,
+    }
+
+    [Flags]
+    public enum ShaderFlagsMask
+    {
+        None = 0,
+        Module = 1,
     }
 
     [Flags]
