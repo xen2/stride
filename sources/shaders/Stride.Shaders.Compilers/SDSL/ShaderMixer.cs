@@ -899,7 +899,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                         {
                             var shaderName = globalContext.ExternalShaders[parentFunctionInfo.ShaderId];
                             var parentFunctionType = context.ReverseTypes[parentFunctionInfo.FunctionType];
-                            var parentFunctions = mixinNode.ShadersByName[shaderName].Functions.GetValueOrDefault(parentFunctionInfo.Name);
+                            // Not in a composition node: the parent is a module, in the root
+                            var parentFunctions = mixinNode.ShadersByName.GetValueOrDefault(shaderName)?.Functions.GetValueOrDefault(parentFunctionInfo.Name);
                             var parentIndex = parentFunctions?.FindIndex(x => x.Type == parentFunctionType) ?? -1;
                             if (parentIndex == -1)
                                 throw new InvalidOperationException(OverrideOfOtherKind(currentShader, mixinNode, functionName, shaderName, isModuleMethod));
@@ -1148,17 +1149,15 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                     var isExternalFunction = globalContext.ExternalFunctions.TryGetValue(memberAccess.Member, out var function);
                     if (isExternalFunction && !isBase && FindModule(instanceMixinGroup, globalContext.ExternalShaders[function.ShaderId]) is { } module)
                     {
-                        // A module function: there is no override to select, it is the function of that module
+                        // A module function, found in its module (another class can have a function with the same name and type);
+                        // its override chain is used below
                         var moduleFunctions = module.Functions.GetValueOrDefault(function.Name);
                         var moduleFunctionIndex = moduleFunctions?.FindIndex(x => x.Type == functionType) ?? -1;
                         if (moduleFunctionIndex == -1)
                             throw new InvalidOperationException($"Can't find function {function.Name} in module {module.ShaderName}");
-                        memberAccesses.Add(memberAccess.ResultId, moduleFunctions![moduleFunctionIndex].Id);
-                        SetOpNop(i.Data.Memory.Span);
-                        continue;
+                        functionId = moduleFunctions![moduleFunctionIndex].Id;
                     }
-
-                    if (isExternalFunction)
+                    else if (isExternalFunction)
                     {
                         // Process member call (composition)
                         if (!instanceMixinGroup.MethodGroupsByName.TryGetValue((function.Name, functionType), out functionId)
@@ -1189,7 +1188,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                         // We currently do not allow calling base stage method from a non-stage method
                         // (if we were to allow them later, we would need to tweak following detection code as ShaderIndex comparison is only valid for items within the same MixinNode)
                         if (foundInStage)
-                            throw new InvalidOperationException($"Method {methodGroupEntry.Name} was found but a base call can't be performed on a stage method from a non-stage method");
+                            throw new InvalidOperationException($"Method {methodGroupEntry.Name} was found but a base call can't be performed on a module method from an instance method");
 
                         // Is it a base call? if yes, find the direct parent
                         // Let's find the method in same group just before ours
@@ -1266,8 +1265,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
     }
 
     /// <summary>
-    /// The module <paramref name="shaderName"/> seen from <paramref name="mixinNode"/>, or null when that node or the root mixes
-    /// the class in: calls then select the override, as for any inherited method.
+    /// The module <paramref name="shaderName"/> seen from <paramref name="mixinNode"/> (modules are in the root), or null when it
+    /// is not a module.
     /// </summary>
     private static ShaderInfo? FindModule(MixinNode mixinNode, string shaderName)
     {
