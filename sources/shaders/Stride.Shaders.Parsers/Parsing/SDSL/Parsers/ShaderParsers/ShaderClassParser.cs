@@ -76,10 +76,12 @@ public record struct ShaderClassParser : IParser<ShaderClass>
         }
         if (Parsers.FollowedBy(ref scanner, Tokens.Literal("partial"), withSpaces: true, advance: true) && Parsers.Spaces1(ref scanner, result, out _))
             tmp = scanner.Position;
+        var isModule = false;
         if (
             (
                 Tokens.Literal("shader", ref scanner, advance: true)
                 || Tokens.Literal("class", ref scanner, advance: true)
+                || (isModule = Tokens.Literal("module", ref scanner, advance: true))
             )
             && Parsers.Spaces1(ref scanner, result, out _))
         {
@@ -90,6 +92,7 @@ public record struct ShaderClassParser : IParser<ShaderClass>
             {
                 parsed = new ShaderClass(identifier, scanner[..]);
                 parsed.Internal = @internal;
+                parsed.IsModule = isModule;
                 if (hasAttributes)
                     parsed.Attributes = attributes;
                 if (Tokens.Char('<', ref scanner, advance: true))
