@@ -123,6 +123,18 @@ public class ParsingTests1
         Assert.Equal("import M", classes[1].Elements.OfType<ShaderImport>().Single().ToString());
     }
 
+    // A struct member can be an array, like a shader member
+    [Fact]
+    public void StructMemberCanBeAnArray()
+    {
+        var result = SDSLParser.Parse("shader S { struct T { float2 uv[4]; float x; }; };");
+        Assert.True(result.Errors.Count == 0, string.Join("\n", result.Errors.Select(x => x.ToString())));
+        var members = ((ShaderFile)result.AST!).RootDeclarations.OfType<ShaderClass>().Single().Elements.OfType<ShaderStruct>().Single().Members;
+        Assert.Equal(["uv", "x"], members.Select(x => x.Name.Name));
+        Assert.Single(members[0].TypeName.ArraySize!);
+        Assert.Null(members[1].TypeName.ArraySize);
+    }
+
     // Regression test: a trailing-dot float literal (e.g. "1.") is valid per the HLSL grammar
     // (https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-appendix-grammar#floating-point-numbers),
     // but a garbage character directly following it (e.g. "1.q") should still be reported as a parse error.
