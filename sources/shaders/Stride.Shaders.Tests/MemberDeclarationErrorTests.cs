@@ -5,7 +5,7 @@ namespace Stride.Shaders.Parsers.Tests;
 
 /// <summary>
 /// Member declarations that can't be compiled get a coded error at the member: an initial value that is not a constant (SDSL0173),
-/// and a cbuffer with both stage and non-stage members (SDSL0174). The fixes they give are RenderTests
+/// and a cbuffer with both module and instance members (SDSL0174). The fixes they give are RenderTests
 /// <c>StaticFromMember</c> and <c>CBufferSplitStage</c>.
 /// </summary>
 public class MemberDeclarationErrorTests : IDisposable
@@ -62,7 +62,7 @@ public class MemberDeclarationErrorTests : IDisposable
                 cbuffer PerView.Atmosphere { {{members}} }
             };
             """);
-        Assert.Contains("SDSL0174: cbuffer PerView.Atmosphere mixes stage and non-stage members (Slices is stage, BottomRadius is not).", message);
+        Assert.Contains("SDSL0174: cbuffer PerView.Atmosphere mixes module and instance members (Slices is a module member, BottomRadius is not).", message);
     }
 
     private void Compile(string name, string code)

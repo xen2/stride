@@ -49,6 +49,7 @@ public static class SDSLErrorMessages
     public const string SDSL0041 = "SDSL0041: Expected expression or semi colon";
     public const string SDSL0042 = "SDSL0042: Expected prefix expression";
     public const string SDSL0043 = "SDSL0043: Unexpected <EOF>";
+    public const string SDSL0045 = "SDSL0045: `stage` is now `module`: write `module` (the Stride project upgrade does it)";
     public const string SDSL0048 = "SDSL0048: '{0}' is a reserved word and can't be a name. Rename it";
     public const string SDSL0049 = "SDSL0049: Code after the end of shader {0}. Only shader, effect and params declarations can follow: remove it, or move it into the shader";
     public const string SDSL0050 = "SDSL0050: {0} {1} is declared inside {2} {3}, but it is not a member of a {2}. Move it out of the block";
@@ -82,7 +83,7 @@ public static class SDSLErrorMessages
     public const string SDSL0171 = "SDSL0171: Attribute [{0}] on method {1} is not supported. Remove it.";
     public const string SDSL0172 = "SDSL0172: Stream {0} has an initial value ({1}), but a stream has none. Remove it, and assign the value in the stage that writes the stream first (streams.{0} = {1};).";
     public const string SDSL0173 = "SDSL0173: The initial value of member {0} ({1}) is not a constant. A member's initial value is its default value, set by the application, so it must be a constant. To compute it from other members, declare it static (static {2} {0} = {1};), or compute it where it is used.";
-    public const string SDSL0174 = "SDSL0174: cbuffer {0} mixes stage and non-stage members ({1} is stage, {2} is not). Split it: declare the stage members in a second cbuffer {0} block (blocks with the same name are merged into one cbuffer).";
+    public const string SDSL0174 = "SDSL0174: cbuffer {0} mixes module and instance members ({1} is a module member, {2} is not). Split it: declare the module members in a second cbuffer {0} block (blocks with the same name are merged into one cbuffer).";
     public const string SDSL0175 = "SDSL0175: {0}.{1}({2}) returns {3}, but the method it overrides, {4}.{1}({2}), returns {5}. Use the same return type.";
     public const string SDSL0176 = "SDSL0176: {0}.{1}({2}) is marked 'override', but no inherited method has this name and these parameters. Inherited: {3}. Use the parameters of the method to override, or remove 'override'.";
     public const string SDSL0177 = "SDSL0177: Not all code paths of {0}.{1} return a value. Add a return at the end of the method (a switch needs a default that returns).";
@@ -98,6 +99,7 @@ public static class SDSLErrorMessages
     public const string SDSL0150 = "SDSL0150: {0} has no member '{1}'. To get the size of a buffer, call {2}.GetDimensions({3}).";
     public const string SDSL0190 = "SDSL0190: Unknown type {0}. Check its name; a struct or a shader must be declared in this shader, one it inherits, or another shader file.";
     public const string SDSL0191 = "SDSL0191: {1} inherits from {0}, but shader {0} can't be found. Check its name, and that its .sdsl file is with the other shaders.";
+    public const string SDSL0196 = "SDSL0196: {1} imports {0}, but module {0} can't be found. Check its name, and that its .sdsl file is with the other shaders.";
     public const string SDSL0192 = "SDSL0192: {0}.{1}: {1} is {2}, so '{0}.' doesn't apply to it. Write {1}.";
     public const string SDSL0193 = "SDSL0193: Can't convert {0} to {1}: HLSL doesn't add components implicitly. Write them: {1}(value, ...).";
     public const string SDSL0194 = "SDSL0194: Stream {0} is read{1} before any stage writes it, and it has no semantic, so it can't come from a vertex buffer. Write streams.{0} before reading it, or give it a semantic if it is a vertex buffer input.";

@@ -1059,7 +1059,7 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
             throw new StatementCompileException(new(Info, string.Format(SDSLErrorMessages.SDSL0192, qualifier.Name, member.Name, "a variable, which is not overridden")));
         // A cbuffer member's symbol refers to its cbuffer, which has the flag
         if (symbol.Id.IsStage || (symbol.OwnerType ?? shader).Variables.Any(v => v.Symbol.IdRef == symbol.IdRef && (v.Flags & VariableFlagsMask.Stage) != 0))
-            throw new StatementCompileException(new(Info, string.Format(SDSLErrorMessages.SDSL0192, qualifier.Name, member.Name, "a stage member, shared by every instance")));
+            throw new StatementCompileException(new(Info, string.Format(SDSLErrorMessages.SDSL0192, qualifier.Name, member.Name, "a module member, shared by every instance")));
 
         Source = new Identifier(member.Name, member.Info) { MemberOnly = true };
         Accessors.RemoveAt(0);
