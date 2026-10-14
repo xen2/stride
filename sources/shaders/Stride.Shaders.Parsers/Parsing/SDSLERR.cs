@@ -50,6 +50,7 @@ public static class SDSLErrorMessages
     public const string SDSL0042 = "SDSL0042: Expected prefix expression";
     public const string SDSL0043 = "SDSL0043: Unexpected <EOF>";
     public const string SDSL0044 = "SDSL0044: Use of register and packoffset keyword deprecated";
+    public const string SDSL0045 = "SDSL0045: `stage` is now `module`: write `module` (the Stride project upgrade does it)";
 
 
     // Semantic errors

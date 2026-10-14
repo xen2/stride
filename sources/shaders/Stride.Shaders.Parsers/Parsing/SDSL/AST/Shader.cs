@@ -66,6 +66,11 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
     public ShaderParameterDeclarations? Generics { get; set; }
     public List<IdentifierBase> Mixins { get; set; } = [];
     public bool Internal { get; set; }
+
+    /// <summary>
+    /// Declared <c>module X</c>: every member is a module member, and the class exists once per effect, at the root.
+    /// </summary>
+    public bool IsModule { get; set; }
     public ShaderAttributeList? Attributes { get; set; }
 
     // Note: We should make this method incremental (called many times in ShaderMixer)
@@ -505,7 +510,19 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
     public void Compile(SymbolTable table, CompilerUnit compiler)
     {
         var (builder, context) = compiler;
-        builder.Insert(new OpShaderSDSL(Name));
+        builder.Insert(new OpShaderSDSL(Name, IsModule ? ShaderFlagsMask.Module : ShaderFlagsMask.None));
+
+        // Every member of a module is a module member
+        if (IsModule)
+        {
+            foreach (var element in Elements)
+            {
+                if (element is MethodOrMember member)
+                    member.IsStaged = true;
+                else if (element is ShaderBuffer buffer)
+                    buffer.Members.ForEach(x => x.IsStaged = true);
+            }
+        }
 
         var openGenerics = new ConstantExpression[Generics != null ? Generics.Parameters.Count : 0];
         var currentShader = new ShaderDefinition(Name, openGenerics);
@@ -537,7 +554,20 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         }
 
         table.InheritedShaders.Clear();
+        // Parents, then imports; a module sits where the walk first meets it
         foreach (var mixin in Mixins)
+        {
+            var parent = AddToInheritanceList(mixin);
+            if (IsModule && !parent.IsModule)
+                table.AddError(new(mixin.Info, $"module {Name} can't inherit the shader {parent.ClassName}: a module only imports other modules"));
+        }
+        foreach (var import in Elements.OfType<ShaderImport>())
+        {
+            if (!AddToInheritanceList(import.Module).IsModule)
+                table.AddError(new(import.Info, $"{import.Module.Name} is a shader, not a module: inherit it (`: {import.Module.Name}`) instead of importing it"));
+        }
+
+        ShaderClassInstantiation AddToInheritanceList(IdentifierBase mixin)
         {
             var mixinGenerics = (mixin as GenericIdentifier)?.Generics;
             var generics = new ConstantExpression[mixinGenerics != null ? mixinGenerics.Values.Count : 0];
@@ -578,7 +608,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
                 }
             }
             var shaderClassSource = new ShaderClassInstantiation(mixin.Name, generics);
-            SpirvBuilder.BuildInheritanceListIncludingSelf(table.ShaderLoader, context, shaderClassSource, table.CurrentMacros.AsSpan(), table.InheritedShaders, ResolveStep.Compile);
+            return SpirvBuilder.BuildInheritanceListIncludingSelf(table.ShaderLoader, context, shaderClassSource, table.CurrentMacros.AsSpan(), table.InheritedShaders, ResolveStep.Compile);
         }
 
         RegisterShaderType(table, currentShader);
@@ -590,10 +620,9 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             mixin.Symbol = LoadAndCacheExternalShaderDefinition(table, context, mixin);
         }
 
-        // A module reached through a parent's static reference stays a module edge, but its symbols stay visible as before
         foreach (var mixin in table.InheritedShaders)
         {
-            Inherit(table, context, mixin.Symbol!, true, mixin.IsModule ? MixinInheritFlagsMask.Module : MixinInheritFlagsMask.None);
+            Inherit(table, context, mixin.Symbol!, true);
         }
 
         // Process symbols and generate types
@@ -721,7 +750,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
     }
 
 
-    public static void Inherit(SymbolTable table, SpirvContext context, ShaderDefinition shaderType, bool addToRoot, MixinInheritFlagsMask flags = MixinInheritFlagsMask.None)
+    public static void Inherit(SymbolTable table, SpirvContext context, ShaderDefinition shaderType, bool addToRoot)
     {
         var shaderId = context.GetOrImportShader(shaderType);
         table.RegisterLoadedShader(shaderId, shaderType);
@@ -737,41 +766,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             table.CurrentShader!.InheritedShaders.Add(shaderType);
 
         // Mark inherit
-        context.Add(new OpMixinInheritSDSL(shaderId, flags));
-    }
-
-    /// <summary>
-    /// Makes <paramref name="shader"/> and its parents mixins of the current shader when <paramref name="shader"/> is a module of
-    /// its inheritance list (reached through a parent's static reference): the current shader overrides one of its methods,
-    /// and the static references must select that override, as they did when every static reference was an inherit.
-    /// </summary>
-    public static void MakeModuleAMixin(SymbolTable table, SpirvContext context, ShaderDefinition shader)
-    {
-        var owner = table.InheritedShaders.Find(x => x.IsModule && x.Symbol?.ToClassName() == shader.ToClassName());
-        if (owner == null)
-            return;
-
-        // Its parents, not the modules of its own static references
-        var mixins = new List<ShaderClassInstantiation>();
-        SpirvBuilder.BuildInheritanceListIncludingSelf(table.ShaderLoader, context, new ShaderClassInstantiation(owner.ClassName, owner.GenericArguments) { Buffer = owner.Buffer }, table.CurrentMacros.AsSpan(), mixins, ResolveStep.Compile);
-
-        var names = new HashSet<string>();
-        foreach (var entry in table.InheritedShaders)
-        {
-            if (entry.IsModule && mixins.Find(x => x.Equals(entry)) is { IsModule: false })
-            {
-                entry.IsModule = false;
-                names.Add(entry.Symbol!.ToClassName());
-            }
-        }
-
-        foreach (var i in context)
-        {
-            if (i.Op == Op.OpMixinInheritSDSL && (OpMixinInheritSDSL)i is { } inherit
-                && (inherit.Flags & MixinInheritFlagsMask.Module) != 0
-                && table.ResolveShader(inherit.Shader) is { } inherited && names.Contains(inherited.ToClassName()))
-                inherit.Flags &= ~MixinInheritFlagsMask.Module;
-        }
+        context.Add(new OpMixinInheritSDSL(shaderId, MixinInheritFlagsMask.None));
     }
 
     public static ShaderDefinition LoadAndCacheExternalShaderDefinition(SymbolTable table, SpirvContext context, ShaderClassInstantiation classSource)

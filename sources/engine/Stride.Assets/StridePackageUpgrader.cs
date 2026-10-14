@@ -156,6 +156,10 @@ namespace Stride.Assets
             registry.Project("4.4.0.0", UpgradeProjectTo44);
             registry.Project("4.5.0.0", UpgradeProjectTo45);
             registry.Project("4.5.0.0", AddPluginPackageReferences);
+
+            // Shader language changes: the project's .sdsl files go through the shader source upgrade (ShaderUpgrader).
+            // 4.5: `stage` is now `module`; classes with no instance part that other classes import are `module X`.
+            registry.Shader("4.5.0.0");
         }
 
         private static bool IsSkippedPackage(string packageName)

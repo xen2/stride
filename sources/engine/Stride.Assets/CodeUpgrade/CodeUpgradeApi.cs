@@ -50,6 +50,9 @@ public sealed class UpgradeRegistry
     /// <summary>The declared project (structural) upgrade registrations, in declaration order.</summary>
     internal IReadOnlyList<ProjectUpgradeRegistration> ProjectUpgrades => projectUpgrades;
 
+    /// <summary>The versions at which the shader language changed.</summary>
+    internal List<PackageVersion> ShaderUpgrades { get; } = [];
+
     /// <summary>
     /// Declares code migrations that became necessary at <paramref name="version"/> (the version in
     /// which the API changed). They run for any project upgraded from below that version.
@@ -83,6 +86,17 @@ public sealed class UpgradeRegistry
         ArgumentNullException.ThrowIfNull(version);
         ArgumentNullException.ThrowIfNull(upgrade);
         projectUpgrades.Add(new ProjectUpgradeRegistration(new PackageVersion(version), upgrade));
+    }
+
+    /// <summary>
+    /// Declares that the shader language changed at <paramref name="version"/>: the <c>.sdsl</c> files of a project upgraded
+    /// from below it go through the shader source upgrade. It runs all its steps, each changing only the old syntax.
+    /// </summary>
+    /// <param name="version">The version at which the shader language changed (e.g. <c>"4.5.0.0"</c>).</param>
+    public void Shader(string version)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+        ShaderUpgrades.Add(new PackageVersion(version));
     }
 }
 
