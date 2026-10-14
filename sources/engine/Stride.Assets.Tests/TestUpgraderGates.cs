@@ -27,7 +27,7 @@ namespace Stride.Assets.Tests
         {
             var committed = typeof(StridePackageUpgrader).GetCustomAttribute<PackageUpgraderAttribute>().UpdatedVersionRange.MinVersion.Version;
             var registry = DeclaredUpgrades();
-            var gates = registry.CodeUpgrades.Select(x => x.GateVersion).Concat(registry.ProjectUpgrades.Select(x => x.GateVersion));
+            var gates = registry.CodeUpgrades.Select(x => x.GateVersion).Concat(registry.ProjectUpgrades.Select(x => x.GateVersion)).Concat(registry.ShaderUpgrades);
 
             Assert.All(gates, gate => Assert.True(gate.Version <= committed, $"Gate {gate} is above the committed version {committed}: bump Patch in SharedAssemblyInfo.cs"));
         }
@@ -39,6 +39,7 @@ namespace Stride.Assets.Tests
             var registry = DeclaredUpgrades();
             AssertInOrder(registry.CodeUpgrades.Select(x => x.GateVersion).ToArray());
             AssertInOrder(registry.ProjectUpgrades.Select(x => x.GateVersion).ToArray());
+            AssertInOrder(registry.ShaderUpgrades.ToArray());
         }
 
         private static void AssertInOrder(PackageVersion[] gates)
