@@ -3,6 +3,7 @@
 /// <summary>
 /// Various methods for manipulating normals
 /// </summary>
+[Pure]
 module NormalUtil
 {
     // Blending Normal methods: http://blog.selfshadow.com/publications/blending-in-detail/
