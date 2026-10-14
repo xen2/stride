@@ -92,14 +92,21 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                 foreach (var info in table.Infos)
                     log.Info(info.ToString());
 
-                foreach (var warning in table.Warnings)
-                    log.Warning(warning.ToString());
-
                 if (table.Errors.Count > 0)
                 {
                     foreach (var error in table.Errors)
                         log.Error(error.ToString());
                     hasErrors = true;
+                }
+
+                // Warnings are kept in the class: the loader reports them each time it loads it, from the cache too
+                foreach (var warning in table.Warnings)
+                {
+                    var message = $"{filename ?? shader.Name.Name}({warning.Location.Line},{warning.Location.Column}): {warning.Message}";
+                    if (hasErrors)
+                        log.Warning(message);
+                    else
+                        compiler.Context.Add(new OpDiagnosticSDSL(message));
                 }
 
                 if (hasErrors)

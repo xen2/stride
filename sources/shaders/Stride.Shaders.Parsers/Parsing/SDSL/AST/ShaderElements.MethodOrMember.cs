@@ -323,7 +323,7 @@ public sealed partial class ShaderMember(
         if (pointerType.BaseType is ByteAddressBufferType { WriteAllowed: false } or StructuredBufferType { WriteAllowed: false })
             context.Add(new OpDecorate(variable, Specification.Decoration.NonWritable, []));
 
-        RGroup.DecorateVariableLinkInfo(table, shader, context, Info, Name, Attributes, variable);
+        RGroup.DecorateVariableLinkInfo(table, shader, context, Info, Name, Attributes, variable, pointerType.BaseType);
     }
 
     public override string ToString()
@@ -450,6 +450,8 @@ public partial class ShaderMethod(
 
         if (!IsOverride)
             CheckMissingOverride(table, ftype);
+        else
+            DefinitionChecks.CheckOverride(table, Name, ftype, string.Join(", ", Parameters.Select(p => p.Type)));
 
         var symbol = new Symbol(new(Name, SymbolKind.Method, IsStage: IsStaged), ftype, function.Id, MemberAccessWithImplicitThis: ftype, OwnerType: table.CurrentShader);
 
