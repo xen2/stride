@@ -8,6 +8,10 @@
         {
           "kind": "LiteralString",
           "name": "shaderName"
+        },
+        {
+          "kind": "ShaderFlags",
+          "name": "flags"
         }
       ]
     },
@@ -473,10 +477,20 @@
         {
           "enumerant": "None",
           "value": "0x0000"
+        }
+      ]
+    },
+    {
+      "category": "BitEnum",
+      "kind": "ShaderFlags",
+      "enumerants": [
+        {
+          "enumerant": "None",
+          "value": "0x0000"
         },
         {
           "enumerant": "Module",
-          "value": "0x0002"
+          "value": "0x0001"
         }
       ]
     },

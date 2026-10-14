@@ -25,6 +25,16 @@ public static class Parsers
         return false;
     }
 
+    /// <summary>
+    /// Reports <c>stage</c>, the old spelling of the <c>module</c> modifier, read at <paramref name="position"/> (once: the parsers backtrack).
+    /// </summary>
+    public static void StageIsNowModule<TScanner>(ref TScanner scanner, ParseResult result, int position)
+        where TScanner : struct, IScanner
+    {
+        if (!result.Errors.Exists(x => x.Message == SDSLErrorMessages.SDSL0045 && x.Location.Position == position))
+            result.Errors.Add(new(SDSLErrorMessages.SDSL0045, scanner[position], scanner.Memory));
+    }
+
     public static bool Spaces0<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out NoNode node, in ParseError? orError = null, bool onlyWhiteSpace = false)
         where TScanner : struct, IScanner
         => new Space0(onlyWhiteSpace).Match(ref scanner, result, out node, in orError);
@@ -86,6 +96,7 @@ public static class Parsers
         isAbstract = false;
         isClone = false;
         bool matched = false;
+        var keywordStart = scanner.Position;
         // legacy
         while (
             Tokens.AnyOf(
@@ -103,8 +114,14 @@ public static class Parsers
             && Spaces1(ref scanner, result, out _))
         {
             matched = true;
+            var matchStart = keywordStart;
+            keywordStart = scanner.Position;
             if (match is "module" or "stage")
+            {
+                if (match == "stage")
+                    StageIsNowModule(ref scanner, result, matchStart);
                 isStaged = true;
+            }
             else if (match == "override")
                 isOverride = true;
             else if (match == "clone")
@@ -131,6 +148,7 @@ public static class Parsers
         typeModifier = TypeModifier.None;
         storageClass = StorageClass.None;
         bool matched = false;
+        var keywordStart = scanner.Position;
         // legacy
         while (
             Tokens.AnyOf(
@@ -163,8 +181,14 @@ public static class Parsers
             && Spaces1(ref scanner, result, out _))
         {
             matched = true;
+            var matchStart = keywordStart;
+            keywordStart = scanner.Position;
             if (match is "module" or "stage")
+            {
+                if (match == "stage")
+                    StageIsNowModule(ref scanner, result, matchStart);
                 isStaged = true;
+            }
             else if (match == "compose")
                 isCompose = true;
             else if (match == "stream")
