@@ -129183,9 +129183,21 @@ public ref partial struct OpShaderSDSL : IMemoryInstruction
         }
     }
 
-    public OpShaderSDSL(string shaderName)
+    public ShaderFlagsMask Flags
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public OpShaderSDSL(string shaderName, ShaderFlagsMask flags)
     {
         ShaderName = shaderName;
+        Flags = flags;
         UpdateInstructionMemory();
         opData = ref Unsafe.NullRef<OpData>();
     }
@@ -129198,7 +129210,7 @@ public ref partial struct OpShaderSDSL : IMemoryInstruction
     public void UpdateInstructionMemory()
     {
         InstructionMemory ??= MemoryOwner<int>.Empty;
-        Span<int> instruction = [(int)Op.OpShaderSDSL, ..ShaderName.AsDisposableLiteralValue().Words];
+        Span<int> instruction = [(int)Op.OpShaderSDSL, ..ShaderName.AsDisposableLiteralValue().Words, (int)Flags];
         instruction[0] |= instruction.Length << 16;
         if (instruction.Length == InstructionMemory.Length)
             instruction.CopyTo(InstructionMemory.Span);
@@ -129219,6 +129231,9 @@ public ref partial struct OpShaderSDSL : IMemoryInstruction
             {
                 case "shaderName":
                     ShaderName = o.ToLiteral<string>();
+                    break;
+                case "flags":
+                    Flags = o.ToEnum<ShaderFlagsMask>();
                     break;
                 // We ignore unrecognized operands
                 default:
@@ -129471,21 +129486,9 @@ public ref partial struct OpMixinInheritSDSL : IMemoryInstruction
         }
     }
 
-    public MixinInheritFlagsMask Flags
-    {
-        get;
-        set
-        {
-            field = value;
-            if (InstructionMemory is not null)
-                UpdateInstructionMemory();
-        }
-    }
-
-    public OpMixinInheritSDSL(int shader, MixinInheritFlagsMask flags)
+    public OpMixinInheritSDSL(int shader)
     {
         Shader = shader;
-        Flags = flags;
         UpdateInstructionMemory();
         opData = ref Unsafe.NullRef<OpData>();
     }
@@ -129498,7 +129501,7 @@ public ref partial struct OpMixinInheritSDSL : IMemoryInstruction
     public void UpdateInstructionMemory()
     {
         InstructionMemory ??= MemoryOwner<int>.Empty;
-        Span<int> instruction = [(int)Op.OpMixinInheritSDSL, Shader, (int)Flags];
+        Span<int> instruction = [(int)Op.OpMixinInheritSDSL, Shader];
         instruction[0] |= instruction.Length << 16;
         if (instruction.Length == InstructionMemory.Length)
             instruction.CopyTo(InstructionMemory.Span);
@@ -129519,9 +129522,6 @@ public ref partial struct OpMixinInheritSDSL : IMemoryInstruction
             {
                 case "shader":
                     Shader = o.ToLiteral<int>();
-                    break;
-                case "flags":
-                    Flags = o.ToEnum<MixinInheritFlagsMask>();
                     break;
                 // We ignore unrecognized operands
                 default:
