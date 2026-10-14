@@ -201,6 +201,8 @@ Direct3D11/RenderTests.OutArgumentConversion strict=61138fc12f90 legal=a341a63a7
 Direct3D11/RenderTests.OutSwizzleArgument strict=ba822b2b236f legal=f37f900da8b7 reflection=e3b0c44298fc explain=0f96efe9cfd8
 Direct3D11/RenderTests.OverloadRanking strict=68b0e1cdb588 legal=6596c968c4ea reflection=e3b0c44298fc explain=a10a9fe7ae22
 Direct3D11/RenderTests.Overloads strict=89f01e2b53e2 legal=a90c1389f015 reflection=e3b0c44298fc explain=034e6fef67e9
+Direct3D11/RenderTests.PartialStructNested strict=c4d1d4a8c57d legal=2944118b468a reflection=e3b0c44298fc explain=16a5a7022584
+Direct3D11/RenderTests.PartialStructParts strict=605994d7ea17 legal=7faabf8397a7 reflection=e3b0c44298fc explain=d705c1a10ebf
 Direct3D11/RenderTests.PixelShaderUav strict=f4e6774a8b7c legal=0b894c17c60b reflection=9690367f43df explain=809d2885804e
 Direct3D11/RenderTests.PositionStreams strict=4574680f3516 legal=0bd623b46e29 reflection=ca914904170c explain=5b5fad0a3c01
 Direct3D11/RenderTests.Rgroups strict=0c4a3e4bced5 legal=756633f07149 reflection=809ffeada2d5 explain=910e1ae6cdb1
@@ -729,6 +731,8 @@ Vulkan/RenderTests.OutArgumentConversion strict=f512ce47917b legal=7a2b015af5bc 
 Vulkan/RenderTests.OutSwizzleArgument strict=813b3fc5ce20 legal=92c918a2957e reflection=e3b0c44298fc explain=0f96efe9cfd8
 Vulkan/RenderTests.OverloadRanking strict=5b3823b46487 legal=91fcecfb0201 reflection=e3b0c44298fc explain=a10a9fe7ae22
 Vulkan/RenderTests.Overloads strict=0101199e2a81 legal=0b7fd58d98ab reflection=e3b0c44298fc explain=034e6fef67e9
+Vulkan/RenderTests.PartialStructNested strict=f1941c21155b legal=36daa1f8aae7 reflection=e3b0c44298fc explain=16a5a7022584
+Vulkan/RenderTests.PartialStructParts strict=c4bb59af1d62 legal=3084d5b97d33 reflection=e3b0c44298fc explain=d705c1a10ebf
 Vulkan/RenderTests.PixelShaderUav strict=f03ce9210743 legal=d4ffcd7d9249 reflection=55ae202587ac explain=809d2885804e
 Vulkan/RenderTests.PositionStreams strict=61625ce9f623 legal=873425a6ce89 reflection=ca914904170c explain=5b5fad0a3c01
 Vulkan/RenderTests.Rgroups strict=726059c5ac31 legal=3ae256cde898 reflection=213e9fc361cb explain=910e1ae6cdb1
