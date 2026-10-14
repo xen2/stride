@@ -135,6 +135,25 @@ public class ParsingTests1
         Assert.Equal("import M", classes[1].Elements.OfType<ShaderImport>().Single().ToString());
     }
 
+    // `partial` and `extend` are keywords only before `struct`: they stay valid names elsewhere
+    [Fact]
+    public void PartialAndExtendStructs()
+    {
+        var result = SDSLParser.Parse("""
+            module M
+            {
+                partial struct P { float partial; };
+                extend struct Q { float extend; };
+                struct R { float a; };
+                float F() { float partial = 1; float extend = 2; return partial + extend; }
+            };
+            """);
+        Assert.True(result.Errors.Count == 0, string.Join("\n", result.Errors.Select(x => x.ToString())));
+        var structs = ((ShaderFile)result.AST!).RootDeclarations.OfType<ShaderClass>().Single().Elements.OfType<ShaderStruct>().ToList();
+        Assert.Equal([ShaderStructKind.Partial, ShaderStructKind.Extend, ShaderStructKind.Plain], structs.Select(x => x.Kind));
+        Assert.Equal(["partial", "extend", "a"], structs.Select(x => x.Members.Single().Name.Name));
+    }
+
     // Regression test: a trailing-dot float literal (e.g. "1.") is valid per the HLSL grammar
     // (https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-appendix-grammar#floating-point-numbers),
     // but a garbage character directly following it (e.g. "1.q") should still be reported as a parse error.
