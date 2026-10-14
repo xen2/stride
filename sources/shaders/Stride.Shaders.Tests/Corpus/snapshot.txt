@@ -141,7 +141,7 @@ Direct3D11/RenderTests.GenericInheritance strict=0867c870cdd0 legal=6c447dc755a1
 Direct3D11/RenderTests.GenericsArraySize strict=7f5a5ff7ec2e legal=69d6d02cdc7a reflection=73d510237cd0 explain=2ce018005c33
 Direct3D11/RenderTests.GenericsArraySize2 strict=1357485042d4 legal=69d6d02cdc7a reflection=73d510237cd0 explain=2ce018005c33
 Direct3D11/RenderTests.GenericsEffect strict=3f7a7601af09 legal=b1b52ddeb97b reflection=e3b0c44298fc explain=4f01dd67446a
-Direct3D11/RenderTests.GenericsExternal strict=008ad55ec25c legal=61061f863512 reflection=16a4986c9614 explain=a9fb3bac35aa
+Direct3D11/RenderTests.GenericsExternal strict=008ad55ec25c legal=61061f863512 reflection=16a4986c9614 explain=fe276dc82676
 Direct3D11/RenderTests.GenericsFloat strict=0d1418ebf963 legal=a0e374160154 reflection=e3b0c44298fc explain=d40779bafef5
 Direct3D11/RenderTests.GenericsLinkType strict=78bf5c80a208 legal=d4e25fbe63e1 reflection=faece92d6ac4 explain=45d1735b2789
 Direct3D11/RenderTests.GenericsMemberName strict=5a8ef17f0a9f legal=560a5f7889be reflection=e3b0c44298fc explain=b3ea39e1eb63
@@ -620,7 +620,7 @@ Vulkan/RenderTests.GenericInheritance strict=e7da6e6c3ae0 legal=0db004e973aa ref
 Vulkan/RenderTests.GenericsArraySize strict=9adf62ade6fa legal=eb4433b79a55 reflection=73d510237cd0 explain=2ce018005c33
 Vulkan/RenderTests.GenericsArraySize2 strict=9e7c26ed2bdf legal=eb4433b79a55 reflection=73d510237cd0 explain=2ce018005c33
 Vulkan/RenderTests.GenericsEffect strict=183b1ff0a50e legal=6da671142e26 reflection=e3b0c44298fc explain=4f01dd67446a
-Vulkan/RenderTests.GenericsExternal strict=8537d124c2e5 legal=70d5a0bf4f54 reflection=16a4986c9614 explain=a9fb3bac35aa
+Vulkan/RenderTests.GenericsExternal strict=8537d124c2e5 legal=70d5a0bf4f54 reflection=16a4986c9614 explain=fe276dc82676
 Vulkan/RenderTests.GenericsFloat strict=544ac38bfbaf legal=b0eb8470356c reflection=e3b0c44298fc explain=d40779bafef5
 Vulkan/RenderTests.GenericsLinkType strict=2bde51b078af legal=86d70b933e82 reflection=8c3186e0dcd6 explain=45d1735b2789
 Vulkan/RenderTests.GenericsMemberName strict=573cb2fcf627 legal=edcc34b6161d reflection=e3b0c44298fc explain=b3ea39e1eb63
