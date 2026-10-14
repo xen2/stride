@@ -1214,6 +1214,8 @@ public static partial class Specification
     {
         None = 0,
         Module = 1,
+        Root = 2,
+        Pure = 4,
     }
 
     [Flags]

@@ -265,6 +265,7 @@ public partial class MethodCall(Identifier name, ShaderExpressionList arguments,
         }
 
         ResolvedFunctionSymbol = functionSymbol;
+        DefinitionChecks.CheckCall(table, this, functionSymbol);
     }
 
     public void ProcessParameterSymbols(SymbolTable table, FunctionType? functionType = null)
