@@ -73,10 +73,12 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
             // Process name and types imported by constants due to generics instantiation
             ShaderClass.ProcessNameAndTypes(context);
 
+            DeclarePartialStructs(globalContext, context, shaderSource2);
+
             rootMixin = MergeMixinNode(globalContext, context, temp, shaderSource2);
 
             if (CollectExplanation)
-                Explanation = Explain(rootMixin);
+                Explanation = Explain(rootMixin, globalContext);
         }
         catch (Exception e)
         {
@@ -313,6 +315,9 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
         /// <summary>Maps source filename to merged OpString ID, used to deduplicate OpString/OpSource during merge.</summary>
         public Dictionary<string, int> SourceFileStrings { get; } = new();
+
+        /// <summary>The partial structs of the effect, by owner and name.</summary>
+        public Dictionary<(string Owner, string Name), PartialStructLayout> PartialStructs { get; } = new();
     }
 
     class MixinNodeContext
@@ -441,6 +446,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         var forbiddenIds = new Dictionary<int, (string Name, bool IsFunction)>();
         var remapIds = new Dictionary<int, int>();
         var removedIds = new HashSet<int>();
+        var partialStructRewriter = PartialStructRewriter.Create(globalContext, context, shaderBuffers);
 
         bool isContext = true;
         string? currentFunctionName = null;
@@ -573,7 +579,14 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                         var isStage = (variableInstruction.Flags & VariableFlagsMask.Stage) != 0;
                         include = ProcessStageMemberOrType(variableInstruction.ResultId, null, isStage, false);
                     }
-                    if (i.Op == Op.OpTypeStruct && (OpTypeStruct)i is { } typeStruct)
+                    // The view of a partial struct seen by this class becomes the struct of the effect
+                    if (i.Op == Op.OpTypeStruct && partialStructRewriter != null && partialStructRewriter.Views.TryGetValue(i.Data.IdResult!.Value, out var partialStruct))
+                    {
+                        remapIds[offset + i.Data.IdResult!.Value] = partialStruct.Id;
+                        removedIds.Add(partialStruct.Id);
+                        include = false;
+                    }
+                    else if (i.Op == Op.OpTypeStruct && (OpTypeStruct)i is { } typeStruct)
                     {
                         include = ProcessStageMemberOrType(typeStruct.ResultId, null, true, false);
                     }
@@ -630,6 +643,9 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                 }
 
                 SpirvBuilder.RemapIds(remapIds, ref i2);
+
+                if (partialStructRewriter != null && ReferenceEquals(shader, shaderBuffers.Buffer))
+                    partialStructRewriter.Apply(index, ref i2);
 
                 // Detect when we switch from context to main buffer
                 if (i2.Op == Op.OpShaderSDSL)
