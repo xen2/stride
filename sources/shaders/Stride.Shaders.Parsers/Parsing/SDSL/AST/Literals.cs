@@ -512,7 +512,10 @@ public partial class Identifier(string name, TextLocation info) : IdentifierBase
         if (Name == "this" || Name == "base")
             Type = new PointerType(new ShaderMixinType(), Specification.StorageClass.Private);
         else if (Name == "streams")
+        {
             Type = new PointerType(new StreamsType(Specification.StreamsKindSDSL.Streams), Specification.StorageClass.Private);
+            DefinitionChecks.CheckRead(table, this, null);
+        }
         else
         {
             if (!table.TryResolveSymbol(Name, out var symbol))
@@ -527,6 +530,7 @@ public partial class Identifier(string name, TextLocation info) : IdentifierBase
 
                 ResolvedSymbol = symbol;
                 Type = symbol.Type;
+                DefinitionChecks.CheckRead(table, this, symbol);
             }
         }
     }
@@ -698,6 +702,7 @@ public partial class GenericIdentifier(Identifier name, ShaderExpressionList? ge
             {
                 classSource = table.InheritedShaders[table.InheritedShaders.IndexOf(classSource)];
             }
+            DefinitionChecks.CheckStaticReference(table, info, classSource);
 
             // We add the typename as a symbol (similar to static access in C#)
             var shaderId = context.GetOrImportShader(classSource.Symbol!);

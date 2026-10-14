@@ -85,6 +85,23 @@ public class ParsingTests1
         Assert.Equal(7, errors.Select(x => x.Location.Position).Distinct().Count());
     }
 
+    // `mixin clone` and `mixin remove` in an effect are errors that say what to do, not a parse failure
+    [Theory]
+    [InlineData("clone", SDSLErrorMessages.SDSL0046)]
+    [InlineData("remove", SDSLErrorMessages.SDSL0047)]
+    public void RemovedEffectMixinIsAnError(string keyword, string message)
+    {
+        var result = SDSLParser.Parse($$"""
+            effect E
+            {
+                mixin A;
+                mixin {{keyword}} B;
+                mixin C;
+            }
+            """);
+        Assert.Equal([message], result.Errors.Select(x => x.Message));
+    }
+
     // `module X { }` is a module unit, and `import X;` an element of a class body
     [Fact]
     public void ModuleUnitAndImport()
