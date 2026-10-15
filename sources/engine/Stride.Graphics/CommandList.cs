@@ -496,6 +496,7 @@ namespace Stride.Graphics
         public void ClearState()
         {
             ClearStateImpl();
+            ClearPushConstants();
 
             DepthStencilAccess = DepthStencilAccess.Write;
 
