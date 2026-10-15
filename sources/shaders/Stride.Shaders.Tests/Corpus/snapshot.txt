@@ -165,6 +165,8 @@ Direct3D11/RenderTests.ModuleContributionCallsHelpers strict=6f2da96a2d23 legal=
 Direct3D11/RenderTests.ModuleContributionOnce strict=694d996c5143 legal=abbb2bd479f9 reflection=e3b0c44298fc explain=05c445a1da45
 Direct3D11/RenderTests.ModuleHelperOverridden strict=9ffba43c5e91 legal=190009c6a52f reflection=e3b0c44298fc explain=d27f932596b0
 Direct3D11/RenderTests.Overloads strict=89f01e2b53e2 legal=a90c1389f015 reflection=e3b0c44298fc explain=034e6fef67e9
+Direct3D11/RenderTests.PartialStructFields strict=3d0894b14f38 legal=37bb60d2efef reflection=e3b0c44298fc explain=04566bb9412b
+Direct3D11/RenderTests.PartialStructInPartial strict=d118f07e4f5a legal=7c4b2f935667 reflection=e3b0c44298fc explain=b72431d6fe19
 Direct3D11/RenderTests.PartialStructNested strict=c4d1d4a8c57d legal=2944118b468a reflection=e3b0c44298fc explain=16a5a7022584
 Direct3D11/RenderTests.PartialStructParts strict=605994d7ea17 legal=7faabf8397a7 reflection=e3b0c44298fc explain=d705c1a10ebf
 Direct3D11/RenderTests.PixelShaderUav strict=f4e6774a8b7c legal=0b894c17c60b reflection=9690367f43df explain=809d2885804e
@@ -646,6 +648,8 @@ Vulkan/RenderTests.ModuleContributionCallsHelpers strict=21523974eabf legal=662f
 Vulkan/RenderTests.ModuleContributionOnce strict=2ccecfa5e59c legal=7e3564d99029 reflection=e3b0c44298fc explain=05c445a1da45
 Vulkan/RenderTests.ModuleHelperOverridden strict=2af35d857f4d legal=0ce682fb33b4 reflection=e3b0c44298fc explain=d27f932596b0
 Vulkan/RenderTests.Overloads strict=0101199e2a81 legal=0b7fd58d98ab reflection=e3b0c44298fc explain=034e6fef67e9
+Vulkan/RenderTests.PartialStructFields strict=57eb4dfb9889 legal=fd3881b5a545 reflection=e3b0c44298fc explain=04566bb9412b
+Vulkan/RenderTests.PartialStructInPartial strict=0e9136302fb9 legal=94ff0171f8f2 reflection=e3b0c44298fc explain=b72431d6fe19
 Vulkan/RenderTests.PartialStructNested strict=f1941c21155b legal=36daa1f8aae7 reflection=e3b0c44298fc explain=16a5a7022584
 Vulkan/RenderTests.PartialStructParts strict=c4bb59af1d62 legal=3084d5b97d33 reflection=e3b0c44298fc explain=d705c1a10ebf
 Vulkan/RenderTests.PixelShaderUav strict=f03ce9210743 legal=d4ffcd7d9249 reflection=55ae202587ac explain=809d2885804e

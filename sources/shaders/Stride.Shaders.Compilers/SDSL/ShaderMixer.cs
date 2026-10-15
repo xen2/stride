@@ -318,6 +318,10 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
         /// <summary>The partial structs of the effect, by owner and name.</summary>
         public Dictionary<(string Owner, string Name), PartialStructLayout> PartialStructs { get; } = new();
+
+        /// <summary>The plain structs used by the fields of partial structs, declared with them before the classes are merged:
+        /// the struct of the class that declares one is replaced by it (the merge doesn't deduplicate struct types).</summary>
+        public Dictionary<StructType, int> PartialFieldStructs { get; } = new();
     }
 
     class MixinNodeContext
@@ -584,6 +588,16 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                     {
                         remapIds[offset + i.Data.IdResult!.Value] = partialStruct.Id;
                         removedIds.Add(partialStruct.Id);
+                        include = false;
+                    }
+                    // A plain struct used by a partial struct field, declared before the classes: the class's struct becomes it
+                    else if (i.Op == Op.OpTypeStruct && globalContext.PartialFieldStructs.Count > 0
+                        && shaderBuffers.Context.ReverseTypes.TryGetValue(i.Data.IdResult!.Value, out var classStruct) && classStruct is StructType { PartialOwner: null } plainStruct
+                        && globalContext.PartialFieldStructs.TryGetValue(plainStruct, out var declaredStructId))
+                    {
+                        remapIds[offset + i.Data.IdResult!.Value] = declaredStructId;
+                        removedIds.Add(declaredStructId);
+                        structTypes.Add(plainStruct.ToId(), declaredStructId);
                         include = false;
                     }
                     else if (i.Op == Op.OpTypeStruct && (OpTypeStruct)i is { } typeStruct)
