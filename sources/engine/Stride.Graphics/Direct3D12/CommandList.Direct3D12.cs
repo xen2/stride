@@ -160,6 +160,7 @@ namespace Stride.Graphics
             ResetCommandList();
 
             boundPipelineState = null;
+            pushConstantsDirty = true;
 
             //
             // Reset the command list state.
@@ -399,8 +400,28 @@ namespace Stride.Graphics
         {
             FlushResourceBarriers();
             SetViewportImpl();
+            SetPushConstantsImpl();
 
             RecordDebugCounter(isDispatch ? DebugCounterKind.Dispatch : DebugCounterKind.Draw);
+        }
+
+        /// <summary>
+        ///   Gives the push constants to the bound pipeline as root constants, when they changed or the root signature changed
+        ///   (setting a root signature resets the root arguments).
+        /// </summary>
+        private unsafe void SetPushConstantsImpl()
+        {
+            if (!pushConstantsDirty || boundPipelineState is not { HasPushConstants: true } pipelineState)
+                return;
+
+            fixed (byte* data = PushConstantsBytes)
+            {
+                if (pipelineState.IsCompute)
+                    currentCommandList.NativeCommandList.SetComputeRoot32BitConstants(pipelineState.PushConstantsRootParameterIndex, PushConstantsSize / sizeof(uint), data, DestOffsetIn32BitValues: 0);
+                else
+                    currentCommandList.NativeCommandList.SetGraphicsRoot32BitConstants(pipelineState.PushConstantsRootParameterIndex, PushConstantsSize / sizeof(uint), data, DestOffsetIn32BitValues: 0);
+            }
+            pushConstantsDirty = false;
         }
 
         /// <summary>
@@ -471,6 +492,9 @@ namespace Stride.Graphics
 
                 boundPipelineState = pipelineState;
                 currentCommandList.NativeCommandList.IASetPrimitiveTopology(pipelineState.PrimitiveTopology);
+
+                // Each pipeline has its own root signature, and setting one resets the root arguments
+                pushConstantsDirty = true;
             }
         }
 
