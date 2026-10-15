@@ -98,7 +98,7 @@ public static class SDSLErrorMessages
     public const string SDSL0131 = "SDSL0131: the push constants of this effect take {0} bytes, more than the {1}-byte limit: {2}. Remove members, or move some of them to another cbuffer.";
     public const string SDSL0132 = "SDSL0132: cbuffer {0} is [PushConstant] in {1} but not in {2}. Add [PushConstant] in {2}, or rename one of them.";
     public const string SDSL0133 = "SDSL0133: on Direct3D 11, the push constants of this effect use register b{0}, but the effect has {1} other cbuffers, so b{0} is taken. Use fewer cbuffers, or remove [PushConstant].";
-    public const string SDSL0134 = "SDSL0134: {0}: member {1} ({2}) is at byte {3} of the push-constant block, but a {2} must start at a multiple of {4} bytes, so that the C# struct given to SetPushConstants has the same layout on every graphics API. Move it to such an offset (add a member before it), or reorder the members (for example the vectors first).";
+    public const string SDSL0134 = "SDSL0134: {0}: member {2} ({3}) of the [PushConstant] cbuffer {1} is at byte {4} of the push-constant block, but a {3} must start at a multiple of {5} bytes, so that the C# struct given to SetPushConstants has the same layout on every graphics API. Move it to such an offset (add a member before it), or reorder the members (for example the vectors first).";
 
     // Definition checks: found when a class compiles, reported as warnings (errors with ShaderLoaderBase.WarningsAsErrors)
 
