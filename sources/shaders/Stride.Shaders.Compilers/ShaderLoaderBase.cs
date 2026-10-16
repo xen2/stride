@@ -91,6 +91,11 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
     protected abstract bool ExternalFileExists(string name);
     public abstract bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash);
 
+    /// <summary>
+    /// Warnings about the source <paramref name="filename"/> itself, kept in each class it compiles to (SDSL0216: upgraded when loaded).
+    /// </summary>
+    protected virtual IReadOnlyList<string>? GetSourceWarnings(string filename) => null;
+
     public bool LoadExternalBuffer(string name, ReadOnlySpan<ShaderMacro> defines, [MaybeNullWhen(false)] out ShaderBuffers buffer, out ObjectId hash, out bool isFromCache)
     {
         isFromCache = Cache.TryLoadFromCache(name, null, defines, out buffer, out hash);
@@ -236,7 +241,13 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
 
         // Use provided logger, or a temporary one that throws on errors
         var log = Log ?? new LoggerResult();
-        if (!sdslc.Compile(filename, text, hash, macros, log, out buffer, new() { RegisterInCache = registerInCache, OriginalCode = code }))
+        var options = new CompileOptions
+        {
+            RegisterInCache = registerInCache,
+            OriginalCode = code,
+            SourceWarnings = filename != null ? GetSourceWarnings(filename) : null,
+        };
+        if (!sdslc.Compile(filename, text, hash, macros, log, out buffer, options))
         {
             if (log is LoggerResult loggerResult && loggerResult.HasErrors)
                 throw new InvalidOperationException(string.Join(Environment.NewLine, loggerResult.Messages.Where(m => m.Type >= LogMessageType.Error).Select(m => m.ToString())));

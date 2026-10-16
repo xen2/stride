@@ -21,6 +21,8 @@ public record struct CompileOptions()
     public bool RegisterInCache { get; init; } = true;
     /// <summary>Original source code before preprocessing, used for OpSource debug info. Falls back to preprocessed code if null.</summary>
     public string? OriginalCode { get; init; }
+    /// <summary>Warnings about the source itself (SDSL0216), kept in each class of it like the class warnings.</summary>
+    public IReadOnlyList<string>? SourceWarnings { get; init; }
 }
 
 public record struct SDSLC(IExternalShaderLoader ShaderLoader)
@@ -29,9 +31,12 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
     {
         lastBuffer = default;
 
+        var sourceWarnings = options.SourceWarnings ?? [];
         var parsed = SDSLParser.Parse(code);
         if (parsed.Errors.Count > 0)
         {
+            foreach (var warning in sourceWarnings)
+                log.Warning(warning);
             foreach (var error in parsed.Errors)
                 log.Error(error.ToString());
             return false;
@@ -100,9 +105,8 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                 }
 
                 // Warnings are kept in the class: the loader reports them each time it loads it, from the cache too
-                foreach (var warning in table.Warnings)
+                foreach (var message in sourceWarnings.Concat(table.Warnings.Select(warning => $"{filename ?? shader.Name.Name}({warning.Location.Line},{warning.Location.Column}): {warning.Message}")))
                 {
-                    var message = $"{filename ?? shader.Name.Name}({warning.Location.Line},{warning.Location.Column}): {warning.Message}";
                     if (hasErrors)
                         log.Warning(message);
                     else

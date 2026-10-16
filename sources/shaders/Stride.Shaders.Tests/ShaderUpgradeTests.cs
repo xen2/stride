@@ -345,4 +345,15 @@ public class ShaderUpgradeTests
             Assert.Empty(sampleResult.Files.Where(x => sample[x.Key] != x.Value).Select(x => x.Key));
         }
     }
+
+    // Read from the disk at run time (tests, tools), each file is upgraded alone (ShaderSourceManager): no SDSL0216 on them
+    [Fact]
+    public void RepositoryIsUpgradedFileByFile()
+    {
+        var changed = ReadShaders([.. EngineRoots, "samples"])
+            .Select(x => (Path: x.Key, Result: ShaderUpgrader.UpgradeSource(x.Key, x.Value)))
+            .Where(x => x.Result.ChangedSteps.Count > 0)
+            .Select(x => $"{x.Path}: {string.Join(", ", x.Result.ChangedSteps)}");
+        Assert.Empty(changed);
+    }
 }
