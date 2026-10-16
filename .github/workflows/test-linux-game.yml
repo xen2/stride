@@ -136,6 +136,13 @@ jobs:
           echo "Build/test target: $TARGET"
           echo "STRIDE_TEST_TARGET=$TARGET" >> "$GITHUB_ENV"
           echo "STRIDE_TEST_FILTER=${{ github.event.inputs.test-filter || inputs.test-filter }}" >> "$GITHUB_ENV"
+      - name: Diag restore
+        run: |
+          dotnet restore "$STRIDE_TEST_TARGET" -bl:restore.binlog \
+            -p:StrideTestRuntimeIdentifier=linux-x64 -p:StrideSkipAutoPack=true -nr:false -v:m -p:WarningLevel=0 \
+            -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} \
+            -p:StridePlatforms=Linux -p:StrideGraphicsApis=Vulkan
+          for f in $(find sources -path '*/obj/*' \( -name '*.nuget.dgspec.json' -o -name 'project.nuget.cache' \)); do mkdir -p "diag/main/$(dirname $f)"; cp "$f" "diag/main/$f"; done
       - name: Build
         run: |
           dotnet build "$STRIDE_TEST_TARGET" \
@@ -147,16 +154,20 @@ jobs:
             -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} \
             -p:StridePlatforms=Linux \
             -p:StrideGraphicsApis=Vulkan
-      - name: Upload build binlog
-        # failure() so we still get the binlog when Build dies (most useful case)
-        if: failure() || inputs.upload-binlog
+      - name: Diag snapshot after build
+        if: success() || failure()
+        run: |
+          for f in $(find sources -path '*/obj/*' \( -name '*.nuget.dgspec.json' -o -name 'project.nuget.cache' \)); do mkdir -p "diag/after/$(dirname $f)"; cp "$f" "diag/after/$f"; done
+          cp restore.binlog build.binlog diag/ || true
+      - name: Upload diag
+        if: success() || failure()
         uses: actions/upload-artifact@v7
         with:
-          name: build-binlog-linux-game
-          path: build.binlog
+          name: diag-linux-game
+          path: diag
           if-no-files-found: ignore
       - name: Test
-        if: success() || failure()
+        if: false
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
           REPEAT="${{ github.event.inputs.repeat || inputs.repeat || '1' }}"
