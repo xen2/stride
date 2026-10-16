@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using Stride.Core;
 using Stride.Core.Reflection;
+using Stride.Engine.Design;
 using Stride.Engine.FlexibleProcessing;
 using Stride.Games;
 using Xunit;
@@ -17,7 +18,8 @@ namespace Stride.Engine.Tests;
 public class StaleTypesCollection;
 
 /// <summary>
-/// Tests a game running with the types of an assembly the editor replaced by a new copy.
+/// Tests what a game drops of the types of an assembly the editor unloaded or replaced by a new copy:
+/// <see cref="EntityManager.RemoveStaleTypes"/>.
 /// </summary>
 /// <remarks>
 /// Not run in parallel: the tests register assemblies in <see cref="AssemblyRegistry"/>, which every game reads.
@@ -25,6 +27,69 @@ public class StaleTypesCollection;
 [Collection(nameof(StaleTypesTests))]
 public class StaleTypesTests
 {
+    [Fact]
+    public void RemoveStaleTypesRemovesTheProcessorOfAReplacedComponent()
+    {
+        using var game = new Game();
+        var entity = new Entity { new OldComponent() };
+        var scene = new SceneInstance(game.Services, new Scene { Entities = { entity } });
+        var oldProcessor = scene.GetProcessor<OldProcessor>();
+        Assert.NotNull(oldProcessor);
+
+        // What the editor does when the component's assembly is replaced: a new component takes the old one's place
+        entity.Components[1] = new NewComponent();
+        Assert.Same(oldProcessor, scene.GetProcessor<OldProcessor>());
+
+        Assert.True(scene.RemoveStaleTypes(IsOld));
+        Assert.Null(scene.GetProcessor<OldProcessor>());
+        Assert.NotNull(scene.GetProcessor<NewProcessor>());
+        Assert.DoesNotContain(typeof(OldComponent), scene.ComponentTypes);
+
+        Assert.False(scene.RemoveStaleTypes(IsOld));
+    }
+
+    [Fact]
+    public void RemoveStaleTypesKeepsAStaleComponentStillOnAnEntity()
+    {
+        using var game = new Game();
+        var entity = new Entity { new OldComponent() };
+        var scene = new SceneInstance(game.Services, new Scene { Entities = { entity } });
+        var oldProcessor = scene.GetProcessor<OldProcessor>();
+
+        // The reconcile can run before the component is replaced
+        Assert.True(scene.RemoveStaleTypes(IsOld));
+        Assert.Null(scene.GetProcessor<OldProcessor>());
+        Assert.Equal(1, oldProcessor.RemovedCount);
+        Assert.Contains(typeof(OldComponent), scene.ComponentTypes);
+
+        entity.Components[1] = new NewComponent();
+        Assert.Equal(1, scene.GetProcessor<NewProcessor>().AddedCount);
+        Assert.Equal(1, oldProcessor.RemovedCount);
+
+        Assert.True(scene.RemoveStaleTypes(IsOld));
+        Assert.DoesNotContain(typeof(OldComponent), scene.ComponentTypes);
+    }
+
+    [Fact]
+    public void RemoveStaleTypesCreatesTheNewCopyOfAProcessorOfAComponentThatStays()
+    {
+        using var copy = new TestAssemblyCopy();
+        using var game = new Game();
+        var scene = new SceneInstance(game.Services, new Scene { Entities = { new Entity { new OldComponent() } } });
+
+        // The processor's assembly is replaced by its copy, the component's type stays
+        copy.Register();
+        Assert.True(scene.RemoveStaleTypes(x => x == typeof(OldProcessor)));
+
+        // The copy's processor is for the copy's component type, so it takes no component here: in a real case, the
+        // component's assembly is not reloaded and both copies of the processor are for its type
+        Assert.Null(scene.GetProcessor<OldProcessor>());
+        var newProcessor = Assert.Single(scene.Processors, x => x.GetType().FullName == typeof(OldProcessor).FullName);
+        Assert.Same(copy.Assembly, newProcessor.GetType().Assembly);
+
+        Assert.False(scene.RemoveStaleTypes(x => x == typeof(OldProcessor)));
+    }
+
     [Fact]
     public void FlexibleProcessorOfANewCopyRunsNextToTheOldOne()
     {
@@ -43,7 +108,11 @@ public class StaleTypesTests
         second.Components[1] = (EntityComponent)Activator.CreateInstance(newComponentType)!;
 
         Assert.Equal(1, FlexibleProcessor.Removed);
+        Assert.True(scene.RemoveStaleTypes(x => x.Assembly == typeof(FlexibleComponent).Assembly));
+        Assert.False(scene.RemoveStaleTypes(x => x.Assembly == typeof(FlexibleComponent).Assembly));
     }
+
+    private static bool IsOld(Type type) => type == typeof(OldComponent) || type == typeof(OldProcessor);
 
     /// <summary>
     /// A second copy of this test assembly, in a load context of its own: its types have the same names as this
@@ -80,6 +149,27 @@ public class StaleTypesTests
             }
             context.Unload();
         }
+    }
+
+    [DefaultEntityComponentProcessor(typeof(OldProcessor))]
+    public class OldComponent : EntityComponent;
+
+    [DefaultEntityComponentProcessor(typeof(NewProcessor))]
+    public class NewComponent : EntityComponent;
+
+    public class OldProcessor : CountingProcessor<OldComponent>;
+
+    public class NewProcessor : CountingProcessor<NewComponent>;
+
+    public abstract class CountingProcessor<T> : EntityProcessor<T> where T : EntityComponent
+    {
+        public int AddedCount { get; private set; }
+
+        public int RemovedCount { get; private set; }
+
+        protected override void OnEntityComponentAdding(Entity entity, T component, T data) => AddedCount++;
+
+        protected override void OnEntityComponentRemoved(Entity entity, T component, T data) => RemovedCount++;
     }
 
     public class FlexibleComponent : EntityComponent, IComponent<FlexibleProcessor, FlexibleComponent>;
