@@ -160,4 +160,7 @@ public static class SDSLErrorMessages
     public const string SDSL0213 = "SDSL0213: [Pure] module {0}: {1} in {2}() works only in a pixel shader, and a pure module can run in any stage. Compute the value in the caller and pass it as a parameter, or remove [Pure] from {0}.";
     public const string SDSL0214 = "SDSL0214: 'partial' on {0} has no meaning and is ignored. Remove it.";
     public const string SDSL0215 = "SDSL0215: {0} sees two structs named {1}, declared by {2} and {3}: {1} means the one of {2} (the first inherited or imported). Rename one of them.";
+
+    // A source loaded at run time (not imported by the asset pipeline) written for an older Stride version
+    public const string SDSL0216 = "SDSL0216: {0} is written for an older Stride version ({1}); it was upgraded when it was loaded. Update the source: ShaderUpgrader.UpgradeSource gives the new text.";
 }

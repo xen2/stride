@@ -80,6 +80,23 @@ public class ExternalShaderTests
             File.WriteAllLines(Path.Combine(output, "upgrade-notes.txt"), result.Notes);
             files = files.Select(x => x with { Text = result.Files[x.RelativePath] }).ToList();
         }
+        // STRIDE_EXTERNAL_SHADERS_UPGRADE=source: each file is upgraded alone when it is loaded, as ShaderSourceManager does at run time
+        // (the parents found by name in the libraries)
+        else if (Environment.GetEnvironmentVariable("STRIDE_EXTERNAL_SHADERS_UPGRADE") == "source")
+        {
+            var byName = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var file in files)
+                byName.TryAdd(Path.GetFileNameWithoutExtension(file.RelativePath), file.Text);
+            var notes = new List<string>();
+            files = files.Select(file =>
+            {
+                var result = ShaderUpgrader.UpgradeSource(file.RelativePath, file.Text, byName.GetValueOrDefault);
+                if (result.ChangedSteps.Count > 0)
+                    notes.Add($"{file.RelativePath}: {string.Join(", ", result.ChangedSteps)}{string.Concat(result.Notes.Select(x => $"; {x}"))}");
+                return file with { Text = result.Text };
+            }).ToList();
+            File.WriteAllLines(Path.Combine(output, "upgrade-notes.txt"), notes);
+        }
 
         var engine = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var file in Directory.EnumerateFiles(Path.Combine(ShaderCorpus.RepositoryRoot, "sources", "engine"), "*.sdsl", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
@@ -266,8 +283,7 @@ public class ExternalShaderTests
                     Node("AssignVarFloat", ["Var_1"], ("Value", Node("InputFloat", ["ShaderFX.InputValueFloat", "PerUpdate"]))),
                     Node("SetItemRWBufferFloat", ["ObjectBuffer_fx2", "PerUpdate"],
                         ("Value", Node("GetVarFloat", ["Var_1"])),
-                        ("Index", Node("GetLinearDispatchThreadId"))))))))),
-    ];
+                        ("Index", Node("GetLinearDispatchThreadId"))))))))),    ];
 
     /// <summary>
     /// The trees above (skipped when their classes are not in the clones). Writes <c>trees.tsv</c> and each tree's reflection

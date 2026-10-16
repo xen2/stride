@@ -28,4 +28,7 @@ public class FileShaderLoader : ShaderLoaderBase
 
         return true;
     }
+
+    protected override IReadOnlyList<string>? GetSourceWarnings(string filename)
+        => SourceManager.GetUpgradeWarning(filename) is { } warning ? [warning] : null;
 }

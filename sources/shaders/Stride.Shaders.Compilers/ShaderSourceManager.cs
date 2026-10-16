@@ -11,6 +11,8 @@ using Stride.Core;
 using Stride.Core.IO;
 using Stride.Core.Serialization.Contents;
 using Stride.Core.Storage;
+using Stride.Shaders.Parsing;
+using Stride.Shaders.Parsing.Upgrade;
 
 namespace Stride.Shaders.Compilers
 {
@@ -22,6 +24,8 @@ namespace Stride.Shaders.Compilers
         private readonly object locker = new object();
         private readonly Dictionary<string, ShaderSourceWithHash> loadedShaderSources = new Dictionary<string, ShaderSourceWithHash>();
         private readonly Dictionary<string, string> classNameToPath = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> upgradeWarnings = new Dictionary<string, string>();
+        private readonly HashSet<string> upgrading = new HashSet<string>();
 
         /// <summary>
         /// The file provider used to load shader sources.
@@ -57,6 +61,13 @@ namespace Stride.Shaders.Compilers
         public bool LoadFromOriginalPathFirst { get; set; } = true;
 
         /// <summary>
+        /// Upgrades the sources the asset pipeline didn't import (files read outside the content database, sources added with
+        /// <see cref="AddShaderSource"/>) when they are written for an older Stride version (<see cref="ShaderUpgrader.UpgradeSource"/>),
+        /// with warning SDSL0216. The asset pipeline's sources are read as they are: the project upgrade updates them.
+        /// </summary>
+        public bool UpgradeSources { get; set; } = true;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ShaderSourceManager" /> class.
         /// </summary>
         /// <param name="fileProvider">The file provider to use for loading shader sources.</param>
@@ -79,7 +90,7 @@ namespace Stride.Shaders.Compilers
             {
                 var shaderSource = new ShaderSourceWithHash() { Source = sourceCode, Path = sourcePath };
                 shaderSource.Hash = ObjectId.FromBytes(Encoding.UTF8.GetBytes(shaderSource.Source));
-                loadedShaderSources[type] = shaderSource;
+                loadedShaderSources[type] = Upgrade(type, shaderSource);
                 classNameToPath[type] = sourcePath;
             }
         }
@@ -132,13 +143,15 @@ namespace Stride.Shaders.Compilers
                 {
                     // Load from string
                     if (!string.IsNullOrWhiteSpace(shaderSourceCode))
-                        return CreateShaderSourceWithHash(type, shaderSourceCode);
+                        return Upgrade(type, CreateShaderSourceWithHash(type, shaderSourceCode));
 
                     // Load file
                     var sourceUrl = FindFilePath(type);
                     if (sourceUrl != null)
                     {
                         shaderSource = new ShaderSourceWithHash();
+                        // Imported by the asset pipeline: read from the content database, or from the file it recorded
+                        var fromDatabase = false;
                         if (!UrlToFilePath.TryGetValue(sourceUrl, out shaderSource.Path!))
                         {
                             shaderSource.Path = sourceUrl;
@@ -151,6 +164,7 @@ namespace Stride.Shaders.Compilers
                             var pathUrl = sourceUrl + "/path";
                             if (FileExists(pathUrl))
                             {
+                                fromDatabase = true;
                                 using (var fileStream = OpenStream(pathUrl))
                                 {
                                     string shaderSourcePath;
@@ -208,11 +222,14 @@ namespace Stride.Shaders.Compilers
                                     else
                                     {
                                         shaderSource.Hash = databaseStream.ObjectId;
+                                        fromDatabase = true;
                                     }
                                 }
                             }
                         }
 
+                        if (!fromDatabase)
+                            shaderSource = Upgrade(type, shaderSource);
                         loadedShaderSources[type] = shaderSource;
                     }
                     else
@@ -227,6 +244,52 @@ namespace Stride.Shaders.Compilers
         private static ObjectId CalculateHashFromSource(string source)
         {
             return ObjectId.FromBytes(Encoding.UTF8.GetBytes(source));
+        }
+
+        /// <summary>
+        /// The SDSL0216 warning of the source at <paramref name="path"/> if it was upgraded when loaded; null otherwise.
+        /// </summary>
+        public string? GetUpgradeWarning(string path)
+        {
+            lock (locker)
+            {
+                return upgradeWarnings.GetValueOrDefault(path);
+            }
+        }
+
+        // The hash of an upgraded source is the one of the new text: a change of the upgrade is a change of the source
+        private ShaderSourceWithHash Upgrade(string type, ShaderSourceWithHash shaderSource)
+        {
+            if (!UpgradeSources)
+                return shaderSource;
+
+            var path = shaderSource.Path ?? "";
+            ShaderSourceUpgradeResult upgrade;
+            upgrading.Add(type);
+            try
+            {
+                // The classes it inherits are read from their sources (upgraded first when they need it); a cycle stops at the
+                // class being upgraded
+                upgrade = ShaderUpgrader.UpgradeSource(path, shaderSource.Source,
+                    name => !upgrading.Contains(name) && IsClassExists(name) ? LoadShaderSource(name).Source : null);
+            }
+            finally
+            {
+                upgrading.Remove(type);
+            }
+            if (upgrade.ChangedSteps.Count == 0)
+            {
+                upgradeWarnings.Remove(path);
+                return shaderSource;
+            }
+
+            shaderSource.Source = upgrade.Text;
+            shaderSource.Hash = CalculateHashFromSource(upgrade.Text);
+            var warning = string.Format(SDSLErrorMessages.SDSL0216, path, string.Join(", ", upgrade.ChangedSteps));
+            foreach (var note in upgrade.Notes)
+                warning += $" {(note.StartsWith(path + ": ", StringComparison.Ordinal) ? note[(path.Length + 2)..] : note)}.";
+            upgradeWarnings[path] = warning;
+            return shaderSource;
         }
 
         /// <summary>
