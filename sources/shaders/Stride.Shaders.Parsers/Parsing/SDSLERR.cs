@@ -78,4 +78,5 @@ public static class SDSLErrorMessages
     // HLSL warnings: valid HLSL that is probably a mistake, reported when a class compiles
     public const string SDSL0219 = "SDSL0219: comma expression ({0}): the values before the last are dropped, the result is {1}. To build a vector, write its type: float4(...).";
     public const string SDSL0220 = "SDSL0220: {0} on {1} is ignored: Stride lays out cbuffers and binds resources itself. Remove it.";
+    public const string SDSL0232 = "SDSL0232: {0} has lower precedence than {1}: {2} computes {3} first. Add parentheses to make it clear.";
 }
