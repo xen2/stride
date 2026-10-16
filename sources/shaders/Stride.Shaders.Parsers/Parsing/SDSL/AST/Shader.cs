@@ -614,6 +614,10 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         {
             foreach (var member in Elements.OfType<ShaderMethod>())
                 member.ProcessSymbolBody(table, context);
+
+            // Same for method bodies: compiling an expression whose analysis failed only adds an internal error
+            if (table.Errors.Count > 0)
+                return;
         }
 
         RenameCBufferVariables();
