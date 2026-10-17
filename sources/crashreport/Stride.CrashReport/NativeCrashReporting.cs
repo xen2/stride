@@ -125,12 +125,56 @@ namespace Stride.CrashReport
         /// </summary>
         public static Process TrySpawnHostCrashReporter(string runDirectory) => StartReporter(runDirectory, hostCrash: true, ownerWindow: IntPtr.Zero);
 
+        /// <summary>
+        /// Writes a dump of the calling process to <paramref name="path"/> from the reporter, as a process can't
+        /// safely dump itself (see <see cref="MinidumpWriter"/>): a scrubbed triage dump, or an unscrubbed full-memory
+        /// one (local-only). Blocks while the reporter writes it. False off Windows, when the reporter can't be found,
+        /// or when the dump failed or didn't finish in time; the reporter is then left to finish, as killing it in the
+        /// middle of a dump would leave our threads suspended.
+        /// </summary>
+        public static bool TryDumpThisProcess(string path, bool fullMemory)
+        {
+            if (!OperatingSystem.IsWindows())
+                return false;
+            try
+            {
+                var reporter = ResolveCrashReporter();
+                if (reporter == null || !reporter.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                var startInfo = CreateReporterStartInfo(reporter);
+                startInfo.ArgumentList.Add("--dump-process");
+                startInfo.ArgumentList.Add(Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+                startInfo.ArgumentList.Add(path);
+                if (fullMemory)
+                    startInfo.ArgumentList.Add("--full");
+                using var process = Process.Start(startInfo);
+                if (process == null || !process.WaitForExit(fullMemory ? FullDumpTimeout : TriageDumpTimeout))
+                    return false;
+                return process.ExitCode == 0 && File.Exists(path);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // A triage dump takes about a second; a full-memory one of a large host can take minutes.
+        private static readonly TimeSpan TriageDumpTimeout = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan FullDumpTimeout = TimeSpan.FromMinutes(10);
+
         private static Process StartReporter(string runDirectory, bool hostCrash, IntPtr ownerWindow)
         {
             var reporter = ResolveCrashReporter();
             if (reporter == null)
                 return null;
 
+            var startInfo = CreateReporterStartInfo(reporter);
+            AddReporterArguments(startInfo, runDirectory, hostCrash, ownerWindow);
+            return Process.Start(startInfo);
+        }
+
+        private static ProcessStartInfo CreateReporterStartInfo(string reporter)
+        {
             ProcessStartInfo startInfo;
             if (reporter.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
             {
@@ -146,8 +190,7 @@ namespace Stride.CrashReport
                 // nothing. Unix has no such leak (pipes are O_CLOEXEC) and shell-execute there would route through xdg-open.
                 startInfo = new ProcessStartInfo(reporter) { UseShellExecute = OperatingSystem.IsWindows() };
             }
-            AddReporterArguments(startInfo, runDirectory, hostCrash, ownerWindow);
-            return Process.Start(startInfo);
+            return startInfo;
         }
 
         private static void AddReporterArguments(ProcessStartInfo startInfo, string runDirectory, bool hostCrash, IntPtr ownerWindow)

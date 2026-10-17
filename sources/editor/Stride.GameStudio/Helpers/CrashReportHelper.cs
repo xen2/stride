@@ -211,7 +211,9 @@ namespace Stride.GameStudio.Helpers
         /// <summary>
         /// Persists the report to the crash store with the structured exception, the thread snapshot and a dump of
         /// this process: a scrubbed triage dump (stacks and modules, sendable) or, under STRIDE_CRASH_DUMP=full, a
-        /// full-memory one (unscrubbed, kept local). Returns the run, or null when the store could not be written.
+        /// full-memory one (unscrubbed, kept local). The reporter writes the dump, as a process can't safely dump
+        /// itself; without a reporter the report is saved without one. Returns the run, or null when the store could
+        /// not be written.
         /// </summary>
         private static CrashRun SaveToStore(CrashReportData report, Exception exception,
             IReadOnlyList<StoredThread> threads, int threadId, string threadName)
@@ -230,15 +232,9 @@ namespace Stride.GameStudio.Helpers
                 crash.CrashedThreadName = threadName;
 
                 var run = new CrashStore("GameStudio").CreateRun();
-                if (CrashPolicy.FullMemoryDump())
-                {
-                    crash.DumpIsFullMemory = true;
-                    run.Add(crash, path => MinidumpWriter.TryWriteFile(path, fullMemory: true));
-                }
-                else
-                {
-                    run.Add(crash, MinidumpWriter.TryWrite());
-                }
+                var fullMemory = CrashPolicy.FullMemoryDump();
+                crash.DumpIsFullMemory = fullMemory;
+                run.Add(crash, path => NativeCrashReporting.TryDumpThisProcess(path, fullMemory));
                 return run;
             }
             catch (Exception e)

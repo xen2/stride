@@ -67,18 +67,53 @@ public class CrashCaptureTests
         }
     }
 
-    // Minidump stream directory scan: stream type 6 = ExceptionStream, the record that makes a debugger
-    // auto-select the faulting thread.
-    private static bool HasExceptionStream(string dumpPath)
+    // Stream type 6 = ExceptionStream, the record that makes a debugger auto-select the faulting thread.
+    private static bool HasExceptionStream(string dumpPath) => StreamRva(File.ReadAllBytes(dumpPath), 6) >= 0;
+
+    // MiscInfoStream (type 15): MINIDUMP_MISC_INFO { SizeOfInfo, Flags1, ProcessId, ... }.
+    private static int DumpProcessId(string dumpPath)
     {
         var bytes = File.ReadAllBytes(dumpPath);
+        var rva = StreamRva(bytes, 15);
+        Assert.True(rva >= 0, "the dump has no misc info stream");
+        return BitConverter.ToInt32(bytes, rva + 8);
+    }
+
+    // Minidump stream directory scan: the RVA of the first stream of that type, or -1.
+    private static int StreamRva(byte[] bytes, uint streamType)
+    {
         Assert.Equal("MDMP"u8.ToArray(), bytes[..4]);
         var streamCount = BitConverter.ToInt32(bytes, 8);
         var directoryRva = BitConverter.ToInt32(bytes, 12);
         for (int i = 0; i < streamCount; i++)
-            if (BitConverter.ToUInt32(bytes, directoryRva + i * 12) == 6)
-                return true;
-        return false;
+            if (BitConverter.ToUInt32(bytes, directoryRva + i * 12) == streamType)
+                return BitConverter.ToInt32(bytes, directoryRva + i * 12 + 8);
+        return -1;
+    }
+
+    [Fact]
+    public void ReporterDumpsTheCallingProcess()
+    {
+        // The hosts' managed crash (GameStudio, the asset compiler's full dump): the process is alive but can't dump
+        // itself safely, so the reporter writes the dump from outside while it waits.
+        if (!OperatingSystem.IsWindows())
+            return; // MiniDumpWriteDump is Windows-only
+
+        var dir = CreateWorkDirectory("dumpself");
+        try
+        {
+            var (exitCode, timedOut, output) = RunProbe(dir, "dumpself", extraEnvironment: null);
+
+            Assert.False(timedOut, $"probe must terminate, not hang (output: {output})");
+            Assert.True(exitCode == 0, $"the reporter must write the dump (exit {exitCode}, output: {output})");
+            var path = Path.Combine(dir, "self.dmp");
+            Assert.Equal(int.Parse(output.Split('\n')[0].Trim()), DumpProcessId(path));
+            Assert.False(HasExceptionStream(path));
+        }
+        finally
+        {
+            TryDelete(dir);
+        }
     }
 
     [Fact]
@@ -179,6 +214,7 @@ public class CrashCaptureTests
             Assert.True(MinidumpWriter.TryWriteTargetProcess(process.Id, 0, IntPtr.Zero, path, fullMemory: false));
             Assert.True(new FileInfo(path).Length > 0);
             Assert.False(HasExceptionStream(path));
+            Assert.False(MinidumpWriter.TryWriteTargetProcess(Environment.ProcessId, 0, IntPtr.Zero, path, fullMemory: false), "a dump of the calling process must be refused");
         }
         finally
         {

@@ -31,6 +31,14 @@ if (mode == "wait")
     return 0;
 }
 
+if (mode == "dumpself")
+{
+    // The hosts' managed-crash dump: this live process asks the reporter for a dump of itself, as it can't safely
+    // write one itself. Prints its pid first, so the test can check whose dump it got.
+    Console.Out.WriteLine(Environment.ProcessId);
+    return NativeCrashReporting.TryDumpThisProcess(Path.Combine(dir, "self.dmp"), fullMemory: false) ? 0 : 4;
+}
+
 if (mode == "record")
 {
     // The asset compiler's record-only path: createdump (not armed here) would write the dump; the recorder

@@ -21,6 +21,9 @@ namespace Stride.CrashReporter;
 /// <item><c>Stride.CrashReporter --capture &lt;pid&gt; &lt;tid&gt; &lt;exception-pointers&gt; --event &lt;name&gt; --dump-dir &lt;dir&gt; [--dsn &lt;url&gt;]</c>
 /// — capture a crashing host's dump from the outside (its native trigger is frozen waiting on the event), then
 /// show it. See <see cref="NativeCapture"/>.</item>
+/// <item><c>Stride.CrashReporter --dump-process &lt;pid&gt; &lt;path&gt; [--full]</c> — write a dump of a live host that
+/// asked for one of itself and waits on us (<see cref="NativeCrashReporting.TryDumpThisProcess"/>), then exit, no
+/// window: a scrubbed triage dump, or with <c>--full</c> an unscrubbed full-memory one.</item>
 /// </list>
 /// </summary>
 internal static class Program
@@ -31,6 +34,9 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        if (Array.IndexOf(args, "--dump-process") >= 0)
+            return DumpProcess(args) ? 0 : 1;
+
         string? runDirectory;
         if (Array.IndexOf(args, "--capture") >= 0)
         {
@@ -83,5 +89,42 @@ internal static class Program
     {
         var index = Array.IndexOf(args, name);
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+    }
+
+    // The --dump-process entry: the host can't safely dump itself, so it waits while we do it from here.
+    private static bool DumpProcess(string[] args)
+    {
+        if (!OperatingSystem.IsWindows())
+            return false;
+        var index = Array.IndexOf(args, "--dump-process");
+        if (index + 2 >= args.Length || !int.TryParse(args[index + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var processId))
+        {
+            Console.Error.WriteLine("Usage: Stride.CrashReporter --dump-process <pid> <path> [--full]");
+            return false;
+        }
+        var path = args[index + 2];
+        var fullMemory = Array.IndexOf(args, "--full") >= 0;
+        try
+        {
+            // A managed crash has no native exception record: a plain snapshot of the live host.
+            if (!MinidumpWriter.TryWriteTargetProcess(processId, 0, IntPtr.Zero, path, fullMemory))
+                return false;
+            if (fullMemory)
+                return true;
+            try
+            {
+                MinidumpWriter.ScrubFile(path);
+                return true;
+            }
+            catch (Exception)
+            {
+                File.Delete(path); // a triage dump may be sent: never leave one unscrubbed
+                return false;
+            }
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 }

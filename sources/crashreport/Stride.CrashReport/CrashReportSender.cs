@@ -40,14 +40,32 @@ public static class CrashReportSender
         IReadOnlyList<StoredThread> threads = null, int? crashedThreadId = null, string crashedThreadName = null)
     {
         // In-process hosts (GameStudio, launcher) crash as themselves: identity comes from the running
-        // assembly, and, if asked, we dump the still-live faulting process on the spot.
+        // assembly, and, if asked, the reporter dumps the still-live faulting process on the spot.
         var informational = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         var (version, commit) = SplitVersion(informational);
-        var minidump = includeMinidump && OperatingSystem.IsWindows() ? MinidumpWriter.TryWrite() : null;
+        var minidump = includeMinidump ? TryDumpThisProcess() : null;
         return SendCoreAsync(report, applicationName, version, commit, BuildEnvironment ?? "local",
             exception, dsn, minidump, attachments: null, feedbackName, feedbackEmail, feedbackMessage,
             fingerprint: null, structuredExceptions: null, // a live exception groups by, and renders, its own stack
             threads, crashedThreadId, crashedThreadName);
+    }
+
+    // A scrubbed triage dump of this process, written by the reporter; null without one.
+    private static byte[] TryDumpThisProcess()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"stride-crash-{Environment.ProcessId}-{Guid.NewGuid():N}.dmp");
+        try
+        {
+            return NativeCrashReporting.TryDumpThisProcess(path, fullMemory: false) ? File.ReadAllBytes(path) : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+        finally
+        {
+            try { File.Delete(path); } catch (Exception) { }
+        }
     }
 
     /// <summary>

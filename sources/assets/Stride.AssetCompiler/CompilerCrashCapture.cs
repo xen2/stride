@@ -380,11 +380,12 @@ namespace Stride.AssetCompiler
 
                 // Opt-in full-memory dump (STRIDE_CRASH_DUMP=full) of the fatal top-level managed crash — the heap
                 // the stack alone can't show, for local debugging. Never sent (DumpIsFullMemory); Windows only, and
-                // written only for a new signature (Add's callback runs only when not a duplicate).
+                // written only for a new signature (Add's callback runs only when not a duplicate). The reporter writes
+                // it: the compiler's build threads make a dump of itself deadlock-prone.
                 if (stepKind == "TopLevel" && CrashPolicy.FullMemoryDump() && OperatingSystem.IsWindows())
                 {
                     crash.DumpIsFullMemory = true;
-                    run.Add(crash, path => MinidumpWriter.TryWriteFile(path, fullMemory: true));
+                    run.Add(crash, path => NativeCrashReporting.TryDumpThisProcess(path, fullMemory: true));
                 }
                 else
                 {

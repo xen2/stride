@@ -1,7 +1,6 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.Win32.SafeHandles;
@@ -9,7 +8,10 @@ using Microsoft.Win32.SafeHandles;
 namespace Stride.CrashReport;
 
 /// <summary>
-/// Writes a minidump of the current process: thread stacks and module list, not full memory. Windows-only (dbghelp).
+/// Writes a minidump of another process: thread stacks and module list (triage), or full memory. Windows-only
+/// (dbghelp). Never of the calling process: dbghelp suspends the target's other threads while it writes, and in the
+/// calling process one of them can hold a heap or loader lock dbghelp then waits on, freezing it for good. A process
+/// that needs a dump of itself asks the reporter (<see cref="NativeCrashReporting.TryDumpThisProcess"/>).
 /// </summary>
 [SupportedOSPlatform("windows")]
 public static partial class MinidumpWriter
@@ -24,33 +26,15 @@ public static partial class MinidumpWriter
     // Thread stacks + module list, no process memory.
     private const int TriageFlags = MiniDumpNormal | MiniDumpWithUnloadedModules | MiniDumpWithThreadInfo;
 
-    public static byte[] TryWrite()
+    /// <summary>
+    /// Masks the user name and profile path in a triage dump file, in place (see <see cref="ScrubDump"/>). For a dump
+    /// that may be sent; a full-memory dump is local-only and too large to scrub this way.
+    /// </summary>
+    public static void ScrubFile(string path)
     {
-        try
-        {
-            var path = Path.Combine(Path.GetTempPath(), $"stride-crash-{Environment.ProcessId}.dmp");
-            try
-            {
-                using (var file = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None))
-                using (var process = Process.GetCurrentProcess())
-                {
-                    if (!MiniDumpWriteDump(process.Handle, (uint)Environment.ProcessId, file.SafeFileHandle,
-                            TriageFlags, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero))
-                        return null;
-                }
-                var bytes = File.ReadAllBytes(path);
-                ScrubDump(bytes);
-                return bytes;
-            }
-            finally
-            {
-                File.Delete(path);
-            }
-        }
-        catch (Exception)
-        {
-            return null;
-        }
+        var bytes = File.ReadAllBytes(path);
+        ScrubDump(bytes);
+        File.WriteAllBytes(path, bytes);
     }
 
     private const int ModuleListStream = 4;
@@ -143,28 +127,6 @@ public static partial class MinidumpWriter
     }
 
     /// <summary>
-    /// Writes a dump directly to a file, for local saving. A full memory dump can be several GB and is
-    /// not scrubbed; it never leaves the machine unless the user shares it themselves.
-    /// </summary>
-    public static bool TryWriteFile(string path, bool fullMemory)
-    {
-        try
-        {
-            using var file = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
-            using var process = Process.GetCurrentProcess();
-            var flags = fullMemory
-                ? MiniDumpWithFullMemory | MiniDumpWithFullMemoryInfo | MiniDumpWithHandleData | MiniDumpWithUnloadedModules | MiniDumpWithThreadInfo
-                : TriageFlags;
-            return MiniDumpWriteDump(process.Handle, (uint)Environment.ProcessId, file.SafeFileHandle, flags,
-                IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Writes a dump of <em>another</em> process from this (healthy) one, carrying that process's crash
     /// exception record so the dump has an exception stream (the faulting thread and fault are recorded). The
     /// out-of-process reporter uses this to capture a dying host: the host's native trigger freezes the crashing
@@ -173,12 +135,15 @@ public static partial class MinidumpWriter
     /// (a managed crash dumped on demand: the host is alive and waiting, not faulting) no exception stream is
     /// written, just the process snapshot. A full-memory dump can be several GB and is not scrubbed; it never
     /// leaves the machine unless the user shares it themselves. Returns false if the target can't be opened or
-    /// the dump can't be written.
+    /// the dump can't be written, and for the calling process (see the class remarks).
     /// </summary>
     public static bool TryWriteTargetProcess(int processId, uint threadId, IntPtr exceptionPointers, string path, bool fullMemory)
     {
         const uint ProcessQueryInformation = 0x0400;
         const uint ProcessVmRead = 0x0010;
+
+        if (processId == Environment.ProcessId)
+            return false;
 
         var target = OpenProcess(ProcessQueryInformation | ProcessVmRead, false, (uint)processId);
         if (target == IntPtr.Zero)
