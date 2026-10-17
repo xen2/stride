@@ -155,27 +155,41 @@ public class CrashCaptureTests
     }
 
     [Fact]
-    public void TargetProcessDumpWithoutExceptionRecordIsPlainSnapshot()
+    public async Task TargetProcessDumpWithoutExceptionRecordIsPlainSnapshot()
     {
         // The reporter dumps a still-live host on demand after a *managed* crash: there is no native exception
         // record to carry, so the writer must accept a zero exception pointer and produce a dump with no exception
         // stream (a plain snapshot) instead of asking dbghelp to read address 0 in the target.
+        // The target is a waiting probe, as for the reporter, never the test host itself: dumping the calling process
+        // suspends its other threads, and one of them holding a heap or loader lock deadlocks the host (seen with the
+        // sender test's HttpClient suspended in WinHTTP proxy lookup: every host thread frozen, blame-hang too).
         if (!OperatingSystem.IsWindows())
             return; // MiniDumpWriteDump is Windows-only
 
-        var dir = CreateWorkDirectory("selfdump");
+        var dir = CreateWorkDirectory("snapshot");
+        var startInfo = CreateProbeStartInfo(dir, "wait");
+        startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardInput = true;
+        startInfo.RedirectStandardOutput = true;
+        using var process = Process.Start(startInfo)!;
         try
         {
-            var path = Path.Combine(dir, "self.dmp");
-            Assert.True(MinidumpWriter.TryWriteTargetProcess(Environment.ProcessId, 0, IntPtr.Zero, path, fullMemory: false));
+            Assert.Equal("ready", await process.StandardOutput.ReadLineAsync().WaitAsync(ProbeTimeout));
+            var path = Path.Combine(dir, "probe.dmp");
+            Assert.True(MinidumpWriter.TryWriteTargetProcess(process.Id, 0, IntPtr.Zero, path, fullMemory: false));
             Assert.True(new FileInfo(path).Length > 0);
             Assert.False(HasExceptionStream(path));
         }
         finally
         {
+            process.StandardInput.Close();
+            if (!process.WaitForExit(ProbeTimeout))
+                process.Kill(entireProcessTree: true);
             TryDelete(dir);
         }
     }
+
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(60);
 
     private static string CreateWorkDirectory(string mode)
     {
@@ -202,14 +216,43 @@ public class CrashCaptureTests
                 startInfo.Environment[key] = value;
 
         using var process = Process.Start(startInfo)!;
-        var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
-        if (!process.WaitForExit(60_000))
+        // Both pipes are read in the background: a blocking ReadToEnd only returns once the probe exits, so a hung
+        // probe would hang the test run instead of hitting the timeout below.
+        var standardOutput = process.StandardOutput.ReadToEndAsync();
+        var standardError = process.StandardError.ReadToEndAsync();
+        var timedOut = !process.WaitForExit(ProbeTimeout);
+        var diagnostics = "";
+        if (timedOut)
         {
+            diagnostics = DescribeHungProbe(process, mode);
             process.Kill(entireProcessTree: true);
             process.WaitForExit();
-            return (process.ExitCode, true, output);
         }
-        return (process.ExitCode, false, output);
+        // A process the probe started could still hold the pipes open: don't wait on them forever either.
+        Task.WaitAll([standardOutput, standardError], TimeSpan.FromSeconds(10));
+        var output = (standardOutput.IsCompletedSuccessfully ? standardOutput.Result : "")
+            + (standardError.IsCompletedSuccessfully ? standardError.Result : "")
+            + diagnostics;
+        return (process.ExitCode, timedOut, output);
+    }
+
+    // What a CI log needs to tell where a probe hung: a full dump of it (in STRIDE_TESTS_CRASH_DUMP_DIR, which CI
+    // uploads) and the crash-handling processes still running beside it (a WER dialog or a stuck reporter).
+    private static string DescribeHungProbe(Process process, string mode)
+    {
+        var text = "";
+        if (OperatingSystem.IsWindows())
+        {
+            var dumpDirectory = Environment.GetEnvironmentVariable("STRIDE_TESTS_CRASH_DUMP_DIR") ?? Path.GetTempPath();
+            Directory.CreateDirectory(dumpDirectory);
+            var dumpPath = Path.Combine(dumpDirectory, $"hung-probe-{mode}-{process.Id}.dmp");
+            text += MinidumpWriter.TryWriteTargetProcess(process.Id, 0, IntPtr.Zero, dumpPath, fullMemory: true)
+                ? $"\nhung probe dump: {dumpPath}"
+                : $"\nhung probe dump failed: {dumpPath}";
+        }
+        var related = new[] { "WerFault", "WerFaultSecure", "Stride.CrashReporter" }
+            .SelectMany(name => Process.GetProcessesByName(name).Select(p => $"{name} ({p.Id})"));
+        return text + $"\nrunning crash processes: {string.Join(", ", related)}";
     }
 
     private static ProcessStartInfo CreateProbeStartInfo(string dir, string mode)

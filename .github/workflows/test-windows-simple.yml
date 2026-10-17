@@ -57,6 +57,9 @@ jobs:
             -p:StridePlatforms=Windows `
             -p:StrideGraphicsApis=Direct3D11
       - name: Test
+        env:
+          # Where a test dumps a process it gave up on (CrashReport.Tests: a hung probe); uploaded with the results.
+          STRIDE_TESTS_CRASH_DUMP_DIR: ${{ github.workspace }}\TestResults
         run: |
           $filter = "${{ github.event.inputs.test-filter || inputs.test-filter }}"
           $repeat = [int]("${{ github.event.inputs.repeat || inputs.repeat || '1' }}")

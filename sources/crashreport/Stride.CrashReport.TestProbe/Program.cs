@@ -21,6 +21,16 @@ var dir = args[0];
 var mode = args[1];
 var marker = Path.Combine(dir, "callback-marker.txt");
 
+if (mode == "wait")
+{
+    // A live process for the on-demand dump test to snapshot, nothing armed: says it is ready, then waits for
+    // stdin to close.
+    Console.Out.WriteLine("ready");
+    Console.Out.Flush();
+    Console.In.ReadToEnd();
+    return 0;
+}
+
 if (mode == "record")
 {
     // The asset compiler's record-only path: createdump (not armed here) would write the dump; the recorder
