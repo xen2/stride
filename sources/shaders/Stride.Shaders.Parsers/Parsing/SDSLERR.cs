@@ -94,6 +94,7 @@ public static class SDSLErrorMessages
     public const string SDSL0155 = "SDSL0155: {0} (a matrix with one row or one column) is not supported yet. Use {1}.";
     public const string SDSL0180 = "SDSL0180: Parameter '{0}' of {1}: {2} is not supported. Use a RWStructuredBuffer with a separate counter buffer instead.";
     public const string SDSL0181 = "SDSL0181: Buffer parameter '{0}' of {1} is '{2}': a buffer parameter always refers to the caller's buffer, so it can't be out or inout. Remove '{2}'.";
+    public const string SDSL0189 = "SDSL0189: This texture offset is not a constant, even with the methods inlined and the [unroll] loops unrolled. Use a literal, a static const value, or the counter of an [unroll] loop with constant bounds; a value from a cbuffer, a stream or a loop without [unroll] can't be an offset.";
 
     // HLSL warnings: valid HLSL that is probably a mistake, reported when a class compiles
     public const string SDSL0219 = "SDSL0219: comma expression ({0}): the values before the last are dropped, the result is {1}. To build a vector, write its type: float4(...).";
