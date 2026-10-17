@@ -111,6 +111,7 @@ namespace Stride.Rendering.ComputeEffect.GGXPrefiltering
                             // face border continuous with the neighboring face. The filter cannot serve this
                             // level, because at roughness 0 it collapses to the smallest mipmap.
                             var inputMipmapLevel = Math.Min(inputLevel, input.MipLevelCount - 1);
+                            context.CommandList.ResourceBarrierTransition(input, BarrierLayout.ShaderResource);
                             resampleShader.Parameters.Set(CubemapFaceResampleShaderKeys.RadianceMap, input);
                             resampleShader.Parameters.Set(CubemapFaceResampleShaderKeys.MipLevel, inputMipmapLevel);
                             resampleShader.Parameters.Set(CubemapFaceResampleShaderKeys.Face, faceIndex);
@@ -120,6 +121,9 @@ namespace Stride.Rendering.ComputeEffect.GGXPrefiltering
                     }
                     else
                     {
+                        // The input is a parameter, not an image effect input, so nothing else transitions it
+                        // (the copy of the highest level leaves it in a copy layout on Direct3D 12)
+                        context.CommandList.ResourceBarrierTransition(input, BarrierLayout.ShaderResource);
                         shader.Parameters.Set(RadiancePrefilteringGGXNoComputeShaderKeys.Face, faceIndex);
                         shader.Parameters.Set(RadiancePrefilteringGGXNoComputeShaderKeys.Roughness, roughness);
                         shader.Parameters.Set(RadiancePrefilteringGGXNoComputeShaderKeys.MipmapCount, input.MipLevelCount - 1);
