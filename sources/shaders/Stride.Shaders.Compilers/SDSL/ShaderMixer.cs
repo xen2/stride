@@ -557,8 +557,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                         names.Add(nameInstruction.Target, nameInstruction.Name);
                     }
 
-                    // Skip source hash (doesn't make sense during mixing, as it's not a 1 sdsl <=> 1 spv mapping anymore)
-                    if (i.Op == Op.OpSourceHashSDSL)
+                    // Skip source hash (doesn't make sense during mixing, as it's not a 1 sdsl <=> 1 spv mapping anymore) and class warnings (reported when loaded)
+                    if (i.Op == Op.OpSourceHashSDSL || i.Op == Op.OpDiagnosticSDSL)
                         include = false;
 
                     // Deduplicate OpString/OpSource: keep only one per unique filename
@@ -1450,7 +1450,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                 || i.Op == Op.OpImportFunctionSDSL
                 || i.Op == Op.OpImportVariableSDSL
                 || i.Op == Op.OpFunctionMetadataSDSL
-                || i.Op == Op.OpSourceHashSDSL)
+                || i.Op == Op.OpSourceHashSDSL
+                || i.Op == Op.OpDiagnosticSDSL)
                 return true;
             if ((i.Op == Op.OpDecorate || i.Op == Op.OpDecorateString) && (Decoration)i.Data.Memory.Span[2] is
                     Decoration.FunctionParameterDefaultValueSDSL
