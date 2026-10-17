@@ -23,64 +23,63 @@ internal static unsafe class PipelineBarriers
                               uint bufferMemoryBarrierCount, VkBufferMemoryBarrier* bufferMemoryBarriers,
                               uint imageMemoryBarrierCount, VkImageMemoryBarrier* imageMemoryBarriers)
     {
-        var srcStages = (VkPipelineStageFlags2) (uint) srcStageMask;
-        var dstStages = (VkPipelineStageFlags2) (uint) dstStageMask;
-
         var memoryBarriers2 = stackalloc VkMemoryBarrier2[(int) memoryBarrierCount];
         for (int i = 0; i < memoryBarrierCount; i++)
-        {
-            ref var barrier = ref memoryBarriers[i];
-            memoryBarriers2[i] = new VkMemoryBarrier2
-            {
-                sType = VkStructureType.MemoryBarrier2,
-                srcStageMask = srcStages,
-                srcAccessMask = (VkAccessFlags2) (uint) barrier.srcAccessMask,
-                dstStageMask = dstStages,
-                dstAccessMask = (VkAccessFlags2) (uint) barrier.dstAccessMask,
-            };
-        }
+            memoryBarriers2[i] = ToBarrier2(memoryBarriers[i], srcStageMask, dstStageMask);
 
         var bufferBarriers2 = stackalloc VkBufferMemoryBarrier2[(int) bufferMemoryBarrierCount];
         for (int i = 0; i < bufferMemoryBarrierCount; i++)
-        {
-            ref var barrier = ref bufferMemoryBarriers[i];
-            bufferBarriers2[i] = new VkBufferMemoryBarrier2
-            {
-                sType = VkStructureType.BufferMemoryBarrier2,
-                srcStageMask = srcStages,
-                srcAccessMask = (VkAccessFlags2) (uint) barrier.srcAccessMask,
-                dstStageMask = dstStages,
-                dstAccessMask = (VkAccessFlags2) (uint) barrier.dstAccessMask,
-                srcQueueFamilyIndex = barrier.srcQueueFamilyIndex,
-                dstQueueFamilyIndex = barrier.dstQueueFamilyIndex,
-                buffer = barrier.buffer,
-                offset = barrier.offset,
-                size = barrier.size,
-            };
-        }
+            bufferBarriers2[i] = ToBarrier2(bufferMemoryBarriers[i], srcStageMask, dstStageMask);
 
         var imageBarriers2 = stackalloc VkImageMemoryBarrier2[(int) imageMemoryBarrierCount];
         for (int i = 0; i < imageMemoryBarrierCount; i++)
-        {
-            ref var barrier = ref imageMemoryBarriers[i];
-            imageBarriers2[i] = new VkImageMemoryBarrier2
-            {
-                sType = VkStructureType.ImageMemoryBarrier2,
-                srcStageMask = srcStages,
-                srcAccessMask = (VkAccessFlags2) (uint) barrier.srcAccessMask,
-                dstStageMask = dstStages,
-                dstAccessMask = (VkAccessFlags2) (uint) barrier.dstAccessMask,
-                oldLayout = barrier.oldLayout,
-                newLayout = barrier.newLayout,
-                srcQueueFamilyIndex = barrier.srcQueueFamilyIndex,
-                dstQueueFamilyIndex = barrier.dstQueueFamilyIndex,
-                image = barrier.image,
-                subresourceRange = barrier.subresourceRange,
-            };
-        }
+            imageBarriers2[i] = ToBarrier2(imageMemoryBarriers[i], srcStageMask, dstStageMask);
 
         Record(api, commandBuffer, dependencyFlags, memoryBarrierCount, memoryBarriers2, bufferMemoryBarrierCount, bufferBarriers2, imageMemoryBarrierCount, imageBarriers2);
     }
+
+    /// <summary>
+    ///   Converts a barrier of a <c>vkCmdPipelineBarrier</c> call to synchronization2, with that call's stages.
+    /// </summary>
+    public static VkMemoryBarrier2 ToBarrier2(in VkMemoryBarrier barrier, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask) => new()
+    {
+        sType = VkStructureType.MemoryBarrier2,
+        srcStageMask = (VkPipelineStageFlags2) (uint) srcStageMask,
+        srcAccessMask = (VkAccessFlags2) (uint) barrier.srcAccessMask,
+        dstStageMask = (VkPipelineStageFlags2) (uint) dstStageMask,
+        dstAccessMask = (VkAccessFlags2) (uint) barrier.dstAccessMask,
+    };
+
+    /// <inheritdoc cref="ToBarrier2(in VkMemoryBarrier, VkPipelineStageFlags, VkPipelineStageFlags)"/>
+    public static VkBufferMemoryBarrier2 ToBarrier2(in VkBufferMemoryBarrier barrier, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask) => new()
+    {
+        sType = VkStructureType.BufferMemoryBarrier2,
+        srcStageMask = (VkPipelineStageFlags2) (uint) srcStageMask,
+        srcAccessMask = (VkAccessFlags2) (uint) barrier.srcAccessMask,
+        dstStageMask = (VkPipelineStageFlags2) (uint) dstStageMask,
+        dstAccessMask = (VkAccessFlags2) (uint) barrier.dstAccessMask,
+        srcQueueFamilyIndex = barrier.srcQueueFamilyIndex,
+        dstQueueFamilyIndex = barrier.dstQueueFamilyIndex,
+        buffer = barrier.buffer,
+        offset = barrier.offset,
+        size = barrier.size,
+    };
+
+    /// <inheritdoc cref="ToBarrier2(in VkMemoryBarrier, VkPipelineStageFlags, VkPipelineStageFlags)"/>
+    public static VkImageMemoryBarrier2 ToBarrier2(in VkImageMemoryBarrier barrier, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask) => new()
+    {
+        sType = VkStructureType.ImageMemoryBarrier2,
+        srcStageMask = (VkPipelineStageFlags2) (uint) srcStageMask,
+        srcAccessMask = (VkAccessFlags2) (uint) barrier.srcAccessMask,
+        dstStageMask = (VkPipelineStageFlags2) (uint) dstStageMask,
+        dstAccessMask = (VkAccessFlags2) (uint) barrier.dstAccessMask,
+        oldLayout = barrier.oldLayout,
+        newLayout = barrier.newLayout,
+        srcQueueFamilyIndex = barrier.srcQueueFamilyIndex,
+        dstQueueFamilyIndex = barrier.dstQueueFamilyIndex,
+        image = barrier.image,
+        subresourceRange = barrier.subresourceRange,
+    };
 
     /// <summary>
     ///   Records synchronization2 barriers.

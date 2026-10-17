@@ -44,6 +44,18 @@ namespace Stride.Graphics
         private readonly List<SubresourceTransition> sourceTransferTransitions = new(16);
         private readonly List<SubresourceTransition> destinationTransferTransitions = new(16);
 
+        // Barriers not in the command buffer yet: they go in together, merged, before the next command that needs
+        // them (a draw, dispatch, copy, clear...), as on Direct3D 12. See FlushBarriers.
+        private readonly List<VkMemoryBarrier2> pendingMemoryBarriers = new(4);
+        private readonly List<VkBufferMemoryBarrier2> pendingBufferBarriers = new(16);
+        private readonly List<VkImageMemoryBarrier2> pendingImageBarriers = new(16);
+
+        /// <summary>
+        ///   The number of <c>vkCmdPipelineBarrier2</c> calls recorded by this command list, and of barriers in them
+        ///   (checked by the tests).
+        /// </summary>
+        internal int NativeBarrierCommandCount, NativeBarrierCount;
+
         /// <summary>
         ///   The last access this command buffer synchronised each buffer against.
         /// </summary>
@@ -101,6 +113,9 @@ namespace Stride.Graphics
             boundDescriptorSets.Clear();
             currentCbLayouts.Clear();
             currentCbBufferLayouts.Clear();
+            pendingMemoryBarriers.Clear();
+            pendingBufferBarriers.Clear();
+            pendingImageBarriers.Clear();
 
             renderingDirty = true;
 
@@ -133,8 +148,8 @@ namespace Stride.Graphics
         /// </returns>
         public partial CompiledCommandList Close()
         {
-            // End active render pass
-            CleanupRenderPass();
+            // End active render pass, record the barriers still pending (such as the transition to present)
+            BeginCommandOutsideRenderPass();
 
             // Close
             GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkEndCommandBuffer(currentCommandList.NativeCommandBuffer));
@@ -290,6 +305,10 @@ namespace Stride.Graphics
         private unsafe void PrepareDraw()
         {
             RecordDebugCounter(DebugCounterKind.Draw);
+
+            // Barriers aren't allowed inside a render pass: end it, EnsureRenderPass records them before starting a new one
+            if (HasPendingBarriers)
+                CleanupRenderPass();
 
             // Lazily set the render pass and frame buffer
             EnsureRenderPass();
@@ -575,8 +594,6 @@ namespace Stride.Graphics
 
                 currentCbBufferLayouts[buffer] = newLayout;
 
-                CleanupRenderPass();
-
                 var bufferMemoryBarrier = new VkBufferMemoryBarrier(buffer.NativeBuffer, oldAccessMask, newAccessMask);
                 PipelineBarrier(sourceStages, newStages, VkDependencyFlags.None, 0, null, 1, &bufferMemoryBarrier, 0, null);
             }
@@ -603,9 +620,6 @@ namespace Stride.Graphics
             var stages = BarrierMapping.ToVkPipelineStageFlags(BarrierLayout.UnorderedAccess);
             const VkAccessFlags AccessBefore = VkAccessFlags.ShaderWrite;
             const VkAccessFlags AccessAfter = VkAccessFlags.ShaderRead | VkAccessFlags.ShaderWrite;
-
-            // Not allowed inside a render pass
-            CleanupRenderPass();
 
             if (resource is Texture texture)
             {
@@ -648,23 +662,143 @@ namespace Stride.Graphics
                 dstAccessMask = VkAccessFlags.ShaderRead | VkAccessFlags.ShaderWrite,
             };
 
-            // Not allowed inside a render pass
-            CleanupRenderPass();
-
             PipelineBarrier(stages, stages, VkDependencyFlags.None, 1, &memoryBarrier, 0, null, 0, null);
         }
 
         /// <summary>
-        ///   Records a pipeline barrier with synchronization2 (<c>vkCmdPipelineBarrier2</c>): every barrier gets the
-        ///   given stages.
+        ///   Adds the barriers of a <c>vkCmdPipelineBarrier</c> call to the pending ones, every barrier with the given
+        ///   stages. They go into the command buffer at the next <see cref="FlushBarriers"/>.
         /// </summary>
         private unsafe void PipelineBarrier(VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags,
                                             uint memoryBarrierCount, VkMemoryBarrier* memoryBarriers,
                                             uint bufferMemoryBarrierCount, VkBufferMemoryBarrier* bufferMemoryBarriers,
                                             uint imageMemoryBarrierCount, VkImageMemoryBarrier* imageMemoryBarriers)
         {
-            PipelineBarriers.Record(GraphicsDevice.NativeDeviceApi, currentCommandList.NativeCommandBuffer, srcStageMask, dstStageMask, dependencyFlags,
-                                    memoryBarrierCount, memoryBarriers, bufferMemoryBarrierCount, bufferMemoryBarriers, imageMemoryBarrierCount, imageMemoryBarriers);
+            // Pending barriers are recorded without dependency flags
+            System.Diagnostics.Debug.Assert(dependencyFlags == VkDependencyFlags.None);
+
+            for (int i = 0; i < memoryBarrierCount; i++)
+                pendingMemoryBarriers.Add(PipelineBarriers.ToBarrier2(memoryBarriers[i], srcStageMask, dstStageMask));
+            for (int i = 0; i < bufferMemoryBarrierCount; i++)
+                AddPendingBarrier(PipelineBarriers.ToBarrier2(bufferMemoryBarriers[i], srcStageMask, dstStageMask));
+            for (int i = 0; i < imageMemoryBarrierCount; i++)
+                AddPendingBarrier(PipelineBarriers.ToBarrier2(imageMemoryBarriers[i], srcStageMask, dstStageMask));
+        }
+
+        /// <summary>
+        ///   Adds a barrier to the pending ones. A barrier on the same buffer range as a pending one merges with it: no
+        ///   command ran in between, so A to B then B to C is A to C.
+        /// </summary>
+        private void AddPendingBarrier(in VkBufferMemoryBarrier2 barrier)
+        {
+            var pendingBarriers = CollectionsMarshal.AsSpan(pendingBufferBarriers);
+            for (int i = 0; i < pendingBarriers.Length; i++)
+            {
+                ref var pending = ref pendingBarriers[i];
+                if (pending.buffer != barrier.buffer)
+                    continue;
+
+                if (pending.offset == barrier.offset && pending.size == barrier.size)
+                {
+                    pending.dstStageMask = barrier.dstStageMask;
+                    pending.dstAccessMask = barrier.dstAccessMask;
+                    return;
+                }
+
+                // Barriers on overlapping ranges are ordered: record the pending ones first
+                if (RangesOverlap(pending.offset, pending.size, barrier.offset, barrier.size))
+                {
+                    FlushBarriers();
+                    break;
+                }
+            }
+            pendingBufferBarriers.Add(barrier);
+        }
+
+        /// <summary>
+        ///   Adds a barrier to the pending ones. A barrier on the same subresources of an image as a pending one merges
+        ///   with it: no command ran in between, so A to B then B to C is A to C.
+        /// </summary>
+        private void AddPendingBarrier(in VkImageMemoryBarrier2 barrier)
+        {
+            var pendingBarriers = CollectionsMarshal.AsSpan(pendingImageBarriers);
+            for (int i = 0; i < pendingBarriers.Length; i++)
+            {
+                ref var pending = ref pendingBarriers[i];
+                if (pending.image != barrier.image)
+                    continue;
+
+                ref readonly var a = ref pending.subresourceRange;
+                ref readonly var b = ref barrier.subresourceRange;
+                if (a.aspectMask == b.aspectMask && a.baseMipLevel == b.baseMipLevel && a.levelCount == b.levelCount &&
+                    a.baseArrayLayer == b.baseArrayLayer && a.layerCount == b.layerCount)
+                {
+                    pending.dstStageMask = barrier.dstStageMask;
+                    pending.dstAccessMask = barrier.dstAccessMask;
+                    pending.newLayout = barrier.newLayout;
+                    return;
+                }
+
+                // Barriers on overlapping subresources are ordered: record the pending ones first
+                if (RangesOverlap(a.baseMipLevel, a.levelCount, b.baseMipLevel, b.levelCount) &&
+                    RangesOverlap(a.baseArrayLayer, a.layerCount, b.baseArrayLayer, b.layerCount))
+                {
+                    FlushBarriers();
+                    break;
+                }
+            }
+            pendingImageBarriers.Add(barrier);
+        }
+
+        // Whether two ranges overlap; a count of all ones (VK_REMAINING_* or VK_WHOLE_SIZE) goes to the end
+        private static bool RangesOverlap(ulong startA, ulong countA, ulong startB, ulong countB)
+        {
+            var endA = countA == uint.MaxValue || countA == ulong.MaxValue ? ulong.MaxValue : startA + countA;
+            var endB = countB == uint.MaxValue || countB == ulong.MaxValue ? ulong.MaxValue : startB + countB;
+            return startA < endB && startB < endA;
+        }
+
+        /// <summary>
+        ///   Records the pending barriers in the command buffer, ending the render pass when there are some (barriers
+        ///   aren't allowed inside it). Called before each command that needs them.
+        /// </summary>
+        private unsafe void FlushBarriers()
+        {
+            if (!HasPendingBarriers)
+                return;
+
+            CleanupRenderPass();
+
+            var memoryBarriers = CollectionsMarshal.AsSpan(pendingMemoryBarriers);
+            var bufferBarriers = CollectionsMarshal.AsSpan(pendingBufferBarriers);
+            var imageBarriers = CollectionsMarshal.AsSpan(pendingImageBarriers);
+            fixed (VkMemoryBarrier2* pMemoryBarriers = memoryBarriers)
+            fixed (VkBufferMemoryBarrier2* pBufferBarriers = bufferBarriers)
+            fixed (VkImageMemoryBarrier2* pImageBarriers = imageBarriers)
+            {
+                PipelineBarriers.Record(GraphicsDevice.NativeDeviceApi, currentCommandList.NativeCommandBuffer, VkDependencyFlags.None,
+                                        (uint) memoryBarriers.Length, pMemoryBarriers, (uint) bufferBarriers.Length, pBufferBarriers,
+                                        (uint) imageBarriers.Length, pImageBarriers);
+            }
+
+            NativeBarrierCommandCount++;
+            NativeBarrierCount += memoryBarriers.Length + bufferBarriers.Length + imageBarriers.Length;
+
+            pendingMemoryBarriers.Clear();
+            pendingBufferBarriers.Clear();
+            pendingImageBarriers.Clear();
+        }
+
+        private bool HasPendingBarriers => pendingMemoryBarriers.Count > 0 || pendingBufferBarriers.Count > 0 || pendingImageBarriers.Count > 0;
+
+        /// <summary>
+        ///   Prepares a command that runs outside a render pass (a dispatch, copy, clear...): ends the render pass and
+        ///   records the pending barriers.
+        /// </summary>
+        private void BeginCommandOutsideRenderPass()
+        {
+            CleanupRenderPass();
+            FlushBarriers();
         }
 
         /// <summary>
@@ -764,6 +898,8 @@ namespace Stride.Graphics
             if (bufferBarrierCount > 0)
                 PipelineBarrier(stagingStages, VkPipelineStageFlags.Transfer, VkDependencyFlags.None, memoryBarrierCount: 0, memoryBarriers: null, bufferBarrierCount, bufferBarriers, imageMemoryBarrierCount: 0, imageMemoryBarriers: null);
 
+            // The copy comes next
+            BeginCommandOutsideRenderPass();
             return bufferBarrierCount;
         }
 
@@ -831,20 +967,10 @@ namespace Stride.Graphics
             RecordImageBarriers(barriers);
         }
 
-        private unsafe void RecordImageBarriers(Span<VkImageMemoryBarrier2> barriers)
+        private void RecordImageBarriers(Span<VkImageMemoryBarrier2> barriers)
         {
-            if (barriers.IsEmpty)
-                return;
-
-            // End render pass, so barrier affects all commands in the buffer
-            CleanupRenderPass();
-
-            fixed (VkImageMemoryBarrier2* pBarriers = barriers)
-            {
-                PipelineBarriers.Record(GraphicsDevice.NativeDeviceApi, currentCommandList.NativeCommandBuffer, VkDependencyFlags.None,
-                                        memoryBarrierCount: 0, memoryBarriers: null, bufferMemoryBarrierCount: 0, bufferMemoryBarriers: null,
-                                        (uint) barriers.Length, pBarriers);
-            }
+            foreach (ref readonly var barrier in barriers)
+                AddPendingBarrier(barrier);
         }
 
         /// <summary>
@@ -938,7 +1064,7 @@ namespace Stride.Graphics
         public void Dispatch(int threadCountX, int threadCountY, int threadCountZ)
         {
             RecordDebugCounter(DebugCounterKind.Dispatch);
-            CleanupRenderPass();
+            BeginCommandOutsideRenderPass();
             BindPipeline();
             BindDescriptorSets();
             GraphicsDevice.NativeDeviceApi.vkCmdDispatch(currentCommandList.NativeCommandBuffer, (uint)threadCountX, (uint)threadCountY, (uint)threadCountZ);
@@ -954,7 +1080,7 @@ namespace Stride.Graphics
             ArgumentNullException.ThrowIfNull(indirectBuffer);
 
             RecordDebugCounter(DebugCounterKind.Dispatch);
-            CleanupRenderPass();
+            BeginCommandOutsideRenderPass();
             BindPipeline();
             BindDescriptorSets();
             GraphicsDevice.NativeDeviceApi.vkCmdDispatchIndirect(currentCommandList.NativeCommandBuffer, indirectBuffer.NativeBuffer, (ulong)offsetInBytes);
@@ -1094,6 +1220,8 @@ namespace Stride.Graphics
                     sType = VkStructureType.DebugUtilsLabelEXT,
                     pLabelName = nameBytes
                 };
+                // The barriers asked for before the scope belong to the previous one
+                FlushBarriers();
                 GraphicsDevice.NativeInstanceApi.vkCmdBeginDebugUtilsLabelEXT(currentCommandList.NativeCommandBuffer, &labelInfo);
             }
         }
@@ -1106,6 +1234,7 @@ namespace Stride.Graphics
             GraphicsDevice.PopDebugScope();
             if (GraphicsDevice.IsProfilingSupported)
             {
+                FlushBarriers();
                 GraphicsDevice.NativeInstanceApi.vkCmdEndDebugUtilsLabelEXT(currentCommandList.NativeCommandBuffer);
             }
         }
@@ -1123,6 +1252,8 @@ namespace Stride.Graphics
             if (queryPool.NeedsReset)
                 ResetQueryPool(queryPool);
 
+            // The barriers asked for before the timestamp count in the time before it
+            FlushBarriers();
             GraphicsDevice.NativeDeviceApi.vkCmdWriteTimestamp(currentCommandList.NativeCommandBuffer, VkPipelineStageFlags.AllCommands, queryPool.NativeQueryPool, (uint) index);
 
             if (queryPool.UpdatingCommandList != this)
@@ -1139,7 +1270,7 @@ namespace Stride.Graphics
         public void ResetQueryPool(QueryPool queryPool)
         {
             // Not allowed inside a render pass
-            CleanupRenderPass();
+            BeginCommandOutsideRenderPass();
             GraphicsDevice.NativeDeviceApi.vkCmdResetQueryPool(currentCommandList.NativeCommandBuffer, queryPool.NativeQueryPool, firstQuery: 0, (uint) queryPool.QueryCount);
 
             queryPool.NeedsReset = false;
@@ -1170,6 +1301,7 @@ namespace Stride.Graphics
             // Clear requires TransferDstOptimal; leave the buffer in the depth write layout
             // afterwards, matching the Direct3D 12 behavior.
             ResourceBarrierTransition(depthStencilBuffer, BarrierLayout.CopyDest);
+            BeginCommandOutsideRenderPass();
 
             var clearValue = new VkClearDepthStencilValue(depth, stencil);
             GraphicsDevice.NativeDeviceApi.vkCmdClearDepthStencilImage(currentCommandList.NativeCommandBuffer, depthStencilBuffer.NativeImage, VkImageLayout.TransferDstOptimal, &clearValue, rangeCount: 1, &clearRange);
@@ -1195,6 +1327,7 @@ namespace Stride.Graphics
             // Clear requires TransferDstOptimal; leave the target in the render target layout
             // afterwards, matching the Direct3D 12 behavior.
             ResourceBarrierTransition(renderTarget, BarrierLayout.CopyDest);
+            BeginCommandOutsideRenderPass();
 
             GraphicsDevice.NativeDeviceApi.vkCmdClearColorImage(currentCommandList.NativeCommandBuffer, renderTarget.NativeImage, VkImageLayout.TransferDstOptimal, (VkClearColorValue*) &color, rangeCount: 1, &clearRange);
 
@@ -1263,8 +1396,8 @@ namespace Stride.Graphics
             // layout afterwards, matching the Direct3D 12 behavior
             ResourceBarrierTransition(buffer, BarrierLayout.CopyDest);
 
-            // Not allowed inside a render pass (the transition doesn't end it when the buffer is already a copy destination)
-            CleanupRenderPass();
+            // Not allowed inside a render pass, after the transition to a copy destination
+            BeginCommandOutsideRenderPass();
             GraphicsDevice.NativeDeviceApi.vkCmdFillBuffer(currentCommandList.NativeCommandBuffer, buffer.NativeBuffer, dstOffset: 0, (ulong) (buffer.SizeInBytes & ~3), word);
 
             ResourceBarrierTransition(buffer, BarrierLayout.UnorderedAccess);
@@ -1440,6 +1573,7 @@ namespace Stride.Graphics
             // Clear requires TransferDstOptimal; leave the texture in the unordered access layout
             // afterwards, matching the Direct3D 12 behavior.
             ResourceBarrierTransition(texture, BarrierLayout.CopyDest);
+            BeginCommandOutsideRenderPass();
 
             GraphicsDevice.NativeDeviceApi.vkCmdClearColorImage(currentCommandList.NativeCommandBuffer, texture.NativeImage, VkImageLayout.TransferDstOptimal, &clearValue, 1, &clearRange);
 
@@ -1553,6 +1687,7 @@ namespace Stride.Graphics
                 bufferBarriers[1] = new VkBufferMemoryBarrier(destinationBuffer.NativeBuffer, destinationBuffer.NativeAccessMask, VkAccessFlags.TransferWrite);
                 var srcStages = FixStagesForAccess(sourceBuffer.NativePipelineStageMask | destinationBuffer.NativePipelineStageMask, sourceBuffer.NativeAccessMask | destinationBuffer.NativeAccessMask);
                 PipelineBarrier(srcStages, VkPipelineStageFlags.Transfer, VkDependencyFlags.None, memoryBarrierCount: 0, memoryBarriers: null, bufferMemoryBarrierCount: 2, bufferBarriers, imageMemoryBarrierCount: 0, imageMemoryBarriers: null);
+                BeginCommandOutsideRenderPass();
 
                 var copy = new VkBufferCopy
                 {
@@ -1596,7 +1731,7 @@ namespace Stride.Graphics
 
             ResourceBarrierTransition(sourceMultisampleTexture, BarrierLayout.ResolveSource);
             ResourceBarrierTransition(destTexture, BarrierLayout.ResolveDest);
-            CleanupRenderPass();
+            BeginCommandOutsideRenderPass();
 
             var source = sourceMultisampleTexture.RootTexture;
             var destination = destTexture.RootTexture;
@@ -1728,6 +1863,7 @@ namespace Stride.Graphics
                 bufferBarriers[1] = new VkBufferMemoryBarrier(destinationBuffer.NativeBuffer, destinationBuffer.NativeAccessMask, VkAccessFlags.TransferWrite);
                 var srcStages = FixStagesForAccess(sourceBuffer.NativePipelineStageMask | destinationBuffer.NativePipelineStageMask, sourceBuffer.NativeAccessMask | destinationBuffer.NativeAccessMask);
                 PipelineBarrier(srcStages, VkPipelineStageFlags.Transfer, VkDependencyFlags.None, memoryBarrierCount: 0, memoryBarriers: null, bufferMemoryBarrierCount: 2, bufferBarriers, imageMemoryBarrierCount: 0, imageMemoryBarriers: null);
+                BeginCommandOutsideRenderPass();
 
                 var copy = new VkBufferCopy { srcOffset = srcOffset, dstOffset = dstOffset, size = size };
                 GraphicsDevice.NativeDeviceApi.vkCmdCopyBuffer(currentCommandList.NativeCommandBuffer, sourceBuffer.NativeBuffer, destinationBuffer.NativeBuffer, regionCount: 1, &copy);
@@ -1904,6 +2040,7 @@ namespace Stride.Graphics
                     imageOffset = new VkOffset3D(region.Left, region.Top, region.Front),
                     imageExtent = new VkExtent3D(region.Right - region.Left, region.Bottom - region.Top, region.Back - region.Front)
                 };
+                BeginCommandOutsideRenderPass();
                 GraphicsDevice.NativeDeviceApi.vkCmdCopyBufferToImage(currentCommandList.NativeCommandBuffer, uploadResource, texture.NativeImage, VkImageLayout.TransferDstOptimal, 1, &bufferCopy);
 
                 RestoreAfterTransfer(texture, destinationTransferTransitions, BarrierLayout.CopyDest);
@@ -1924,6 +2061,7 @@ namespace Stride.Graphics
                     memoryBarriers[0] = uploadBufferMemoryBarrier;
                     memoryBarriers[1] = new VkBufferMemoryBarrier(buffer.NativeBuffer, buffer.NativeAccessMask, VkAccessFlags.TransferWrite, bufferCopy.dstOffset, bufferCopy.size);
                     PipelineBarrier(buffer.NativePipelineStageMask | VkPipelineStageFlags.Host, VkPipelineStageFlags.Transfer, VkDependencyFlags.None, memoryBarrierCount: 0, memoryBarriers: null, bufferMemoryBarrierCount: 2, memoryBarriers, imageMemoryBarrierCount: 0, imageMemoryBarriers: null);
+                    BeginCommandOutsideRenderPass();
 
                     GraphicsDevice.NativeDeviceApi.vkCmdCopyBuffer(currentCommandList.NativeCommandBuffer, uploadResource, buffer.NativeBuffer, regionCount: 1, &bufferCopy);
 
@@ -2136,6 +2274,8 @@ namespace Stride.Graphics
                 pStencilAttachment = hasStencil ? &depthAttachment : null,
             };
 
+            // The barriers of the draws to come (and of the attachment clears above) go before the render pass
+            FlushBarriers();
             GraphicsDevice.NativeDeviceApi.vkCmdBeginRendering(currentCommandList.NativeCommandBuffer, &renderingInfo);
 
             activeRendering = true;
