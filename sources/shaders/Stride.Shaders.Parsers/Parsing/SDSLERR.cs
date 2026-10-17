@@ -94,6 +94,10 @@ public static class SDSLErrorMessages
     public const string SDSL0155 = "SDSL0155: {0} (a matrix with one row or one column) is not supported yet. Use {1}.";
     public const string SDSL0180 = "SDSL0180: Parameter '{0}' of {1}: {2} is not supported. Use a RWStructuredBuffer with a separate counter buffer instead.";
     public const string SDSL0181 = "SDSL0181: Buffer parameter '{0}' of {1} is '{2}': a buffer parameter always refers to the caller's buffer, so it can't be out or inout. Remove '{2}'.";
+    public const string SDSL0185 = "SDSL0185: {0} works on an int or uint, but its destination {1} has type {2}. Use an int or uint element of a buffer, a texture or a groupshared variable (for a float, store its bits with asuint and update it with InterlockedCompareExchange).";
+    public const string SDSL0186 = "SDSL0186: The destination of {0}, {1}, is {2}: other threads don't see it. Use an element of a RWStructuredBuffer, RWBuffer or RWTexture, or a groupshared variable.";
+    public const string SDSL0187 = "SDSL0187: {0} on a float is not supported: on Vulkan it needs float atomics, which Stride doesn't enable. Store the float's bits in an int or uint (asuint, asfloat) and update it with InterlockedCompareExchange.";
+    public const string SDSL0188 = "SDSL0188: {0}: 64-bit atomic operations are not supported (Direct3D 11 has none). Use a 32-bit int or uint.";
 
     // HLSL warnings: valid HLSL that is probably a mistake, reported when a class compiles
     public const string SDSL0219 = "SDSL0219: comma expression ({0}): the values before the last are dropped, the result is {1}. To build a vector, write its type: float4(...).";
