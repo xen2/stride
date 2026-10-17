@@ -94,6 +94,7 @@ public static class SDSLErrorMessages
     public const string SDSL0155 = "SDSL0155: {0} (a matrix with one row or one column) is not supported yet. Use {1}.";
     public const string SDSL0180 = "SDSL0180: Parameter '{0}' of {1}: {2} is not supported. Use a RWStructuredBuffer with a separate counter buffer instead.";
     public const string SDSL0181 = "SDSL0181: Buffer parameter '{0}' of {1} is '{2}': a buffer parameter always refers to the caller's buffer, so it can't be out or inout. Remove '{2}'.";
+    public const string SDSL0195 = "SDSL0195: {0} holds an int, uint or bool matrix ({1}), which can't be in a cbuffer or a buffer yet. Use an array of {2} instead, or a float matrix; a static matrix (or a local one) works.";
     public const string SDSL0150 = "SDSL0150: {0} has no member '{1}'. To get the size of a buffer, call {2}.GetDimensions({3}).";
 
     // HLSL warnings: valid HLSL that is probably a mistake, reported when a class compiles
