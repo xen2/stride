@@ -109,18 +109,7 @@ internal static class Program
             // A managed crash has no native exception record: a plain snapshot of the live host.
             if (!MinidumpWriter.TryWriteTargetProcess(processId, 0, IntPtr.Zero, path, fullMemory))
                 return false;
-            if (fullMemory)
-                return true;
-            try
-            {
-                MinidumpWriter.ScrubFile(path);
-                return true;
-            }
-            catch (Exception)
-            {
-                File.Delete(path); // a triage dump may be sent: never leave one unscrubbed
-                return false;
-            }
+            return fullMemory || MinidumpScrubber.ScrubOrDelete(path);
         }
         catch (Exception)
         {

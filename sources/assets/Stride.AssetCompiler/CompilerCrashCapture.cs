@@ -212,7 +212,10 @@ namespace Stride.AssetCompiler
                     // type); flag it so it's never sent. Move it into the store rather than reading it into a byte[]
                     // (a full dump can exceed the 2 GB array cap).
                     crash.DumpIsFullMemory = CrashPolicy.FullMemoryDump();
-                    EnsureRun().Add(crash, destination => TryMoveDump(dumpPath, destination));
+                    // A Mini dump may be sent: scrub it like a managed crash's (module paths, stacks and the managed
+                    // memory it carries can hold the user name). The walk above was its last reader.
+                    var dumpKept = crash.DumpIsFullMemory || MinidumpScrubber.ScrubOrDelete(dumpPath);
+                    EnsureRun().Add(crash, destination => dumpKept && TryMoveDump(dumpPath, destination));
                     TryDelete(dumpPath); // no-op if the move succeeded; drops a duplicate's dump otherwise
                     TryDelete(dumpPath + ".frame");
                 }

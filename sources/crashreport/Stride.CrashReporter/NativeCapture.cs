@@ -58,10 +58,15 @@ internal static partial class NativeCapture
                 // fault frame -- mirrors the compiler's native adopt path so both hosts group the same crash alike.
                 var faultSite = crash.Exceptions.FirstOrDefault()?.Frames.FirstOrDefault(f => !string.IsNullOrEmpty(f.Module))?.Function;
                 crash.Signature = NativeCrashReporting.NativeSignature(faultSite ?? frame, dumpPath);
+                // A triage dump may be sent: scrub it like a managed crash's (module paths and stacks carry the user
+                // name). Nothing reads it after this: the frame is parsed and the walk read the live process.
+                var dumpKept = fullMemory || MinidumpScrubber.ScrubOrDelete(dumpPath);
+                if (!dumpKept)
+                    crash.DumpFileName = null;
                 // Store through the run so the files follow the store's naming (crash-<sig>.json + .dmp): that is
                 // what lets Remove and dedup find them later. The dump already exists (the walk needed it), so the
                 // callback moves it into place -- a rename, even for a multi-GB full dump.
-                CrashStore.OpenRun(runDirectory).Add(crash, destination => TryMoveDump(dumpPath, destination));
+                CrashStore.OpenRun(runDirectory).Add(crash, destination => dumpKept && TryMoveDump(dumpPath, destination));
             }
 
             // Release the frozen host only once the dump AND the report are on disk, so a consumer that inspects

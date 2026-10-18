@@ -22,11 +22,12 @@ internal sealed class CrashGroupViewModel : ObservableObject
         Detail = ComputeDetail(crash);
         HasDump = dumpSize > 0;
         // A full-memory dump is large and unscrubbed: never offered for sending — shown as a local-only note.
-        // A triage dump (stacks + modules, scrubbed) gets the opt-in send checkbox.
+        // Any other dump (scrubbed) gets the opt-in send checkbox: a triage one (stacks + modules) or the compiler's
+        // createdump one, which also carries the managed memory needed to walk the stacks.
         IsFullMemoryDump = crash.DumpIsFullMemory;
         includeDump = !crash.DumpIsFullMemory;
         HasSendableDump = HasDump && !IsFullMemoryDump;
-        DumpLabel = HasSendableDump ? $"Include crash dump — call stacks and module list only, no memory ({FormatSize(dumpSize)})" : null;
+        DumpLabel = HasSendableDump ? $"Include crash dump — call stacks and loaded modules, with only the memory needed to read them ({FormatSize(dumpSize)})" : null;
         FullDumpNote = HasDump && IsFullMemoryDump ? $"Full memory dump kept locally, not sent ({FormatSize(dumpSize)})" : null;
 
         var definition = crash.AssetDefinitionPath;
@@ -41,7 +42,7 @@ internal sealed class CrashGroupViewModel : ObservableObject
         // feedback this window can add, each worded by the checkbox that governs it.
         var alsoSent = new List<string>();
         if (HasSendableDump)
-            alsoSent.Add($"AttachedFile: {dumpPath} (minidump, call stacks and module list only, no memory; sent if left checked)");
+            alsoSent.Add($"AttachedFile: {dumpPath} (minidump: call stacks and loaded modules, with only the memory needed to read them; user name and home-folder path stripped; sent if left checked)");
         if (HasAssetDefinition)
             alsoSent.Add($"AttachedFile: {definition} (asset definition, scrubbed; sent if checked)");
         alsoSent.Add("Feedback: your name, email and note, only if you type them");

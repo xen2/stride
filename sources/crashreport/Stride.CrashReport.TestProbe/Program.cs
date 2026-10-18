@@ -56,8 +56,12 @@ if (mode == "store")
 {
     // Integration path: the public API products call. STRIDE_CRASH_DIR points the store at the work dir.
     NativeCrashReporting.Install("TestProbe");
+    // The profile path on the faulting thread's stack, as a real host's paths are: the stored dump must not carry it.
+    var profile = Environment.GetEnvironmentVariable("USERPROFILE") ?? "";
+    Span<char> onStack = stackalloc char[profile.Length];
+    profile.CopyTo(onStack);
     Trigger.NativeAccessViolation();
-    Console.Error.WriteLine("probe: survived the AV (unexpected)");
+    Console.Error.WriteLine($"probe: survived the AV (unexpected) {onStack.Length}");
     return 3;
 }
 

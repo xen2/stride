@@ -79,6 +79,30 @@ public class CrashCaptureTests
         return BitConverter.ToInt32(bytes, rva + 8);
     }
 
+    // The profile path anywhere in the file, ASCII or UTF-16, any case.
+    private static bool ContainsProfilePath(string path)
+    {
+        var profile = Environment.GetEnvironmentVariable("USERPROFILE");
+        if (string.IsNullOrEmpty(profile))
+            return false;
+        var bytes = File.ReadAllBytes(path);
+        return ContainsIgnoreCase(bytes, profile, 1) || ContainsIgnoreCase(bytes, profile, 2);
+    }
+
+    private static bool ContainsIgnoreCase(byte[] bytes, string text, int stride)
+    {
+        for (int i = 0; i + text.Length * stride <= bytes.Length; i++)
+        {
+            int j = 0;
+            while (j < text.Length && (stride == 1 || bytes[i + j * stride + 1] == 0)
+                && char.ToLowerInvariant((char)bytes[i + j * stride]) == char.ToLowerInvariant(text[j]))
+                j++;
+            if (j == text.Length)
+                return true;
+        }
+        return false;
+    }
+
     // Minidump stream directory scan: the RVA of the first stream of that type, or -1.
     private static int StreamRva(byte[] bytes, uint streamType)
     {
@@ -141,7 +165,11 @@ public class CrashCaptureTests
             Assert.Equal("TestProbe", crash.Application);
             Assert.StartsWith("NativeCrash|", crash.Signature);
             Assert.False(string.IsNullOrEmpty(crash.DumpFileName));
-            Assert.True(File.Exists(Path.Combine(Path.GetDirectoryName(json)!, crash.DumpFileName)), "the dump referenced by the crash must exist");
+            var dumpPath = Path.Combine(Path.GetDirectoryName(json)!, crash.DumpFileName);
+            Assert.True(File.Exists(dumpPath), "the dump referenced by the crash must exist");
+            // The triage dump may be sent and the window says the user name and home path are stripped: the probe put
+            // its profile path on the faulting thread's stack, so the capture must have scrubbed it.
+            Assert.False(ContainsProfilePath(dumpPath), "the stored native-crash dump must be scrubbed of the profile path");
 
             // The reporter walks the dump (ClrMD) so a native crash reports the crashing thread's managed stack,
             // not just a message: a synthetic exception with frames, and the crashed thread flagged.
