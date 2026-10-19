@@ -130,7 +130,8 @@ dotnet test sources/shaders/Stride.Shaders.Tests --filter "FullyQualifiedName~Ex
 - `CompileExternalTrees`: mixin trees shaped like the ones VL.Stride builds from C# (generic values as strings, compositions,
   compose arrays). Writes `trees.tsv` and each tree's reflection, to compare two branches.
 - `STRIDE_EXTERNAL_SHADERS_SET=Name=relative/path;...` replaces the libraries; `STRIDE_EXTERNAL_SHADERS_UPGRADE=1` runs the shader
-  source upgrade on them first (in memory; changed files and notes go to the output folder); `STRIDE_EXTERNAL_SHADERS_ONLY` /
+  source upgrade on them first, each library in the order of the set with the ones before it as its dependencies (in memory;
+  changed files and notes go to the output folder); `STRIDE_EXTERNAL_SHADERS_ONLY` /
   `_SKIP` take class names; `STRIDE_EXTERNAL_SHADERS_DUMP=1` writes the mixed SPIR-V.
 - `progress.txt` gets each step before it runs: if a native crash ends the test process, its last line names the shader.
 
