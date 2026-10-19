@@ -105,7 +105,8 @@ public class ShaderUpgradeTests
 
     static string FixturesDirectory => Path.Combine(RepositoryRoot, "tests", "shader-upgrade");
 
-    // tests/shader-upgrade/<step>/<case>: user-style shaders in the old syntax (before/) and their upgrade (after/)
+    // tests/shader-upgrade/<step>/<case>: user-style shaders in the old syntax (before/) and their upgrade (after/), with the
+    // sources of a library they use (dependencies/, already upgraded) when there is one
     public static TheoryData<string> Fixtures()
     {
         var data = new TheoryData<string>();
@@ -130,7 +131,7 @@ public class ShaderUpgradeTests
     {
         foreach (var fixture in Fixtures().Select(x => (string)x.Data))
         {
-            var result = ShaderUpgrader.Upgrade(ReadFixture(fixture, "before"), EngineShaderClasses.Current);
+            var result = ShaderUpgrader.Upgrade(ReadFixture(fixture, "before"), EngineShaderClasses.Current, dependencies: ReadFixture(fixture, "dependencies"));
             var directory = Path.Combine(FixturesDirectory, fixture, "after");
             Directory.CreateDirectory(directory);
             foreach (var (name, text) in result.Files)
@@ -146,17 +147,32 @@ public class ShaderUpgradeTests
     public void FixtureUpgrade(string fixture)
     {
         var expected = ReadFixture(fixture, "after");
-        var result = ShaderUpgrader.Upgrade(ReadFixture(fixture, "before"), EngineShaderClasses.Current);
+        var dependencies = ReadFixture(fixture, "dependencies");
+        var result = ShaderUpgrader.Upgrade(ReadFixture(fixture, "before"), EngineShaderClasses.Current, dependencies: dependencies);
         Assert.Equal(expected.Keys.Order(), result.Files.Keys.Order());
         foreach (var (name, text) in result.Files)
             Assert.Equal(expected[name].ReplaceLineEndings("\n"), text.ReplaceLineEndings("\n"));
+        Assert.Empty(result.Notes.Where(x => x.Contains("dependency written for an older Stride version")));
 
-        var again = ShaderUpgrader.Upgrade(expected, EngineShaderClasses.Current);
+        var again = ShaderUpgrader.Upgrade(expected, EngineShaderClasses.Current, dependencies: dependencies);
         Assert.Empty(again.Files.Where(x => expected[x.Key] != x.Value).Select(x => x.Key));
 
-        var loader = new ShaderLoader(Path.Combine(FixturesDirectory, fixture, "after"), "./assets/Stride/SDSL");
+        var loader = new ShaderLoader(Path.Combine(FixturesDirectory, fixture, "after"), Path.Combine(FixturesDirectory, fixture, "dependencies"), "./assets/Stride/SDSL");
         foreach (var name in expected.Keys)
             Assert.True(loader.LoadExternalBuffer(Path.GetFileNameWithoutExtension(name), [], out _, out _, out _), name);
+    }
+
+    // A dependency is read, never changed; one written for an older version is read as if upgraded, with a note
+    [Fact]
+    public void DependencyIsReadNotChanged()
+    {
+        var dependencies = new Dictionary<string, string> { ["MyLibSettings.sdsl"] = "shader MyLibSettings { stage float Scale; };" };
+        var files = new Dictionary<string, string> { ["MyUser.sdsl"] = "shader MyUser : MyLibSettings { float Get() { return Scale; } };" };
+        var result = ShaderUpgrader.Upgrade(files, EngineShaderClasses.Current, dependencies: dependencies);
+        Assert.Equal(["MyUser.sdsl"], result.Files.Keys);
+        Assert.Contains(result.Notes, x => x.StartsWith("MyLibSettings.sdsl: dependency written for an older Stride version", StringComparison.Ordinal));
+        // Not a module: only its own upgrade decides that
+        Assert.Contains(": MyLibSettings", result.Files["MyUser.sdsl"]);
     }
 
     // The upgraded feature works in a composition: its helpers are module code like the code calling them
