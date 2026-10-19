@@ -28,10 +28,16 @@ public static class ShaderUpgrader
     ];
 
     /// <summary>
-    /// Runs the steps up to <paramref name="lastStep"/> (all by default) on <paramref name="files"/> (path → text).
+    /// Runs the steps up to <paramref name="lastStep"/> (all by default) on <paramref name="files"/> (path → text). The result has
+    /// the same files; running it again changes nothing.
     /// </summary>
     /// <param name="engine">The engine classes the project uses (<see cref="EngineShaderClasses.Current"/>); null when the files are the engine.</param>
-    public static ShaderUpgradeResult Upgrade(IReadOnlyDictionary<string, string> files, EngineShaderClasses? engine, string? lastStep = null)
+    /// <param name="dependencies">
+    /// The sources of the libraries the files use (path → text): read to know their classes (parents, modules, methods), never
+    /// changed. They are expected to be upgraded already; one written for an older version gets a note.
+    /// </param>
+    public static ShaderUpgradeResult Upgrade(IReadOnlyDictionary<string, string> files, EngineShaderClasses? engine, string? lastStep = null,
+        IReadOnlyDictionary<string, string>? dependencies = null)
     {
         var texts = new Dictionary<string, string>(files);
         var notes = new List<string>();
@@ -39,27 +45,47 @@ public static class ShaderUpgrader
         if (stepCount == 0)
             throw new ArgumentException($"Unknown step {lastStep}", nameof(lastStep));
 
-        foreach (var path in texts.Keys.ToList())
-            texts[path] = DropClone(texts[path]);
-        if (stepCount >= 2)
+        // Dependencies are read with the text steps done, so that an older spelling still parses
+        var dependencyTexts = new Dictionary<string, string>();
+        foreach (var (path, text) in dependencies ?? new Dictionary<string, string>())
         {
-            foreach (var path in texts.Keys.ToList())
-                texts[path] = StageToModule(texts[path]);
+            var read = TextSteps.Aggregate(text, (current, step) => step(current));
+            if (read != text)
+                notes.Add($"{path}: dependency written for an older Stride version, read as if upgraded but not changed; upgrade it first");
+            dependencyTexts[path] = read;
         }
-        if (stepCount >= 3)
-            Apply(texts, project => AddOverride(project, texts, notes), engine, notes);
 
-        if (stepCount >= 4)
-            Apply(texts, project => MarkModuleHelpers(project, texts, notes), engine, notes);
-        if (stepCount >= 5)
-            Apply(texts, project => ConvertModules(project, texts, notes), engine, notes);
+        foreach (var step in Steps.Take(stepCount))
+        {
+            switch (step)
+            {
+                case "add-override":
+                    Apply(texts, project => AddOverride(project, texts, notes), engine, notes, dependencyTexts);
+                    break;
+                case "module-helpers":
+                    Apply(texts, project => MarkModuleHelpers(project, texts, notes), engine, notes, dependencyTexts);
+                    break;
+                case "module-units":
+                    Apply(texts, project => ConvertModules(project, texts, notes), engine, notes, dependencyTexts);
+                    break;
+                default:
+                    var textStep = TextSteps[Steps.ToList().IndexOf(step)];
+                    foreach (var path in texts.Keys.ToList())
+                        texts[path] = textStep(texts[path]);
+                    break;
+            }
+        }
 
         return new ShaderUpgradeResult(texts, notes.Distinct().ToList());
     }
 
-    private static void Apply(Dictionary<string, string> texts, Func<ShaderUpgradeProject, Dictionary<string, ShaderSourceText>> step, EngineShaderClasses? engine, List<string> notes)
+    // The steps that change text without reading the classes, in the order of Steps (they come first)
+    private static readonly Func<string, string>[] TextSteps = [DropClone, StageToModule];
+
+    private static void Apply(Dictionary<string, string> texts, Func<ShaderUpgradeProject, Dictionary<string, ShaderSourceText>> step, EngineShaderClasses? engine,
+        List<string> notes, IReadOnlyDictionary<string, string> dependencies)
     {
-        var project = new ShaderUpgradeProject(texts, engine, notes);
+        var project = new ShaderUpgradeProject(texts, engine, notes, dependencies);
         foreach (var (path, text) in step(project))
         {
             if (text.HasEdits)
@@ -79,8 +105,9 @@ public static class ShaderUpgrader
     }
 
     /// <summary>
-    /// A method that implements an abstract method of a project class (same name and parameter types) without <c>override</c> gets it.
-    /// Abstract methods of engine classes are not known here (the engine list has no methods): the compiler reports those (SDSL0114).
+    /// A method that implements an abstract method of a project or dependency class (same name and parameter types) without
+    /// <c>override</c> gets it. Abstract methods of engine classes are not known here (the engine list has no methods): the compiler
+    /// reports those (SDSL0114).
     /// </summary>
     private static Dictionary<string, ShaderSourceText> AddOverride(ShaderUpgradeProject project, Dictionary<string, string> texts, List<string> notes)
     {
@@ -146,6 +173,12 @@ public static class ShaderUpgrader
                 var target = owner.Methods.First(x => x.Name == name && !x.IsOverride);
                 if (target.IsModule || project.BecomesModule(owner.Name))
                     continue;
+                // A dependency is not changed: its upgraded version decides
+                if (owner.IsDependency)
+                {
+                    notes.Add($"{caller}: module code calls {owner.Name}.{name}, an instance method of a dependency ({owner.Path}); this works only if the class of {caller} is mixed at the root, not used in a composition");
+                    continue;
+                }
                 // A method of a compose type is called through slots, one chain per instance: it can't be module
                 if (project.IsComposeType(owner.Name))
                 {
