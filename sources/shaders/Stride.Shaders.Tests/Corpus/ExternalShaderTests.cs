@@ -65,20 +65,29 @@ public class ExternalShaderTests
             }
         }
 
-        // STRIDE_EXTERNAL_SHADERS_UPGRADE=1: the libraries are upgraded together, as one project (they are loaded together), in memory;
-        // the changed files and the notes are written to the output folder
+        // STRIDE_EXTERNAL_SHADERS_UPGRADE=1: each library is upgraded in memory, in the order of the set, with the libraries before it
+        // (upgraded) as its dependencies, as their authors would do it; the changed files and the notes go to the output folder
         if (Environment.GetEnvironmentVariable("STRIDE_EXTERNAL_SHADERS_UPGRADE") == "1")
         {
-            var input = files.ToDictionary(x => x.RelativePath, x => x.Text, StringComparer.Ordinal);
-            var result = ShaderUpgrader.Upgrade(input, EngineShaderClasses.Current);
-            foreach (var (path, text) in result.Files.Where(x => input[x.Key] != x.Value))
+            var upgraded = new Dictionary<string, string>(StringComparer.Ordinal);
+            var notes = new List<string>();
+            foreach (var library in files.Select(x => x.Library).Distinct())
             {
-                var target = Path.Combine(output, "upgraded", path);
-                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                File.WriteAllText(target, text);
+                var input = files.Where(x => x.Library == library).ToDictionary(x => x.RelativePath, x => x.Text, StringComparer.Ordinal);
+                var result = ShaderUpgrader.Upgrade(input, EngineShaderClasses.Current, dependencies: new Dictionary<string, string>(upgraded));
+                foreach (var (path, text) in result.Files)
+                {
+                    upgraded[path] = text;
+                    if (input[path] == text)
+                        continue;
+                    var target = Path.Combine(output, "upgraded", path);
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    File.WriteAllText(target, text);
+                }
+                notes.AddRange(result.Notes);
             }
-            File.WriteAllLines(Path.Combine(output, "upgrade-notes.txt"), result.Notes);
-            files = files.Select(x => x with { Text = result.Files[x.RelativePath] }).ToList();
+            File.WriteAllLines(Path.Combine(output, "upgrade-notes.txt"), notes);
+            files = files.Select(x => x with { Text = upgraded[x.RelativePath] }).ToList();
         }
 
         var engine = new Dictionary<string, string>(StringComparer.Ordinal);
