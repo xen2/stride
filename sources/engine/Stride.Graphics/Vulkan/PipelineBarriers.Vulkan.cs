@@ -76,6 +76,12 @@ internal static unsafe class PipelineBarriers
                               ReadOnlySpan<VkBufferMemoryBarrier2> bufferBarriers = default,
                               ReadOnlySpan<VkImageMemoryBarrier2> imageBarriers = default)
     {
+        if (UseLegacyBarriers)
+        {
+            RecordLegacy(api, commandBuffer, memoryBarriers, bufferBarriers, imageBarriers);
+            return;
+        }
+
         fixed (VkMemoryBarrier2* pMemoryBarriers = memoryBarriers)
         fixed (VkBufferMemoryBarrier2* pBufferBarriers = bufferBarriers)
         fixed (VkImageMemoryBarrier2* pImageBarriers = imageBarriers)
@@ -91,6 +97,85 @@ internal static unsafe class PipelineBarriers
                 pImageMemoryBarriers = pImageBarriers,
             };
             api.vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+        }
+    }
+
+    // TEMP CHECK: the Android emulator (gfxstream) only decompresses emulated ETC2/ASTC images in vkCmdPipelineBarrier
+    private static readonly bool UseLegacyBarriers = true;
+
+    // Records the barriers as one legacy vkCmdPipelineBarrier: the stages of all barriers merge into one source and one destination mask
+    private static void RecordLegacy(VkDeviceApi api, VkCommandBuffer commandBuffer,
+                                     ReadOnlySpan<VkMemoryBarrier2> memoryBarriers,
+                                     ReadOnlySpan<VkBufferMemoryBarrier2> bufferBarriers,
+                                     ReadOnlySpan<VkImageMemoryBarrier2> imageBarriers)
+    {
+        VkPipelineStageFlags srcStages = 0, dstStages = 0;
+        var legacyMemoryBarriers = new VkMemoryBarrier[memoryBarriers.Length];
+        var legacyBufferBarriers = new VkBufferMemoryBarrier[bufferBarriers.Length];
+        var legacyImageBarriers = new VkImageMemoryBarrier[imageBarriers.Length];
+
+        for (int i = 0; i < memoryBarriers.Length; i++)
+        {
+            ref readonly var barrier = ref memoryBarriers[i];
+            srcStages |= (VkPipelineStageFlags) (uint) barrier.srcStageMask;
+            dstStages |= (VkPipelineStageFlags) (uint) barrier.dstStageMask;
+            legacyMemoryBarriers[i] = new VkMemoryBarrier
+            {
+                sType = VkStructureType.MemoryBarrier,
+                srcAccessMask = (VkAccessFlags) (uint) barrier.srcAccessMask,
+                dstAccessMask = (VkAccessFlags) (uint) barrier.dstAccessMask,
+            };
+        }
+        for (int i = 0; i < bufferBarriers.Length; i++)
+        {
+            ref readonly var barrier = ref bufferBarriers[i];
+            srcStages |= (VkPipelineStageFlags) (uint) barrier.srcStageMask;
+            dstStages |= (VkPipelineStageFlags) (uint) barrier.dstStageMask;
+            legacyBufferBarriers[i] = new VkBufferMemoryBarrier
+            {
+                sType = VkStructureType.BufferMemoryBarrier,
+                srcAccessMask = (VkAccessFlags) (uint) barrier.srcAccessMask,
+                dstAccessMask = (VkAccessFlags) (uint) barrier.dstAccessMask,
+                srcQueueFamilyIndex = barrier.srcQueueFamilyIndex,
+                dstQueueFamilyIndex = barrier.dstQueueFamilyIndex,
+                buffer = barrier.buffer,
+                offset = barrier.offset,
+                size = barrier.size,
+            };
+        }
+        for (int i = 0; i < imageBarriers.Length; i++)
+        {
+            ref readonly var barrier = ref imageBarriers[i];
+            srcStages |= (VkPipelineStageFlags) (uint) barrier.srcStageMask;
+            dstStages |= (VkPipelineStageFlags) (uint) barrier.dstStageMask;
+            legacyImageBarriers[i] = new VkImageMemoryBarrier
+            {
+                sType = VkStructureType.ImageMemoryBarrier,
+                srcAccessMask = (VkAccessFlags) (uint) barrier.srcAccessMask,
+                dstAccessMask = (VkAccessFlags) (uint) barrier.dstAccessMask,
+                oldLayout = barrier.oldLayout,
+                newLayout = barrier.newLayout,
+                srcQueueFamilyIndex = barrier.srcQueueFamilyIndex,
+                dstQueueFamilyIndex = barrier.dstQueueFamilyIndex,
+                image = barrier.image,
+                subresourceRange = barrier.subresourceRange,
+            };
+        }
+
+        // Stage 0 (no stage to wait for, or none to block) is only valid with synchronization2
+        if (srcStages == 0)
+            srcStages = VkPipelineStageFlags.TopOfPipe;
+        if (dstStages == 0)
+            dstStages = VkPipelineStageFlags.BottomOfPipe;
+
+        fixed (VkMemoryBarrier* pMemoryBarriers = legacyMemoryBarriers)
+        fixed (VkBufferMemoryBarrier* pBufferBarriers = legacyBufferBarriers)
+        fixed (VkImageMemoryBarrier* pImageBarriers = legacyImageBarriers)
+        {
+            api.vkCmdPipelineBarrier(commandBuffer, srcStages, dstStages, VkDependencyFlags.None,
+                                     (uint) legacyMemoryBarriers.Length, pMemoryBarriers,
+                                     (uint) legacyBufferBarriers.Length, pBufferBarriers,
+                                     (uint) legacyImageBarriers.Length, pImageBarriers);
         }
     }
 }
