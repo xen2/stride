@@ -72,12 +72,14 @@ namespace Stride.Assets.Presentation
         private static ResourceDictionary graphicsCompositorTemplateDictionary;
         private static ResourceDictionary visualScriptingTemplateDictionary;
         private static ResourceDictionary visualScriptingGraphTemplatesDictionary;
-        private static readonly Dictionary<Type, Type> GizmoTypes = new Dictionary<Type, Type>();
-        private static readonly Dictionary<Type, Type> AssetHighlighterTypes = new Dictionary<Type, Type>();
+        // Replaced, never changed: the editor games read them on their threads while an assembly registers
+        private static volatile IReadOnlyDictionary<Type, Type> gizmoTypes = new Dictionary<Type, Type>();
+        private static volatile IReadOnlyDictionary<Type, Type> assetHighlighterTypes = new Dictionary<Type, Type>();
+        private static readonly object TypeMapsLock = new object();
 
-        public static IReadOnlyDictionary<Type, Type> GizmoTypeDictionary => GizmoTypes;
+        public static IReadOnlyDictionary<Type, Type> GizmoTypeDictionary => gizmoTypes;
 
-        public static IReadOnlyDictionary<Type, Type> AssetHighlighterTypesDictionary => AssetHighlighterTypes;
+        public static IReadOnlyDictionary<Type, Type> AssetHighlighterTypesDictionary => assetHighlighterTypes;
 
         public static List<EntityFactoryCategory> EntityFactoryCategories { get; private set; }
 
@@ -368,40 +370,68 @@ namespace Stride.Assets.Presentation
 
         private void OnRegisteredAssetAssembly(Type[] types)
         {
-            foreach (var type in types)
+            lock (TypeMapsLock)
             {
-                if (type.IsAssignableTo(typeof(IGizmo)))
-                {
-                    if (type.GetCustomAttribute<GizmoComponentAttribute>(true) is {} attribute)
-                        GizmoTypes.Add(attribute.ComponentType, type);
-                }
-                if (type.IsAssignableTo(typeof(AssetHighlighter)))
-                {
-                    foreach (var attribute in type.GetCustomAttributes<AssetHighlighterAttribute>(false).NotNull())
-                    {
-                        AssetHighlighterTypes.Add(attribute.AssetType, type);
-                    }
-                }
+                gizmoTypes = WithTypes(gizmoTypes, GetGizmoTypes(types));
+                assetHighlighterTypes = WithTypes(assetHighlighterTypes, GetAssetHighlighterTypes(types));
             }
         }
 
         private void OnUnregisteredAssetAssembly(Type[] types)
         {
+            lock (TypeMapsLock)
+            {
+                gizmoTypes = WithoutTypes(gizmoTypes, GetGizmoTypes(types));
+                assetHighlighterTypes = WithoutTypes(assetHighlighterTypes, GetAssetHighlighterTypes(types));
+            }
+        }
+
+        // Component type -> gizmo type
+        private static List<KeyValuePair<Type, Type>> GetGizmoTypes(Type[] types)
+        {
+            var result = new List<KeyValuePair<Type, Type>>();
             foreach (var type in types)
             {
-                if (type.IsAssignableTo(typeof(IGizmo)))
-                {
-                    if (type.GetCustomAttribute<GizmoComponentAttribute>(true) is {} attribute)
-                        GizmoTypes.Remove(attribute.ComponentType);
-                }
-                if (type.IsAssignableTo(typeof(AssetHighlighter)))
-                {
-                    foreach (var attribute in type.GetCustomAttributes<AssetHighlighterAttribute>(false).NotNull())
-                    {
-                        AssetHighlighterTypes.Remove(attribute.AssetType);
-                    }
-                }
+                if (type.IsAssignableTo(typeof(IGizmo)) && type.GetCustomAttribute<GizmoComponentAttribute>(true) is {} attribute)
+                    result.Add(KeyValuePair.Create(attribute.ComponentType, type));
             }
+            return result;
+        }
+
+        // Asset type -> highlighter type
+        private static List<KeyValuePair<Type, Type>> GetAssetHighlighterTypes(Type[] types)
+        {
+            var result = new List<KeyValuePair<Type, Type>>();
+            foreach (var type in types)
+            {
+                if (!type.IsAssignableTo(typeof(AssetHighlighter)))
+                    continue;
+                foreach (var attribute in type.GetCustomAttributes<AssetHighlighterAttribute>(false).NotNull())
+                    result.Add(KeyValuePair.Create(attribute.AssetType, type));
+            }
+            return result;
+        }
+
+        // The last registered type wins: two assemblies may declare one for the same key, and a reload can register the
+        // new copy before the old one goes
+        private static Dictionary<Type, Type> WithTypes(IReadOnlyDictionary<Type, Type> map, List<KeyValuePair<Type, Type>> types)
+        {
+            var result = new Dictionary<Type, Type>(map);
+            foreach (var (key, type) in types)
+                result[key] = type;
+            return result;
+        }
+
+        // Only the types the assembly registered: a key another assembly took since keeps its type
+        private static Dictionary<Type, Type> WithoutTypes(IReadOnlyDictionary<Type, Type> map, List<KeyValuePair<Type, Type>> types)
+        {
+            var result = new Dictionary<Type, Type>(map);
+            foreach (var (key, type) in types)
+            {
+                if (result.TryGetValue(key, out var current) && current == type)
+                    result.Remove(key);
+            }
+            return result;
         }
 
         private static void RegisterComponentOrders(ILogger logger)
