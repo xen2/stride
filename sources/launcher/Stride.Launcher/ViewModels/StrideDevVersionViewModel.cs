@@ -61,7 +61,10 @@ public sealed class StrideDevVersionViewModel : StrideVersionViewModel
     /// </summary>
     public ICommandBase OpenSolutionCommand { get; }
 
-    private string SolutionPath => checkoutDirectory is not null ? Path.Combine(checkoutDirectory, "build", "Stride.slnx") : "";
+    // At the root of the checkout; older checkouts have it in build/.
+    private string SolutionPath => checkoutDirectory is null ? ""
+        : File.Exists(Path.Combine(checkoutDirectory, "Stride.slnx")) ? Path.Combine(checkoutDirectory, "Stride.slnx")
+        : Path.Combine(checkoutDirectory, "build", "Stride.slnx");
 
     // The checkout this version is built from, or null:
     // - the ledger of the checkouts built on this machine (as the version tasks write it) maps its -devN suffix, for a
