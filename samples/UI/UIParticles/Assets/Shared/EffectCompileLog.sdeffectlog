@@ -1,16 +1,16 @@
 ﻿---
 !EffectCompileRequest
-EffectName: ParticleEffect
+EffectName: Stride.Rendering.ParticleEffect
 UsedParameters:
     ParticleBase.UsesSoftEdge: 0
     ParticleBase.BaseColor: !ShaderClassSource
-        ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+        ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
         GenericArguments: [ParticleBase.EmissiveMap, TEXCOORD0, Material.Sampler.i0, rgba, Material.TextureScale, Material.TextureOffset]
 ---
 !EffectCompileRequest
-EffectName: ParticleEffect
+EffectName: Stride.Rendering.ParticleEffect
 UsedParameters:
     ParticleBase.UsesSoftEdge: 0
     ParticleBase.BaseColor: !ShaderClassSource
-        ClassName: ComputeColorFromStream
+        ClassName: Stride.Rendering.ComputeColorFromStream
         GenericArguments: [COLOR0, rgba]

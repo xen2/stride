@@ -11,6 +11,7 @@ using Stride.Core.Assets.Editor.Quantum.NodePresenters;
 using Stride.Core.Presentation.Quantum.Presenters;
 using Stride.Rendering.Materials.ComputeColors;
 using Stride.Rendering.Materials;
+using Stride.Shaders.Parsing;
 
 namespace Stride.Assets.Editor.Quantum.NodePresenters.Updaters;
 
@@ -31,7 +32,7 @@ internal sealed class MaterialAssetNodeUpdater : AssetNodePresenterUpdaterBase
         {
             // Pick only effect shaders visible from the package in which the related asset is contained
             var asset = node.Asset;
-            node.AttachedProperties.Add(MaterialData.Key, asset.Directory.Package.AllAssets.Where(x => x.AssetType == typeof(EffectShaderAsset)).Select(x => x.Name));
+            node.AttachedProperties.Add(MaterialData.Key, asset.Directory.Package.AllAssets.Where(x => x.AssetType == typeof(EffectShaderAsset)).Select(x => ShaderFileDeclarations.StorageName(((EffectShaderAsset)x.Asset).Text, x.Name)));
         }
 
         // The node is a material blend layer

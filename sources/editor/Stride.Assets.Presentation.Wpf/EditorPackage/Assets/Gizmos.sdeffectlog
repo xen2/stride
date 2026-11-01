@@ -1,6 +1,6 @@
 ---
 !EffectCompileRequest
-EffectName: StrideEditorForwardShadingEffect
+EffectName: Stride.Rendering.StrideEditorForwardShadingEffect
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Compositions:
@@ -9,44 +9,44 @@ UsedParameters:
                     - !ShaderMixinSource
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantColorLink
+                                ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                 GenericArguments:
                                     - GizmoUniformColorMaterial.GizmoColorKey
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                     - !ShaderMixinSource
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments:
                                             - false
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Compositions: {}
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Compositions: {}
             Macros: []
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments:
                         - 8
     Lighting.EnvironmentLights:
@@ -55,10 +55,10 @@ UsedParameters:
             Macros: []
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightSimpleAmbient
+                    ClassName: Stride.Rendering.Lights.LightSimpleAmbient
 ---
 !EffectCompileRequest
-EffectName: StrideEditorForwardShadingEffect
+EffectName: Stride.Rendering.StrideEditorForwardShadingEffect
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Compositions:
@@ -67,44 +67,44 @@ UsedParameters:
                     - !ShaderMixinSource
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantColorLink
+                                ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                 GenericArguments:
                                     - Material.DiffuseValue
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                     - !ShaderMixinSource
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments:
                                             - false
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Compositions: {}
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     SceneEditorParameters.IsEffectCompiling: true
 ---
 !EffectCompileRequest
-EffectName: StrideEditorForwardShadingEffect.Wireframe
+EffectName: Stride.Rendering.StrideEditorForwardShadingEffect.Wireframe
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Compositions:
@@ -113,37 +113,37 @@ UsedParameters:
                     - !ShaderMixinSource
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantColorLink
+                                ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                 GenericArguments:
                                     - Material.DiffuseValue
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                     - !ShaderMixinSource
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments:
                                             - false
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Compositions: {}
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient

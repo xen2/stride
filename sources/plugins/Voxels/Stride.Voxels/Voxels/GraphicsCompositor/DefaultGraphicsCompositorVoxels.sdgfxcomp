@@ -52,27 +52,27 @@ RenderFeatures:
             44cf4a95ef82544e9ce3c6507d5569a9: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
                 OpaqueRenderStage: ref!! 4a600aa5-eda0-4861-a9b4-d200df85da1e
                 TransparentRenderStage: ref!! 0d98fb34-5f41-4cc2-b2e2-a1081aae70c4
-                EffectName: StrideForwardShadingEffect
+                EffectName: Stride.Rendering.StrideForwardShadingEffect
             6f7224048750e7260ea87c444f74b32c: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Rendering
                 ShadowMapRenderStage: ref!! 5a47fa2e-0966-479a-8ebe-5d2c0dad2be5
-                EffectName: StrideForwardShadingEffect.ShadowMapCaster
+                EffectName: Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster
             b60663d7cb46417a94341a39c3bc1a12: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Rendering
                 ShadowMapRenderStage: ref!! 7cebf9d3-bf10-4e25-939e-e36c465efecf
-                EffectName: StrideForwardShadingEffect.ShadowMapCasterParaboloid
+                EffectName: Stride.Rendering.StrideForwardShadingEffect.ShadowMapCasterParaboloid
             f5533b1249b942df8a8aba311cd79532: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Rendering
                 ShadowMapRenderStage: ref!! aeb202d1-2b31-4082-916c-1faee73ad2ad
-                EffectName: StrideForwardShadingEffect.ShadowMapCasterCubeMap
+                EffectName: Stride.Rendering.StrideForwardShadingEffect.ShadowMapCasterCubeMap
             106341b76db9fcda6a033dad16aa708b: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
                 OpaqueRenderStage: ref!! 259cf50a-634a-4ac6-846e-4f843be0a38f
-                EffectName: StrideForwardShadingEffect.ShadowMapCaster
+                EffectName: Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster
             1cd2eaa455053c4bb2b0e1b2c156cb3a*: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
                 OpaqueRenderStage: ref!! ffa492d9-b8a2-4d74-abe8-d82c542fc526
                 TransparentRenderStage: ref!! ffa492d9-b8a2-4d74-abe8-d82c542fc526
-                EffectName: StrideForwardShadingEffectVXGI.VoxelizeToFragmentsEffect
+                EffectName: Stride.Rendering.Voxels.StrideForwardShadingEffectVXGI.VoxelizeToFragmentsEffect
             3a8978fa14c861d9a85751a80428226a*: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
                 OpaqueRenderStage: ref!! ba28c12c-261f-45e6-bd4e-02cf38141f06
                 TransparentRenderStage: ref!! ba28c12c-261f-45e6-bd4e-02cf38141f06
-                EffectName: StrideForwardShadingEffectVXGI.VoxelizeToFragmentsEffect
+                EffectName: Stride.Rendering.Voxels.StrideForwardShadingEffectVXGI.VoxelizeToFragmentsEffect
         PipelineProcessors:
             d70f5aee0616e4ab25081ceaf643290c: !Stride.Rendering.MeshPipelineProcessor,Stride.Rendering
                 TransparentRenderStage: ref!! 0d98fb34-5f41-4cc2-b2e2-a1081aae70c4

@@ -1,6 +1,6 @@
 ﻿---
 !EffectCompileRequest
-EffectName: StrideForwardShadingEffect
+EffectName: Stride.Rendering.StrideForwardShadingEffect
 UsedParameters:
     Material.HasSkinningPosition: true
     Material.HasSkinningNormal: true
@@ -9,83 +9,83 @@ UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantColorLink
+                                ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                 GenericArguments: [Material.DiffuseValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceNormalMap
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceNormalMap
                                 GenericArguments: [false, true]
                         Compositions:
                             normalMap: !ShaderClassSource
-                                ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+                                ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
                                 GenericArguments: [Material.NormalMap, TEXCOORD0, Material.Sampler.i0, rgba, Material.TextureScale, Material.TextureOffset]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceGlossinessMap
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceGlossinessMap
                                 GenericArguments: [false]
                         Compositions:
                             glossinessMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.GlossinessValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceMetalness
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceMetalness
                         Compositions:
                             metalnessMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.MetalnessValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
                                     - !ShaderMixinSource
                                         Mixins:
                                             - !ShaderClassSource
-                                                ClassName: MaterialSurfaceShadingSpecularMicrofacet
+                                                ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingSpecularMicrofacet
                                         Compositions:
                                             environmentFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetEnvironmentGGXLUT
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT
                                             fresnelFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetFresnelSchlick
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetFresnelSchlick
                                             geometricShadowingFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
                                             normalDistributionFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetNormalDistributionGGX
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetNormalDistributionGGX
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Material.HasNormalMap: true
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [2]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     StrideEffectBase.RenderTargetExtensions: !ShaderMixinSource
         Macros:
             -   Name: STRIDE_RENDER_TARGET_COUNT
@@ -94,7 +94,7 @@ UsedParameters:
                 Definition: 1
 ---
 !EffectCompileRequest
-EffectName: StrideForwardShadingEffect
+EffectName: Stride.Rendering.StrideForwardShadingEffect
 UsedParameters:
     Material.HasSkinningPosition: true
     Material.HasSkinningNormal: true
@@ -103,73 +103,73 @@ UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantColorLink
+                                ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                 GenericArguments: [Material.DiffuseValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceGlossinessMap
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceGlossinessMap
                                 GenericArguments: [false]
                         Compositions:
                             glossinessMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.GlossinessValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceMetalness
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceMetalness
                         Compositions:
                             metalnessMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.MetalnessValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
                                     - !ShaderMixinSource
                                         Mixins:
                                             - !ShaderClassSource
-                                                ClassName: MaterialSurfaceShadingSpecularMicrofacet
+                                                ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingSpecularMicrofacet
                                         Compositions:
                                             environmentFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetEnvironmentGGXLUT
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT
                                             fresnelFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetFresnelSchlick
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetFresnelSchlick
                                             geometricShadowingFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
                                             normalDistributionFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetNormalDistributionGGX
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetNormalDistributionGGX
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [2]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     StrideEffectBase.RenderTargetExtensions: !ShaderMixinSource
         Macros:
             -   Name: STRIDE_RENDER_TARGET_COUNT
@@ -178,7 +178,7 @@ UsedParameters:
                 Definition: 1
 ---
 !EffectCompileRequest
-EffectName: StrideForwardShadingEffect
+EffectName: Stride.Rendering.StrideForwardShadingEffect
 UsedParameters:
     Material.HasSkinningPosition: true
     Material.HasSkinningNormal: true
@@ -187,118 +187,118 @@ UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantColorLink
+                                ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                 GenericArguments: [Material.DiffuseValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceGlossinessMap
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceGlossinessMap
                                 GenericArguments: [false]
                         Compositions:
                             glossinessMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.GlossinessValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceMetalness
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceMetalness
                         Compositions:
                             metalnessMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.MetalnessValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments: [matAmbientOcclusion, r]
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.AmbientOcclusionValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments: [matAmbientOcclusionDirectLightingFactor, r]
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.AmbientOcclusionDirectLightingFactorValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments: [matCavity, r]
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.CavityValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments: [matCavityDiffuse, r]
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.CavityDiffuseValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments: [matCavitySpecular, r]
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.CavitySpecularValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
                                     - !ShaderMixinSource
                                         Mixins:
                                             - !ShaderClassSource
-                                                ClassName: MaterialSurfaceShadingSpecularMicrofacet
+                                                ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingSpecularMicrofacet
                                         Compositions:
                                             environmentFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetEnvironmentGGXLUT
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT
                                             fresnelFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetFresnelSchlick
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetFresnelSchlick
                                             geometricShadowingFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
                                             normalDistributionFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetNormalDistributionGGX
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetNormalDistributionGGX
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [2]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     StrideEffectBase.RenderTargetExtensions: !ShaderMixinSource
         Macros:
             -   Name: STRIDE_RENDER_TARGET_COUNT
@@ -307,7 +307,7 @@ UsedParameters:
                 Definition: 1
 ---
 !EffectCompileRequest
-EffectName: StrideForwardShadingEffect
+EffectName: Stride.Rendering.StrideForwardShadingEffect
 UsedParameters:
     Material.HasSkinningPosition: true
     Material.HasSkinningNormal: true
@@ -316,94 +316,94 @@ UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantColorLink
+                                ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                 GenericArguments: [Material.DiffuseValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceGlossinessMap
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceGlossinessMap
                                 GenericArguments: [false]
                         Compositions:
                             glossinessMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.GlossinessValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceMetalness
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceMetalness
                         Compositions:
                             metalnessMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.MetalnessValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments: [matEmissive, rgba]
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantColorLink
+                                ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                 GenericArguments: [Material.EmissiveValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments: [matEmissiveIntensity, r]
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.EmissiveIntensity]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
                                     - !ShaderMixinSource
                                         Mixins:
                                             - !ShaderClassSource
-                                                ClassName: MaterialSurfaceShadingSpecularMicrofacet
+                                                ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingSpecularMicrofacet
                                         Compositions:
                                             environmentFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetEnvironmentGGXLUT
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT
                                             fresnelFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetFresnelSchlick
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetFresnelSchlick
                                             geometricShadowingFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
                                             normalDistributionFunction: !ShaderClassSource
-                                                ClassName: MaterialSpecularMicrofacetNormalDistributionGGX
+                                                ClassName: Stride.Rendering.Materials.MaterialSpecularMicrofacetNormalDistributionGGX
                     - !ShaderClassSource
-                        ClassName: MaterialSurfaceEmissiveShading
+                        ClassName: Stride.Rendering.Materials.MaterialSurfaceEmissiveShading
                         GenericArguments: [false]
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [2]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     StrideEffectBase.RenderTargetExtensions: !ShaderMixinSource
         Macros:
             -   Name: STRIDE_RENDER_TARGET_COUNT
@@ -412,7 +412,7 @@ UsedParameters:
                 Definition: 1
 ---
 !EffectCompileRequest
-EffectName: StrideForwardShadingEffect
+EffectName: Stride.Rendering.StrideForwardShadingEffect
 UsedParameters:
     Material.HasSkinningPosition: true
     Material.HasSkinningNormal: true
@@ -421,43 +421,43 @@ UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorConstantColorLink
+                                ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                 GenericArguments: [Material.DiffuseValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [2]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     StrideEffectBase.RenderTargetExtensions: !ShaderMixinSource
         Macros:
             -   Name: STRIDE_RENDER_TARGET_COUNT
@@ -466,5 +466,5 @@ UsedParameters:
                 Definition: 1
 ---
 !EffectCompileRequest
-EffectName: BackgroundShader
+EffectName: Stride.Rendering.BackgroundShader
 UsedParameters: {}

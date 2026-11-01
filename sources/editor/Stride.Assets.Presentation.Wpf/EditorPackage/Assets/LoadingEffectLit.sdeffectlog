@@ -1,11 +1,11 @@
 ---
 !EffectCompileRequest
-EffectName: StrideEditorForwardShadingEffect
+EffectName: Stride.Rendering.StrideEditorForwardShadingEffect
 UsedParameters:
     Lighting.DirectLightGroups: null
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightConstantWhite
+            ClassName: Stride.Rendering.Lights.LightConstantWhite
     Material.HasNormalMap: false
     Material.HasSkinningPosition: false
     Material.PixelStageStreamInitializer: !ShaderMixinSource
@@ -13,9 +13,9 @@ UsedParameters:
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
         Name: null
     Material.PixelStageSurfaceFilter: null
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
@@ -25,7 +25,7 @@ UsedParameters:
                     - !ShaderMixinSource
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+                                ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
                                 GenericArguments:
                                     - Material.DiffuseMap
                                     - TEXCOORD0
@@ -36,25 +36,25 @@ UsedParameters:
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Name: null
                     - !ShaderMixinSource
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments:
                                             - false
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Name: null
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Name: null
     Material.TessellationShader: null
     Material.VertexStageSurfaceShaders: null
@@ -63,12 +63,12 @@ UsedParameters:
     SceneEditorParameters.IsEffectError: false
 ---
 !EffectCompileRequest
-EffectName: StrideEditorForwardShadingEffect.Picking
+EffectName: Stride.Rendering.StrideEditorForwardShadingEffect.Picking
 UsedParameters:
     Lighting.DirectLightGroups: null
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightConstantWhite
+            ClassName: Stride.Rendering.Lights.LightConstantWhite
     Material.HasNormalMap: false
     Material.HasSkinningPosition: false
     Material.PixelStageStreamInitializer: !ShaderMixinSource
@@ -76,9 +76,9 @@ UsedParameters:
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
         Name: null
     Material.PixelStageSurfaceFilter: null
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
@@ -88,7 +88,7 @@ UsedParameters:
                     - !ShaderMixinSource
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+                                ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
                                 GenericArguments:
                                     - Material.DiffuseMap
                                     - TEXCOORD0
@@ -99,25 +99,25 @@ UsedParameters:
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Name: null
                     - !ShaderMixinSource
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments:
                                             - false
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Name: null
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Name: null
     Material.TessellationShader: null
     Material.VertexStageSurfaceShaders: null

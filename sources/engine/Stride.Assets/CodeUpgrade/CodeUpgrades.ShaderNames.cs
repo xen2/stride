@@ -3,8 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -53,16 +55,17 @@ public static partial class CodeUpgrades
     ];
 
     /// <summary>
-    /// Migrates the string literals that name an engine shader, an effect or the key of a shader member to their full names:
-    /// <c>new ShaderClassSource("Texturing")</c> → <c>new ShaderClassSource("Stride.Rendering.Texturing")</c>. Only the arguments
-    /// and assignments of the APIs that take such a name, by symbol: a string that merely looks like a name doesn't change.
+    /// Migrates the string literals that name a shader or an effect of the engine or of the project, or the key of one of their
+    /// members, to their full names: <c>new ShaderClassSource("Texturing")</c> → <c>new ShaderClassSource("Stride.Rendering.Texturing")</c>.
+    /// Only the arguments and assignments of the APIs that take such a name, by symbol: a string that merely looks like a name doesn't change.
     /// </summary>
-    /// <param name="engine">The engine classes and effects.</param>
+    /// <param name="engine">The engine classes and effects. A class of the project wins over an engine class of the same name.</param>
     public static CodeUpgrade ShaderNames(EngineShaderClasses engine)
     {
         ArgumentNullException.ThrowIfNull(engine);
         return async (solution, targets, cancellationToken) =>
         {
+            var classes = await WithProjectClasses(engine, solution, cancellationToken);
             foreach (var projectId in targets)
             {
                 foreach (var documentId in solution.GetProject(projectId)?.DocumentIds ?? [])
@@ -79,7 +82,7 @@ public static partial class CodeUpgrades
                     var replacements = new Dictionary<SyntaxNode, SyntaxNode>();
                     foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>().Where(x => x.IsKind(SyntaxKind.StringLiteralExpression)))
                     {
-                        if (NewShaderName(literal, model, engine, cancellationToken) is { } name && name != literal.Token.ValueText)
+                        if (NewShaderName(literal, model, classes, cancellationToken) is { } name && name != literal.Token.ValueText)
                             replacements[literal] = SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(name)).WithTriviaFrom(literal);
                     }
 
@@ -91,14 +94,23 @@ public static partial class CodeUpgrades
         };
     }
 
-    private static string NewShaderName(LiteralExpressionSyntax literal, SemanticModel model, EngineShaderClasses engine, CancellationToken cancellationToken)
+    // The shaders and effects are the additional files of the projects, for the source generator
+    private static async Task<EngineShaderClasses> WithProjectClasses(EngineShaderClasses engine, Solution solution, CancellationToken cancellationToken)
+    {
+        var sources = new List<string>();
+        foreach (var document in solution.Projects.SelectMany(x => x.AdditionalDocuments).Where(x => Path.GetExtension(x.Name).ToLowerInvariant() is ".sdsl" or ".sdfx"))
+            sources.Add((await document.GetTextAsync(cancellationToken)).ToString());
+        return engine.WithProject(sources);
+    }
+
+    private static string NewShaderName(LiteralExpressionSyntax literal, SemanticModel model, EngineShaderClasses classes, CancellationToken cancellationToken)
     {
         // Root.Child for an effect, Class<generics> for a shader: the first part is the name
         string FullClassName(string name)
         {
             var end = name.IndexOfAny(['.', '<']);
             var root = end < 0 ? name : name[..end];
-            return engine.FullName(root) is { } fullName ? fullName + name[root.Length..] : name;
+            return classes.FullName(root) is { } fullName ? fullName + name[root.Length..] : name;
         }
 
         var value = literal.Token.ValueText;
@@ -132,13 +144,13 @@ public static partial class CodeUpgrades
                     if (index == 0)
                         return FullClassName(value);
                     // The other arguments of a ShaderClassSource are its generic arguments: a key, or plain text that doesn't change
-                    return type == "Stride.Shaders.ShaderClassSource" ? engine.ToFullKeyName(value) : null;
+                    return type == "Stride.Shaders.ShaderClassSource" ? classes.ToFullKeyName(value) : null;
                 }
 
                 var name = FullMemberName(method);
                 if (index == 0 && ClassNameMethods.Contains(name))
                     return FullClassName(value);
-                return index == 0 && KeyNameMethods.Contains(name) ? engine.ToFullKeyName(value) : null;
+                return index == 0 && KeyNameMethods.Contains(name) ? classes.ToFullKeyName(value) : null;
 
             default:
                 return null;

@@ -1,6 +1,6 @@
 ---
 !EffectCompileRequest
-EffectName: StrideEditorForwardShadingEffect
+EffectName: Stride.Rendering.StrideEditorForwardShadingEffect
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Compositions:
@@ -11,11 +11,11 @@ UsedParameters:
                             computeColorSource: !ShaderMixinSource
                                 Compositions:
                                     color1: !ShaderClassSource
-                                        ClassName: ComputeColorConstantColorLink
+                                        ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                         GenericArguments:
                                             - ViewportGridGizmo.GridColorKey
                                     color2: !ShaderClassSource
-                                        ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+                                        ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
                                         GenericArguments:
                                             - Stride.Rendering.Texturing.Texture0
                                             - TEXCOORD0
@@ -26,68 +26,68 @@ UsedParameters:
                                 Macros: []
                                 Mixins:
                                     - !ShaderClassSource
-                                        ClassName: ComputeColorMultiply
+                                        ClassName: Stride.Rendering.ComputeColorMultiply
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments:
                                     - matEmissive
                                     - rgba
                     - !ShaderMixinSource
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments:
                                     - Material.EmissiveIntensity
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments:
                                     - matEmissiveIntensity
                                     - r
                     - !ShaderMixinSource
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments:
                                     - Material.DiffuseSpecularAlphaBlendValue
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments:
                                     - matDiffuseSpecularAlphaBlend
                                     - r
                     - !ShaderMixinSource
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantColorLink
+                                ClassName: Stride.Rendering.ComputeColorConstantColorLink
                                 GenericArguments:
                                     - Material.AlphaBlendColorValue
                         Macros: []
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments:
                                     - matAlphaBlendColor
                                     - rgb
                     - !ShaderClassSource
-                        ClassName: MaterialSurfaceEmissiveShading
+                        ClassName: Stride.Rendering.Materials.MaterialSurfaceEmissiveShading
                         GenericArguments:
                             - true
                     - !ShaderClassSource
-                        ClassName: MaterialSurfaceDiffuseSpecularAlphaBlendColor
+                        ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuseSpecularAlphaBlendColor
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Compositions: {}
         Macros: []
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
