@@ -1,5 +1,4 @@
-// The same class name declared in two namespaces, in one file. Resolution is by class name
-// alone, so only one of the two can ever be reached.
+// The same class name declared in two namespaces, in one file.
 namespace Stride.Shaders.Parsers.Tests
 {
     shader NsClashed

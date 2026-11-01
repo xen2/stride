@@ -1,3 +1,4 @@
+using Stride.Shaders.Parsing;
 using System.Runtime.InteropServices;
 using Stride.Shaders.Core;
 using Stride.Shaders.Parsing.SDSL.AST;
@@ -177,9 +178,10 @@ public partial class ShaderMixer
             }
             else if (i.Op == Specification.Op.OpShaderSDSL && (OpShaderSDSL)i is { } shader)
             {
+                var shortName = ShaderNames.ShortNameWithGenerics(shader.ShaderName);
                 shaderNameWithComposition = compositionPath != null
-                    ? $"{compositionPath}.{shader.ShaderName}"
-                    : shader.ShaderName;
+                    ? $"{compositionPath}.{shortName}"
+                    : shortName;
             }
             else if (i.Op == Specification.Op.OpVariableSDSL && (OpVariableSDSL)i is
             { StorageClass: Specification.StorageClass.UniformConstant or Specification.StorageClass.StorageBuffer } variable)
@@ -311,7 +313,7 @@ public partial class ShaderMixer
         {
             if (i.Op == Specification.Op.OpShaderSDSL && (OpShaderSDSL)i is { } shader)
             {
-                currentShaderName = shader.ShaderName;
+                currentShaderName = ShaderNames.ShortNameWithGenerics(shader.ShaderName);
             }
             else if (i.Op == Specification.Op.OpVariableSDSL && (OpVariableSDSL)i is { } variable)
             {

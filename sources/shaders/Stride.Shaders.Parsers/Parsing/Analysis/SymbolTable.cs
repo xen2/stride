@@ -71,6 +71,34 @@ public partial class SymbolTable : ISymbolProvider
     // Only valid during method body analysis
     public ShaderMethod? CurrentMethod { get; set; }
 
+    /// <summary>
+    /// The scope of the class being compiled, for the names it uses.
+    /// </summary>
+    public ShaderNameScope Scope { get; set; } = ShaderNameScope.Global;
+
+    private readonly Dictionary<string, string?> resolvedClassNames = [];
+
+    /// <summary>
+    /// The full name of a class named in the code being compiled, or null when no class has this name in scope.
+    /// </summary>
+    public string? ResolveClassName(string name, TextLocation location)
+    {
+        if (ShaderLoader == null)
+            return null;
+        if (resolvedClassNames.TryGetValue(name, out var fullName))
+            return fullName;
+
+        fullName = Scope.Resolve(name, ShaderLoader.ImplicitUsings, ShaderLoader.Exists, out var ambiguousWith);
+        if (ambiguousWith != null)
+            throw new StatementCompileException(new(location, string.Format(SDSLErrorMessages.SDSL0300, name, fullName, ambiguousWith)));
+        // TODO(A15): remove with ToFullName: a name out of scope is found in any namespace
+        if (fullName == null && ShaderLoader.ToFullName(name) is var anywhere && ShaderLoader.Exists(anywhere))
+            fullName = anywhere;
+
+        resolvedClassNames.Add(name, fullName);
+        return fullName;
+    }
+
     public SymbolTable(SpirvContext context, IExternalShaderLoader shaderLoader)
     {
         Context = context;
