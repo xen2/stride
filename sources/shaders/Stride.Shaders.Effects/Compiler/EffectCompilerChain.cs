@@ -22,6 +22,9 @@ namespace Stride.Shaders.Compiler
             this.compiler = compiler;
         }
 
+        /// <inheritdoc/>
+        public override string ToFullShaderName(string name) => compiler.ToFullShaderName(name);
+
         protected EffectCompilerBase Compiler
         {
             get { return compiler; }

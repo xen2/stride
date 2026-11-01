@@ -46,7 +46,12 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                 var scope = new ShaderNameScope(ns.Namespace?.Name, ns.Declarations.OfType<UsingShaderNamespace>().Select(x => string.Join('.', x.NamespacePath)).ToList(), fileUsings);
                 return ns.Declarations.Select(x => (Declaration: x, Scope: scope));
             })
-            .Concat(sf.RootDeclarations.Select(x => (Declaration: x, Scope: new ShaderNameScope(null, [], fileUsings))));
+            .Concat(sf.RootDeclarations.Select(x => (Declaration: x, Scope: new ShaderNameScope(null, [], fileUsings))))
+            .ToList();
+        var classes = declarations.Select(x => x.Declaration).OfType<ShaderClass>().ToList();
+        var fileName = Path.GetFileNameWithoutExtension(filename);
+        // Every class of the file is validated against the file, whichever namespace the class is in
+        var storageName = filename != null ? ShaderFileDeclarations.StorageName(options.OriginalCode ?? code, fileName!) : null;
         foreach (var (declaration, scope) in declarations)
         {
             if (declaration is ShaderClass shader)
@@ -64,13 +69,16 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                     var filenameId = compiler.Context.Add(new OpString(compiler.Context.Bound++, filename)).ResultId;
                     // TODO: Add SourceLanguage.SDSL
                     compiler.Context.Add(new OpSource(Spirv.Specification.SourceLanguage.Unknown, 0, filenameId, options.OriginalCode ?? code));
-                    compiler.Context.Add(new OpSourceHashSDSL(filenameId, (int)hash.Hash1, (int)hash.Hash2, (int)hash.Hash3, (int)hash.Hash4, ShaderNames.Combine(scope.Namespace, Path.GetFileNameWithoutExtension(filename))));
+                    compiler.Context.Add(new OpSourceHashSDSL(filenameId, (int)hash.Hash1, (int)hash.Hash2, (int)hash.Hash3, (int)hash.Hash4, storageName));
                     compiler.SourceFileId = filenameId;
                 }
                 // TODO: Do we want to record macros with a custom OpMacroSDSL? (mostly for debug purposes)
 
                 compiler.Macros.AddRange(macros);
                 bool hasErrors = false;
+
+                if (filename != null && shader == classes[0] && classes.All(x => x.Name.Name != fileName))
+                    table.AddWarning(new(shader.Name.Info, string.Format(SDSLErrorMessages.SDSL0245, fileName, shader.Name.Name)));
 
                 try
                 {
