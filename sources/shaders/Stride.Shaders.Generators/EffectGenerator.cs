@@ -19,7 +19,7 @@ public class EffectGenerator : IIncrementalGenerator
         var implicitUsings = context.CompilationProvider.Select((compilation, _) => ImplicitUsingsOf(compilation));
 
         // What the code of a file depends on outside it: the candidate full names of every file, the ones the compilation has, and
-        // the shaders the other files write. The answer is a string, so a C# change regenerates the code only when the answer changes.
+        // the shaders and effects the other files write. The answer is a string, so a C# change regenerates the code only when the answer changes.
         var firstPass = shaderFiles.Combine(implicitUsings).Select((x, _) =>
         {
             var (_, candidates, declared) = Generate(x.Left, null, x.Right);
@@ -49,7 +49,7 @@ public class EffectGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="csharpTypeExists">Whether a C# name exists (see <see cref="EffectCodeWriter.CSharpTypeExists"/>).</param>
     /// <param name="implicitUsings">The implicit usings, separated by commas.</param>
-    /// <returns>The code, the C# names it depends on, and the shaders it writes.</returns>
+    /// <returns>The code, the C# names it depends on, and the shaders and effects it writes.</returns>
     public static (string Text, IEnumerable<string> Candidates, IEnumerable<string> Declared) Generate(AdditionalText file, Func<string, bool>? csharpTypeExists, string implicitUsings)
     {
         var isSdfx = Path.GetExtension(file.Path).Equals(".sdfx", StringComparison.OrdinalIgnoreCase);
@@ -81,7 +81,7 @@ public class EffectGenerator : IIncrementalGenerator
                 ImplicitUsings = implicitUsings.Split(',', StringSplitOptions.RemoveEmptyEntries),
             };
             effectCodeWriter.Run(parsed.AST);
-            return (effectCodeWriter.Text, effectCodeWriter.CSharpTypeCandidates, effectCodeWriter.DeclaredShaders);
+            return (effectCodeWriter.Text, effectCodeWriter.CSharpTypeCandidates, effectCodeWriter.DeclaredClasses);
         }
         catch (ShaderPreprocessorException e)
         {
@@ -102,7 +102,12 @@ public class EffectGenerator : IIncrementalGenerator
                     && !declaration.Modifiers.Any(modifier => modifier.Text == "partial"));
 
         if (name.EndsWith("#", StringComparison.Ordinal))
-            return compilation.GetTypeByMetadataName(name.TrimEnd('#'))?.GetMembers("ShaderName").Any() == true;
+        {
+            // The key class of a shader with no namespace is in the default namespace of the generated code: the constant says whose it is
+            var keys = name.TrimEnd('#');
+            var fullName = keys.Substring(0, keys.Length - "Keys".Length);
+            return compilation.GetTypeByMetadataName(keys)?.GetMembers().OfType<IFieldSymbol>().Any(x => x.Name is "ShaderName" or "EffectName" && x.ConstantValue as string == fullName) == true;
+        }
 
         if (!name.EndsWith(".", StringComparison.Ordinal))
             return compilation.GetTypeByMetadataName(name) != null;

@@ -155,6 +155,7 @@ public static class SDSLErrorMessages
 
     public const string SDSL0300 = "SDSL0300: {0} is ambiguous: it can be {1} or {2}. Write the full name of the one to use.";
     public const string SDSL0301 = "SDSL0301: {0} is declared twice: in {1} and in {2}. Rename one or put it in another namespace. To replace a shader, give the new one another name and use [Replaces({0})].";
+    // SDSL0302, an effect declared twice: ShaderMixinManager.DuplicateEffectMessage, which doesn't see this class
 
     // Definition checks: found when a class compiles, reported as warnings (errors with ShaderLoaderBase.WarningsAsErrors)
 
