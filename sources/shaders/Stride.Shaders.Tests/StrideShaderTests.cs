@@ -601,24 +601,24 @@ public class StrideShaderTests
         var loader = new ShaderLoader("./assets/Stride/SDSL");
 
         // Warm the cache: a normally compiled shader carries its OpSourceHashSDSL.
-        Assert.True(loader.LoadExternalBuffer("Texturing", [], out var texturing, out _, out _));
+        Assert.True(loader.LoadExternalBuffer("Stride.Rendering.Texturing", [], out var texturing, out _, out _));
         Assert.True(HasSourceHash(texturing), "sanity: a normally compiled shader carries OpSourceHashSDSL");
 
         // Reproduce the MemberName path (Builder.Class.InstantiateMemberNames): set the override, then
         // load a shader that is already cached. The (name, filename, code) overload returns on the cache
         // hit, so the override has to be consumed before that early return.
-        Assert.True(loader.LoadExternalFileContent("Texturing", out var filename, out var code, out _));
+        Assert.True(loader.LoadExternalFileContent("Stride.Rendering.Texturing", out var filename, out var code, out _));
         loader.SourceHashOverride = ObjectId.FromBytes("not a shader file"u8.ToArray());
-        Assert.True(loader.LoadExternalBuffer("Texturing", filename, code, [], out _, out _, out var isFromCache));
+        Assert.True(loader.LoadExternalBuffer("Stride.Rendering.Texturing", filename, code, [], out _, out _, out var isFromCache));
         Assert.True(isFromCache, "precondition: the second load must be a cache hit to exercise the leak");
 
         Assert.Null(loader.SourceHashOverride);
 
         // Downstream symptom: with the override leaked, the next compiled shader records that hash
         // instead of its own file's, and never matches its source again.
-        Assert.True(loader.LoadExternalBuffer("ShaderBase", [], out var shaderBase, out var shaderBaseHash, out _));
+        Assert.True(loader.LoadExternalBuffer("Stride.Rendering.ShaderBase", [], out var shaderBase, out var shaderBaseHash, out _));
         Assert.True(HasSourceHash(shaderBase));
-        Assert.True(loader.LoadExternalFileContent("ShaderBase", out _, out _, out var shaderBaseFileHash));
+        Assert.True(loader.LoadExternalFileContent("Stride.Rendering.ShaderBase", out _, out _, out var shaderBaseFileHash));
         Assert.Equal(shaderBaseFileHash, shaderBaseHash);
     }
 

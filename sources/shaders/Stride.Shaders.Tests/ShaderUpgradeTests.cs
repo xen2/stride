@@ -260,13 +260,20 @@ public class ShaderUpgradeTests
             var text = upgraded[path].ReplaceLineEndings("\n");
             foreach (var (upgradedText, todayText) in ManualEdits.GetValueOrDefault(path) ?? [])
                 text = text.Replace(upgradedText, todayText);
+            text = WithoutEngineNamespaceLines(text);
             // [Root] and [Pure] are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
-            var expected = System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline);
+            var expected = WithoutEngineNamespaceLines(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline));
             if (text != expected)
                 differences.Add(path);
         }
         Assert.True(differences.Count == 0, $"Upgraded from {EngineBeforeModules}, differs from today: {string.Join(", ", differences)}");
     }
+
+    // The file-scoped namespace and its usings were added by hand after that commit
+    static string WithoutEngineNamespaceLines(string text)
+        => System.Text.RegularExpressions.Regex.Replace(
+            System.Text.RegularExpressions.Regex.Replace(text.TrimStart('﻿'), @"^(namespace Stride\.Rendering;|using Stride\.Rendering\.\w+;)\n", "", System.Text.RegularExpressions.RegexOptions.Multiline),
+            @"\n{2,}", "\n").TrimStart('\n');
 
     // The .sdsl files under the roots at a commit (null if git or the commit is not available)
     static Dictionary<string, string>? ReadShadersAt(string commit, string[] roots)
