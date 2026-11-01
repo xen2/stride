@@ -46,7 +46,10 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                 var scope = new ShaderNameScope(ns.Namespace?.Name, ns.Declarations.OfType<UsingShaderNamespace>().Select(x => string.Join('.', x.NamespacePath)).ToList(), fileUsings);
                 return ns.Declarations.Select(x => (Declaration: x, Scope: scope));
             })
-            .Concat(sf.RootDeclarations.Select(x => (Declaration: x, Scope: new ShaderNameScope(null, [], fileUsings))));
+            .Concat(sf.RootDeclarations.Select(x => (Declaration: x, Scope: new ShaderNameScope(null, [], fileUsings))))
+            .ToList();
+        var classes = declarations.Select(x => x.Declaration).OfType<ShaderClass>().ToList();
+        var fileName = Path.GetFileNameWithoutExtension(filename);
         foreach (var (declaration, scope) in declarations)
         {
             if (declaration is ShaderClass shader)
@@ -71,6 +74,9 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
 
                 compiler.Macros.AddRange(macros);
                 bool hasErrors = false;
+
+                if (filename != null && shader == classes[0] && classes.All(x => x.Name.Name != fileName))
+                    table.AddWarning(new(shader.Name.Info, string.Format(SDSLErrorMessages.SDSL0245, fileName, shader.Name.Name)));
 
                 try
                 {

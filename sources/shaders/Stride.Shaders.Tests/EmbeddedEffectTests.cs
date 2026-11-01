@@ -6,6 +6,7 @@ using Stride.Core.Storage;
 using Stride.Core.Yaml.Serialization;
 using Stride.Graphics;
 using Stride.Shaders.Compiler;
+using Stride.Shaders.Parsing;
 
 namespace Stride.Shaders.Parsers.Tests;
 
@@ -67,7 +68,8 @@ public class EmbeddedEffectTests
         foreach (var file in Directory.EnumerateFiles(Path.Combine(GraphicsDirectory, "Shaders"), "*.sdsl"))
         {
             var relative = Path.GetRelativePath(RepositoryRoot, file).Replace('\\', '/');
-            sourceManager.AddShaderSource(Path.GetFileNameWithoutExtension(file), File.ReadAllText(file).ReplaceLineEndings("\n"), relative);
+            var code = File.ReadAllText(file).ReplaceLineEndings("\n");
+            sourceManager.AddShaderSource(ShaderFileDeclarations.StorageName(code, Path.GetFileNameWithoutExtension(file)), code, relative);
         }
 
         var files = new Dictionary<string, string>();
