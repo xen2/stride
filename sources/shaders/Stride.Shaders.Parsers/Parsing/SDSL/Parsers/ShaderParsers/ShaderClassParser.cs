@@ -112,7 +112,7 @@ public record struct ShaderClassParser : IParser<ShaderClass>
                 if (Tokens.Char(':', ref scanner, advance: true))
                 {
                     Parsers.Spaces0(ref scanner, result, out _);
-                    while (LiteralsParser.IdentifierBase(ref scanner, result, out var mixin))
+                    while (LiteralsParser.ClassName(ref scanner, result, out var mixin))
                     {
                         parsed.Mixins.Add(mixin);
                         Parsers.Spaces0(ref scanner, result, out _);
@@ -163,31 +163,51 @@ public record struct GenericIdentifierParser : IParser<GenericIdentifier>
             && Parsers.Spaces0(ref scanner, result, out _))
         {
             var tmpPos = scanner.Position;
-            Parsers.Spaces0(ref scanner, result, out _);
-            if (
-                Tokens.Char('<', ref scanner, advance: true)
-                && Parsers.Spaces0(ref scanner, result, out _)
-            )
+            if (Tokens.Char('<', ref scanner))
             {
-                var errCount = result.Errors.Count;
-                ParameterParsers.GenericsList(ref scanner, result, out var values);
-                Parsers.Spaces0(ref scanner, result, out _);
-                if (!Tokens.Char('>', ref scanner, advance: true))
+                if (MatchGenerics(ref scanner, result, typename, position, out var withGenerics))
                 {
-                    // Not a generic — restore position and errors added by GenericsList
-                    // to avoid poisoning downstream parsers (e.g. `x < y` parsed as `x<y>`)
-                    while (result.Errors.Count > errCount)
-                        result.Errors.RemoveAt(result.Errors.Count - 1);
-                    scanner.Position = position;
-                    parsed = default;
-                    return false;
+                    parsed = (GenericIdentifier)withGenerics;
+                    return true;
                 }
-                parsed = new GenericIdentifier(typename, values, scanner[position..scanner.Position]);
-                return true;
+                parsed = default;
+                return false;
             }
             scanner.Position = tmpPos;
         }
         return Parsers.Exit(ref scanner, result, out parsed, position, orError);
+    }
+
+    /// <summary>
+    /// The optional <c>&lt;...&gt;</c> after a class name, which has been read: <c>x &lt; y</c> isn't one, so without a closing chevron nothing is read, the name neither.
+    /// </summary>
+    public readonly bool MatchGenerics<TScanner>(ref TScanner scanner, ParseResult result, Identifier name, int start, [MaybeNullWhen(false)] out IdentifierBase parsed) where TScanner : struct, IScanner
+    {
+        var afterName = scanner.Position;
+        Parsers.Spaces0(ref scanner, result, out _);
+        if (!Tokens.Char('<', ref scanner, advance: true))
+        {
+            scanner.Position = afterName;
+            parsed = name;
+            return true;
+        }
+
+        Parsers.Spaces0(ref scanner, result, out _);
+        var errCount = result.Errors.Count;
+        ParameterParsers.GenericsList(ref scanner, result, out var values);
+        Parsers.Spaces0(ref scanner, result, out _);
+        if (!Tokens.Char('>', ref scanner, advance: true))
+        {
+            // Not a generic — restore position and errors added by GenericsList
+            // to avoid poisoning downstream parsers (e.g. `x < y` parsed as `x<y>`)
+            while (result.Errors.Count > errCount)
+                result.Errors.RemoveAt(result.Errors.Count - 1);
+            scanner.Position = start;
+            parsed = default;
+            return false;
+        }
+        parsed = new GenericIdentifier(name, values, scanner[start..scanner.Position]);
+        return true;
     }
 }
 

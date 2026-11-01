@@ -147,6 +147,7 @@ public record struct NamespaceParsers : IParser<ShaderNamespace>
             if (Tokens.Char(';', ref scanner, advance: true))
             {
                 Parsers.Spaces0(ref scanner, result, out _);
+                Usings(ref scanner, result, ns);
                 while (!scanner.IsEof)
                 {
                     if (ShaderClassParsers.Class(ref scanner, result, out var shader) && Parsers.Spaces0(ref scanner, result, out _))
@@ -163,6 +164,7 @@ public record struct NamespaceParsers : IParser<ShaderNamespace>
             else if (Tokens.Char('{', ref scanner, advance: true))
             {
                 Parsers.Spaces0(ref scanner, result, out _);
+                Usings(ref scanner, result, ns);
                 while (!scanner.IsEof && !Tokens.Char('}', ref scanner, advance: true))
                 {
                     if (ShaderClassParsers.Class(ref scanner, result, out var shader) && Parsers.Spaces0(ref scanner, result, out _))
@@ -182,6 +184,17 @@ public record struct NamespaceParsers : IParser<ShaderNamespace>
             return true;
         }
         return Parsers.Exit(ref scanner, result, out parsed, position, orError);
+    }
+
+    // As in C#, the usings of a namespace come before its declarations
+    private static void Usings<TScanner>(ref TScanner scanner, ParseResult result, ShaderNamespace ns)
+        where TScanner : struct, IScanner
+    {
+        while (Tokens.Literal("using ", ref scanner) && ShaderFileParser.UsingNamespace(ref scanner, result, out var usingNamespace))
+        {
+            ns.Declarations.Add(usingNamespace);
+            Parsers.Spaces0(ref scanner, result, out _);
+        }
     }
 
     public static bool Namespace<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderNamespace parsed, in ParseError? orError = null)
