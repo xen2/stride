@@ -476,7 +476,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
     private static string GenerateLinkName(string shaderName, string variableName)
     {
-        return $"{ShaderNames.ShortName(shaderName)}.{variableName}";
+        return $"{ShaderNames.WithoutGenerics(shaderName)}.{variableName}";
     }
 
     private static string ComposeLinkName(string linkName, string? compositionPath = null)

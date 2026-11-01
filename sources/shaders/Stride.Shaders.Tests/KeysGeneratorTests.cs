@@ -96,6 +96,30 @@ public class KeysGeneratorTests
         Assert.Contains("ParameterKeys.NewValue<Vector2>()", generated);
     }
 
+    // The key of a member is named after the class: its full name, and the name the mixer gives the member
+    [Theory]
+    [InlineData("namespace A.B;", "A.B.KeysGeneratorCheck.Plain")]
+    [InlineData("", "KeysGeneratorCheck.Plain")]
+    public void KeyNamesAreFullNames(string @namespace, string keyName)
+    {
+        var shader = $$"""
+            {{@namespace}}
+
+            shader KeysGeneratorCheck
+            {
+                cbuffer PerDraw
+                {
+                    float4 Plain;
+                };
+            };
+            """;
+
+        var (generated, errors) = Build(shader, "");
+
+        Assert.Empty(errors);
+        Assert.Contains($"\"{keyName}\"", generated);
+    }
+
     // A shader namespace doesn't have to exist in C#
     [Fact]
     public void UsingOfANamespaceCSharpDoesNotKnowBuilds()

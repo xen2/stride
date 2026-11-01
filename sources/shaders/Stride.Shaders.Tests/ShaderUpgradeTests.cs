@@ -241,6 +241,24 @@ public class ShaderUpgradeTests
                 + "    stream uint  ThreadGroupIndex;\n    \n    stream int ThreadCountX;\n    stream int ThreadCountY;\n    stream int ThreadCountZ;\n\n",
                 "{\n    import ComputeShaderStreams;\n\n"),
             ("    }\n\n    bool IsFirstThreadOfGroup()\n    {\n        return streams.GroupThreadId.x == 0 && streams.GroupThreadId.y == 0 && streams.GroupThreadId.z == 0;\n    }\n};", "    }\n};"),
+            ("[Link(\"ComputeShaderBase.", "[Link(\"Stride.Rendering.ComputeShaderBase."),
+        ],
+        // Key names are full names
+        ["sources/engine/Stride.Rendering/Rendering/Transformation/TransformationWVP.sdsl"] =
+        [
+            ("TransformationMatrix<Transformation.", "TransformationMatrix<Stride.Rendering.Transformation."),
+        ],
+        ["sources/plugins/Voxels/Stride.Voxels/Voxels/Voxelization/Modifiers/Appliers/Anisotropic/VoxelModifierApplierOpacifyAnisotropic.sdsl"] =
+        [
+            ("[Link(\"VoxelModifierApplierOpacifyIsotropic.", "[Link(\"Stride.Rendering.VoxelModifierApplierOpacifyIsotropic."),
+        ],
+        ["sources/plugins/Voxels/Stride.Voxels/Voxels/Voxelization/Modifiers/Appliers/AnisotropicPaired/VoxelModifierApplierOpacifyAnisotropicPaired.sdsl"] =
+        [
+            ("[Link(\"VoxelModifierApplierOpacifyIsotropic.", "[Link(\"Stride.Rendering.VoxelModifierApplierOpacifyIsotropic."),
+        ],
+        ["sources/plugins/Voxels/Stride.Voxels/Voxels/Voxelization/VoxelStorage/Processing/BufferToTextureColumns.sdsl"] =
+        [
+            ("[Link(\"BufferToTexture.", "[Link(\"Stride.Rendering.Voxels.BufferToTexture."),
         ],
     };
 
