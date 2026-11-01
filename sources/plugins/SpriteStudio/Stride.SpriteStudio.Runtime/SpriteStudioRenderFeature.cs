@@ -205,7 +205,7 @@ namespace Stride.SpriteStudio.Runtime
 
         private EffectInstance GetOrCreateSelectedSpriteEffect()
         {
-            return selectedSpriteEffect ?? (selectedSpriteEffect = new EffectInstance(RenderSystem.EffectSystem.LoadEffect("SelectedSprite").WaitForResult()));
+            return selectedSpriteEffect ?? (selectedSpriteEffect = new EffectInstance(RenderSystem.EffectSystem.LoadEffect("Stride.Rendering.SelectedSprite").WaitForResult()));
         }
 
         private EffectInstance GetOrCreatePickingSpriteEffect()

@@ -100,7 +100,7 @@ namespace Stride.Rendering.Compositing
         /// Initializes a new instance of the <see cref="MSAAResolver"/> class.
         /// </summary>
         public MSAAResolver()
-            : this("MSAAResolverEffect", "MSAADepthResolverEffect")
+            : this(MSAAResolverEffectKeys.EffectName, MSAADepthResolverEffectKeys.EffectName)
         {
         }
 

@@ -24,14 +24,14 @@ using Stride.Rendering;
 using Stride.Rendering.Compositing;
 using Stride.Rendering.Lights;
 using Stride.Shaders.Compiler;
-using StrideEffects;
+using Stride.Rendering;
 
 namespace Stride.Assets.Presentation.AssetEditors.EntityHierarchyEditor.Game
 {
     public static class EditorGraphicsCompositorHelper
     {
-        public const string EditorForwardShadingEffect = "StrideEditorForwardShadingEffect";
-        public const string EditorHighlightingEffect = "StrideEditorHighlightingEffect";
+        public const string EditorForwardShadingEffect = "Stride.Rendering.StrideEditorForwardShadingEffect";
+        public const string EditorHighlightingEffect = "Stride.Rendering.StrideEditorHighlightingEffect";
     }
 
     public abstract class EntityHierarchyEditorGame : EditorServiceGame

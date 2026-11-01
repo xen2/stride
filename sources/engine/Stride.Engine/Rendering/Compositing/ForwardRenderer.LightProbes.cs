@@ -75,7 +75,7 @@ namespace Stride.Rendering.Compositing
             // First time initialization
             if (bakeLightProbes == null)
             {
-                bakeLightProbes = new DynamicEffectInstance("StrideBakeLightProbeEffect");
+                bakeLightProbes = new DynamicEffectInstance(StrideBakeLightProbeEffectKeys.EffectName);
                 bakeLightProbes.Initialize(Services);
 
                 bakeLightProbesPipeline = new MutablePipelineState(GraphicsDevice);
