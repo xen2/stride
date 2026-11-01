@@ -75,7 +75,7 @@ public class TestInstancedDraw : GameTestBase
         using var colorBuffer = Buffer.Vertex.New(device, InstanceColors);
         using var indexBuffer = Buffer.Index.New(device, new ushort[] { 0, 1, 2 });
 
-        var effect = new EffectInstance(game.EffectSystem.LoadEffect("InstancedDrawTestShader").WaitForResult());
+        var effect = new EffectInstance(game.EffectSystem.LoadEffect("Stride.Graphics.Tests.InstancedDrawTestShader").WaitForResult());
         effect.UpdateEffect(device);
 
         var pipelineState = new MutablePipelineState(device);

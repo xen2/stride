@@ -60,7 +60,7 @@ namespace Stride.Graphics.Tests
                 compiler.SourceDirectories.Add("assets/shaders");
                 var compilerCache = new EffectCompilerCache(compiler);
                 var compilerParameters = new CompilerParameters();
-                var compilerResults = compilerCache.Compile(new ShaderMixinSource("MultiTexturesSpriteEffect"), compilerParameters);
+                var compilerResults = compilerCache.Compile(new ShaderMixinSource("Test.MultiTexturesSpriteEffect"), compilerParameters);
                 
                 Assert.That(compilerResults.HasErrors, Is.False);
 

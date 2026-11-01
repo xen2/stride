@@ -77,9 +77,6 @@ namespace Stride.Shaders.Compiler
             UrlToFilePath = new Dictionary<string, string>();
         }
 
-        /// <inheritdoc/>
-        public override string ToFullShaderName(string name) => GetFileShaderLoader().ToFullName(name);
-
         public override ObjectId GetShaderSourceHash(string type)
         {
             return GetFileShaderLoader().SourceManager.GetShaderSourceHash(type);

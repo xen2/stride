@@ -2,6 +2,7 @@
 // not an error either. (The key generator copies the directive into C#, so it names a real
 // .NET namespace.)
 using System.Collections.Generic;
+using Stride.Shaders.Parsers.Tests;
 
 namespace Stride.Shaders.Tests;
 

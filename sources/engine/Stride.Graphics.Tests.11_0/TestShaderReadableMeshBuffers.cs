@@ -101,7 +101,7 @@ public class TestShaderReadableMeshBuffers : GraphicTestGameBase
         using var output = Buffer.Structured.New<Vector4>(game.GraphicsDevice, indexCount, unorderedAccess: true);
         using var effect = new ComputeEffectShader(renderContext)
         {
-            ShaderSourceName = "MeshBufferFetchTestShader",
+            ShaderSourceName = "Stride.Graphics.Tests.MeshBufferFetchTestShader",
             ThreadNumbers = new Int3(indexCount, 1, 1),
         };
 
@@ -132,7 +132,7 @@ public class TestShaderReadableMeshBuffers : GraphicTestGameBase
             using var indexBuffer = Buffer.Index.New(device, Indices, additionalFlags: ShaderReadable);
             using var target = Texture.New2D(device, TargetSize, TargetSize, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget);
 
-            var effect = new EffectInstance(game.EffectSystem.LoadEffect("MeshBufferDrawTestShader").WaitForResult());
+            var effect = new EffectInstance(game.EffectSystem.LoadEffect("Stride.Graphics.Tests.MeshBufferDrawTestShader").WaitForResult());
             effect.Parameters.Set(MeshBufferDrawTestShaderKeys.Color, (Vector4) Color.Lime);
             effect.UpdateEffect(device);
 

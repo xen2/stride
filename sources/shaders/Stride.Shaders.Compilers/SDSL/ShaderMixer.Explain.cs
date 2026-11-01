@@ -29,8 +29,7 @@ public partial class ShaderMixer
 
     private static string ReplacesText(MixinNode node, ShaderInfo shader, IExternalShaderLoader loader)
     {
-        var name = ShaderNames.WithoutGenerics(shader.ShaderName);
-        var original = node.Shaders.FirstOrDefault(x => loader.FindReplacer(loader.ToFullName(ShaderNames.WithoutGenerics(x.ShaderName))) == loader.ToFullName(name));
+        var original = node.Shaders.FirstOrDefault(x => loader.FindReplacer(ShaderNames.WithoutGenerics(x.FullName)) == ShaderNames.WithoutGenerics(shader.FullName));
         return original != null ? $" (replaces {original.ShaderName})" : "";
     }
 

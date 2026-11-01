@@ -81,7 +81,7 @@ public class ComposeAsValueTests : IDisposable
         var loader = new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL") { Log = log };
         try
         {
-            loader.LoadExternalBuffer("ComposeAsValue", [], out _, out _, out _);
+            loader.LoadExternalBuffer(TestShader.Written("ComposeAsValue"), [], out _, out _, out _);
         }
         catch (Exception e)
         {

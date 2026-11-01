@@ -283,7 +283,7 @@ public class PartialStructTests : IDisposable
         bool ok;
         try
         {
-            ok = loader.LoadExternalBuffer(name, [], out _, out _, out _);
+            ok = loader.LoadExternalBuffer(TestShader.Written(name), [], out _, out _, out _);
         }
         catch (InvalidOperationException)
         {
@@ -296,8 +296,8 @@ public class PartialStructTests : IDisposable
     {
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource(root) },
-            Compositions = { ["layer"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(layer) } } },
+            Mixins = { new ShaderClassSource(TestShader.Written(root)) },
+            Compositions = { ["layer"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written(layer)) } } },
         };
         var log = new LoggerResult();
         var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")) { CollectExplanation = true };

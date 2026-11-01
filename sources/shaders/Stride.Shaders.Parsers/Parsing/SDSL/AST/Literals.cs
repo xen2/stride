@@ -841,7 +841,7 @@ public partial class GenericIdentifier(Identifier name, ShaderExpressionList? ge
         var fullName = table.ResolveClassName(name, info);
         if (fullName == null)
         {
-            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0110, name)));
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0110, name) + table.DidYouMean(name)));
             return null;
         }
 
@@ -1039,7 +1039,7 @@ public partial class TypeName(string name, TextLocation info) : Literal(info)
             {
                 return new ExternalType(Name, null);
             }
-            throw new StatementCompileException(new(Info, string.Format(SDSLErrorMessages.SDSL0190, Name)));
+            throw new StatementCompileException(new(Info, string.Format(SDSLErrorMessages.SDSL0190, Name) + table.DidYouMean(Name)));
         }
 
         return result;

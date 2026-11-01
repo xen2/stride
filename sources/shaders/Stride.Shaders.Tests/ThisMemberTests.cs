@@ -40,7 +40,7 @@ public class ThisMemberTests : IDisposable
                 cbuffer Globals { module float Exposure; }
             };
             """);
-        var exception = Assert.Throws<InvalidOperationException>(() => new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL").LoadExternalBuffer("ThisMemberError", [], out _, out _, out _));
+        var exception = Assert.Throws<InvalidOperationException>(() => new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL").LoadExternalBuffer(TestShader.FullName("ThisMemberError"), [], out _, out _, out _));
         Assert.Contains($"ThisMemberError.sdsl{expected}", exception.Message);
     }
 }

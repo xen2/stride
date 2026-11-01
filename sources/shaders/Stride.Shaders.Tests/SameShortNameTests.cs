@@ -19,7 +19,7 @@ public class SameShortNameTests : IDisposable
 
     public SameShortNameTests()
     {
-        compiler = new EffectCompiler(sourceProvider);
+        compiler = new EffectCompiler(sourceProvider) { ImplicitUsings = ShaderImplicitUsings.List };
         compiler.SourceDirectories.Add(sourceDir.Name);
         compiler.SourceDirectories.Add("assets/Stride/SDSL");
     }
@@ -37,7 +37,7 @@ public class SameShortNameTests : IDisposable
     private EffectBytecode Compile(string root, GraphicsPlatform platform)
     {
         var parameters = new CompilerParameters { EffectParameters = EffectCompilerParameters.Default with { Platform = platform } };
-        var results = compiler.Compile(new ShaderClassSource(root), parameters);
+        var results = compiler.Compile(new ShaderClassSource(TestShader.FullName(root)), parameters);
         Assert.False(results.HasErrors, string.Join(Environment.NewLine, results.Messages.Select(m => m.Text)));
         var completed = results.Bytecode.WaitForResult();
         Assert.False(completed.CompilationLog.HasErrors, string.Join(Environment.NewLine, completed.CompilationLog.Messages.Select(m => m.Text)));

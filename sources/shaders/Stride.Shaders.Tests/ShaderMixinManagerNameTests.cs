@@ -51,16 +51,22 @@ public class ShaderMixinManagerNameTests
         Assert.Contains(nameof(SecondBuilder), error.Message);
     }
 
-    // TODO(A15): remove once C# strings and stored data hold full names
+    // A short name is an error that names the effect it can be
     [Fact]
-    public void AShortNameFindsTheEffectWhileLiteralsAreShort()
+    public void AShortNameFindsNoEffectAndSaysWhichOneItCanBe()
     {
         var shortName = $"Short{Guid.NewGuid():N}";
         var full = $"Some.Namespace.{shortName}";
         ShaderMixinManager.Register(full, new FirstBuilder());
 
-        Assert.True(ShaderMixinManager.Contains(shortName));
-        Assert.Equal($"{full}.Child", ShaderMixinManager.Generate($"{shortName}.Child", new ParameterCollection()).Name);
-        Assert.Equal(full, ShaderMixinManager.Generate(shortName, new ParameterCollection()).Name);
+        Assert.False(ShaderMixinManager.Contains(shortName));
+        var error = Assert.Throws<ArgumentException>(() => ShaderMixinManager.Generate(shortName, new ParameterCollection()));
+        Assert.Contains($"Did you mean {full}?", error.Message);
+        Assert.Equal([full], ShaderMixinManager.FindFullNames(shortName));
+
+        // With a child, as a compositor names it
+        error = Assert.Throws<ArgumentException>(() => ShaderMixinManager.Generate($"{shortName}.Child", new ParameterCollection()));
+        Assert.Contains($"Did you mean {full}.Child?", error.Message);
+        Assert.Equal([$"{full}.Child"], ShaderMixinManager.FindFullNames($"{shortName}.Child"));
     }
 }

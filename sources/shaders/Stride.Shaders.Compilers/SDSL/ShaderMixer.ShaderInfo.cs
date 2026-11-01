@@ -21,6 +21,9 @@ public partial class ShaderMixer
 
         public string ShaderName { get; } = shaderName;
 
+        /// <summary>The full name with generics: <see cref="ShaderName"/> is the name messages show.</summary>
+        public string FullName { get; init; } = shaderName;
+
         /// <summary>
         /// The <see cref="ShaderInfo"/> for the same shader in the root node (its module members, if any).
         /// </summary>

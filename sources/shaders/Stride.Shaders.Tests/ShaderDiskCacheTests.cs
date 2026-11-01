@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using Stride.Rendering;
 using System.Text;
 using Stride.Core.Diagnostics;
 using Stride.Core.IO;
@@ -476,24 +477,24 @@ public class ShaderDiskCacheTests : IDisposable
         => File.WriteAllText(Path.Combine(sourceDir.FullName, $"{name}.sdsl"), code);
 
     /// <summary>A loader with an empty in-memory cache over the cache directory the previous ones filled.</summary>
-    private CountingLoader NewLoader() => new(provider, sourceDir.FullName, "./assets/Stride/SDSL");
+    private CountingLoader NewLoader() => new(provider, sourceDir.FullName, "./assets/Stride/SDSL") { ImplicitUsings = ShaderImplicitUsings.List };
 
     private static string Load(CountingLoader loader, string name, params ShaderMacro[] macros)
     {
-        Assert.True(loader.LoadExternalBuffer(name, macros, out var buffer, out _, out _), $"could not load shader {name}");
+        Assert.True(loader.LoadExternalBuffer(TestShader.Written(name), macros, out var buffer, out _, out _), $"could not load shader {name}");
         return Spv.Dis(buffer, DisassemblerFlags.Name);
     }
 
     /// <summary>Mixes CacheComposeRoot with CacheGenericImpl&lt;<paramref name="genericValue"/>&gt; composed into it.</summary>
     private static string Mix(CountingLoader loader, int genericValue) => Mix(loader, new ShaderMixinSource
     {
-        Mixins = { new ShaderClassSource("CacheComposeRoot") },
-        Compositions = { ["helper"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("CacheGenericImpl", genericValue) } } },
+        Mixins = { new ShaderClassSource(TestShader.Written("CacheComposeRoot")) },
+        Compositions = { ["helper"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("CacheGenericImpl"), genericValue) } } },
     });
 
     /// <summary>Mixes a root shader that instantiates its generics itself, through its inheritance list.</summary>
     private static string Mix(CountingLoader loader, string rootName)
-        => Mix(loader, new ShaderMixinSource { Mixins = { new ShaderClassSource(rootName) } });
+        => Mix(loader, new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written(rootName)) } });
 
     private static string Mix(CountingLoader loader, ShaderMixinSource source)
     {

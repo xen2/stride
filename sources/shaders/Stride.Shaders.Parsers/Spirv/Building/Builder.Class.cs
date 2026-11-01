@@ -259,7 +259,6 @@ public partial class SpirvBuilder
 
     public static ShaderClassInstantiation BuildInheritanceListIncludingSelf(IExternalShaderLoader shaderLoader, SpirvContext context, ShaderClassInstantiation classSource, ReadOnlySpan<ShaderMacro> macros, List<ShaderClassInstantiation> inheritanceList, ResolveStep resolveStep)
     {
-        classSource.ClassName = shaderLoader.ToFullName(classSource.ClassName);
         // TODO: cache same instantiations within context?
         var index = inheritanceList.IndexOf(classSource);
         if (index == -1)
@@ -878,7 +877,6 @@ public partial class SpirvBuilder
     /// <param name="parentBuffer"></param>
     public static ShaderBuffers GetOrLoadShader(IExternalShaderLoader shaderLoader, ShaderClassInstantiation classSource, ReadOnlySpan<ShaderMacro> macros, ResolveStep resolveStep, SpirvContext context)
     {
-        classSource.ClassName = shaderLoader.ToFullName(classSource.ClassName);
         if (resolveStep == ResolveStep.Mix && classSource.GenericArguments.Length > 0)
         {
             // At mix time, generics are fully resolved — resolve to string values
@@ -909,7 +907,6 @@ public partial class SpirvBuilder
 
     public static ShaderBuffers GetOrLoadShader(IExternalShaderLoader shaderLoader, string className, string[]? genericValues, ReadOnlySpan<ShaderMacro> macros)
     {
-        className = shaderLoader.ToFullName(className);
         if (genericValues is null)
             return GetOrLoadShader(shaderLoader, className, macros, out var hash, out var isFromCache);
 

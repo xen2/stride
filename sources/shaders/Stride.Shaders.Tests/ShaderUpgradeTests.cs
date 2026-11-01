@@ -308,7 +308,7 @@ public class ShaderUpgradeTests
 
         var loader = new ShaderLoader(Path.Combine(FixturesDirectory, fixture, "after"), Path.Combine(FixturesDirectory, fixture, "dependencies"), "./assets/Stride/SDSL");
         foreach (var name in expected.Keys.Where(x => !ShaderUpgrader.IsEffectFile(x)))
-            Assert.True(loader.LoadExternalBuffer(Path.GetFileNameWithoutExtension(name), [], out _, out _, out _), name);
+            Assert.True(loader.LoadExternalBuffer(Stride.Shaders.Parsing.ShaderFileDeclarations.StorageName(expected[name], Path.GetFileNameWithoutExtension(name)), [], out _, out _, out _), name);
     }
 
     // A dependency is read, never changed; one written for an older version is read as if upgraded, with a note
@@ -363,8 +363,8 @@ public class ShaderUpgradeTests
         var loader = new ShaderLoader(Path.Combine(FixturesDirectory, "module-helpers", "feature-helpers", "after"), "./assets/Stride/SDSL");
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("MyDisplacementRoot") },
-            Compositions = { ["Surface"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("MyStormDisplacement") } } },
+            Mixins = { new ShaderClassSource(TestShader.FullName("MyDisplacementRoot")) },
+            Compositions = { ["Surface"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("MyStormDisplacement")) } } },
         };
         var log = new Stride.Core.Diagnostics.LoggerResult();
         Assert.True(new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
@@ -378,8 +378,8 @@ public class ShaderUpgradeTests
         var loader = new ShaderLoader(Path.Combine(FixturesDirectory, "module-units", "compute-streams", "after"), "./assets/Stride/SDSL");
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("MyComputeRoot") },
-            Compositions = { ["Color"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("MyThreadColor") } } },
+            Mixins = { new ShaderClassSource(TestShader.FullName("MyComputeRoot")) },
+            Compositions = { ["Color"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("MyThreadColor")) } } },
         };
         var log = new Stride.Core.Diagnostics.LoggerResult();
         Assert.True(new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
@@ -393,8 +393,8 @@ public class ShaderUpgradeTests
         var loader = new ShaderLoader(Path.Combine(FixturesDirectory, "module-units", "base-helper", "after"), "./assets/Stride/SDSL");
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("MyBrightRoot") },
-            Compositions = { ["Color"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("MyBrightColor") } } },
+            Mixins = { new ShaderClassSource(TestShader.FullName("MyBrightRoot")) },
+            Compositions = { ["Color"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("MyBrightColor")) } } },
         };
         var log = new Stride.Core.Diagnostics.LoggerResult();
         Assert.True(new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
@@ -423,6 +423,12 @@ public class ShaderUpgradeTests
                 "{\n    import ComputeShaderStreams;\n\n"),
             ("    }\n\n    bool IsFirstThreadOfGroup()\n    {\n        return streams.GroupThreadId.x == 0 && streams.GroupThreadId.y == 0 && streams.GroupThreadId.z == 0;\n    }\n};", "    }\n};"),
             ("[Link(\"ComputeShaderBase.", "[Link(\"Stride.Rendering.ComputeShaderBase."),
+        ],
+        // The namespace of the effect is the namespace of the file
+        ["sources/engine/Stride.Graphics/Shaders/SpriteAlphaCutoff.sdsl"] =
+        [
+            ("namespace Stride.Rendering\n{\n    partial effect SpriteAlphaCutoffEffect\n    {\n        using params SpriteBaseKeys;\n        mixin SpriteAlphaCutoff<SpriteBaseKeys.ColorIsSRgb>;\n    };\n}\n",
+                "partial effect SpriteAlphaCutoffEffect\n{\n    using params SpriteBaseKeys;\n    mixin SpriteAlphaCutoff<SpriteBaseKeys.ColorIsSRgb>;\n};\n"),
         ],
         // Key names are full names
         ["sources/engine/Stride.Rendering/Rendering/Transformation/TransformationWVP.sdsl"] =
@@ -541,7 +547,7 @@ public class ShaderUpgradeTests
                 continue;
             try
             {
-                if (!loader.LoadExternalBuffer(name, ShaderMacros.GetValueOrDefault(name) ?? [], out _, out _, out _))
+                if (!loader.LoadExternalBuffer(Stride.Shaders.Parsing.ShaderFileDeclarations.StorageName(text, name), ShaderMacros.GetValueOrDefault(name) ?? [], out _, out _, out _))
                     failures.Add(path);
             }
             catch (Exception e)

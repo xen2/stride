@@ -76,7 +76,7 @@ public class AbstractCallTests : IDisposable
 
         var log = new LoggerResult();
         var ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL"))
-            .MergeSDSL(new ShaderClassSource("AbstractCall"), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+            .MergeSDSL(new ShaderClassSource(TestShader.Written("AbstractCall")), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
 
         return (ok, string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
     }

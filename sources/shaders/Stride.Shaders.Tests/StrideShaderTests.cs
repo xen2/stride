@@ -29,10 +29,10 @@ public class StrideShaderTests
 
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
-        shaderMixer.ShaderLoader.LoadExternalBuffer("ArrayDims3D", [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("ArrayDims3D"), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("ArrayDims3D"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("ArrayDims3D")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var translator = new SpirvTranslator(bytecode.ToArray().AsMemory().Cast<byte, uint>());
@@ -57,10 +57,10 @@ public class StrideShaderTests
     {
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
-        shaderMixer.ShaderLoader.LoadExternalBuffer("FieldNameShadowsIntrinsicMethod", [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("FieldNameShadowsIntrinsicMethod"), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("FieldNameShadowsIntrinsicMethod"), new ShaderMixer.Options(true), log, out _, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("FieldNameShadowsIntrinsicMethod")), new ShaderMixer.Options(true), log, out _, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
     }
 
@@ -76,10 +76,10 @@ public class StrideShaderTests
     {
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
-        shaderMixer.ShaderLoader.LoadExternalBuffer("GSInputArrayFieldAccess", [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("GSInputArrayFieldAccess"), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("GSInputArrayFieldAccess"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("GSInputArrayFieldAccess")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         File.WriteAllBytes("GSInputArrayFieldAccess.spv", bytecode);
@@ -92,7 +92,7 @@ public class StrideShaderTests
     public void VectorExtensionIsReportedWithTheStatement()
     {
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
-        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer("VectorExtension", [], out _, out _, out _));
+        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer(TestShader.FullName("VectorExtension"), [], out _, out _, out _));
         Assert.Contains("VectorExtension.sdsl(8,9): ", exception.Message);
         Assert.Contains("(in `return scaled;`)", exception.Message);
         Assert.Contains("SDSL0193: Can't convert float3 to float4: HLSL doesn't add components implicitly. Write them: float4(value, ...).", exception.Message);
@@ -109,10 +109,10 @@ public class StrideShaderTests
 
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
-        shaderMixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(shaderName), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -135,10 +135,10 @@ public class StrideShaderTests
     {
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
-        shaderMixer.ShaderLoader.LoadExternalBuffer("ArrayDimsCBuffer", [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("ArrayDimsCBuffer"), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("ArrayDimsCBuffer"), new ShaderMixer.Options(true), log, out _, out var reflection, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("ArrayDimsCBuffer")), new ShaderMixer.Options(true), log, out _, out var reflection, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var members = reflection.ConstantBuffers.SelectMany(cb => cb.Members).ToDictionary(m => m.RawName);
@@ -159,7 +159,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("CSNumThreadsOnNonEntry"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("CSNumThreadsOnNonEntry")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -181,7 +181,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("TextureConstantOffset"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("TextureConstantOffset")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -203,7 +203,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.False(shaderMixer.MergeSDSL(new ShaderClassSource("NumThreadsVariable"), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
+        Assert.False(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("NumThreadsVariable")), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
 
         Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error
             && m.Text.Contains("[numthreads] parameter must be a constant integer expression"));
@@ -219,13 +219,13 @@ public class StrideShaderTests
 
         var shaderSource = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("StageComposePathRoot") },
+            Mixins = { new ShaderClassSource(TestShader.FullName("StageComposePathRoot")) },
             Compositions =
             {
                 ["nested"] = new ShaderMixinSource
                 {
-                    Mixins = { new ShaderClassSource("StageComposePathSupplier") },
-                    Compositions = { ["Samplers"] = new ShaderArraySource { new ShaderClassSource("StageComposePathImpl") } },
+                    Mixins = { new ShaderClassSource(TestShader.FullName("StageComposePathSupplier")) },
+                    Compositions = { ["Samplers"] = new ShaderArraySource { new ShaderClassSource(TestShader.FullName("StageComposePathImpl")) } },
                 },
             },
         };
@@ -258,10 +258,10 @@ public class StrideShaderTests
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
 
-        var shaderSource = new ShaderMixinSource { Mixins = { new ShaderClassSource(root) } };
+        var shaderSource = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName(root)) } };
         foreach (var nestedSlot in nestedSlots)
-            shaderSource.Compositions[nestedSlot] = new ShaderMixinSource { Mixins = { new ShaderClassSource("StageComposePathSupplier") } };
-        shaderSource.Compositions["Samplers"] = new ShaderArraySource { new ShaderClassSource("StageComposePathImpl") };
+            shaderSource.Compositions[nestedSlot] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("StageComposePathSupplier")) } };
+        shaderSource.Compositions["Samplers"] = new ShaderArraySource { new ShaderClassSource(TestShader.FullName("StageComposePathImpl")) };
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
         Assert.True(shaderMixer.MergeSDSL(shaderSource, new ShaderMixer.Options(true), log, out _, out var reflection, out _, out _),
@@ -287,7 +287,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("PSCoverage"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("PSCoverage")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -328,7 +328,7 @@ public class StrideShaderTests
         compiler.SourceDirectories.Add("assets/SDSL/CompilerTests");
 
         var mixin = new ShaderMixinSource { Name = shaderName };
-        mixin.Mixins.Add(new ShaderClassSource(shaderName));
+        mixin.Mixins.Add(new ShaderClassSource(TestShader.FullName(shaderName)));
         var effectParameters = Stride.Shaders.Compiler.EffectCompilerParameters.Default with { Platform = platform };
         var result = compiler.Compile(mixin, effectParameters, new Stride.Shaders.Compiler.CompilerParameters(), ObjectId.New()).WaitForResult();
 
@@ -346,7 +346,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/CompilerTests"));
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(shaderName), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var disassembly = Spv.Dis(SpirvBytecode.CreateFromSpan(bytecode), DisassemblerFlags.Name, true);
@@ -360,7 +360,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/CompilerTests"));
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        var exception = Assert.Throws<InvalidOperationException>(() => shaderMixer.MergeSDSL(new ShaderClassSource("PSPrimitiveIdGSNoWrite"), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
+        var exception = Assert.Throws<InvalidOperationException>(() => shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("PSPrimitiveIdGSNoWrite")), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
         Assert.Contains("The pixel shader reads SV_PrimitiveID, so the geometry shader must write it", exception.Message);
     }
 
@@ -379,7 +379,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(shaderName), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -403,7 +403,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.False(shaderMixer.MergeSDSL(new ShaderClassSource(shaderName), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
+        Assert.False(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
 
         Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error && m.Text.Contains(expectedError));
     }
@@ -417,7 +417,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.False(shaderMixer.MergeSDSL(new ShaderClassSource("VSTextureSample"), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
+        Assert.False(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("VSTextureSample")), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
 
         Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error
             && m.Text.Contains("VSTextureSample.sdsl(14,") && m.Text.Contains("implicit level of detail")
@@ -433,7 +433,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.False(shaderMixer.MergeSDSL(new ShaderClassSource("VSDerivative"), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
+        Assert.False(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("VSDerivative")), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
 
         Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error
             && m.Text.Contains("VSDerivative.sdsl(11,") && m.Text.Contains("screen-space derivative")
@@ -450,7 +450,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.False(shaderMixer.MergeSDSL(new ShaderClassSource("HSPatchConstantTextureSample"), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
+        Assert.False(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("HSPatchConstantTextureSample")), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
 
         Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error
             && m.Text.Contains("HSPatchConstantTextureSample.sdsl(22,") && m.Text.Contains("implicit level of detail")
@@ -464,7 +464,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("PSTextureSample"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("PSTextureSample")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -480,7 +480,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(shaderName), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -499,7 +499,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("HSOverride"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out var entryPoints),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("HSOverride")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out var entryPoints),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -519,7 +519,7 @@ public class StrideShaderTests
         var shaderMixer = new ShaderMixer(loader);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("GSInputArrayFieldAccess"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out var entryPoints),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("GSInputArrayFieldAccess")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out var entryPoints),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -539,12 +539,12 @@ public class StrideShaderTests
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
         foreach (var name in new[] { "CSNumThreadsOverrideBase", "ComposeNumThreadsHelper", rootName })
-            shaderMixer.ShaderLoader.LoadExternalBuffer(name, [], out _, out _, out _);
+            shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _);
 
         var shaderSource = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource(rootName) },
-            Compositions = { ["helper"] = new ShaderClassSource("ComposeNumThreadsHelper") },
+            Mixins = { new ShaderClassSource(TestShader.FullName(rootName)) },
+            Compositions = { ["helper"] = new ShaderClassSource(TestShader.FullName("ComposeNumThreadsHelper")) },
         };
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
@@ -601,24 +601,24 @@ public class StrideShaderTests
         var loader = new ShaderLoader("./assets/Stride/SDSL");
 
         // Warm the cache: a normally compiled shader carries its OpSourceHashSDSL.
-        Assert.True(loader.LoadExternalBuffer("Stride.Rendering.Texturing", [], out var texturing, out _, out _));
+        Assert.True(loader.LoadExternalBuffer(TestShader.FullName("Stride.Rendering.Texturing"), [], out var texturing, out _, out _));
         Assert.True(HasSourceHash(texturing), "sanity: a normally compiled shader carries OpSourceHashSDSL");
 
         // Reproduce the MemberName path (Builder.Class.InstantiateMemberNames): set the override, then
         // load a shader that is already cached. The (name, filename, code) overload returns on the cache
         // hit, so the override has to be consumed before that early return.
-        Assert.True(loader.LoadExternalFileContent("Stride.Rendering.Texturing", out var filename, out var code, out _));
+        Assert.True(loader.LoadExternalFileContent(TestShader.FullName("Stride.Rendering.Texturing"), out var filename, out var code, out _));
         loader.SourceHashOverride = ObjectId.FromBytes("not a shader file"u8.ToArray());
-        Assert.True(loader.LoadExternalBuffer("Stride.Rendering.Texturing", filename, code, [], out _, out _, out var isFromCache));
+        Assert.True(loader.LoadExternalBuffer(TestShader.FullName("Stride.Rendering.Texturing"), filename, code, [], out _, out _, out var isFromCache));
         Assert.True(isFromCache, "precondition: the second load must be a cache hit to exercise the leak");
 
         Assert.Null(loader.SourceHashOverride);
 
         // Downstream symptom: with the override leaked, the next compiled shader records that hash
         // instead of its own file's, and never matches its source again.
-        Assert.True(loader.LoadExternalBuffer("Stride.Rendering.ShaderBase", [], out var shaderBase, out var shaderBaseHash, out _));
+        Assert.True(loader.LoadExternalBuffer(TestShader.FullName("Stride.Rendering.ShaderBase"), [], out var shaderBase, out var shaderBaseHash, out _));
         Assert.True(HasSourceHash(shaderBase));
-        Assert.True(loader.LoadExternalFileContent("Stride.Rendering.ShaderBase", out _, out _, out var shaderBaseFileHash));
+        Assert.True(loader.LoadExternalFileContent(TestShader.FullName("Stride.Rendering.ShaderBase"), out _, out _, out var shaderBaseFileHash));
         Assert.Equal(shaderBaseFileHash, shaderBaseHash);
     }
 
@@ -639,7 +639,7 @@ public class StrideShaderTests
     public void FileShaderCacheRoundTripsAndRejectsStaleVersion()
     {
         var loader = new ShaderLoader("./assets/Stride/SDSL");
-        Assert.True(loader.LoadExternalBuffer("Texturing", [], out var buffer, out var hash, out _));
+        Assert.True(loader.LoadExternalBuffer(TestShader.FullName("Texturing"), [], out var buffer, out var hash, out _));
         Assert.NotEqual(ObjectId.Empty, hash);
 
         var tempDir = Directory.CreateTempSubdirectory("stride-shadercache-test");
@@ -681,13 +681,13 @@ public class StrideShaderTests
         {
             Mixins =
 {
-new ShaderClassSource("ShaderBase"),
-new ShaderClassSource("ShadingBase"),
-new ShaderClassSource("TransformationBase"),
-new ShaderClassSource("NormalStream"),
-new ShaderClassSource("TransformationWAndVP"),
-new ShaderClassSource("NormalFromNormalMapping"),
-new ShaderClassSource("MaterialSurfacePixelStageCompositor"),
+new ShaderClassSource(TestShader.FullName("ShaderBase")),
+new ShaderClassSource(TestShader.FullName("ShadingBase")),
+new ShaderClassSource(TestShader.FullName("TransformationBase")),
+new ShaderClassSource(TestShader.FullName("NormalStream")),
+new ShaderClassSource(TestShader.FullName("TransformationWAndVP")),
+new ShaderClassSource(TestShader.FullName("NormalFromNormalMapping")),
+new ShaderClassSource(TestShader.FullName("MaterialSurfacePixelStageCompositor")),
 },
             Compositions =
 {
@@ -695,7 +695,7 @@ new ShaderClassSource("MaterialSurfacePixelStageCompositor"),
 {
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("LightClusteredPointGroup")},
+Mixins ={new ShaderClassSource(TestShader.FullName("LightClusteredPointGroup"))},
 Macros =
 {
 new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
@@ -716,7 +716,7 @@ new ShaderMacro("class", "shader"),
 },
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("LightClusteredSpotGroup")},
+Mixins ={new ShaderClassSource(TestShader.FullName("LightClusteredSpotGroup"))},
 Macros =
 {
 new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
@@ -740,7 +740,7 @@ new ShaderMacro("class", "shader"),
 {
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("LightSimpleAmbient")},
+Mixins ={new ShaderClassSource(TestShader.FullName("LightSimpleAmbient"))},
 Macros =
 {
 new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
@@ -761,7 +761,7 @@ new ShaderMacro("class", "shader"),
 },
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("EnvironmentLight")},
+Mixins ={new ShaderClassSource(TestShader.FullName("EnvironmentLight"))},
 Macros =
 {
 new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
@@ -783,15 +783,15 @@ new ShaderMacro("class", "shader"),
 },
 ["materialPixelStage"] = new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("MaterialSurfaceArray")},
+Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceArray"))},
 Compositions =
 {
 ["layers"] = new ShaderArraySource
 {
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("MaterialSurfaceDiffuse")},
-Compositions ={["diffuseMap"] = new ShaderClassSource("ComputeColorTextureScaledOffsetDynamicSampler","Material.DiffuseMap","TEXCOORD0","Material.Sampler.i0","rgba","Material.TextureScale","Material.TextureOffset")},
+Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceDiffuse"))},
+Compositions ={["diffuseMap"] = new ShaderClassSource(TestShader.FullName("ComputeColorTextureScaledOffsetDynamicSampler"),"Material.DiffuseMap","TEXCOORD0","Material.Sampler.i0","rgba","Material.TextureScale","Material.TextureOffset")},
 Macros =
 {
 new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
@@ -812,8 +812,8 @@ new ShaderMacro("class", "shader"),
 },
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("MaterialSurfaceNormalMap","true","true")},
-Compositions ={["normalMap"] = new ShaderClassSource("ComputeColorTextureScaledOffsetDynamicSampler","Material.NormalMap","TEXCOORD0","Material.Sampler.i0","rgba","Material.TextureScale.i1","Material.TextureOffset.i1")},
+Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceNormalMap"),"true","true")},
+Compositions ={["normalMap"] = new ShaderClassSource(TestShader.FullName("ComputeColorTextureScaledOffsetDynamicSampler"),"Material.NormalMap","TEXCOORD0","Material.Sampler.i0","rgba","Material.TextureScale.i1","Material.TextureOffset.i1")},
 Macros =
 {
 new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
@@ -834,8 +834,8 @@ new ShaderMacro("class", "shader"),
 },
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("MaterialSurfaceGlossinessMap","false")},
-Compositions ={["glossinessMap"] = new ShaderClassSource("ComputeColorTextureScaledOffsetDynamicSampler","Material.GlossinessMap","TEXCOORD0","Material.Sampler.i0","r","Material.TextureScale.i2","Material.TextureOffset.i2")},
+Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceGlossinessMap"),"false")},
+Compositions ={["glossinessMap"] = new ShaderClassSource(TestShader.FullName("ComputeColorTextureScaledOffsetDynamicSampler"),"Material.GlossinessMap","TEXCOORD0","Material.Sampler.i0","r","Material.TextureScale.i2","Material.TextureOffset.i2")},
 Macros =
 {
 new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
@@ -856,8 +856,8 @@ new ShaderMacro("class", "shader"),
 },
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("MaterialSurfaceMetalness")},
-Compositions ={["metalnessMap"] = new ShaderClassSource("ComputeColorConstantFloatLink","Material.MetalnessValue")},
+Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceMetalness"))},
+Compositions ={["metalnessMap"] = new ShaderClassSource(TestShader.FullName("ComputeColorConstantFloatLink"),"Material.MetalnessValue")},
 Macros =
 {
 new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
@@ -878,21 +878,21 @@ new ShaderMacro("class", "shader"),
 },
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("MaterialSurfaceLightingAndShading")},
+Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceLightingAndShading"))},
 Compositions =
 {
 ["surfaces"] = new ShaderArraySource
 {
-new ShaderClassSource("MaterialSurfaceShadingDiffuseLambert","false"),
+new ShaderClassSource(TestShader.FullName("MaterialSurfaceShadingDiffuseLambert"),"false"),
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("MaterialSurfaceShadingSpecularMicrofacet")},
+Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceShadingSpecularMicrofacet"))},
 Compositions =
 {
-["environmentFunction"] = new ShaderClassSource("MaterialSpecularMicrofacetEnvironmentGGXLUT"),
-["fresnelFunction"] = new ShaderClassSource("MaterialSpecularMicrofacetFresnelSchlick"),
-["geometricShadowingFunction"] = new ShaderClassSource("MaterialSpecularMicrofacetVisibilitySmithSchlickGGX"),
-["normalDistributionFunction"] = new ShaderClassSource("MaterialSpecularMicrofacetNormalDistributionGGX"),
+["environmentFunction"] = new ShaderClassSource(TestShader.FullName("MaterialSpecularMicrofacetEnvironmentGGXLUT")),
+["fresnelFunction"] = new ShaderClassSource(TestShader.FullName("MaterialSpecularMicrofacetFresnelSchlick")),
+["geometricShadowingFunction"] = new ShaderClassSource(TestShader.FullName("MaterialSpecularMicrofacetVisibilitySmithSchlickGGX")),
+["normalDistributionFunction"] = new ShaderClassSource(TestShader.FullName("MaterialSpecularMicrofacetNormalDistributionGGX")),
 },
 Macros =
 {
@@ -956,8 +956,8 @@ new ShaderMacro("class", "shader"),
 {
 Mixins =
 {
-new ShaderClassSource("MaterialStream"),
-new ShaderClassSource("MaterialPixelShadingStream"),
+new ShaderClassSource(TestShader.FullName("MaterialStream")),
+new ShaderClassSource(TestShader.FullName("MaterialPixelShadingStream")),
 },
 Macros =
 {
@@ -1016,15 +1016,15 @@ new ShaderMacro("class", "shader"),
         {
             Mixins =
 {
-new ShaderClassSource("ShaderBase"),
-new ShaderClassSource("ShadingBase"),
-new ShaderClassSource("TransformationBase"),
-new ShaderClassSource("NormalStream"),
-new ShaderClassSource("TransformationWAndVP"),
-new ShaderClassSource("NormalFromMesh"),
-new ShaderClassSource("TessellationPN"),
-new ShaderClassSource("TessellationAE4","PositionWS"),
-new ShaderClassSource("MaterialSurfacePixelStageCompositor"),
+new ShaderClassSource(TestShader.FullName("ShaderBase")),
+new ShaderClassSource(TestShader.FullName("ShadingBase")),
+new ShaderClassSource(TestShader.FullName("TransformationBase")),
+new ShaderClassSource(TestShader.FullName("NormalStream")),
+new ShaderClassSource(TestShader.FullName("TransformationWAndVP")),
+new ShaderClassSource(TestShader.FullName("NormalFromMesh")),
+new ShaderClassSource(TestShader.FullName("TessellationPN")),
+new ShaderClassSource(TestShader.FullName("TessellationAE4"),"PositionWS"),
+new ShaderClassSource(TestShader.FullName("MaterialSurfacePixelStageCompositor")),
 },
             Compositions =
 {
@@ -1032,7 +1032,7 @@ new ShaderClassSource("MaterialSurfacePixelStageCompositor"),
 {
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("LightSimpleAmbient")},
+Mixins ={new ShaderClassSource(TestShader.FullName("LightSimpleAmbient"))},
 Macros =
 {
 new ShaderMacro("InputControlPointCount", "12"),
@@ -1055,15 +1055,15 @@ new ShaderMacro("class", "shader"),
 },
 ["materialPixelStage"] = new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("MaterialSurfaceArray")},
+Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceArray"))},
 Compositions =
 {
 ["layers"] = new ShaderArraySource
 {
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("MaterialSurfaceDiffuse")},
-Compositions ={["diffuseMap"] = new ShaderClassSource("ComputeColorConstantColorLink","Material.DiffuseValue")},
+Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceDiffuse"))},
+Compositions ={["diffuseMap"] = new ShaderClassSource(TestShader.FullName("ComputeColorConstantColorLink"),"Material.DiffuseValue")},
 Macros =
 {
 new ShaderMacro("InputControlPointCount", "12"),
@@ -1085,12 +1085,12 @@ new ShaderMacro("class", "shader"),
 },
 new ShaderMixinSource
 {
-Mixins ={new ShaderClassSource("MaterialSurfaceLightingAndShading")},
+Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceLightingAndShading"))},
 Compositions =
 {
 ["surfaces"] = new ShaderArraySource
 {
-new ShaderClassSource("MaterialSurfaceShadingDiffuseLambert","false"),
+new ShaderClassSource(TestShader.FullName("MaterialSurfaceShadingDiffuseLambert"),"false"),
 },
 },
 Macros =
@@ -1137,8 +1137,8 @@ new ShaderMacro("class", "shader"),
 {
 Mixins =
 {
-new ShaderClassSource("MaterialStream"),
-new ShaderClassSource("MaterialPixelShadingStream"),
+new ShaderClassSource(TestShader.FullName("MaterialStream")),
+new ShaderClassSource(TestShader.FullName("MaterialPixelShadingStream")),
 },
 Macros =
 {
@@ -1195,7 +1195,7 @@ new ShaderMacro("class", "shader"),
         {
             Mixins =
             {
-                new ShaderClassSource("MSAAResolverShader", samples, 1, 2.0f),
+                new ShaderClassSource(TestShader.FullName("MSAAResolverShader"), samples, 1, 2.0f),
             },
             Macros =
             {
@@ -1220,7 +1220,7 @@ new ShaderMacro("class", "shader"),
         {
             Mixins =
             {
-                new ShaderClassSource("MSAADepthResolverShader"),
+                new ShaderClassSource(TestShader.FullName("MSAADepthResolverShader")),
             },
             Macros =
             {
@@ -1244,11 +1244,11 @@ new ShaderMacro("class", "shader"),
         {
             Mixins =
             {
-                new ShaderClassSource("ShaderBase"),
-                new ShaderClassSource("ShadingBase"),
-                new ShaderClassSource("TransformationBase"),
-                new ShaderClassSource("TransformationWAndVP"),
-                new ShaderClassSource("CompilationErrorShader"),
+                new ShaderClassSource(TestShader.FullName("ShaderBase")),
+                new ShaderClassSource(TestShader.FullName("ShadingBase")),
+                new ShaderClassSource(TestShader.FullName("TransformationBase")),
+                new ShaderClassSource(TestShader.FullName("TransformationWAndVP")),
+                new ShaderClassSource(TestShader.FullName("CompilationErrorShader")),
             },
             Macros =
             {
@@ -1270,7 +1270,7 @@ new ShaderMacro("class", "shader"),
     {
         // LightProbeRenderer puts LightProbeShader in the environmentLights slot that holds
         // EnvironmentLight when light probes are off.
-        var shaderSource = EnvironmentLightMixin(samples, new ShaderClassSource("LightProbeShader", 3));
+        var shaderSource = EnvironmentLightMixin(samples, new ShaderClassSource(TestShader.FullName("LightProbeShader"), 3));
 
         TestCore($"LightProbeShader{samples}", shaderSource, "./assets/Stride/SDSL");
     }
@@ -1307,34 +1307,34 @@ new ShaderMacro("class", "shader"),
         }
 
         var root = Compose(
-            new ShaderClassSource("ShaderBase"),
-            new ShaderClassSource("ShadingBase"),
-            new ShaderClassSource("TransformationBase"),
-            new ShaderClassSource("NormalStream"),
-            new ShaderClassSource("TransformationWAndVP"),
-            new ShaderClassSource("NormalFromNormalMapping"),
-            new ShaderClassSource("MaterialSurfacePixelStageCompositor"));
+            new ShaderClassSource(TestShader.FullName("ShaderBase")),
+            new ShaderClassSource(TestShader.FullName("ShadingBase")),
+            new ShaderClassSource(TestShader.FullName("TransformationBase")),
+            new ShaderClassSource(TestShader.FullName("NormalStream")),
+            new ShaderClassSource(TestShader.FullName("TransformationWAndVP")),
+            new ShaderClassSource(TestShader.FullName("NormalFromNormalMapping")),
+            new ShaderClassSource(TestShader.FullName("MaterialSurfacePixelStageCompositor")));
 
         var environmentLights = new ShaderArraySource();
         environmentLights.Add(environmentLight);
         root.Compositions.Add("environmentLights", environmentLights);
 
         var shadingSurfaces = new ShaderArraySource();
-        shadingSurfaces.Add(new ShaderClassSource("MaterialSurfaceShadingDiffuseLambert", "false"));
-        var lightingAndShading = Compose(new ShaderClassSource("MaterialSurfaceLightingAndShading"));
+        shadingSurfaces.Add(new ShaderClassSource(TestShader.FullName("MaterialSurfaceShadingDiffuseLambert"), "false"));
+        var lightingAndShading = Compose(new ShaderClassSource(TestShader.FullName("MaterialSurfaceLightingAndShading")));
         lightingAndShading.Compositions.Add("surfaces", shadingSurfaces);
 
         var materialLayers = new ShaderArraySource();
-        materialLayers.Add(Compose(new ShaderClassSource("MaterialSurfaceDiffuse")));
+        materialLayers.Add(Compose(new ShaderClassSource(TestShader.FullName("MaterialSurfaceDiffuse"))));
         materialLayers.Add(lightingAndShading);
 
-        var materialPixelStage = Compose(new ShaderClassSource("MaterialSurfaceArray"));
+        var materialPixelStage = Compose(new ShaderClassSource(TestShader.FullName("MaterialSurfaceArray")));
         materialPixelStage.Compositions.Add("layers", materialLayers);
         root.Compositions.Add("materialPixelStage", materialPixelStage);
 
         root.Compositions.Add("streamInitializerPixelStage", Compose(
-            new ShaderClassSource("MaterialStream"),
-            new ShaderClassSource("MaterialPixelShadingStream")));
+            new ShaderClassSource(TestShader.FullName("MaterialStream")),
+            new ShaderClassSource(TestShader.FullName("MaterialPixelShadingStream"))));
 
         return root;
     }
@@ -1375,12 +1375,12 @@ new ShaderMacro("class", "shader"),
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
         foreach (var name in new[] { "ComposeSharedBase", "ComposeSharedHelper", "ComposeSharedRoot" })
-            shaderMixer.ShaderLoader.LoadExternalBuffer(name, [], out _, out _, out _);
+            shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _);
 
         var shaderSource = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("ComposeSharedRoot") },
-            Compositions = { ["helper"] = new ShaderClassSource("ComposeSharedHelper") },
+            Mixins = { new ShaderClassSource(TestShader.FullName("ComposeSharedRoot")) },
+            Compositions = { ["helper"] = new ShaderClassSource(TestShader.FullName("ComposeSharedHelper")) },
         };
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
@@ -1401,12 +1401,12 @@ new ShaderMacro("class", "shader"),
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
         foreach (var name in new[] { "ComposeSharedBase", "ComposePlainHelper", "ComposePlainRoot" })
-            shaderMixer.ShaderLoader.LoadExternalBuffer(name, [], out _, out _, out _);
+            shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _);
 
         var shaderSource = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("ComposePlainRoot") },
-            Compositions = { ["helper"] = new ShaderClassSource("ComposePlainHelper") },
+            Mixins = { new ShaderClassSource(TestShader.FullName("ComposePlainRoot")) },
+            Compositions = { ["helper"] = new ShaderClassSource(TestShader.FullName("ComposePlainHelper")) },
         };
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
@@ -1427,10 +1427,10 @@ new ShaderMacro("class", "shader"),
 
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
-        shaderMixer.ShaderLoader.LoadExternalBuffer("GeometryStreamsAssignKeepsOthers", [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("GeometryStreamsAssignKeepsOthers"), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("GeometryStreamsAssignKeepsOthers"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("GeometryStreamsAssignKeepsOthers")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var legalized = SpirvTools.LegalizeForHlsl(System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bytecode.ToArray()));
@@ -1450,10 +1450,10 @@ new ShaderMacro("class", "shader"),
 
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
-        shaderMixer.ShaderLoader.LoadExternalBuffer("GeometryStreamsTwoStreamParameters", [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("GeometryStreamsTwoStreamParameters"), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("GeometryStreamsTwoStreamParameters"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("GeometryStreamsTwoStreamParameters")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var legalized = SpirvTools.LegalizeForHlsl(System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bytecode.ToArray()));
@@ -1469,7 +1469,7 @@ new ShaderMacro("class", "shader"),
     public void DefaultCompositionGetsTheMacrosOfItsNode()
     {
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/CompilerTests"));
-        var mixin = new ShaderMixinSource { Mixins = { new ShaderClassSource("DefaultCompositionMacrosRoot") } };
+        var mixin = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("DefaultCompositionMacrosRoot")) } };
         mixin.AddMacro("DEFAULT_COMPOSITION_MACRO", 1);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
@@ -1486,8 +1486,8 @@ new ShaderMacro("class", "shader"),
     {
         var loader = new ShaderLoader("./assets/SDSL/RenderTests") { Log = log };
         var shaderMixer = new ShaderMixer(loader) { CollectExplanation = true };
-        Assert.True(loader.LoadExternalBuffer(name, [], out _, out _, out _));
-        var source = ShaderMixinManager.Contains(name) ? new ShaderMixinGeneratorSource(name) : (ShaderSource)new ShaderClassSource(name);
+        Assert.True(loader.LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _));
+        var source = ShaderMixinManager.Contains(TestShader.FullName(name)) ? new ShaderMixinGeneratorSource(TestShader.FullName(name)) : (ShaderSource)new ShaderClassSource(TestShader.FullName(name));
         Assert.True(shaderMixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
         return shaderMixer.Explanation!;
@@ -1560,8 +1560,8 @@ new ShaderMacro("class", "shader"),
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("ModuleRuleRoot") },
-            Compositions = { ["Comp0"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(slotShader) } } },
+            Mixins = { new ShaderClassSource(TestShader.FullName("ModuleRuleRoot")) },
+            Compositions = { ["Comp0"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName(slotShader)) } } },
         };
         var log = new Stride.Core.Diagnostics.LoggerResult();
         var success = new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
@@ -1630,8 +1630,8 @@ new ShaderMacro("class", "shader"),
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("ModuleRuleRoot"), new ShaderClassSource("ModuleRuleGenericParent", "1") },
-            Compositions = { ["Comp0"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("ModuleRuleGenericChild") } } },
+            Mixins = { new ShaderClassSource(TestShader.FullName("ModuleRuleRoot")), new ShaderClassSource(TestShader.FullName("ModuleRuleGenericParent"), "1") },
+            Compositions = { ["Comp0"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("ModuleRuleGenericChild")) } } },
         };
         var log = new Stride.Core.Diagnostics.LoggerResult();
         Assert.True(new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
@@ -1643,7 +1643,7 @@ new ShaderMacro("class", "shader"),
     {
         try
         {
-            var success = new ShaderLoader("./assets/SDSL/CompilerTests").LoadExternalBuffer(name, [], out _, out _, out _);
+            var success = new ShaderLoader("./assets/SDSL/CompilerTests").LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _);
             return (success, "");
         }
         catch (InvalidOperationException e)
@@ -1684,7 +1684,7 @@ new ShaderMacro("class", "shader"),
     public void ModuleUnitMembersAreModuleMembers()
     {
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
-        Assert.True(loader.LoadExternalBuffer("ModuleUnit", [], out var buffer, out _, out _));
+        Assert.True(loader.LoadExternalBuffer(TestShader.FullName("ModuleUnit"), [], out var buffer, out _, out _));
         Assert.True(Stride.Shaders.Spirv.Building.SpirvBuilder.IsModule(buffer));
         foreach (var i in buffer.Buffer)
         {
@@ -1701,7 +1701,7 @@ new ShaderMacro("class", "shader"),
     {
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
-        Assert.True(shaderMixer.ShaderLoader.LoadExternalBuffer("LoopControlRoot", [], out var buffer, out _, out _));
+        Assert.True(shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("LoopControlRoot"), [], out var buffer, out _, out _));
 
         var controls = new List<Stride.Shaders.Spirv.Specification.LoopControlMask>();
         foreach (var i in buffer.Buffer)
@@ -1725,10 +1725,10 @@ new ShaderMacro("class", "shader"),
 
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var shaderMixer = new ShaderMixer(loader);
-        shaderMixer.ShaderLoader.LoadExternalBuffer("GeometryStreamsAssignPartialWrite", [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("GeometryStreamsAssignPartialWrite"), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("GeometryStreamsAssignPartialWrite"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("GeometryStreamsAssignPartialWrite")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var legalized = SpirvTools.LegalizeForHlsl(System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(bytecode.ToArray()));

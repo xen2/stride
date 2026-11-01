@@ -47,7 +47,7 @@ namespace Stride.Graphics.Tests
             displayedTexture = outputTexture;
 
             drawEffectContext = RenderContext.GetShared(Services);
-            computeShaderEffect = new ComputeEffectShader(drawEffectContext) { ShaderSourceName = "ComputeShaderTestEffect", ThreadGroupCounts = groupCounts };
+            computeShaderEffect = new ComputeEffectShader(drawEffectContext) { ShaderSourceName = "Stride.Graphics.Tests.ComputeShaderTestEffect", ThreadGroupCounts = groupCounts };
         }
 
         protected override void RegisterTests()
