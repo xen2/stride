@@ -525,7 +525,7 @@ public partial record ShaderSymbol(string Name, ConstantExpression[] GenericArgu
     public override string ToString()
     {
         var builder = new StringBuilder();
-        builder.Append(Name);
+        builder.Append(Parsing.ShaderNames.ShortNameWithGenerics(Name));
         if (GenericArguments.Length > 0)
         {
             builder.Append('<');
@@ -543,6 +543,11 @@ public partial record ShaderSymbol(string Name, ConstantExpression[] GenericArgu
 
 public sealed partial record ShaderDefinition(string Name, ConstantExpression[] GenericArguments)
 {
+    /// <summary>
+    /// The class without its namespace, for messages.
+    /// </summary>
+    public string ShortName => Parsing.ShaderNames.ShortNameWithGenerics(Name);
+
     public string ToClassName()
     {
         if (GenericArguments.Length == 0)
@@ -555,7 +560,7 @@ public sealed partial record ShaderDefinition(string Name, ConstantExpression[] 
     public override string ToString()
     {
         var builder = new StringBuilder();
-        builder.Append(Name);
+        builder.Append(ShortName);
         if (GenericArguments.Length > 0)
         {
             builder.Append('<');

@@ -212,7 +212,7 @@ public sealed partial class ShaderMember(
         {
             if (TypeName.Name.Contains("<"))
                 throw new NotImplementedException("Can't have member variables with generic shader types");
-            var classSource = new ShaderClassInstantiation(TypeName.Name, []);
+            var classSource = new ShaderClassInstantiation(table.ResolveClassName(TypeName.Name, TypeName.Info) ?? TypeName.Name, []);
             var shader = SpirvBuilder.GetOrLoadShader(table.ShaderLoader, classSource, table.CurrentMacros.AsSpan(), ResolveStep.Compile, context);
             classSource.Buffer = shader;
             var shaderType = ShaderClass.LoadAndCacheExternalShaderDefinition(table, context, classSource);
@@ -515,7 +515,7 @@ public partial class ShaderMethod(
             CheckOverriddenMethod(table, ftype);
         }
         if (IsClone)
-            table.AddWarning(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0212, table.CurrentShader!.Name, Name.Name)));
+            table.AddWarning(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0212, table.CurrentShader!.ShortName, Name.Name)));
 
         var symbol = new Symbol(new(Name, SymbolKind.Method, IsStage: IsStaged), ftype, function.Id, MemberAccessWithImplicitThis: ftype, OwnerType: table.CurrentShader);
 
@@ -554,7 +554,7 @@ public partial class ShaderMethod(
 
                 var message = (flags & Specification.FunctionFlagsMask.Abstract) != 0 ? SDSLErrorMessages.SDSL0114 : SDSLErrorMessages.SDSL0115;
                 var parameters = string.Join(", ", Parameters.Select(p => p.Type));
-                table.AddError(new(Name.Info, string.Format(message, table.CurrentShader!.Name, Name.Name, parameters, Name.Info.Line, inherited.Name)));
+                table.AddError(new(Name.Info, string.Format(message, table.CurrentShader!.ShortName, Name.Name, parameters, Name.Info.Line, inherited.ShortName)));
                 return;
             }
         }
@@ -573,9 +573,9 @@ public partial class ShaderMethod(
 
         var parameters = FormatParameters(ftype);
         if (sameName.Find(x => x.Type!.ParameterTypes.SequenceEqual(ftype.ParameterTypes)) is { Type: not null } sameParameters)
-            table.AddError(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0175, table.CurrentShader!.Name, Name.Name, parameters, ftype.ReturnType, sameParameters.Shader.Name, sameParameters.Type.ReturnType)));
+            table.AddError(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0175, table.CurrentShader!.ShortName, Name.Name, parameters, ftype.ReturnType, sameParameters.Shader.ShortName, sameParameters.Type.ReturnType)));
         else
-            table.AddError(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0176, table.CurrentShader!.Name, Name.Name, parameters, string.Join(", ", sameName.Select(x => $"{x.Shader.Name}.{Name.Name}({FormatParameters(x.Type!)})")))));
+            table.AddError(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0176, table.CurrentShader!.ShortName, Name.Name, parameters, string.Join(", ", sameName.Select(x => $"{x.Shader.ShortName}.{Name.Name}({FormatParameters(x.Type!)})")))));
 
         static string FormatParameters(FunctionType type) => string.Join(", ", type.ParameterTypes.Select(p => p.Type is PointerType pointer ? pointer.BaseType : p.Type));
     }
@@ -778,7 +778,7 @@ public partial class ShaderMethod(
 
         if (ftype.ReturnType != ScalarType.Void && !SpirvBuilder.IsBlockTermination(builder.GetLastInstructionType()))
         {
-            table.AddError(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0177, table.CurrentShader!.Name, Name.Name)));
+            table.AddError(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0177, table.CurrentShader!.ShortName, Name.Name)));
             builder.Insert(new OpUnreachable());
         }
 

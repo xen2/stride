@@ -838,19 +838,17 @@ public partial class GenericIdentifier(Identifier name, ShaderExpressionList? ge
         }
 
         // GenericIdentifier is same as Identifier static variable case, except we have generics (which is why GenericIdentifier was chosen over Identifier)
+        var fullName = table.ResolveClassName(name, info);
+        if (fullName == null)
+        {
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0110, name)));
+            return null;
+        }
+
         var compiledGenerics = SDFX.AST.ShaderEffect.CompileGenerics(table, context, generics);
-        var classSource = new ShaderClassInstantiation(name, compiledGenerics);
+        var classSource = new ShaderClassInstantiation(fullName, compiledGenerics);
         if (!table.TryResolveSymbol(classSource.ToClassNameWithGenerics(), out var symbol))
         {
-            if (!table.ShaderLoader.Exists(name))
-            {
-                table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0110, name)));
-                return null;
-            }
-
-            if (!table.ShaderLoader.Exists(classSource.ClassName))
-                throw new InvalidOperationException($"Symbol [{classSource.ClassName}] could not be found.");
-
             // A module not imported yet is imported here, after the parents and the imports. A shader must be inherited:
             // the mixer can't tell a static use of its members from a mixin.
             if (table.InheritedShaders.IndexOf(classSource) == -1)
@@ -859,7 +857,7 @@ public partial class GenericIdentifier(Identifier name, ShaderExpressionList? ge
                 classSource = SpirvBuilder.BuildInheritanceListIncludingSelf(table.ShaderLoader, context, classSource, table.CurrentMacros.AsSpan(), table.InheritedShaders, ResolveStep.Compile);
                 // Reported, then resolved like an import so that the rest of the code is still checked
                 if (!classSource.IsModule)
-                    table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0197, classSource.ToClassNameWithGenerics())));
+                    table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0197, ShaderNames.ShortNameWithGenerics(classSource.ToClassNameWithGenerics()))));
                 for (int i = inheritedShaderCount; i < table.InheritedShaders.Count; ++i)
                 {
                     var shaderDefinition = ShaderClass.LoadAndCacheExternalShaderDefinition(table, context, table.InheritedShaders[i]);
@@ -928,12 +926,6 @@ public partial class TypeName(string name, TextLocation info) : Literal(info)
             {
 
             }
-            else if (table.DeclaredShaders.TryGetValue(fullTypeName, out var shaderDef))
-            {
-                symbolType = new ShaderSymbol(shaderDef.Name, shaderDef.GenericArguments);
-                // Ensure the shader is imported in the current context so shaderImportIds has an entry
-                context.GetOrImportShader(shaderDef);
-            }
             else if (Name == "PointStream" || Name == "LineStream" || Name == "TriangleStream")
             {
                 symbolType = new GeometryStreamType(((TypeName)Generics[0]).ResolveType(table, context), Name switch
@@ -985,6 +977,12 @@ public partial class TypeName(string name, TextLocation info) : Literal(info)
             else if (Name == "SamplerState" || Name == "SamplerComparisonState")
             {
                 symbolType = new SamplerType();
+            }
+            else if (table.DeclaredShaders.TryGetValue(Generics.Count == 0 ? table.ResolveClassName(Name, Info) ?? Name : fullTypeName, out var shaderDef))
+            {
+                symbolType = new ShaderSymbol(shaderDef.Name, shaderDef.GenericArguments);
+                // Ensure the shader is imported in the current context so shaderImportIds has an entry
+                context.GetOrImportShader(shaderDef);
             }
         }
 
