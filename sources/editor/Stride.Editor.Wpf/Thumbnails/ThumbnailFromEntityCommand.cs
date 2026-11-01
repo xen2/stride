@@ -25,7 +25,7 @@ namespace Stride.Editor.Thumbnails
         where TRuntimeAsset : class
     {
         private static readonly string ThumbnailEntityGraphicsCompositorKey = nameof(ThumbnailEntityGraphicsCompositorKey);
-        public const string EditorForwardShadingEffect = "StrideEditorForwardShadingEffect";
+        public const string EditorForwardShadingEffect = "Stride.Rendering.StrideEditorForwardShadingEffect";
 
         /// <summary>
         /// The root entity used for the thumbnail.

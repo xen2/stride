@@ -51,7 +51,7 @@ namespace Stride.Rendering.Images
             postTransforms = new ColorTransformCollection();
             enabledTransforms = new List<ColorTransform>();
             collectTransforms = new List<ColorTransform>();
-            colorTransformGroupEffectName = colorTransformGroupEffect ?? "ColorTransformGroupEffect";
+            colorTransformGroupEffectName = colorTransformGroupEffect ?? ColorTransformGroupEffectKeys.EffectName;
         }
 
         /// <inheritdoc/>

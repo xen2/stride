@@ -64,9 +64,9 @@ namespace Stride.Rendering.Images
         {
             base.InitializeCore();
 
-            directionalBlurEffect = ToLoadAndUnload(new ImageEffectShader("DepthAwareDirectionalBlurEffect"));
+            directionalBlurEffect = ToLoadAndUnload(new ImageEffectShader(DepthAwareDirectionalBlurEffectKeys.EffectName));
             finalCombineEffect = ToLoadAndUnload(new ImageEffectShader("McIntoshCombineShader"));
-            optimizedEffect = ToLoadAndUnload(new ImageEffectShader("McIntoshOptimizedEffect"));
+            optimizedEffect = ToLoadAndUnload(new ImageEffectShader(McIntoshOptimizedEffectKeys.EffectName));
         }
 
         protected override void DrawCore(RenderDrawContext context)

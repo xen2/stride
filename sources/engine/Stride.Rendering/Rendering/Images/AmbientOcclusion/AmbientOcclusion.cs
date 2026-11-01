@@ -123,11 +123,11 @@ namespace Stride.Rendering.Images
 
             aoApplyImageEffect = ToLoadAndUnload(new ImageEffectShader("ApplyAmbientOcclusionShader"));
 
-            aoRawImageEffect = ToLoadAndUnload(new ImageEffectShader("AmbientOcclusionRawAOEffect"));
+            aoRawImageEffect = ToLoadAndUnload(new ImageEffectShader(AmbientOcclusionRawAOEffectKeys.EffectName));
             aoRawImageEffect.Initialize(Context);
 
-            blurH = ToLoadAndUnload(new ImageEffectShader("AmbientOcclusionBlurEffect"));
-            blurV = ToLoadAndUnload(new ImageEffectShader("AmbientOcclusionBlurEffect", true));
+            blurH = ToLoadAndUnload(new ImageEffectShader(AmbientOcclusionBlurEffectKeys.EffectName));
+            blurV = ToLoadAndUnload(new ImageEffectShader(AmbientOcclusionBlurEffectKeys.EffectName, true));
             blurH.Initialize(Context);
             blurV.Initialize(Context);
 

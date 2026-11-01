@@ -74,7 +74,7 @@ namespace Stride.Rendering.Lights
 
         private static LightSkyBoxShaderGroup CreateLightSkyBoxShaderGroup()
         {
-            return new LightSkyBoxShaderGroup(new ShaderMixinGeneratorSource("LightSkyboxEffect"));
+            return new LightSkyBoxShaderGroup(new ShaderMixinGeneratorSource(LightSkyboxEffectKeys.EffectName));
         }
 
         private class LightSkyBoxShaderGroup : LightShaderGroup

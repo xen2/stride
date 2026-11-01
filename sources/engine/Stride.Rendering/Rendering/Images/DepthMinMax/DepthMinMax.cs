@@ -27,8 +27,8 @@ namespace Stride.Rendering.Images
         {
             base.InitializeCore();
 
-            effectFirstPass = ToLoadAndUnload(new ImageEffectShader("DepthMinMaxEffect"));
-            effectNotFirstPass = ToLoadAndUnload(new ImageEffectShader("DepthMinMaxEffect"));
+            effectFirstPass = ToLoadAndUnload(new ImageEffectShader(DepthMinMaxEffectKeys.EffectName));
+            effectNotFirstPass = ToLoadAndUnload(new ImageEffectShader(DepthMinMaxEffectKeys.EffectName));
             readback = ToLoadAndUnload(new ImageReadback<Vector2>());
         }
 

@@ -60,7 +60,7 @@ namespace Stride.Rendering.Images
         {
             base.InitializeCore();
 
-            cocBlurEffect = ToLoadAndUnload(new ImageEffectShader("CoCMapBlurEffect"));
+            cocBlurEffect = ToLoadAndUnload(new ImageEffectShader(CoCMapBlurEffectKeys.EffectName));
         }
 
         protected override void DrawCore(RenderDrawContext context)

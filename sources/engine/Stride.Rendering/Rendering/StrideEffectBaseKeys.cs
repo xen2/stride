@@ -7,7 +7,7 @@ using Stride.Shaders;
 namespace Stride.Rendering
 {
     [EffectKeys]
-    public static class StrideEffectBaseKeys
+    public static partial class StrideEffectBaseKeys
     {
         public static readonly PermutationParameterKey<ShaderSource> ExtensionPostVertexStageShader = ParameterKeys.NewPermutation<ShaderSource>();
 

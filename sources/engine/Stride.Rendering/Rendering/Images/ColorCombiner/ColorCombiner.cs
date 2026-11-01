@@ -23,7 +23,7 @@ namespace Stride.Rendering.Images
         /// Initializes a new instance of the <see cref="ColorCombiner"/> class.
         /// </summary>
         /// <param name="colorCombinerShaderName">Name of the color combiner shader.</param>
-        public ColorCombiner(string colorCombinerShaderName = "ColorCombinerEffect")
+        public ColorCombiner(string colorCombinerShaderName = ColorCombinerEffectKeys.EffectName)
         {
             EffectName = colorCombinerShaderName;
             factors = new float[TexturingKeys.DefaultTextures.Count];
