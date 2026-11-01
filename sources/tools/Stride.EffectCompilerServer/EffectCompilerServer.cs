@@ -11,6 +11,7 @@ using Stride.Core.IO;
 using Stride.Assets.Effect;
 using Stride.ConnectionRouter;
 using Stride.Engine.Network;
+using Stride.Rendering;
 using Stride.Shaders;
 using Stride.Shaders.Compiler;
 using Stride.Shaders.Compiler.Internals;
@@ -68,7 +69,7 @@ namespace Stride.EffectCompilerServer
                 VirtualFileSystem.RegisterProvider(networkVFS);
 
                 // Create an effect compiler per connection
-                var effectCompiler = new EffectCompiler(networkVFS);
+                var effectCompiler = new EffectCompiler(networkVFS) { ImplicitUsings = ShaderImplicitUsings.List };
                 // TODO: This should come from an "init" packet
                 effectCompiler.SourceDirectories.Add(EffectCompilerBase.DefaultSourceShaderFolder);
                 effectCompiler.FileProvider = networkVFS;
