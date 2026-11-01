@@ -5637,7 +5637,7 @@
                       "color2": {
                         "class": "ComputeColorTextureScaledOffsetDynamicSampler",
                         "generics": [
-                          "Texturing.Texture0",
+                          "Stride.Rendering.Texturing.Texture0",
                           "TEXCOORD0",
                           "Material.Sampler.i0",
                           "rgba",

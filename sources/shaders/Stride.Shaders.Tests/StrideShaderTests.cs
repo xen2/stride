@@ -273,7 +273,7 @@ public class StrideShaderTests
     private static void AssertStageSamplerTextureIsBoundAtRoot(EffectReflection reflection)
     {
         var textureKeys = reflection.ResourceBindings.Select(b => b.KeyInfo.KeyName).Where(k => k.Contains("StageComposePathImpl.Tex")).Distinct().ToList();
-        Assert.Equal(["StageComposePathImpl.Tex.Samplers[0]"], textureKeys);
+        Assert.Equal(["Stride.Shaders.Tests.StageComposePathImpl.Tex.Samplers[0]"], textureKeys);
     }
 
     // SV_Coverage is a uint in HLSL and a one-element array decorated SampleMask in SPIR-V, on both sides.

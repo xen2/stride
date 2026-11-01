@@ -46,7 +46,7 @@ namespace Stride.Rendering
 
             blendMatrices = ((RootEffectRenderFeature)RootRenderFeature).CreateDrawCBufferOffsetSlot(TransformationSkinningKeys.BlendMatrixArray.Name);
             morphGroup = ((RootEffectRenderFeature)RootRenderFeature).CreateDrawLogicalGroup("Morph");
-            morphTargetCount = ((RootEffectRenderFeature)RootRenderFeature).CreateDrawCBufferOffsetSlot("TransformationMorph.MorphTargetCount");
+            morphTargetCount = ((RootEffectRenderFeature)RootRenderFeature).CreateDrawCBufferOffsetSlot(TransformationMorphKeys.MorphTargetCount.Name);
         }
 
         private readonly struct PrepareEffectPermutationJob : Dispatcher.IBatchJob

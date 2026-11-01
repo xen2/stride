@@ -25,6 +25,9 @@ public class EffectCodeWriter : ShaderWriter
     private static readonly string[] GeneratedUsings = ["Stride.Core", "Stride.Rendering", "Stride.Graphics", "Stride.Shaders", "Stride.Core.Mathematics"];
     private readonly List<string> usings = [.. GeneratedUsings];
     private string? currentNamespace;
+    // The namespace of the shaders being written: not the namespace of their generated code when they have none
+    private string? currentShaderNamespace;
+    private ShaderNamespace? defaultNamespace;
 
     /// <summary>
     /// Whether a C# type exists, by full name. A key of a struct type needs a C# struct with the same name (e.g.
@@ -196,6 +199,9 @@ public class EffectCodeWriter : ShaderWriter
         }
 
         var declaringKeyNamePrefix = declaringTypeName.EndsWith("Keys", StringComparison.Ordinal) ? declaringTypeName[..^4] : declaringTypeName;
+        // The name the mixer gives a member of this shader
+        if (!isSdfx)
+            declaringKeyNamePrefix = ShaderNames.Combine(currentShaderNamespace, declaringKeyNamePrefix);
         Write(", typeof(").Write(declaringTypeName).Write("), ").Write(SymbolDisplay.FormatLiteral($"{declaringKeyNamePrefix}.{name}", true)).Write(")");
 
         WriteLine(";");
@@ -426,12 +432,13 @@ public class EffectCodeWriter : ShaderWriter
             shaderFile.RootDeclarations.RemoveAll(x => x is not UsingShaderNamespace);
 
             // Make sure all top-level objects without namespace are wrapped inside a namespace
-            shaderFile.Namespaces.Add(new ShaderNamespace(default)
+            defaultNamespace = new ShaderNamespace(default)
             {
                 Namespace = new(DefaultNameSpace, default),
                 NamespacePath = DefaultNameSpace.Split('.').Select(x => new Identifier(x, default)).ToList(),
                 Declarations = rootTypes,
-            });
+            };
+            shaderFile.Namespaces.Add(defaultNamespace);
         }
 
         base.VisitShaderFile(shaderFile);
@@ -456,6 +463,7 @@ public class EffectCodeWriter : ShaderWriter
         Write("namespace ").Write(string.Join(".", shaderNamespace.NamespacePath)).WriteLine();
         OpenBrace();
         currentNamespace = string.Join(".", shaderNamespace.NamespacePath);
+        currentShaderNamespace = shaderNamespace == defaultNamespace ? null : currentNamespace;
 
         var declarations = shaderNamespace.Declarations;
 

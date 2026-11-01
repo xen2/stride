@@ -5,7 +5,7 @@ namespace Stride.Rendering;
 
 shader VoxelModifierApplierOpacifyAnisotropicPaired : VoxelModifierApplierAnisotropicPaired
 {
-    [Link("VoxelModifierApplierOpacifyIsotropic.Amount")]
+    [Link("Stride.Rendering.VoxelModifierApplierOpacifyIsotropic.Amount")]
     float Amount;
 
     override void Apply(inout float4 X, inout float4 Y, inout float4 Z)

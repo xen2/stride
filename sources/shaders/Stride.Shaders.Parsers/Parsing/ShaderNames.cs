@@ -35,7 +35,10 @@ public static class ShaderNames
 
     public static string Combine(string? @namespace, string name) => string.IsNullOrEmpty(@namespace) ? name : $"{@namespace}.{name}";
 
-    private static string WithoutGenerics(string name)
+    /// <summary>
+    /// The name without its generic arguments: <c>A.B.C&lt;3,X.Y&gt;</c> gives <c>A.B.C</c>.
+    /// </summary>
+    public static string WithoutGenerics(string name)
     {
         var generics = name.IndexOf('<');
         return generics < 0 ? name : name[..generics];

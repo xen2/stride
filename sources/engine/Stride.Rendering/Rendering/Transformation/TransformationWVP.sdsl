@@ -6,6 +6,6 @@ namespace Stride.Rendering;
 /// <summary>
 /// Transforms the local position of the vertex into the projection space.
 /// </summary>
-shader TransformationWVP : TransformationMatrix<Transformation.WorldViewProjection>
+shader TransformationWVP : TransformationMatrix<Stride.Rendering.Transformation.WorldViewProjection>
 {
 };

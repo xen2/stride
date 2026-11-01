@@ -53,7 +53,7 @@ namespace Stride.Assets.Materials
             public MaterialCompileCommand(string url, AssetItem assetItem, MaterialAsset value, AssetCompilerContext context)
                 : base(url, value, assetItem.Package)
             {
-                Version = 7;
+                Version = 8;
                 this.assetItem = assetItem;
                 colorSpace = context.GetColorSpace();
                 assetUrl = new UFile(url);

@@ -229,44 +229,31 @@ namespace Stride.Rendering
 
         public static ParameterKey FindByName(string name)
         {
-            // name must be XXX.YYY{.ZZZ}
-            // where ZZZ can be any identifiers separated by dots but we don't check this.
+            // name must be XXX.YYY{.ZZZ}, where XXX.YYY is a registered key and can have any number of dots (XXX can be the full name of a class)
+            // and ZZZ can be any identifiers separated by dots but we don't check this.
             lock (keyByNames)
             {
                 ParameterKey key;
                 keyByNames.TryGetValue(name, out key);
                 if (key == null)
                 {
-                    // firstDot index between XXX and YYY
-                    var firstDot = name.IndexOf('.');
-                    if (firstDot == -1)
-                        return null;
-
-                    // dot after YYY
-                    var subKeyNameIndex = name.IndexOf('.', firstDot + 1);
-
-                    // keyName => XXX.YYY
-                    string keyName = name; 
-                    string subKeyName = null;
-                    if (subKeyNameIndex >= 0)
-                    {
-                        keyName = name.Substring(0, subKeyNameIndex);
-                        // subKeyName => ZZZ
-                        subKeyName = name.Substring(subKeyNameIndex);
-                    }
-
                     // It is possible this key has been appended with mixin path (i.e. Test becomes Test.mixin[0])
-                    // if it was not a "stage" value
-                    if (keyByNames.TryGetValue(keyName, out key) && subKeyName != null)
+                    // if it was not a "stage" value: it starts with the longest registered name
+                    var firstDot = name.IndexOf('.');
+                    for (var dot = name.LastIndexOf('.'); dot > firstDot; dot = name.LastIndexOf('.', dot - 1))
                     {
-                        // Create a renamed duplicate of the resolved key. CreateSubkey is virtual
-                        // (the concrete key type calls its own ctor), so this needs no reflection
-                        // and stays AOT-compatible.
-                        key = key.CreateSubkey(name);
+                        if (keyByNames.TryGetValue(name.Substring(0, dot), out key))
+                        {
+                            // Create a renamed duplicate of the resolved key. CreateSubkey is virtual
+                            // (the concrete key type calls its own ctor), so this needs no reflection
+                            // and stays AOT-compatible.
+                            key = key.CreateSubkey(name);
 
-                        // Register key. Also register real name in case it was remapped.
-                        keyByNames[name] = key;
-                        keyByNamesVersion++;
+                            // Register key. Also register real name in case it was remapped.
+                            keyByNames[name] = key;
+                            keyByNamesVersion++;
+                            break;
+                        }
                     }
                 }
 
