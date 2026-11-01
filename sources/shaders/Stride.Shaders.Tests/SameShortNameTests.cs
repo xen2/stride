@@ -91,8 +91,53 @@ public class SameShortNameTests : IDisposable
 
         var bytecode = Compile("Root", platform);
         // The two textures are two resources: each one reaches its own binding
+        var textures = bytecode.Reflection.ResourceBindings.Where(x => x.Class == EffectParameterClass.ShaderResourceView).Select(x => x.KeyInfo.KeyName).Distinct().Order();
+        Assert.Equal(["A.Foo.Tex.first", "B.Foo.Tex.second"], textures);
+    }
+
+    // A module member has one value per effect: no composition path in its key
+    [Theory]
+    [MemberData(nameof(Platforms))]
+    public void TwoClassesOfOneShortNameWithAModuleMemberInCompositions(GraphicsPlatform platform)
+    {
+        Write("Foo", """
+            namespace A { shader Foo { module Texture2D Tex; SamplerState Sampler; float4 Get(float2 uv) { return Tex.Sample(Sampler, uv); } }; }
+            namespace B { shader Foo { module Texture2D Tex; SamplerState Sampler; float4 Get(float2 uv) { return Tex.Sample(Sampler, uv) * 2; } }; }
+            """);
+        Write("Root", """
+            shader Root : SpriteBase
+            {
+                compose A.Foo first;
+                compose B.Foo second;
+                module override float4 Shading() { return first.Get(streams.TexCoord) + second.Get(streams.TexCoord); }
+            };
+            """);
+
+        var bytecode = Compile("Root", platform);
+        var textures = bytecode.Reflection.ResourceBindings.Where(x => x.Class == EffectParameterClass.ShaderResourceView).Select(x => x.KeyInfo.KeyName).Distinct().Order();
+        Assert.Equal(["A.Foo.Tex", "B.Foo.Tex"], textures);
+    }
+
+    // [Link] is how two classes share a key
+    [Theory]
+    [MemberData(nameof(Platforms))]
+    public void TwoClassesOfOneShortNameCanShareAKeyWithLink(GraphicsPlatform platform)
+    {
+        Write("Foo", """
+            namespace A { shader Foo { [Link("Shared.Tex")] Texture2D TexA; SamplerState SamplerA; float4 GetA(float2 uv) { return TexA.Sample(SamplerA, uv); } }; }
+            namespace B { shader Foo { [Link("Shared.Tex")] Texture2D TexB; SamplerState SamplerB; float4 GetB(float2 uv) { return TexB.Sample(SamplerB, uv); } }; }
+            """);
+        Write("Root", """
+            shader Root : SpriteBase, A.Foo, B.Foo
+            {
+                module override float4 Shading() { return GetA(streams.TexCoord) + GetB(streams.TexCoord); }
+            };
+            """);
+
+        var bytecode = Compile("Root", platform);
         var textures = bytecode.Reflection.ResourceBindings.Where(x => x.Class == EffectParameterClass.ShaderResourceView).ToList();
-        Assert.True(textures.Select(x => x.KeyInfo.KeyName).Distinct().Count() == 2, string.Join(", ", textures.Select(x => $"{x.KeyInfo.KeyName} {x.RawName} {x.Stage}")));
+        Assert.Equal(["Shared.Tex"], textures.Select(x => x.KeyInfo.KeyName).Distinct());
+        Assert.Equal(2, textures.Select(x => x.RawName).Distinct().Count());
     }
 
     [Theory]
@@ -113,7 +158,6 @@ public class SameShortNameTests : IDisposable
         Compile("Root", platform);
     }
 
-    // Their keys have one name, as for two classes of one name before: both bind the same value, and the code is still valid
     [Theory]
     [MemberData(nameof(Platforms))]
     public void TwoClassesOfOneShortNameAtTheRootWithOneMemberName(GraphicsPlatform platform)
@@ -131,9 +175,12 @@ public class SameShortNameTests : IDisposable
 
         var bytecode = Compile("Root", platform);
         var textures = bytecode.Reflection.ResourceBindings.Where(x => x.Class == EffectParameterClass.ShaderResourceView).ToList();
+        Assert.Equal(["A.Foo.Tex", "B.Foo.Tex"], textures.Select(x => x.KeyInfo.KeyName).Distinct().Order());
         // Direct3D 11 lists a resource once more per stage
         Assert.True(textures.Select(x => x.RawName).Distinct().Count() == 2 && textures.Select(x => x.SlotStart).Distinct().Count() == 2,
             string.Join(", ", textures.Select(x => $"{x.KeyInfo.KeyName} {x.RawName} {x.SlotStart} {x.Stage}")));
+        var values = bytecode.Reflection.ConstantBuffers.SelectMany(x => x.Members).Select(x => x.KeyInfo.KeyName).Where(x => x.EndsWith(".Value", StringComparison.Ordinal)).Order();
+        Assert.Equal(["A.Foo.Value", "B.Foo.Value"], values);
     }
 
     [Theory]

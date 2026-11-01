@@ -9,16 +9,16 @@ namespace Stride.Rendering.Voxels
         import VoxelPositionStream;
         import DataPacking;
 
-        [Link("BufferToTexture.VoxelFragments")]
+        [Link("Stride.Rendering.Voxels.BufferToTexture.VoxelFragments")]
         module RWBuffer<uint> VoxelFragments;
 
-        [Link("BufferToTexture.clipMapResolution")]
+        [Link("Stride.Rendering.Voxels.BufferToTexture.clipMapResolution")]
         module float3 clipMapResolution;
 
-        [Link("BufferToTexture.storageUints")]
+        [Link("Stride.Rendering.Voxels.BufferToTexture.storageUints")]
         module float storageUints;
 
-        [Link("BufferToTexture.clipOffset")]
+        [Link("Stride.Rendering.Voxels.BufferToTexture.clipOffset")]
         module uint clipOffset;
 
         
