@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), 'Directory.Build.props'))/sdk/Stride.Build.Sdk.Tests/Sdk/Sdk.props" />
   <PropertyGroup>
     <TargetFramework>$(StrideXplatEditorTargetFramework)</TargetFramework>
@@ -54,6 +54,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Compile Include="..\..\engine\Stride.Rendering\Rendering\ShaderImplicitUsings.cs" Link="ShaderImplicitUsings.cs" />
     <StrideShaderFiles Include="..\assets\SDSL\Common\**" LinkBase="assets\SDSL\Common\" />
     <Content Include="..\assets\SDSL\Common\**" CopyToOutputDirectory="PreserveNewest" LinkBase="assets\SDSL\Common\" />
     <StrideShaderFiles Include="..\assets\SDSL\CompilerTests\**" LinkBase="assets\SDSL\CompilerTests\" />

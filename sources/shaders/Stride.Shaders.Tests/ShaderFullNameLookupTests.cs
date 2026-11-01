@@ -2,7 +2,9 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using Stride.Core.IO;
+using Stride.Rendering;
 using Stride.Shaders.Compilers;
+using Stride.Shaders.Parsers.Tests.Corpus;
 using Stride.Shaders.Parsing;
 
 namespace Stride.Shaders.Parsers.Tests;
@@ -116,6 +118,19 @@ public class ShaderFullNameLookupTests : IDisposable
 
         Assert.Equal(["A.B.Twice", "Twice", "X.Twice"], Manager().FindFullNames("Twice").Order());
         Assert.Empty(Manager().FindFullNames("Nothing"));
+    }
+
+    // A short name found through the implicit usings is unambiguous as long as this holds
+    [Fact]
+    public void NoTwoEngineClassesInTheImplicitNamespacesShareAShortName()
+    {
+        var implicitClasses = ShaderCorpus.EngineShaderClasses().Values
+            .SelectMany(path => ShaderFileDeclarations.Read(File.ReadAllText(Path.Combine(ShaderCorpus.RepositoryRoot, path))))
+            .Where(x => !x.IsEffect && x.Namespace != null && ShaderImplicitUsings.List.Contains(x.Namespace))
+            .Select(x => x.FullName)
+            .Distinct();
+
+        Assert.Empty(implicitClasses.GroupBy(ShaderNames.ShortName).Where(x => x.Count() > 1).Select(x => string.Join(", ", x)));
     }
 
     [Fact]

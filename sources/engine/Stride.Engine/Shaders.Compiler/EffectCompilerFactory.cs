@@ -40,6 +40,7 @@ namespace Stride.Shaders.Compiler
                 compiler = new EffectCompiler(fileProvider)
                 {
                     SourceDirectories = { EffectCompilerBase.DefaultSourceShaderFolder },
+                    ImplicitUsings = ShaderImplicitUsings.List,
                 };
             }
 

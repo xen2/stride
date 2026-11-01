@@ -132,6 +132,11 @@ public interface IExternalShaderLoader
     public bool Exists(string name);
 
     /// <summary>
+    /// The namespaces every class sees without a <c>using</c>.
+    /// </summary>
+    public IReadOnlyList<string> ImplicitUsings { get; }
+
+    /// <summary>
     /// The full names of the classes with this short name, for the message of an error: it can be slow, and a remote source has no list to search.
     /// </summary>
     public IReadOnlyList<string> FindFullNames(string shortName);
