@@ -254,15 +254,15 @@ namespace Stride.Shaders.Compilers
                 foreach (var directory in LookupDirectoryList)
                 {
                     // Under its full name
+                    var shortName = ShaderNames.ShortName(type);
                     var testPath = FilePath(directory, type);
-                    if (FileExists(testPath))
+                    if (FileExists(testPath) && (shortName != type || ShaderFileDeclarations.Holds(ReadText(testPath), shortName, type)))
                     {
                         path = testPath;
                         break;
                     }
 
                     // A source directory holds C.sdsl for the class A.B.C
-                    var shortName = ShaderNames.ShortName(type);
                     testPath = FilePath(directory, shortName);
                     if (shortName != type && FileExists(testPath) && ShaderFileDeclarations.Holds(ReadText(testPath), shortName, type))
                     {

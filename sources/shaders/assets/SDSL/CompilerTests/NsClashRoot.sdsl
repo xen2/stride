@@ -1,5 +1,4 @@
-// Names NsClashed, of which there are two, with a using for the namespace of the first: which
-// one this gets is what the test documents.
+// Names NsClashed, of which there are two, with a using for the namespace of the first.
 using Stride.Shaders.Parsers.Tests;
 
 namespace Stride.Shaders.Tests;

@@ -22,10 +22,10 @@ internal static class DefinitionChecks
     public static void CheckOverride(SymbolTable table, Identifier name, FunctionType type, bool isModule)
     {
         var inherited = table.InheritedShaders
-            .SelectMany(x => x.Symbol!.Methods.Select(m => (Owner: x.Symbol!.Name, m.Symbol, m.Flags)))
+            .SelectMany(x => x.Symbol!.Methods.Select(m => (Owner: x.Symbol!.ShortName, m.Symbol, m.Flags)))
             .Where(x => x.Symbol.Id.Name == name.Name)
             .ToList();
-        var shaderName = table.CurrentShader!.Name;
+        var shaderName = table.CurrentShader!.ShortName;
         var sameSignature = inherited.Where(x => x.Symbol.Type is FunctionType inheritedType && inheritedType == type).ToList();
         if (inherited.Count == 0)
             table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0200, shaderName, name.Name)));
@@ -54,9 +54,9 @@ internal static class DefinitionChecks
             .Where(m => m.Symbol.Id.Name == call.Name.Name && m.Symbol.Type is FunctionType inheritedType && inheritedType == type)
             .ToList();
         if (inherited.Count == 0)
-            table.AddWarning(new(call.Info, string.Format(SDSLErrorMessages.SDSL0201, table.CurrentShader.Name, call.Name.Name)));
+            table.AddWarning(new(call.Info, string.Format(SDSLErrorMessages.SDSL0201, table.CurrentShader.ShortName, call.Name.Name)));
         else if (ChecksModuleRules(table) && table.CurrentMethod is { IsStaged: false } caller && inherited.All(x => (x.Flags & FunctionFlagsMask.Stage) != 0))
-            table.AddWarning(new(call.Info, string.Format(SDSLErrorMessages.SDSL0208, table.CurrentShader.Name, call.Name.Name, caller.Name.Name)));
+            table.AddWarning(new(call.Info, string.Format(SDSLErrorMessages.SDSL0208, table.CurrentShader.ShortName, call.Name.Name, caller.Name.Name)));
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ internal static class DefinitionChecks
             return;
         if (identifier.Name == "streams" && table.CurrentShaderFlags.HasFlag(ShaderFlagsMask.Pure))
         {
-            table.AddWarning(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0209, table.CurrentShader!.Name, $"reads streams in {method.Name.Name}()")));
+            table.AddWarning(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0209, table.CurrentShader!.ShortName, $"reads streams in {method.Name.Name}()")));
             return;
         }
         if (symbol == null || !method.IsStaged || !ChecksModuleRules(table)
@@ -84,7 +84,7 @@ internal static class DefinitionChecks
             || !TryGetMemberFlags(owner, symbol, out var flags)
             || (flags & (VariableFlagsMask.Stage | VariableFlagsMask.Stream)) != 0)
             return;
-        table.AddWarning(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0204, table.CurrentShader!.Name, method.Name.Name, identifier.Name, owner.Name)));
+        table.AddWarning(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0204, table.CurrentShader!.ShortName, method.Name.Name, identifier.Name, owner.ShortName)));
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ internal static class DefinitionChecks
         // Through the class itself: implicit this, `this.` or `base.` (a static reference or a composition has another base type)
         var throughThis = call.MemberCallBaseType is null or ShaderMixinType;
         if (throughThis && method.IsStaged && !function.Id.IsStage && ChecksModuleRules(table))
-            table.AddWarning(new(call.Info, string.Format(SDSLErrorMessages.SDSL0205, table.CurrentShader!.Name, method.Name.Name, call.Name.Name, owner.Name)));
+            table.AddWarning(new(call.Info, string.Format(SDSLErrorMessages.SDSL0205, table.CurrentShader!.ShortName, method.Name.Name, call.Name.Name, owner.ShortName)));
     }
 
     /// <summary>
@@ -116,7 +116,7 @@ internal static class DefinitionChecks
     public static void CheckStaticReference(SymbolTable table, TextLocation location, ShaderClassInstantiation reference)
     {
         if (table.CurrentShaderFlags.HasFlag(ShaderFlagsMask.Pure) && !reference.IsPure)
-            table.AddWarning(new(location, string.Format(SDSLErrorMessages.SDSL0210, table.CurrentShader!.Name, reference.ClassName)));
+            table.AddWarning(new(location, string.Format(SDSLErrorMessages.SDSL0210, table.CurrentShader!.ShortName, ShaderNames.ShortNameWithGenerics(reference.ClassName))));
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ internal static class DefinitionChecks
     public static void CheckPixelShaderOnly(SymbolTable table, TextLocation location, string what)
     {
         if (table.CurrentShaderFlags.HasFlag(ShaderFlagsMask.Pure) && table.CurrentMethod is { } method)
-            table.AddWarning(new(location, string.Format(SDSLErrorMessages.SDSL0213, table.CurrentShader!.Name, what, method.Name.Name)));
+            table.AddWarning(new(location, string.Format(SDSLErrorMessages.SDSL0213, table.CurrentShader!.ShortName, what, method.Name.Name)));
     }
 
     /// <summary>
@@ -146,7 +146,7 @@ internal static class DefinitionChecks
         foreach (var parent in directParents)
         {
             if (parent.IsModule && !parent.IsPure)
-                table.AddWarning(new(shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0210, shaderClass.Name.Name, parent.ClassName)));
+                table.AddWarning(new(shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0210, shaderClass.Name.Name, ShaderNames.ShortNameWithGenerics(parent.ClassName))));
         }
         foreach (var element in shaderClass.Elements)
         {
@@ -229,9 +229,9 @@ internal static class DefinitionChecks
     /// More generic values than parameters for a parent: the extra ones are ignored (SDSL0202). Too few is an error (SDSL0117)
     /// when the parent is loaded.
     /// </summary>
-    public static void CheckParentGenericArgumentCount(SymbolTable table, IdentifierBase parent, int given)
+    public static void CheckParentGenericArgumentCount(SymbolTable table, IdentifierBase parent, string parentFullName, int given)
     {
-        if (!table.ShaderLoader.LoadExternalBuffer(parent.Name, CollectionsMarshal.AsSpan(table.CurrentMacros), out var buffer, out _, out _))
+        if (!table.ShaderLoader.LoadExternalBuffer(parentFullName, CollectionsMarshal.AsSpan(table.CurrentMacros), out var buffer, out _, out _))
             return;
         var parameters = Spirv.Building.SpirvBuilder.GetGenericParameterNames(buffer.Context);
         if (given > parameters.Count)

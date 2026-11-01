@@ -4,8 +4,13 @@
 using System;
 using System.Linq;
 using Stride.Shaders.Compilers.SDSL;
+using Stride.Shaders.Core;
 using Stride.Shaders.Parsing;
+using Stride.Shaders.Parsing.Analysis;
 using Stride.Shaders.Parsing.SDSL.AST;
+using Stride.Shaders.Spirv;
+using Stride.Shaders.Spirv.Building;
+using Stride.Shaders.Spirv.Core;
 using Stride.Shaders.Spirv.Core.Buffers;
 using Stride.Shaders.Spirv.Tools;
 using Spv = Stride.Shaders.Spirv.Tools.Spv;
@@ -14,13 +19,218 @@ using Xunit;
 namespace Stride.Shaders.Parsers.Tests;
 
 /// <summary>
-/// What namespaces and <c>using</c> directives do in SDSL today: a class is resolved by its name
-/// alone, one file per class, so a using takes no part in resolution and two classes of one name
-/// in different namespaces cannot both be reached. These tests pin that down, so that a change
-/// to it is a decision rather than an accident.
+/// Namespaces and <c>using</c> in SDSL, as in C#: the identity of a class is its full name, and a short name is looked up from
+/// where it is written.
 /// </summary>
-public class NamespaceTests
+public class NamespaceTests : IDisposable
 {
+    private readonly DirectoryInfo sourceDir = Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, $"namespace-src-{Guid.NewGuid():N}"));
+
+    public void Dispose()
+    {
+        sourceDir.Delete(recursive: true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Write(string name, string code) => File.WriteAllText(Path.Combine(sourceDir.FullName, $"{name}.sdsl"), code);
+
+    private ShaderLoader Loader(params string[] implicitUsings) => new(sourceDir.FullName, "./assets/Stride/SDSL", "./assets/SDSL/CompilerTests") { ImplicitUsings = implicitUsings };
+
+    // What the class compiled from code named by a short name resolved it to
+    private static List<string> Imported(ShaderBuffers buffer)
+    {
+        var imported = new List<string>();
+        foreach (var i in buffer.Context)
+        {
+            if (i.Op == Specification.Op.OpImportShaderSDSL)
+                imported.Add(((OpImportShaderSDSL)i).ShaderName);
+        }
+        return imported;
+    }
+
+    private static string ClassName(ShaderBuffers buffer)
+    {
+        foreach (var i in buffer.Buffer)
+        {
+            if (i.Op == Specification.Op.OpShaderSDSL)
+                return ((OpShaderSDSL)i).ShaderName;
+        }
+        return "";
+    }
+
+    // Every Target of a test is in this file, so that it has one file name
+    private void WriteTargets(params string[] namespaces)
+    {
+        Write("Target", string.Concat(namespaces.Select(x => x == "" ? "shader Target { };\n" : $"namespace {x} {{ shader Target {{ }}; }}\n")));
+    }
+
+    [Fact]
+    public void TheIdentityOfAClassIsItsFullName()
+    {
+        Write("Inside", "namespace A.B; shader Inside { };");
+        Write("Outside", "shader Outside { };");
+
+        var loader = Loader();
+        Assert.True(loader.LoadExternalBuffer("A.B.Inside", [], out var inside, out _, out _));
+        Assert.Equal("A.B.Inside", ClassName(inside));
+        Assert.True(loader.LoadExternalBuffer("Outside", [], out var outside, out _, out _));
+        Assert.Equal("Outside", ClassName(outside));
+    }
+
+    public static IEnumerable<object[]> LookupOrder()
+    {
+        // Each case: the class's scope, the Targets that exist, the implicit using, the one it finds
+        yield return ["namespace A.B { using Z; using F; shader Root : Target { }; }", new[] { "A.B", "Z", "A", "" }, "A.B.Target"];
+        yield return ["namespace A.B { using Z; shader Root : Target { }; }", new[] { "Z", "A", "" }, "Z.Target"];
+        yield return ["namespace A.B { shader Root : Target { }; }", new[] { "A", "" }, "A.Target"];
+        yield return ["namespace A.B { shader Root : Target { }; }", new[] { "", "A.B.C" }, "Target"];
+        yield return ["using F; shader Root : Target { };", new[] { "", "F" }, "Target"];
+        yield return ["using F; namespace A { shader Root : Target { }; }", new[] { "", "F" }, "Target"];
+        yield return ["using F; namespace A { shader Root : Target { }; }", new[] { "F" }, "F.Target"];
+        yield return ["namespace A { shader Root : Target { }; }", new[] { "Implicit" }, "Implicit.Target"];
+        yield return ["using F; shader Root : Target { };", new[] { "Implicit", "" }, "Target"];
+        // A using inside a namespace comes before the parents; one at the root comes after the global namespace
+        yield return ["using F; namespace A.B { using Z; shader Root : Target { }; }", new[] { "F", "Z" }, "Z.Target"];
+    }
+
+    [Theory]
+    [MemberData(nameof(LookupOrder))]
+    public void AShortNameIsLookedUpClosestFirst(string root, string[] targets, string expected)
+    {
+        WriteTargets(targets);
+        Write("Root", root);
+
+        var loader = Loader("Implicit");
+        Assert.True(loader.LoadExternalBuffer(root.Contains("namespace A.B") ? "A.B.Root" : root.Contains("namespace A") ? "A.Root" : "Root", [], out var buffer, out _, out _));
+        Assert.Contains(expected, Imported(buffer));
+    }
+
+    [Theory]
+    [InlineData("using F; using G; shader Root : Target { };", "F", "G")]
+    [InlineData("using F; shader Root : Target { };", "F", "Implicit")]
+    [InlineData("namespace A { using F; using G; shader Root : Target { }; }", "F", "G")]
+    public void TwoMatchesAtOneLevelAreAnError(string root, string first, string second)
+    {
+        WriteTargets(first, second);
+        Write("Root", root);
+
+        var error = Assert.Throws<InvalidOperationException>(() => Loader("Implicit").LoadExternalBuffer(root.Contains("namespace A") ? "A.Root" : "Root", [], out _, out _, out _));
+        Assert.Contains("SDSL0300: Target is ambiguous", error.Message);
+        Assert.Contains($"{first}.Target", error.Message);
+        Assert.Contains($"{second}.Target", error.Message);
+    }
+
+    [Fact]
+    public void AFullNameEndsAnAmbiguity()
+    {
+        WriteTargets("F", "G");
+        Write("Root", "using F; using G; shader Root : G.Target { };");
+
+        Assert.True(Loader().LoadExternalBuffer("Root", [], out var buffer, out _, out _));
+        Assert.Contains("G.Target", Imported(buffer));
+    }
+
+    [Fact]
+    public void ADottedNameIsLookedUpFromTheNamespaceAndItsParents()
+    {
+        WriteTargets("A.B");
+        Write("Root", "namespace A.C { shader Root : B.Target { }; }");
+
+        Assert.True(Loader().LoadExternalBuffer("A.C.Root", [], out var buffer, out _, out _));
+        Assert.Contains("A.B.Target", Imported(buffer));
+    }
+
+    [Fact]
+    public void AUsingBringsNoNestedNamespace()
+    {
+        // The search in every namespace of the transition still finds it: this is about the scope only
+        var scope = new ShaderNameScope(null, [], ["A"]);
+        Assert.Null(scope.Resolve("B.Target", [], x => x == "A.B.Target", out _));
+        Assert.Equal("A.Target", scope.Resolve("Target", [], x => x == "A.Target", out _));
+    }
+
+    [Fact]
+    public void AnImportAndACompositionAreLookedUpToo()
+    {
+        Write("Util", "namespace A.B; [Pure] module Util { static const float Value = 2; float Twice(float x) { return x * 2; } };");
+        Write("Color", "namespace A.B; shader Color { float Get() { return 1; } };");
+        Write("Root", """
+            using A.B;
+            namespace Other;
+            shader Root
+            {
+                import Util;
+                compose Color color;
+                compose A.B.Color colors[];
+                float Get() { return Twice(color.Get()) + Util.Value + A.B.Util.Value + A.B.Util.Twice(1); }
+            };
+            """);
+
+        Assert.True(Loader().LoadExternalBuffer("Other.Root", [], out var buffer, out _, out _));
+        Assert.Contains("A.B.Util", Imported(buffer));
+        Assert.Contains("A.B.Color", Imported(buffer));
+    }
+
+    // A member comes before a namespace of that name
+    [Fact]
+    public void AMemberComesBeforeANamespace()
+    {
+        WriteTargets("Light");
+        Write("Root", """
+            shader Root
+            {
+                float4 Light[2];
+                float Get() { return Light[1].x; }
+                float GetTarget() { float Target = 1; return Target; }
+            };
+            """);
+
+        Assert.True(Loader().LoadExternalBuffer("Root", [], out _, out _, out _));
+    }
+
+    // A class with MemberName parameters compiles again from its own code, with its scope
+    [Fact]
+    public void AClassCompiledAgainKeepsItsScope()
+    {
+        Write("Sibling", "namespace A; shader Sibling : ComposeSharedBase { float Value; };");
+        Write("Member", """
+            using F;
+            namespace A
+            {
+                using G;
+                shader Member<MemberName Field> : Sibling, Helper
+                {
+                    override void Compute() { Out[0] = Field + Helped(); }
+                    RWBuffer<float> Out;
+                };
+            }
+            """);
+        Write("Helper", "namespace G; shader Helper { float Helped() { return 1; } };");
+
+        var mixer = new ShaderMixer(Loader());
+        var log = new Stride.Core.Diagnostics.LoggerResult();
+        var ok = mixer.MergeSDSL(new ShaderClassSource("A.Member", "Value"), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+        Assert.True(ok, string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
+    }
+
+    // Two owners with one short name own different structs: what one adds isn't in the other
+    [Fact]
+    public void PartialStructsOfTwoOwnersWithOneShortNameDontMerge()
+    {
+        Write("Owner", """
+            namespace A { shader Owner { partial struct S { float a; }; S First() { S s; s.a = 1; return s; } }; }
+            namespace B { shader Owner { partial struct S { float b; }; S Second() { S s; s.b = 2; return s; } }; }
+            """);
+
+        var loader = Loader();
+        Assert.True(loader.LoadExternalBuffer("A.Owner", [], out var a, out _, out _));
+        Assert.True(loader.LoadExternalBuffer("B.Owner", [], out var b, out _, out _));
+        Assert.Equal("A.Owner", ClassName(a));
+        Assert.Equal("B.Owner", ClassName(b));
+        Assert.Equal("A.Owner", a.Context.ReverseTypes.Values.OfType<StructType>().Single(x => x.Name == "S").PartialOwner);
+        Assert.Equal("B.Owner", b.Context.ReverseTypes.Values.OfType<StructType>().Single(x => x.Name == "S").PartialOwner);
+    }
+
     private static (bool ok, string log, string disassembly) Compile(string root, params string[] files)
     {
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
@@ -44,8 +254,7 @@ public class NamespaceTests
         Assert.Contains("NsUtils.One", disassembly);
     }
 
-    // A `using` of a namespace nothing declares is not an error: the directive takes no part in
-    // resolution, so there is nothing for it to fail to find.
+    // A `using` of a namespace nothing declares is not an error: it can be a C# namespace of the generated code
     [Fact]
     public void UsingOfAnUnknownNamespaceIsIgnored()
     {
@@ -136,20 +345,17 @@ public class NamespaceTests
         Assert.NotEmpty(SDSLParser.Parse(code).Errors);
     }
 
-    // Two classes of one name in two namespaces of one file: resolution is by name alone, so the
-    // `using` - which names the first one's namespace - does not pick between them, and the last
-    // declaration in the file is the one mixed in. Documents what happens today, so a compiler
-    // that one day honours namespaces has to change this test knowingly.
+    // Two classes of one name in two namespaces of one file: the `using` picks the first
     [Fact]
-    public void SameNameInTwoNamespacesIsNotDisambiguatedByUsing()
+    public void SameNameInTwoNamespacesIsDisambiguatedByUsing()
     {
         var (ok, log, disassembly) = Compile("NsClashRoot", "ComposeSharedBase", "NsClashed", "NsClashRoot");
         Assert.True(ok, log);
         // One NsClashed.Which is mixed in, not two.
         Assert.Equal(1, disassembly.Split("OpName").Count(s => s.Contains("NsClashed.Which")));
-        // And it is the second one - Which() returning 2 - despite the using naming the first's namespace.
+        // And it is the first one: Which() returns 1.
         var constants = System.Text.RegularExpressions.Regex.Matches(disassembly, @"OpConstant %\S+ (\d+)").Select(m => m.Groups[1].Value).ToList();
-        Assert.Contains("2", constants);
-        Assert.DoesNotContain("1", constants);
+        Assert.Contains("1", constants);
+        Assert.DoesNotContain("2", constants);
     }
 }

@@ -74,7 +74,7 @@ public partial class ShaderMixer
                 return;
             if (path.FindIndex(x => x.Struct.Equals(structType)) is var start and not -1)
             {
-                var chain = string.Join(" -> ", path.Skip(start).Select(x => x.Declarer != null ? $"{x.Struct.Name}.{x.Field} ({x.Declarer})" : $"{x.Struct.Name}.{x.Field}").Append(structType.Name));
+                var chain = string.Join(" -> ", path.Skip(start).Select(x => x.Declarer != null ? $"{x.Struct.Name}.{x.Field} ({ShaderNames.ShortName(x.Declarer)})" : $"{x.Struct.Name}.{x.Field}").Append(structType.Name));
                 throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0128, structType.Name, chain));
             }
 
@@ -134,7 +134,7 @@ public partial class ShaderMixer
                             layout.Fields.Add((member.Name, member.Type, member.TypeModifier, declarer));
                         // Two parts that never meet in one class: found when they meet in the effect
                         else if (layout.Fields[existing].Declarer != declarer || !layout.Fields[existing].Type.Equals(member.Type))
-                            throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0120, view.Name, member.Name, layout.Fields[existing].Declarer, declarer));
+                            throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0120, view.Name, member.Name, ShaderNames.ShortName(layout.Fields[existing].Declarer), ShaderNames.ShortName(declarer)));
                     }
                 }
             }
@@ -287,9 +287,9 @@ public partial class ShaderMixer
         var layouts = globalContext.PartialStructs;
         foreach (var layout in layouts.Values.OrderBy(x => x.Name, StringComparer.Ordinal))
         {
-            builder.AppendLine($"partial struct {layout.Name} (owner {layout.Owner}): {layout.Fields.Count} fields, {SizeInBytes(layout)} bytes");
+            builder.AppendLine($"partial struct {layout.Name} (owner {ShaderNames.ShortName(layout.Owner)}): {layout.Fields.Count} fields, {SizeInBytes(layout)} bytes");
             foreach (var field in layout.Fields)
-                builder.AppendLine($"  field {layout.Name}.{field.Name} : {field.Type} ({field.Declarer})");
+                builder.AppendLine($"  field {layout.Name}.{field.Name} : {field.Type} ({ShaderNames.ShortName(field.Declarer)})");
         }
 
         int SizeInBytes(PartialStructLayout layout) => layout.Fields.Sum(x => FieldSizeInBytes(x.Type));

@@ -450,7 +450,7 @@ public sealed partial class CBuffer(string name, TextLocation info) : ShaderBuff
     /// </summary>
     private void CheckPushConstant(SymbolTable table)
     {
-        var shaderName = table.CurrentShader!.Name;
+        var shaderName = table.CurrentShader!.ShortName;
         foreach (var member in Members)
         {
             if (!IsPushConstantMemberType(member.Type))
