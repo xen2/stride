@@ -235,7 +235,7 @@ public class MaterialTransparencyTests : GameTestBase
             meshRenderFeature.RenderStageSelectors.Add(new MeshTransparentRenderStageSelector
             {
                 OpaqueRenderStage = stage,
-                EffectName = "StrideForwardShadingEffectVXGI.VoxelizeToFragmentsEffect",
+                EffectName = "Stride.Rendering.Voxels.StrideForwardShadingEffectVXGI.VoxelizeToFragmentsEffect",
             });
         }
         meshRenderFeature.PipelineProcessors.Add(new VoxelPipelineProcessor { VoxelRenderStage = [.. voxelStages] });

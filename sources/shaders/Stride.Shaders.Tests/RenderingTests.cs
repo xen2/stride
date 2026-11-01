@@ -60,9 +60,9 @@ public partial class RenderingTests
     private static readonly Lazy<byte[]> quadVsSpirv = new(() =>
     {
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/Common"));
-        shaderMixer.ShaderLoader.LoadExternalBuffer("QuadVS", [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("QuadVS"), [], out _, out _, out _);
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        if (!shaderMixer.MergeSDSL(new ShaderClassSource("QuadVS"), GetMixerOptions(RendererBackend.Vulkan), log, out var bytecode, out _, out _, out _))
+        if (!shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("QuadVS")), GetMixerOptions(RendererBackend.Vulkan), log, out var bytecode, out _, out _, out _))
             throw new InvalidOperationException(string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
         return bytecode.ToArray();
     });
@@ -75,13 +75,13 @@ public partial class RenderingTests
 
         // Compiler shader
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/ComputeTests"));
-        var shaderSource = ShaderMixinManager.Contains(shaderName)
-            ? new ShaderMixinGeneratorSource(shaderName)
-            : (ShaderSource)new ShaderClassSource(shaderName);
+        var shaderSource = ShaderMixinManager.Contains(TestShader.FullName(shaderName))
+            ? new ShaderMixinGeneratorSource(TestShader.FullName(shaderName))
+            : (ShaderSource)new ShaderClassSource(TestShader.FullName(shaderName));
 
         // Force file to be parsed and all its shaders registered
         // (since there are multiple shader/effects in a simple file, simply using the effect would not go through normal load and it wouldn't know about the shaders in the file)
-        shaderMixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
         shaderMixer.MergeSDSL(shaderSource, GetMixerOptions(backend), log, out var bytecode, out var effectReflection, out _, out _);
@@ -153,10 +153,10 @@ public partial class RenderingTests
         // ShaderCompiler.UpdateReflection.
         const string shaderName2 = "CSCBufferRename";
         var shaderMixer2 = new ShaderMixer(new ShaderLoader("./assets/SDSL/ComputeTests"));
-        shaderMixer2.ShaderLoader.LoadExternalBuffer(shaderName2, [], out _, out _, out _);
+        shaderMixer2.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName2), [], out _, out _, out _);
 
         var log2 = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer2.MergeSDSL(new ShaderClassSource(shaderName2), new ShaderMixer.Options(true), log2, out var bytecode2, out _, out _, out _),
+        Assert.True(shaderMixer2.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName2)), new ShaderMixer.Options(true), log2, out var bytecode2, out _, out _, out _),
             string.Join(Environment.NewLine, log2.Messages.Select(m => m.Text)));
 
         File.WriteAllBytes($"{shaderName2}.spv", bytecode2);
@@ -180,10 +180,10 @@ public partial class RenderingTests
         // SPIR-V validation rejects the type mismatch.
         const string shaderName3 = "CSConstArrayInfer";
         var shaderMixer3 = new ShaderMixer(new ShaderLoader("./assets/SDSL/ComputeTests"));
-        shaderMixer3.ShaderLoader.LoadExternalBuffer(shaderName3, [], out _, out _, out _);
+        shaderMixer3.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName3), [], out _, out _, out _);
 
         var log3 = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer3.MergeSDSL(new ShaderClassSource(shaderName3), new ShaderMixer.Options(true), log3, out var bytecode3, out _, out _, out _),
+        Assert.True(shaderMixer3.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName3)), new ShaderMixer.Options(true), log3, out var bytecode3, out _, out _, out _),
             string.Join(Environment.NewLine, log3.Messages.Select(m => m.Text)));
 
         File.WriteAllBytes($"{shaderName3}.spv", bytecode3);
@@ -197,10 +197,10 @@ public partial class RenderingTests
         // StreamOutTest1 only counts primitives, so this reads the interface
         const string shaderName = "StreamGSConditionalWrite";
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/StreamOutTests"));
-        shaderMixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(shaderName), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var code = Spv.Dis(SpirvBytecode.CreateFromSpan(bytecode), DisassemblerFlags.Name, true);
@@ -217,10 +217,10 @@ public partial class RenderingTests
         // inlined and removed (LegalizeForHlsl, the Direct3D 11 path).
         const string shaderName = "HelperParameterSemantic";
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/RenderTests"));
-        shaderMixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(shaderName), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         // Every member decoration targets a struct type
@@ -251,10 +251,10 @@ public partial class RenderingTests
         // decorations to survive ShaderMixer / type-duplicate elimination.
         const string shaderName = "CSStructuredBuffer";
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/ComputeTests"));
-        shaderMixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(shaderName), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         File.WriteAllBytes($"{shaderName}.spv", bytecode);
@@ -278,13 +278,13 @@ public partial class RenderingTests
 
         // Compiler shader
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/RenderTests"));
-        var shaderSource = ShaderMixinManager.Contains(shaderName)
-            ? new ShaderMixinGeneratorSource(shaderName)
-            : (ShaderSource)new ShaderClassSource(shaderName);
+        var shaderSource = ShaderMixinManager.Contains(TestShader.FullName(shaderName))
+            ? new ShaderMixinGeneratorSource(TestShader.FullName(shaderName))
+            : (ShaderSource)new ShaderClassSource(TestShader.FullName(shaderName));
 
         // Force file to be parsed and all its shaders registered
         // (since there are multiple shader/effects in a simple file, simply using the effect would not go through normal load and it wouldn't know about the shaders in the file)
-        shaderMixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
         shaderMixer.MergeSDSL(shaderSource, GetMixerOptions(backend), log, out var bytecode, out var effectReflection, out _, out _);
@@ -371,11 +371,11 @@ public partial class RenderingTests
 
         // Compile shader
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/StreamOutTests"));
-        var shaderSource = ShaderMixinManager.Contains(shaderName)
-            ? new ShaderMixinGeneratorSource(shaderName)
-            : (ShaderSource)new ShaderClassSource(shaderName);
+        var shaderSource = ShaderMixinManager.Contains(TestShader.FullName(shaderName))
+            ? new ShaderMixinGeneratorSource(TestShader.FullName(shaderName))
+            : (ShaderSource)new ShaderClassSource(TestShader.FullName(shaderName));
 
-        shaderMixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
         shaderMixer.MergeSDSL(shaderSource, new ShaderMixer.Options(true), log, out var bytecode, out var effectReflection, out _, out _);

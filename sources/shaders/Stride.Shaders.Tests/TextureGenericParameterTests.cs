@@ -63,7 +63,7 @@ public class TextureGenericParameterTests : IDisposable
         File.WriteAllText(Path.Combine(sourceDir.FullName, $"{name}.sdsl"), code);
 
         var loader = new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL");
-        var source = new ShaderMixinSource { Mixins = { new ShaderClassSource(name, genericValue) } };
+        var source = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written(name), genericValue) } };
 
         var log = new LoggerResult();
         var ok = new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);

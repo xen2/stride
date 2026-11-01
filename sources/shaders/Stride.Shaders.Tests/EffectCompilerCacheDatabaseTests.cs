@@ -6,6 +6,7 @@ using Stride.Core.IO;
 using Stride.Core.Serialization.Contents;
 using Stride.Core.Storage;
 using Stride.Graphics;
+using Stride.Rendering;
 using Stride.Shaders.Compiler;
 
 namespace Stride.Shaders.Parsers.Tests;
@@ -32,7 +33,7 @@ public class EffectCompilerCacheDatabaseTests : IDisposable
         sourceProvider = new FileSystemProvider($"/cachetest-{Guid.NewGuid():N}", AppContext.BaseDirectory);
         objectDatabase = ObjectDatabase.CreateDefaultDatabase();
         databaseProvider = new DatabaseFileProviderService(null);
-        compiler = new EffectCompiler(sourceProvider);
+        compiler = new EffectCompiler(sourceProvider) { ImplicitUsings = ShaderImplicitUsings.List };
         compiler.SourceDirectories.Add(sourceDir.Name);
         compiler.SourceDirectories.Add("assets/Stride/SDSL");
         cache = new EffectCompilerCache(compiler, databaseProvider) { CurrentCache = EffectBytecodeCacheLoadSource.StartupCache };

@@ -27,7 +27,7 @@ public class BufferMethodTests
 
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/CompilerTests"));
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("CSStructuredBufferGetDimensions"), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("CSStructuredBufferGetDimensions")), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -46,7 +46,7 @@ public class BufferMethodTests
     {
         // Compile errors are thrown by the loader
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests", "./assets/Stride/SDSL");
-        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer("BufferLength", [], out _, out _, out _));
+        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer(TestShader.FullName("BufferLength"), [], out _, out _, out _));
 
         Assert.Contains("SDSL0150: StructuredBuffer<int> has no member 'Length'. To get the size of a buffer, call Indices.GetDimensions(out uint count, out uint stride).", exception.Message);
         Assert.Contains("SDSL0150: RWBuffer<float> has no member 'Count'. To get the size of a buffer, call Values.GetDimensions(out uint width).", exception.Message);

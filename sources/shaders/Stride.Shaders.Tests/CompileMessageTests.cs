@@ -109,7 +109,7 @@ public class CompileMessageTests : IDisposable
     private void Compile(string name, string code)
     {
         Write(name, code);
-        new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL").LoadExternalBuffer(name, [], out _, out _, out _);
+        new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL").LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _);
     }
 
     private string CompileError(string name, string code)

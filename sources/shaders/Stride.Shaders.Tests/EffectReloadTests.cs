@@ -39,7 +39,7 @@ public class EffectReloadTests : IDisposable
         sourceProvider = new FileSystemProvider($"/reloadtest-{Guid.NewGuid():N}", AppContext.BaseDirectory);
 
         database = new DatabaseFileProvider(ObjectDatabase.CreateDefaultDatabase());
-        compiler = new EffectCompiler(sourceProvider);
+        compiler = new EffectCompiler(sourceProvider) { ImplicitUsings = ShaderImplicitUsings.List };
         // Relative to the provider's base path: it resolves a url by appending it, mount point included.
         compiler.SourceDirectories.Add(sourceDir.Name);
         compiler.SourceDirectories.Add("assets/Stride/SDSL");
@@ -145,7 +145,7 @@ public class EffectReloadTests : IDisposable
         }
     }
 
-    // One shader, one id: however it is named while the literals of the engine are short names
+    // One shader, one id: a class alone or in a tree
     [Fact]
     public void AShaderHasOneEffectId()
     {
@@ -153,13 +153,11 @@ public class EffectReloadTests : IDisposable
         var ids = new EffectIds(compiler);
         var parameters = new CompilerParameters { EffectParameters = EffectCompilerParameters.Default with { Platform = GraphicsPlatform.Vulkan } };
 
-        ids.Compile(new ShaderClassSource(FullName), parameters);
-        ids.Compile(new ShaderClassSource(shaderName), parameters);
-        ids.Compile(new ShaderMixinSource { Name = FullName, Mixins = { new ShaderClassSource(FullName) } }, parameters);
+        ids.Compile(new ShaderClassSource(TestShader.FullName(FullName)), parameters);
+        ids.Compile(new ShaderMixinSource { Name = FullName, Mixins = { new ShaderClassSource(TestShader.FullName(FullName)) } }, parameters);
 
-        Assert.Equal(3, ids.Ids.Count);
+        Assert.Equal(2, ids.Ids.Count);
         Assert.Equal(ids.Ids[0], ids.Ids[1]);
-        Assert.Equal(ids.Ids[0], ids.Ids[2]);
     }
 
     [Fact]

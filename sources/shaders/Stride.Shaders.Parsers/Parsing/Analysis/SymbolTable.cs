@@ -91,12 +91,18 @@ public partial class SymbolTable : ISymbolProvider
         fullName = Scope.Resolve(name, ShaderLoader.ImplicitUsings, ShaderLoader.Exists, out var ambiguousWith);
         if (ambiguousWith != null)
             throw new StatementCompileException(new(location, string.Format(SDSLErrorMessages.SDSL0300, name, fullName, ambiguousWith)));
-        // TODO(A15): remove with ToFullName: a name out of scope is found in any namespace
-        if (fullName == null && ShaderLoader.ToFullName(name) is var anywhere && ShaderLoader.Exists(anywhere))
-            fullName = anywhere;
 
         resolvedClassNames.Add(name, fullName);
         return fullName;
+    }
+
+    /// <summary>
+    /// The end of the message of a class name that isn't in scope: the namespaces where a class of this name exists.
+    /// </summary>
+    public string DidYouMean(string name)
+    {
+        var found = ShaderLoader?.FindFullNames(ShaderNames.ShortName(name)) ?? [];
+        return found.Count == 0 ? "" : $" Did you mean {string.Join(" or ", found.Select(x => ShaderNames.Namespace(x) is { } @namespace ? $"`using {@namespace};`" : x))}?";
     }
 
     public SymbolTable(SpirvContext context, IExternalShaderLoader shaderLoader)

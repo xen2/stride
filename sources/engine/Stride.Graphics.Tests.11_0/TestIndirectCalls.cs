@@ -124,7 +124,7 @@ public class TestIndirectCalls : GraphicTestGameBase
         using var source = Buffer.Structured.New(game.GraphicsDevice, values);
         using var writer = new ComputeEffectShader(renderContext)
         {
-            ShaderSourceName = "IndirectArgumentsWriterTestShader",
+            ShaderSourceName = "Stride.Graphics.Tests.IndirectArgumentsWriterTestShader",
             ThreadNumbers = new Int3(values.Length, 1, 1),
         };
 
@@ -148,7 +148,7 @@ public class TestIndirectCalls : GraphicTestGameBase
         using var output = Buffer.Structured.New(game.GraphicsDevice, new uint[OutputSize], unorderedAccess: true);
         using var effect = new ComputeEffectShader(renderContext)
         {
-            ShaderSourceName = "IndirectDispatchTestShader",
+            ShaderSourceName = "Stride.Graphics.Tests.IndirectDispatchTestShader",
             IndirectArguments = arguments,
             IndirectArgumentsOffset = offset,
         };
@@ -174,7 +174,7 @@ public class TestIndirectCalls : GraphicTestGameBase
         // With start index 3 and base vertex 3, the draw reads vertices 3 to 5; from index 0 it reads a degenerate triangle
         using var indexBuffer = Buffer.Index.New(device, new ushort[] { 0, 0, 0, 0, 1, 2 });
 
-        var effect = new EffectInstance(game.EffectSystem.LoadEffect("IndirectDrawTestShader").WaitForResult());
+        var effect = new EffectInstance(game.EffectSystem.LoadEffect("Stride.Graphics.Tests.IndirectDrawTestShader").WaitForResult());
         effect.Parameters.Set(IndirectDrawTestShaderKeys.Color, InstanceColor);
         effect.UpdateEffect(device);
 

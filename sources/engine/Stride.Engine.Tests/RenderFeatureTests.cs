@@ -277,8 +277,8 @@ public class RenderFeatureTests : RenderFeatureTestBase
         {
             // What StrideEditorForwardShadingEffect mixes when SceneEditorParameters.IsEffectError is set (the editor's
             // effects are not in this package, its shaders are)
-            var errorEffect = new ShaderMixinSource { Name = "StrideEditorForwardShadingEffect" };
-            foreach (var shader in new[] { "ShaderBase", "ShadingBase", "TransformationBase", "TransformationWAndVP", "CompilationErrorShader" })
+            var errorEffect = new ShaderMixinSource { Name = "Stride.Rendering.StrideEditorForwardShadingEffect" };
+            foreach (var shader in new[] { "Stride.Rendering.ShaderBase", "Stride.Rendering.ShadingBase", "Stride.Rendering.TransformationBase", "Stride.Rendering.TransformationWAndVP", "Stride.Rendering.CompilationErrorShader" })
                 errorEffect.Mixins.Add(new ShaderClassSource(shader));
             var compilerParameters = new CompilerParameters();
             compilerParameters.EffectParameters.Platform = GraphicsDevice.Platform;
@@ -310,7 +310,7 @@ public class RenderFeatureTests : RenderFeatureTestBase
             {
                 OpaqueRenderStage = stage,
                 TransparentRenderStage = stage,
-                EffectName = "StrideForwardShadingEffectVXGI.VoxelizeToFragmentsEffect",
+                EffectName = "Stride.Rendering.Voxels.StrideForwardShadingEffectVXGI.VoxelizeToFragmentsEffect",
             });
         }
         meshRenderFeature.PipelineProcessors.Add(new VoxelPipelineProcessor { VoxelRenderStage = voxelStages });

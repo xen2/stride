@@ -76,12 +76,12 @@ public class Texture1DTests : IDisposable
     private byte[] Mix(string shaderName, bool vulkan)
     {
         var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName));
-        mixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        mixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
         var log = new LoggerResult();
         var options = vulkan
             ? new ShaderMixer.Options(ResourcesRegisterSeparate: false, StripGoogleUserType: true, Direct3DStructuredBufferLayout: true)
             : new ShaderMixer.Options(ResourcesRegisterSeparate: true);
-        Assert.True(mixer.MergeSDSL(new ShaderClassSource(shaderName), options, log, out var bytecode, out _, out _, out _),
+        Assert.True(mixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), options, log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
         var result = bytecode.ToArray();
         var validation = Spv.ValidateBinary(result, targetVulkan: vulkan);

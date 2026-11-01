@@ -1,3 +1,4 @@
+using Stride.Rendering;
 using Stride.Shaders.Compilers;
 using Stride.Shaders.Spirv.Building;
 using Stride.Shaders.Spirv.Tools;
@@ -7,8 +8,16 @@ using Spv = Stride.Shaders.Spirv.Tools.Spv;
 
 namespace Stride.Shaders.Parsers.Tests;
 
-class ShaderLoader(params string[] searchPaths) : SourceFileShaderLoader(new TestShaderCache())
+class ShaderLoader : SourceFileShaderLoader
 {
+    private readonly string[] searchPaths;
+
+    public ShaderLoader(params string[] searchPaths) : base(new TestShaderCache())
+    {
+        this.searchPaths = searchPaths;
+        ImplicitUsings = ShaderImplicitUsings.List;
+    }
+
     protected override bool TryReadSourceFile(string fileName, out string filename, out string code, out ObjectId hash)
     {
         foreach (var basePath in searchPaths)
