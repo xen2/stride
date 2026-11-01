@@ -17,7 +17,7 @@ UsedParameters:
                                     color2: !ShaderClassSource
                                         ClassName: ComputeColorTextureScaledOffsetDynamicSampler
                                         GenericArguments:
-                                            - Texturing.Texture0
+                                            - Stride.Rendering.Texturing.Texture0
                                             - TEXCOORD0
                                             - Material.Sampler.i0
                                             - rgba
