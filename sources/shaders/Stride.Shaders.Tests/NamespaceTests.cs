@@ -171,6 +171,33 @@ public class NamespaceTests : IDisposable
         Assert.Contains("A.B.Color", Imported(buffer));
     }
 
+    // A name out of scope in shader code says the using it needs
+    [Theory]
+    [InlineData("shader Root : Target { };")]
+    [InlineData("shader Root { import Target; };")]
+    [InlineData("shader Root { compose Target target; };")]
+    [InlineData("shader Root { Target target; };")]
+    [InlineData("shader Root { float Get() { return Target.Value; } };")]
+    public void ANameOutOfScopeSaysItsUsing(string root)
+    {
+        WriteTargets("F");
+        Write("Root", $"namespace A; {root}");
+
+        var error = Assert.Throws<InvalidOperationException>(() => Loader().LoadExternalBuffer("A.Root", [], out _, out _, out _));
+        Assert.Contains("Did you mean `using F;`?", error.Message);
+        Assert.DoesNotContain("SDSL0307", error.Message);
+    }
+
+    // A name out of scope in a string says the full name
+    [Fact]
+    public void AShortNameInAStringIsAnErrorThatSaysTheFullName()
+    {
+        WriteTargets("F");
+
+        var error = Assert.Throws<InvalidOperationException>(() => Loader().LoadExternalBuffer("Target", [], out _, out _, out _));
+        Assert.Contains("SDSL0307: no shader or effect is named Target. Did you mean F.Target?", error.Message);
+    }
+
     // A member comes before a namespace of that name
     [Fact]
     public void AMemberComesBeforeANamespace()
@@ -192,7 +219,7 @@ public class NamespaceTests : IDisposable
     [Fact]
     public void AClassCompiledAgainKeepsItsScope()
     {
-        Write("Sibling", "namespace A; shader Sibling : ComposeSharedBase { float Value; };");
+        Write("Sibling", "using Stride.Shaders.Tests; namespace A; shader Sibling : ComposeSharedBase { float Value; };");
         Write("Member", """
             using F;
             namespace A
@@ -236,10 +263,10 @@ public class NamespaceTests : IDisposable
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
         var mixer = new ShaderMixer(loader);
         foreach (var name in files)
-            mixer.ShaderLoader.LoadExternalBuffer(name, [], out _, out _, out _);
+            mixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        var ok = mixer.MergeSDSL(new ShaderClassSource(root), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _);
+        var ok = mixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(root)), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _);
         var text = string.Join(Environment.NewLine, log.Messages.Select(m => m.Text));
         var disassembly = ok ? Spv.Dis(SpirvBytecode.CreateFromSpan(bytecode), DisassemblerFlags.Name | DisassemblerFlags.Id | DisassemblerFlags.InstructionIndex, true) : "";
         return (ok, text, disassembly);

@@ -103,8 +103,8 @@ public class ImplicitOverrideTests : IDisposable
         var loader = new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL");
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("OverrideRoot") },
-            Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("OverrideImplementation") } } },
+            Mixins = { new ShaderClassSource(TestShader.Written("OverrideRoot")) },
+            Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("OverrideImplementation")) } } },
         };
 
         var log = new LoggerResult();

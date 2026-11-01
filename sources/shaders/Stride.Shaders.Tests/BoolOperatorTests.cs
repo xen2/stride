@@ -13,7 +13,7 @@ public class BoolOperatorTests
     public void ComparisonInBitwiseOperationIsAWarning()
     {
         var loader = new ShaderLoader("./assets/SDSL/RenderTests") { Log = new LoggerResult() };
-        loader.LoadExternalBuffer("BoolBitwise", [], out _, out _, out _);
+        loader.LoadExternalBuffer(TestShader.FullName("BoolBitwise"), [], out _, out _, out _);
 
         var warnings = ((LoggerResult)loader.Log).Messages.Where(m => m.Type == LogMessageType.Warning).Select(m => m.Text).ToList();
         var warning = Assert.Single(warnings);

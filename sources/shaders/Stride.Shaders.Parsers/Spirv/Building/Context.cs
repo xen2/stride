@@ -64,11 +64,6 @@ public interface IShaderCache
     public void RegisterShader(string name, string? generics, ReadOnlySpan<ShaderMacro> defines, ShaderBuffers bytecode, ObjectId? hash);
     public bool Exists(string name);
 
-    /// <summary>
-    /// TODO(A15): remove with <see cref="IExternalShaderLoader.ToFullName"/>. The full name of a registered class with this short name.
-    /// </summary>
-    public string? FindFullName(string shortName) => null;
-
     public bool TryLoadFromCache(string name, string? generics, ReadOnlySpan<ShaderMacro> defines, [MaybeNullWhen(false)] out ShaderBuffers buffer, out ObjectId hash);
 }
 
@@ -97,14 +92,9 @@ public class ShaderCache : IShaderCache
 
     public bool Exists(string name) => loadedShaders.ContainsKey((name, null));
 
-    private readonly ConcurrentDictionary<string, string> fullNamesByShortName = new();
-
-    public string? FindFullName(string shortName) => fullNamesByShortName.GetValueOrDefault(shortName);
-
     public virtual void RegisterShader(string name, string? generics, ReadOnlySpan<ShaderMacro> defines, ShaderBuffers bytecode, ObjectId? hash = null)
     {
         bytecode.Context.Frozen = true;
-        fullNamesByShortName[ShaderNames.ShortName(name)] = name;
 
         lock (loadedShaders)
         {
@@ -151,11 +141,6 @@ public interface IExternalShaderLoader
     /// The full names of the classes with this short name, for the message of an error: it can be slow, and a remote source has no list to search.
     /// </summary>
     public IReadOnlyList<string> FindFullNames(string shortName);
-
-    /// <summary>
-    /// TODO(A15): remove once C# strings and stored data hold full names. The full name of a class named by its short name, in any namespace.
-    /// </summary>
-    public string ToFullName(string name);
 
     /// <summary>
     /// The full name of the class that replaces a class (<c>[Replaces]</c>) in every mix, or null.

@@ -30,7 +30,7 @@ public class ComposeWithValueTests
     {
         var log = new LoggerResult();
         var loader = new ShaderLoader("./assets/SDSL/RenderTests", "./assets/Stride/SDSL") { Log = log };
-        loader.LoadExternalBuffer("ComposeWithValue", [], out _, out _, out _);
+        loader.LoadExternalBuffer(TestShader.FullName("ComposeWithValue"), [], out _, out _, out _);
         Assert.False(log.HasErrors, string.Join("\n", log.Messages));
 
         var warnings = log.Messages.Where(m => m.Type == LogMessageType.Warning).Select(m => m.Text).ToList();

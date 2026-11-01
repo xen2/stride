@@ -212,7 +212,9 @@ public sealed partial class ShaderMember(
         {
             if (TypeName.Name.Contains("<"))
                 throw new NotImplementedException("Can't have member variables with generic shader types");
-            var classSource = new ShaderClassInstantiation(table.ResolveClassName(TypeName.Name, TypeName.Info) ?? TypeName.Name, []);
+            if (table.ResolveClassName(TypeName.Name, TypeName.Info) is not { } className)
+                throw new StatementCompileException(new(TypeName.Info, string.Format(SDSLErrorMessages.SDSL0190, TypeName.Name) + table.DidYouMean(TypeName.Name)));
+            var classSource = new ShaderClassInstantiation(className, []);
             var shader = SpirvBuilder.GetOrLoadShader(table.ShaderLoader, classSource, table.CurrentMacros.AsSpan(), ResolveStep.Compile, context);
             classSource.Buffer = shader;
             var shaderType = ShaderClass.LoadAndCacheExternalShaderDefinition(table, context, classSource);

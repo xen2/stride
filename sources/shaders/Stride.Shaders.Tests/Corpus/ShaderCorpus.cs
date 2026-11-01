@@ -12,6 +12,8 @@ using Stride.Shaders.Compilers.SDSL;
 using Stride.Shaders.Spirv.Building;
 using Stride.Shaders.Spirv.Tools;
 
+using Stride.Rendering;
+
 namespace Stride.Shaders.Parsers.Tests.Corpus;
 
 /// <summary>
@@ -98,8 +100,9 @@ static class ShaderCorpus
             items.Add(new CorpusItem(entry.Id, entry.EffectName, entry.Profile, null, () => entry.Mixin));
         foreach (var file in Directory.EnumerateFiles(RenderTestsDirectory, "*.sdsl").Order(StringComparer.Ordinal))
         {
-            var name = Path.GetFileNameWithoutExtension(file);
-            items.Add(new CorpusItem($"RenderTests.{name}", name, GraphicsProfile.Level_11_0, file, () => ShaderMixinManager.Contains(name)
+            var fileName = Path.GetFileNameWithoutExtension(file);
+            var name = Stride.Shaders.Parsing.ShaderFileDeclarations.StorageName(File.ReadAllText(file), fileName);
+            items.Add(new CorpusItem($"RenderTests.{fileName}", name, GraphicsProfile.Level_11_0, file, () => ShaderMixinManager.Contains(name)
                 ? ShaderMixinManager.Generate(name, new CompilerParameters())
                 : new ShaderMixinSource { Name = name, Mixins = { new ShaderClassSource(name) } }));
         }
@@ -128,7 +131,7 @@ static class ShaderCorpus
     /// <summary>
     /// Loader for the captured corpus: shared by all its entries, so each shader class is parsed once. Shader class warnings are errors.
     /// </summary>
-    public static ShaderLoaderBase CreateLoader() => new IndexShaderLoader(ShaderIndex.Value) { WarningsAsErrors = true };
+    public static ShaderLoaderBase CreateLoader() => new IndexShaderLoader(ShaderIndex.Value) { WarningsAsErrors = true, ImplicitUsings = ShaderImplicitUsings.List };
 
     /// <param name="optimize">Also fills <see cref="CorpusResult.Optimized"/> (slower; for baseline runs).</param>
     public static CorpusResult Compile(CorpusItem item, GraphicsPlatform platform, ShaderLoaderBase sharedLoader, bool optimize = false)

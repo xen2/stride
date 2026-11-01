@@ -83,7 +83,7 @@ namespace Stride.Shaders
 
             lock (RegisteredBuilders)
             {
-                return RegisteredBuilders.TryGetValue(ToFullEffectName(sdfxEffectName), out builder);
+                return RegisteredBuilders.TryGetValue(sdfxEffectName, out builder);
             }
         }
 
@@ -117,7 +117,9 @@ namespace Stride.Shaders
                 childEffectName = effectName.Value;
 
                 if (!RegisteredBuilders.TryGetValue(rootEffectName, out builder))
-                    throw new ArgumentException(string.Format("Xkfx effect [{0}] not found", rootEffectName), "sdfxEffectName");
+                    throw new ArgumentException(FindFullNames(rootEffectName) is { Count: > 0 } found
+                        ? $"Effect [{rootEffectName}] not found. Did you mean {string.Join(" or ", found)}?"
+                        : string.Format("Xkfx effect [{0}] not found", rootEffectName), "sdfxEffectName");
 
                 builders = new Dictionary<string, IShaderMixinBuilder>(RegisteredBuilders);
             }
@@ -145,23 +147,21 @@ namespace Stride.Shaders
                     return new KeyValuePair<string, string>(sdfxEffectName.Substring(0, end), end < sdfxEffectName.Length ? sdfxEffectName.Substring(end + 1) : string.Empty);
             }
 
-            // TODO(A15): remove once C# strings and stored data hold full names. A short name: the first segment is the root.
-            var mainEffectNameEnd = sdfxEffectName.IndexOf('.');
-            var rootEffectName = mainEffectNameEnd != -1 ? sdfxEffectName.Substring(0, mainEffectNameEnd) : sdfxEffectName;
-            var childEffectName = mainEffectNameEnd != -1 ? sdfxEffectName.Substring(mainEffectNameEnd + 1) : string.Empty;
-            return new KeyValuePair<string, string>(ToFullEffectName(rootEffectName), childEffectName);
+            return new KeyValuePair<string, string>(sdfxEffectName, string.Empty);
         }
 
         /// <summary>
-        /// TODO(A15): remove once C# strings and stored data hold full names. The full name of an effect named by its short name.
+        /// The full names of the registered effects with this short name, for the message of an error or a tool that takes short names.
+        /// A short name with a child, <c>Root.Child</c>, gives the full names with that child.
         /// </summary>
-        internal static string ToFullEffectName(string name)
+        public static IReadOnlyList<string> FindFullNames(string shortName)
         {
+            var dot = shortName.IndexOf('.');
+            var root = dot < 0 ? shortName : shortName.Substring(0, dot);
+            var child = dot < 0 ? string.Empty : shortName.Substring(dot);
             lock (RegisteredBuilders)
             {
-                if (RegisteredBuilders.ContainsKey(name))
-                    return name;
-                return RegisteredBuilders.Keys.Where(x => x.Substring(x.LastIndexOf('.') + 1) == name).OrderBy(x => x, StringComparer.Ordinal).FirstOrDefault() ?? name;
+                return RegisteredBuilders.Keys.Where(x => x.Substring(x.LastIndexOf('.') + 1) == root).OrderBy(x => x, StringComparer.Ordinal).Select(x => x + child).ToList();
             }
         }
 
