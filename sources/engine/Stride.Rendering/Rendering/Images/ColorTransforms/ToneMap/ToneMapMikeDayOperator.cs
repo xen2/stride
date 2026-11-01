@@ -20,7 +20,7 @@ namespace Stride.Rendering.Images
         /// Initializes a new instance of the <see cref="ToneMapMikeDayOperator"/> class.
         /// </summary>
         public ToneMapMikeDayOperator()
-            : base("ToneMapMikeDayOperatorShader")
+            : base(ToneMapMikeDayOperatorShaderKeys.ShaderName)
         {
             BlackPoint = 0.005f;
             CrossOver = 0.8f;

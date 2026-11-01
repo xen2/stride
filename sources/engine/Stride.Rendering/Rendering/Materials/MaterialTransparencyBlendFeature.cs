@@ -92,7 +92,7 @@ namespace Stride.Rendering.Materials
     
         private void AddDiffuseSpecularAlphaBlendColor(MaterialShaderStage stage, MaterialGeneratorContext context)
         {
-            context.AddShaderSource(MaterialShaderStage.Pixel, new ShaderClassSource("MaterialSurfaceDiffuseSpecularAlphaBlendColor"));
+            context.AddShaderSource(MaterialShaderStage.Pixel, new ShaderClassSource(MaterialSurfaceDiffuseSpecularAlphaBlendColorKeys.ShaderName));
         }
     }
 }

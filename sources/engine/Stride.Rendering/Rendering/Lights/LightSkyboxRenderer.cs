@@ -79,7 +79,7 @@ namespace Stride.Rendering.Lights
 
         private class LightSkyBoxShaderGroup : LightShaderGroup
         {
-            private static readonly ShaderClassSource EmptyComputeEnvironmentColorSource = new ShaderClassSource("IComputeEnvironmentColor");
+            private static readonly ShaderClassSource EmptyComputeEnvironmentColorSource = new ShaderClassSource(IComputeEnvironmentColorKeys.ShaderName);
 
             private ValueParameterKey<float> intensityKey;
             private ValueParameterKey<Matrix> skyMatrixKey;

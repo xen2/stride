@@ -80,7 +80,7 @@ namespace Stride.Rendering.Voxels
 
 
 
-        ShaderClassSource source = new ShaderClassSource("VoxelAttributeEmissionOpacityShader");
+        ShaderClassSource source = new ShaderClassSource(VoxelAttributeEmissionOpacityShaderKeys.ShaderName);
 
         public override ShaderSource GetVoxelizationShader()
         {

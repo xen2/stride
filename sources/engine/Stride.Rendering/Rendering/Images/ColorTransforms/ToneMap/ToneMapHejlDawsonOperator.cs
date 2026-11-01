@@ -17,7 +17,7 @@ namespace Stride.Rendering.Images
         /// Initializes a new instance of the <see cref="ToneMapHejlDawsonOperator"/> class.
         /// </summary>
         public ToneMapHejlDawsonOperator()
-            : base("ToneMapHejlDawsonOperatorShader")
+            : base(ToneMapHejlDawsonOperatorShaderKeys.ShaderName)
         {
         }
     }

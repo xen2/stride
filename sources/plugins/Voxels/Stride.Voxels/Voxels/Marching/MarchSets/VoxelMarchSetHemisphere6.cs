@@ -24,7 +24,7 @@ namespace Stride.Rendering.Voxels
         public ShaderSource GetMarchingShader(int attrID, ShaderSourceCollection attributeSamplers)
         {
             var mixin = new ShaderMixinSource();
-            mixin.Mixins.Add(new ShaderClassSource("VoxelMarchSetHemisphere6"));
+            mixin.Mixins.Add(new ShaderClassSource(VoxelMarchSetHemisphere6Keys.ShaderName));
             mixin.AddComposition("Marcher", Marcher.GetMarchingShader(attrID, attributeSamplers));
             return mixin;
         }

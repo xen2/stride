@@ -89,7 +89,7 @@ namespace Stride.Rendering.Materials
         public override void GenerateShader(MaterialGeneratorContext context)
         {
             var shaderSource = new ShaderMixinSource();
-            shaderSource.Mixins.Add(new ShaderClassSource("MaterialSurfaceSubsurfaceScatteringShading"));
+            shaderSource.Mixins.Add(new ShaderClassSource(MaterialSurfaceSubsurfaceScatteringShadingKeys.ShaderName));
 
             TranslucencyMap.ClampFloat(0.0f, 1.0f);
             context.SetStream(ScatteringStrengthStream.Stream, TranslucencyMap, MaterialKeys.ScatteringStrengthMap, MaterialKeys.ScatteringStrengthValue);

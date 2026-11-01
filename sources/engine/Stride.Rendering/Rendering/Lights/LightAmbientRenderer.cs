@@ -69,7 +69,7 @@ namespace Stride.Rendering.Lights
 
             private ValueParameterKey<Color3> ambientLightKey;
             public LightAmbientShaderGroup()
-                : base(new ShaderClassSource("LightSimpleAmbient"))
+                : base(new ShaderClassSource(LightSimpleAmbientKeys.ShaderName))
             {
             }
 

@@ -21,7 +21,7 @@ namespace Stride.Rendering.Voxels.Debug
 
         public Color Background = new Color(0.1f,0.1f,0.1f,1.0f);
 
-        private ImageEffectShader voxelDebugEffectShader = new ImageEffectShader("VoxelVisualizationViewEffect");
+        private ImageEffectShader voxelDebugEffectShader = new ImageEffectShader(VoxelVisualizationViewEffectKeys.EffectName);
         public ImageEffectShader GetShader(RenderDrawContext context, VoxelAttribute attr)
         {
             VoxelViewContext viewContext = new VoxelViewContext(false);

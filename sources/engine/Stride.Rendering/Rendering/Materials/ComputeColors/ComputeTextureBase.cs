@@ -214,20 +214,20 @@ namespace Stride.Rendering.Materials.ComputeColors
                 if (context.IsNotPixelStage)
                 {
                     if (Offset != Vector2.Zero)
-                        shaderSource = new ShaderClassSource("ComputeColorTextureLodScaledOffsetSampler", textureKey, usedTexcoord, samplerKey, channelStr, scaleStr, offsetStr, 0.0f);
+                        shaderSource = new ShaderClassSource(ComputeColorTextureLodScaledOffsetSamplerKeys.ShaderName, textureKey, usedTexcoord, samplerKey, channelStr, scaleStr, offsetStr, 0.0f);
                     else if (scale != Vector2.One)
-                        shaderSource = new ShaderClassSource("ComputeColorTextureLodScaledSampler", textureKey, usedTexcoord, samplerKey, channelStr, scaleStr, 0.0f);
+                        shaderSource = new ShaderClassSource(ComputeColorTextureLodScaledSamplerKeys.ShaderName, textureKey, usedTexcoord, samplerKey, channelStr, scaleStr, 0.0f);
                     else
-                        shaderSource = new ShaderClassSource("ComputeColorTextureLodSampler", textureKey, usedTexcoord, samplerKey, channelStr, 0.0f);
+                        shaderSource = new ShaderClassSource(ComputeColorTextureLodSamplerKeys.ShaderName, textureKey, usedTexcoord, samplerKey, channelStr, 0.0f);
                 }
                 else
                 {
                     if (Offset != Vector2.Zero)
-                        shaderSource = new ShaderClassSource("ComputeColorTextureScaledOffsetSampler", textureKey, usedTexcoord, samplerKey, channelStr, scaleStr, offsetStr);
+                        shaderSource = new ShaderClassSource(ComputeColorTextureScaledOffsetSamplerKeys.ShaderName, textureKey, usedTexcoord, samplerKey, channelStr, scaleStr, offsetStr);
                     else if (scale != Vector2.One)
-                        shaderSource = new ShaderClassSource("ComputeColorTextureScaledSampler", textureKey, usedTexcoord, samplerKey, channelStr, scaleStr);
+                        shaderSource = new ShaderClassSource(ComputeColorTextureScaledSamplerKeys.ShaderName, textureKey, usedTexcoord, samplerKey, channelStr, scaleStr);
                     else
-                        shaderSource = new ShaderClassSource("ComputeColorTextureSampler", textureKey, usedTexcoord, samplerKey, channelStr);
+                        shaderSource = new ShaderClassSource(ComputeColorTextureSamplerKeys.ShaderName, textureKey, usedTexcoord, samplerKey, channelStr);
                 }
             }
             else
@@ -241,14 +241,14 @@ namespace Stride.Rendering.Materials.ComputeColors
 
                 if (context.IsNotPixelStage)
                 {
-                    shaderSource = new ShaderClassSource("ComputeColorTextureLodScaledOffsetDynamicSampler", textureKey, usedTexcoord, samplerKey, channelStr, textureScale, textureOffset, 0.0f);
+                    shaderSource = new ShaderClassSource(ComputeColorTextureLodScaledOffsetDynamicSamplerKeys.ShaderName, textureKey, usedTexcoord, samplerKey, channelStr, textureScale, textureOffset, 0.0f);
                 }
                 else
                 {
                     if (UseRandomTextureCoordinates)
-                        shaderSource = new ShaderClassSource("ComputeColorTextureScaledOffsetDynamicSamplerRandomUV", textureKey, usedTexcoord, samplerKey, channelStr, textureScale, textureOffset);
+                        shaderSource = new ShaderClassSource(ComputeColorTextureScaledOffsetDynamicSamplerRandomUVKeys.ShaderName, textureKey, usedTexcoord, samplerKey, channelStr, textureScale, textureOffset);
                     else
-                        shaderSource = new ShaderClassSource("ComputeColorTextureScaledOffsetDynamicSampler", textureKey, usedTexcoord, samplerKey, channelStr, textureScale, textureOffset);
+                        shaderSource = new ShaderClassSource(ComputeColorTextureScaledOffsetDynamicSamplerKeys.ShaderName, textureKey, usedTexcoord, samplerKey, channelStr, textureScale, textureOffset);
                 }
             }
 

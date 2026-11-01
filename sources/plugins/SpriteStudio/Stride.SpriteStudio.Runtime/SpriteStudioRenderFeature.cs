@@ -210,7 +210,7 @@ namespace Stride.SpriteStudio.Runtime
 
         private EffectInstance GetOrCreatePickingSpriteEffect()
         {
-            return pickingSpriteEffect ?? (pickingSpriteEffect = new EffectInstance(RenderSystem.EffectSystem.LoadEffect("SpritePicking").WaitForResult()));
+            return pickingSpriteEffect ?? (pickingSpriteEffect = new EffectInstance(RenderSystem.EffectSystem.LoadEffect(SpritePickingKeys.ShaderName).WaitForResult()));
         }
 
         public override Type SupportedRenderObjectType => typeof(RenderSpriteStudio);

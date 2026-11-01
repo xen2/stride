@@ -79,7 +79,7 @@ namespace Stride.Rendering.Materials
             context.SetStream("matEmissiveIntensity", Intensity, MaterialKeys.EmissiveIntensityMap, MaterialKeys.EmissiveIntensity);
 
             var shaderBuilder = context.AddShading(this);
-            shaderBuilder.ShaderSources.Add(new ShaderClassSource("MaterialSurfaceEmissiveShading", UseAlpha));
+            shaderBuilder.ShaderSources.Add(new ShaderClassSource(MaterialSurfaceEmissiveShadingKeys.ShaderName, UseAlpha));
         }
 
         public bool Equals(IMaterialShadingModelFeature other)

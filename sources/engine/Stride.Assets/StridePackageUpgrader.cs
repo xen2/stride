@@ -17,6 +17,7 @@ using Stride.Core.Serialization;
 using Stride.Core.Storage;
 using Stride.Core.Yaml;
 using Stride.Core.Yaml.Serialization;
+using Stride.Shaders.Parsing.Upgrade;
 using Stride.TextureConverter;
 using Stride.Assets.Effect;
 using Stride.Assets.Templates;
@@ -154,6 +155,12 @@ namespace Stride.Assets
                 // 4.5: the assembly processor no longer pools the delegates passed to the Dispatcher; its callbacks take
                 // their captures as a state, in a static lambda (#3680).
                 DispatcherCallbacksToStaticLambdas(),
+            ]);
+
+            registry.Code("4.5.1.0",
+            [
+                // 4.5: strings that name an engine shader, an effect or the key of a shader member take the full name.
+                ShaderNames(EngineShaderClasses.Current),
             ]);
 
             // Structural csproj migrations, gated by the version each change landed at. Run against the

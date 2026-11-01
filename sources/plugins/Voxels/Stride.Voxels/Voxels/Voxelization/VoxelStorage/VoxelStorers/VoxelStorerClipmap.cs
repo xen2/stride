@@ -109,7 +109,7 @@ namespace Stride.Rendering.Voxels
             }
         }
 
-        ShaderClassSource storage = new ShaderClassSource("VoxelStorageClipmapShader");
+        ShaderClassSource storage = new ShaderClassSource(VoxelStorageClipmapShaderKeys.ShaderName);
 
         public ShaderSource GetVoxelizationShader(VoxelizationPass pass, ProcessedVoxelVolume data)
         {

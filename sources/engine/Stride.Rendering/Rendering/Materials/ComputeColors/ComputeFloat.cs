@@ -36,7 +36,7 @@ namespace Stride.Rendering.Materials.ComputeColors
             context.Parameters.Set(key, Value);
             UsedKey = key;
 
-            return new ShaderClassSource("ComputeColorConstantFloatLink", key);
+            return new ShaderClassSource(ComputeColorConstantFloatLinkKeys.ShaderName, key);
         }
     }
 }

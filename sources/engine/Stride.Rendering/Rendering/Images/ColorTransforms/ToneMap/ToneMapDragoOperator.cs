@@ -16,7 +16,7 @@ namespace Stride.Rendering.Images
         /// Initializes a new instance of the <see cref="ToneMapDragoOperator"/> class.
         /// </summary>
         public ToneMapDragoOperator()
-            : base("ToneMapDragoOperatorShader")
+            : base(ToneMapDragoOperatorShaderKeys.ShaderName)
         {
         }
 

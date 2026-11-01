@@ -33,7 +33,7 @@ namespace Stride.Rendering.Voxels
         public ShaderSource GetMarchingShader(int attrID, ShaderSourceCollection attributeSamplers)
         {
             var mixin = new ShaderMixinSource();
-            mixin.Mixins.Add(new ShaderClassSource("VoxelMarchConePerMipmap", Steps));
+            mixin.Mixins.Add(new ShaderClassSource(VoxelMarchConePerMipmapKeys.ShaderName, Steps));
             mixin.Macros.Add(new ShaderMacro("AttributeID", attrID));
             foreach (var sampler in attributeSamplers)
                 mixin.AddCompositionToArray("AttributeSamplers", sampler);

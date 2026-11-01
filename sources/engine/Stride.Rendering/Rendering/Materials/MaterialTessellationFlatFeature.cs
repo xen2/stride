@@ -25,7 +25,7 @@ namespace Stride.Rendering.Materials
 
             // create and affect the shader source
             var tessellationShader = new ShaderMixinSource();
-            tessellationShader.Mixins.Add(new ShaderClassSource("TessellationFlat"));
+            tessellationShader.Mixins.Add(new ShaderClassSource(TessellationFlatKeys.ShaderName));
 
             context.Parameters.Set(MaterialKeys.TessellationShader, tessellationShader);
         }

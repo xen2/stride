@@ -121,7 +121,7 @@ namespace Stride.Rendering.Images
         {
             base.InitializeCore();
 
-            aoApplyImageEffect = ToLoadAndUnload(new ImageEffectShader("ApplyAmbientOcclusionShader"));
+            aoApplyImageEffect = ToLoadAndUnload(new ImageEffectShader(ApplyAmbientOcclusionShaderKeys.ShaderName));
 
             aoRawImageEffect = ToLoadAndUnload(new ImageEffectShader(AmbientOcclusionRawAOEffectKeys.EffectName));
             aoRawImageEffect.Initialize(Context);

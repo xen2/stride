@@ -15,7 +15,7 @@ namespace Stride.Rendering.Materials
     {
         public ShaderSource Generate(MaterialGeneratorContext context)
         {
-            return new ShaderClassSource("MaterialHairLightAttenuationFunctionNone");
+            return new ShaderClassSource(MaterialHairLightAttenuationFunctionNoneKeys.ShaderName);
         }
 
         public override bool Equals(object obj)

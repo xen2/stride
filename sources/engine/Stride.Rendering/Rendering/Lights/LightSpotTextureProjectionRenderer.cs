@@ -184,8 +184,8 @@ namespace Stride.Rendering.Lights
 
         public class LightSpotTextureProjectionGroupShaderData : ITextureProjectionShaderGroupData // TODO: Make private
         {
-            private const string ShaderNameBase = "TextureProjectionReceiverSpot";
-            private const string ShaderNameAttenuation = "LightSpotAttenuationRectangular";
+            private const string ShaderNameBase = TextureProjectionReceiverSpotKeys.ShaderName;
+            private const string ShaderNameAttenuation = LightSpotAttenuationRectangularKeys.ShaderName;
 
             // Values:
             private Matrix[] worldToTextureUV;

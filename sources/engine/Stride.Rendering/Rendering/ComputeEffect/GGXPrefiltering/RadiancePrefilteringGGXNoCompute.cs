@@ -48,7 +48,7 @@ namespace Stride.Rendering.ComputeEffect.GGXPrefiltering
             : base(context, "RadiancePrefilteringGGX")
         {
             shader = new ImageEffectShader(RadiancePrefilteringGGXNoComputeEffectKeys.EffectName);
-            resampleShader = new ImageEffectShader("CubemapFaceResampleShader");
+            resampleShader = new ImageEffectShader(CubemapFaceResampleShaderKeys.ShaderName);
             DoNotFilterHighestLevel = true;
             samplingsCount = 1024;
         }

@@ -378,7 +378,7 @@ namespace Stride.Rendering.Lights
                 // Old fixed path kept in case we need it again later
                 //mixin.Mixins.Add(new ShaderClassSource("LightSpotGroup", LightCurrentCount));
                 //mixin.Mixins.Add(new ShaderClassSource("DirectLightGroupFixed", LightCurrentCount));
-                mixin.Mixins.Add(new ShaderClassSource("LightSpotGroup", LightCurrentCount));   // Add the base shader for the light group.
+                mixin.Mixins.Add(new ShaderClassSource(LightSpotGroupKeys.ShaderName, LightCurrentCount));   // Add the base shader for the light group.
                 ShadowGroup?.ApplyShader(mixin);    // Add the shader for shadow mapping.
                 TextureProjectionShaderGroupData?.ApplyShader(mixin);   // Add the shader for texture projection.
 

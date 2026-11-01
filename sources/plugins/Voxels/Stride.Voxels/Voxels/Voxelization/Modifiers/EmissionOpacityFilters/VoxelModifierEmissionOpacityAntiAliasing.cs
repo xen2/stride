@@ -21,7 +21,7 @@ namespace Stride.Rendering.Voxels
 
         public override ShaderSource GetApplier(string layout)
         {
-            return new ShaderClassSource("VoxelModifierApplierAntiAliasing" + layout, directionalCoverage.LocalSamplerID);
+            return new ShaderClassSource("Stride.Rendering.VoxelModifierApplierAntiAliasing" + layout, directionalCoverage.LocalSamplerID);
         }
 
         public override void UpdateVoxelizationLayout(string compositionName) { }

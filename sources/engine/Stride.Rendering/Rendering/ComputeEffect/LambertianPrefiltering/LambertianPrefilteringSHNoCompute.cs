@@ -48,7 +48,7 @@ namespace Stride.Rendering.ComputeEffect.LambertianPrefiltering
             : base(context, "LambertianPrefilteringSHNoCompute")
         {
             firstPassEffect = new ImageEffectShader(LambertianPrefilteringSHNoComputeEffectPass1Keys.EffectName);
-            secondPassEffect = new ImageEffectShader("LambertianPrefilteringSHNoComputePass2");
+            secondPassEffect = new ImageEffectShader(LambertianPrefilteringSHNoComputePass2Keys.ShaderName);
 
             HarmonicOrder = 3;
         }

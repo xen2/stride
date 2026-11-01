@@ -13,7 +13,7 @@ namespace Stride.Rendering.Voxels
     [Display("R11G11B10F")]
     public class VoxelFragmentPackFloatR11G11B10 : IVoxelFragmentPacker
     {
-        ShaderSource source = new ShaderClassSource("VoxelFragmentPackFloatR11G11B10");
+        ShaderSource source = new ShaderClassSource(VoxelFragmentPackFloatR11G11B10Keys.ShaderName);
         public ShaderSource GetShader()
         {
             return source;

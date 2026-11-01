@@ -16,8 +16,8 @@ namespace Stride.Rendering.Voxels
     public class VoxelLayoutAnisotropic : VoxelLayoutBase, IVoxelLayout
     {
         protected override int LayoutCount { get; set; } = 6;
-        protected override ShaderClassSource Writer { get; set; } = new ShaderClassSource("VoxelAnisotropicWriter_Float4");
-        protected override ShaderClassSource Sampler { get; set; } = new ShaderClassSource("VoxelAnisotropicSampler");
+        protected override ShaderClassSource Writer { get; set; } = new ShaderClassSource(VoxelAnisotropicWriter_Float4Keys.ShaderName);
+        protected override ShaderClassSource Sampler { get; set; } = new ShaderClassSource(VoxelAnisotropicSamplerKeys.ShaderName);
         protected override string ApplierKey { get; set; } = "Anisotropic";
 
         public void UpdateVoxelizationLayout(string compositionName, List<VoxelModifierEmissionOpacity> modifier)
@@ -31,12 +31,12 @@ namespace Stride.Rendering.Voxels
             storageTex.UpdateSamplingLayout("storage." + compositionName);
         }
 
-        ShaderClassSource mipmapXP = new ShaderClassSource("Voxel2x2x2Mipmapper_AnisoXP");
-        ShaderClassSource mipmapXN = new ShaderClassSource("Voxel2x2x2Mipmapper_AnisoXN");
-        ShaderClassSource mipmapYP = new ShaderClassSource("Voxel2x2x2Mipmapper_AnisoYP");
-        ShaderClassSource mipmapYN = new ShaderClassSource("Voxel2x2x2Mipmapper_AnisoYN");
-        ShaderClassSource mipmapZP = new ShaderClassSource("Voxel2x2x2Mipmapper_AnisoZP");
-        ShaderClassSource mipmapZN = new ShaderClassSource("Voxel2x2x2Mipmapper_AnisoZN");
+        ShaderClassSource mipmapXP = new ShaderClassSource(Voxel2x2x2Mipmapper_AnisoXPKeys.ShaderName);
+        ShaderClassSource mipmapXN = new ShaderClassSource(Voxel2x2x2Mipmapper_AnisoXNKeys.ShaderName);
+        ShaderClassSource mipmapYP = new ShaderClassSource(Voxel2x2x2Mipmapper_AnisoYPKeys.ShaderName);
+        ShaderClassSource mipmapYN = new ShaderClassSource(Voxel2x2x2Mipmapper_AnisoYNKeys.ShaderName);
+        ShaderClassSource mipmapZP = new ShaderClassSource(Voxel2x2x2Mipmapper_AnisoZPKeys.ShaderName);
+        ShaderClassSource mipmapZN = new ShaderClassSource(Voxel2x2x2Mipmapper_AnisoZNKeys.ShaderName);
         override public void PostProcess(RenderDrawContext drawContext, LightFalloffs LightFalloff)
         {
             if (mipmapperSharp == null)

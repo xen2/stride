@@ -76,7 +76,7 @@ namespace Stride.Rendering.Materials
             var alphaColor = alpha.GenerateShaderSource(context, new MaterialComputeColorKeys(MaterialKeys.DiffuseSpecularAlphaBlendMap, MaterialKeys.DiffuseSpecularAlphaBlendValue, Color.White));
 
             var mixin = new ShaderMixinSource();
-            mixin.Mixins.Add(new ShaderClassSource("ComputeColorMaterialAlphaBlend"));
+            mixin.Mixins.Add(new ShaderClassSource(ComputeColorMaterialAlphaBlendKeys.ShaderName));
             mixin.AddComposition("color", alphaColor);
 
             context.SetStream(MaterialShaderStage.Pixel, AlphaBlendStream.Stream, MaterialStreamType.Float2, mixin);
@@ -97,7 +97,7 @@ namespace Stride.Rendering.Materials
 
         private void AddDiffuseSpecularAlphaBlendColor(MaterialShaderStage stage, MaterialGeneratorContext context)
         {
-            context.AddShaderSource(MaterialShaderStage.Pixel, new ShaderClassSource("MaterialSurfaceDiffuseSpecularAlphaBlendColor"));
+            context.AddShaderSource(MaterialShaderStage.Pixel, new ShaderClassSource(MaterialSurfaceDiffuseSpecularAlphaBlendColorKeys.ShaderName));
         }
     }
 }

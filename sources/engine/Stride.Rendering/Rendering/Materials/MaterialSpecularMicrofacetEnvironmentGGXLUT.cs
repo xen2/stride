@@ -25,7 +25,7 @@ namespace Stride.Rendering.Materials
         {
             context.Parameters.Set(MaterialSpecularMicrofacetEnvironmentGGXLUTKeys.EnvironmentLightingDFG_LUT, CreateLookupTableReference(context.GraphicsProfile));
 
-            return new ShaderClassSource("MaterialSpecularMicrofacetEnvironmentGGXLUT");
+            return new ShaderClassSource(MaterialSpecularMicrofacetEnvironmentGGXLUTKeys.ShaderName);
         }
 
         /// <summary>

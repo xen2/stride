@@ -30,7 +30,7 @@ namespace Stride.Particles.Materials
         private ShaderSource shaderSource;
 
         [DataMemberIgnore]
-        public override string EffectName { get; protected set; } = "ParticleEffect";
+        public override string EffectName { get; protected set; } = ParticleEffectKeys.EffectName;
 
         /// <summary>
         /// <see cref="IComputeColor"/> allows several channels to be blended together, including textures, vertex streams and fixed values.

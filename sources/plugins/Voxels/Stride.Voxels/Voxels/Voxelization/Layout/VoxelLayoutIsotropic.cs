@@ -15,8 +15,8 @@ namespace Stride.Rendering.Voxels
     public class VoxelLayoutIsotropic : VoxelLayoutBase, IVoxelLayout
     {
         protected override int LayoutCount { get; set; } = 1;
-        protected override ShaderClassSource Writer { get; set; } = new ShaderClassSource("VoxelIsotropicWriter_Float4");
-        protected override ShaderClassSource Sampler { get; set; } = new ShaderClassSource("VoxelIsotropicSampler");
+        protected override ShaderClassSource Writer { get; set; } = new ShaderClassSource(VoxelIsotropicWriter_Float4Keys.ShaderName);
+        protected override ShaderClassSource Sampler { get; set; } = new ShaderClassSource(VoxelIsotropicSamplerKeys.ShaderName);
         protected override string ApplierKey { get; set; } = "Isotropic";
 
         public void UpdateVoxelizationLayout(string compositionName, List<VoxelModifierEmissionOpacity> modifiers)

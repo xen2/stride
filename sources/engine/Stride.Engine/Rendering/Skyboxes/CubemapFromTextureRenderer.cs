@@ -22,7 +22,7 @@ namespace Stride.Rendering.Skyboxes
 
             DrawContext = renderDrawContext;
 
-            skyboxEffect = new DynamicEffectInstance("SkyboxShaderTexture");
+            skyboxEffect = new DynamicEffectInstance(SkyboxShaderTextureKeys.ShaderName);
             skyboxEffect.Initialize(services);
 
             spriteBatch = new SpriteBatch(renderDrawContext.GraphicsDevice) { VirtualResolution = new Vector3(1) };

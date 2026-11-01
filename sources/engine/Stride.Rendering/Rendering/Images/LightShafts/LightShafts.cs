@@ -81,7 +81,7 @@ namespace Stride.Rendering.Images
             applyLightEffectShader = ToLoadAndUnload(new ImageEffectShader(AdditiveLightEffectKeys.EffectName));
             applyLightEffectShader.BlendState = new BlendStateDescription(Blend.One, Blend.One);
 
-            minmaxVolumeEffectShader = new DynamicEffectInstance("VolumeMinMaxShader");
+            minmaxVolumeEffectShader = new DynamicEffectInstance(VolumeMinMaxShaderKeys.ShaderName);
             minmaxVolumeEffectShader.Initialize(Context.Services);
 
             blur = ToLoadAndUnload(new GaussianBlur());

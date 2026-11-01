@@ -46,7 +46,7 @@ namespace Stride.Rendering.Materials
         public override void GenerateShader(MaterialGeneratorContext context)
         {
             var shaderSource = new ShaderMixinSource();
-            shaderSource.Mixins.Add(new ShaderClassSource("MaterialSurfaceShadingSpecularMicrofacet"));
+            shaderSource.Mixins.Add(new ShaderClassSource(MaterialSurfaceShadingSpecularMicrofacetKeys.ShaderName));
 
             GenerateShaderCompositions(context, shaderSource);
 

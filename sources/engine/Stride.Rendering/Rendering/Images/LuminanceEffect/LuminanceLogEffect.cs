@@ -7,7 +7,7 @@ namespace Stride.Rendering.Images
     /// </summary>
     public class LuminanceLogEffect : ImageEffectShader
     {
-        public LuminanceLogEffect(string luminanceShaderName = "LuminanceLogShader")
+        public LuminanceLogEffect(string luminanceShaderName = LuminanceLogShaderKeys.ShaderName)
         {
             EffectName = luminanceShaderName;
         }

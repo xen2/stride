@@ -242,7 +242,7 @@ namespace Stride.Assets.Presentation.AssetEditors.Gizmos
         {
             base.Create();
 
-            DefaultMaterial = CreateShaderMaterial("CameraOrientationGizmoShader");
+            DefaultMaterial = CreateShaderMaterial(CameraOrientationGizmoShaderKeys.ShaderName);
             ElementSelectedMaterial = CreateEmissiveColorMaterial(Color.Gray);
 
             var entity = new Entity("View Gizmo");

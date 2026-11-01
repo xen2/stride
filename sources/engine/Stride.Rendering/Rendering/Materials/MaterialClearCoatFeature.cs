@@ -262,7 +262,7 @@ namespace Stride.Rendering.Materials
         {
             var computeColorDiffuse = BasePaintDiffuseMap.GenerateShaderSource(context, new MaterialComputeColorKeys(MaterialKeys.DiffuseMap, MaterialKeys.DiffuseValue, Color.White));
             var mixinBaseDiffuse = new ShaderMixinSource();
-            mixinBaseDiffuse.Mixins.Add(new ShaderClassSource("MaterialSurfaceDiffuse"));
+            mixinBaseDiffuse.Mixins.Add(new ShaderClassSource(MaterialSurfaceDiffuseKeys.ShaderName));
             mixinBaseDiffuse.AddComposition("diffuseMap", computeColorDiffuse);
             context.UseStream(MaterialShaderStage.Pixel, MaterialDiffuseMapFeature.DiffuseStream.Stream);
             context.UseStream(MaterialShaderStage.Pixel, MaterialDiffuseMapFeature.ColorBaseStream.Stream);
@@ -275,7 +275,7 @@ namespace Stride.Rendering.Materials
             context.UseStream(MaterialShaderStage.Pixel, "matGlossiness");
             var metalFlakesGlossinessComputeColorMap = MetalFlakesGlossinessMap.GenerateShaderSource(context, new MaterialComputeColorKeys(MaterialKeys.GlossinessMap, MaterialKeys.GlossinessValue));
             var mixinBaseGlossiness = new ShaderMixinSource();
-            mixinBaseGlossiness.Mixins.Add(new ShaderClassSource("MaterialSurfaceGlossinessMap", MetalFlakesGlossinessInvert));
+            mixinBaseGlossiness.Mixins.Add(new ShaderClassSource(MaterialSurfaceGlossinessMapKeys.ShaderName, MetalFlakesGlossinessInvert));
             mixinBaseGlossiness.AddComposition("glossinessMap", metalFlakesGlossinessComputeColorMap);
             context.AddShaderSource(MaterialShaderStage.Pixel, mixinBaseGlossiness);
         }
@@ -290,7 +290,7 @@ namespace Stride.Rendering.Materials
             var mixinDiffuse = new ShaderMixinSource();
 
             // Diffuse uses a custom shader (to perform the interpolation)
-            mixinDiffuse.Mixins.Add(new ShaderClassSource("MaterialSurfaceDiffuseMetalFlakes"));
+            mixinDiffuse.Mixins.Add(new ShaderClassSource(MaterialSurfaceDiffuseMetalFlakesKeys.ShaderName));
 
             mixinDiffuse.AddComposition("diffuseMap", metalFlakesComputeColorSource);
             mixinDiffuse.AddComposition("surfaceToEyeDistanceFactor", surfaceToEyeDistance);
@@ -307,7 +307,7 @@ namespace Stride.Rendering.Materials
             var metalFlakesMetalness = MetalFlakesMetalnessMap.GenerateShaderSource(context, new MaterialComputeColorKeys(MaterialKeys.MetalnessMap, MaterialKeys.MetalnessValue));
 
             var mixin = new ShaderMixinSource();
-            mixin.Mixins.Add(new ShaderClassSource("MaterialSurfaceMetalness"));
+            mixin.Mixins.Add(new ShaderClassSource(MaterialSurfaceMetalnessKeys.ShaderName));
             mixin.AddComposition("metalnessMap", metalFlakesMetalness);
             context.UseStream(MaterialShaderStage.Pixel, "matSpecular");
             context.AddShaderSource(MaterialShaderStage.Pixel, mixin);
@@ -322,10 +322,10 @@ namespace Stride.Rendering.Materials
             var mixinNormalMap = new ShaderMixinSource();
 
             // Inform the context that we are using matNormal (from the MaterialSurfaceNormalMap shader)
-            context.UseStreamWithCustomBlend(MaterialShaderStage.Pixel, "matNormal", new ShaderClassSource("MaterialStreamNormalBlend"));
+            context.UseStreamWithCustomBlend(MaterialShaderStage.Pixel, "matNormal", new ShaderClassSource(MaterialStreamNormalBlendKeys.ShaderName));
             context.Parameters.Set(MaterialKeys.HasNormalMap, true);
 
-            mixinNormalMap.Mixins.Add(new ShaderClassSource("MaterialSurfaceNormalMap", MetalFlakeslIsXYNormal, MetalFlakesScaleAndBias));
+            mixinNormalMap.Mixins.Add(new ShaderClassSource(MaterialSurfaceNormalMapKeys.ShaderName, MetalFlakeslIsXYNormal, MetalFlakesScaleAndBias));
 
             mixinNormalMap.AddComposition("normalMap", computeColorSource);
             context.AddShaderSource(MaterialShaderStage.Pixel, mixinNormalMap);
@@ -343,7 +343,7 @@ namespace Stride.Rendering.Materials
             var mixinGlossiness = new ShaderMixinSource();
 
             // Computes glossiness factor for the metal flakes layer (based on the eye to surface distance and the base glossiness value)
-            mixinGlossiness.Mixins.Add(new ShaderClassSource("MaterialSurfaceGlossinessMapMetalFlakes", BasePaintGlossinessInvert));
+            mixinGlossiness.Mixins.Add(new ShaderClassSource(MaterialSurfaceGlossinessMapMetalFlakesKeys.ShaderName, BasePaintGlossinessInvert));
 
             mixinGlossiness.AddComposition("glossinessMap", baseGlossinessComputeColorMap);
             mixinGlossiness.AddComposition("surfaceToEyeDistanceFactor", surfaceToEyeDistance);
@@ -360,10 +360,10 @@ namespace Stride.Rendering.Materials
             var mixinNormalMap = new ShaderMixinSource();
 
             // Inform the context that we are using matNormal (from the MaterialSurfaceNormalMap shader)
-            context.UseStreamWithCustomBlend(MaterialShaderStage.Pixel, "matNormal", new ShaderClassSource("MaterialStreamNormalBlend"));
+            context.UseStreamWithCustomBlend(MaterialShaderStage.Pixel, "matNormal", new ShaderClassSource(MaterialStreamNormalBlendKeys.ShaderName));
             context.Parameters.Set(MaterialKeys.HasNormalMap, true);
 
-            mixinNormalMap.Mixins.Add(new ShaderClassSource("MaterialSurfaceNormalMap", OrangePeelIsXYNormal, OrangePeelScaleAndBias));
+            mixinNormalMap.Mixins.Add(new ShaderClassSource(MaterialSurfaceNormalMapKeys.ShaderName, OrangePeelIsXYNormal, OrangePeelScaleAndBias));
 
             mixinNormalMap.AddComposition("normalMap", computeColorSource);
             context.AddShaderSource(MaterialShaderStage.Pixel, mixinNormalMap);
@@ -375,7 +375,7 @@ namespace Stride.Rendering.Materials
             context.UseStream(MaterialShaderStage.Pixel, "matGlossiness");
             var clearCoatGlossinessComputeColorMap = ClearCoatGlossinessMap.GenerateShaderSource(context, new MaterialComputeColorKeys(MaterialKeys.GlossinessMap, MaterialKeys.GlossinessValue));
             var mixinGlossiness = new ShaderMixinSource();
-            mixinGlossiness.Mixins.Add(new ShaderClassSource("MaterialSurfaceGlossinessMap", ClearCoatGlossinessInvert));
+            mixinGlossiness.Mixins.Add(new ShaderClassSource(MaterialSurfaceGlossinessMapKeys.ShaderName, ClearCoatGlossinessInvert));
             mixinGlossiness.AddComposition("glossinessMap", clearCoatGlossinessComputeColorMap);
             context.AddShaderSource(MaterialShaderStage.Pixel, mixinGlossiness);
         }
@@ -386,7 +386,7 @@ namespace Stride.Rendering.Materials
             var clearCoatMetalness = ClearCoatMetalnessMap.GenerateShaderSource(context, new MaterialComputeColorKeys(MaterialKeys.MetalnessMap, MaterialKeys.MetalnessValue));
 
             var mixin = new ShaderMixinSource();
-            mixin.Mixins.Add(new ShaderClassSource("MaterialSurfaceMetalness"));
+            mixin.Mixins.Add(new ShaderClassSource(MaterialSurfaceMetalnessKeys.ShaderName));
             mixin.AddComposition("metalnessMap", clearCoatMetalness);
             context.UseStream(MaterialShaderStage.Pixel, "matSpecular");
             context.AddShaderSource(MaterialShaderStage.Pixel, mixin);

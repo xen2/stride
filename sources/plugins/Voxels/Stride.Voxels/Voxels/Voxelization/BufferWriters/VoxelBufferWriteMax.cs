@@ -14,7 +14,7 @@ namespace Stride.Rendering.Voxels
     [Display("Max")]
     public class VoxelBufferWriteMax : IVoxelBufferWriter
     {
-        ShaderSource source = new ShaderClassSource("VoxelBufferWriteMax");
+        ShaderSource source = new ShaderClassSource(VoxelBufferWriteMaxKeys.ShaderName);
         public ShaderSource GetShader()
         {
             return source;

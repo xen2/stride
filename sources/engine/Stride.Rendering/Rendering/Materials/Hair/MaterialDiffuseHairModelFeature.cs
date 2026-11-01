@@ -118,7 +118,7 @@ namespace Stride.Rendering.Materials
         public override void GenerateShader(MaterialGeneratorContext context)
         {
             var shaderSource = new ShaderMixinSource();
-            shaderSource.Mixins.Add(new ShaderClassSource("MaterialSurfaceShadingDiffuseHair", IsEnergyConservative, (int)ShadingModel, DebugRenderPasses));
+            shaderSource.Mixins.Add(new ShaderClassSource(MaterialSurfaceShadingDiffuseHairKeys.ShaderName, IsEnergyConservative, (int)ShadingModel, DebugRenderPasses));
 
             shaderSource.AddComposition("hairLightAttenuationFunction", LightAttenuationFunction.Generate(context));
             shaderSource.AddComposition("hairDirectionFunction", HairDirectionFunction.Generate(context));

@@ -67,7 +67,7 @@ namespace Stride.Rendering.Images
 
             blur = ToLoadAndUnload(new GaussianBlur());
             flareArtifactEffect = ToLoadAndUnload(new ImageEffectShader(FlareArtifactEffectKeys.EffectName, true));
-            flareReplicateEffect = ToLoadAndUnload(new ImageEffectShader("FlareReplicate"));
+            flareReplicateEffect = ToLoadAndUnload(new ImageEffectShader(FlareReplicateKeys.ShaderName));
         }
 
         /// <summary>

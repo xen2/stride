@@ -87,7 +87,7 @@ namespace Stride.Assets.Presentation.AssetEditors.Gizmos
         {
             public override ShaderSource GenerateShaderSource(ShaderGeneratorContext context, MaterialComputeColorKeys baseKeys)
             {
-                return new ShaderClassSource("ComputeSphericalHarmonics", 5);
+                return new ShaderClassSource(ComputeSphericalHarmonicsKeys.ShaderName, 5);
             }
 
             public bool HasChanged { get; }
