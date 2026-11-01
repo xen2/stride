@@ -114,7 +114,7 @@ public record struct ShaderElementParsers : IParser<ShaderElement>
         if (
             Tokens.Literal("import", ref scanner, advance: true)
             && Parsers.Spaces1(ref scanner, result, out _)
-            && LiteralsParser.IdentifierBase(ref scanner, result, out var module)
+            && LiteralsParser.ClassName(ref scanner, result, out var module)
             && Parsers.FollowedBy(ref scanner, Tokens.Char(';'), withSpaces: true, advance: true)
         )
         {
