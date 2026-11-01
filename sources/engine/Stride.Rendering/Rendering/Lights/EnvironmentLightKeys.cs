@@ -5,7 +5,7 @@ using System;
 
 namespace Stride.Rendering.Lights
 {
-    public static class EnvironmentLightKeys
+    public static partial class EnvironmentLightKeys
     {
         public static ParameterKey<T> GetParameterKey<T>(ParameterKey<T> key, int lightIndex)
         {

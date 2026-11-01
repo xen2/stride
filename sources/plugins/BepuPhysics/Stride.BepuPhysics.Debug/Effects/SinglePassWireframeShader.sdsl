@@ -1,4 +1,6 @@
-﻿shader SinglePassWireframeShader
+﻿namespace Stride.Rendering;
+
+shader SinglePassWireframeShader
 {
     import ShaderBase;
     import Transformation;
