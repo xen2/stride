@@ -15,7 +15,7 @@ namespace Stride.Rendering.Materials
     {
         public ShaderSource Generate(MaterialGeneratorContext context)
         {
-            return new ShaderClassSource("MaterialSpecularMicrofacetVisibilityImplicit");
+            return new ShaderClassSource(MaterialSpecularMicrofacetVisibilityImplicitKeys.ShaderName);
         }
 
         public override bool Equals(object obj)

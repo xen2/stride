@@ -41,7 +41,7 @@ namespace Stride.Rendering.Materials
 
             context.MaterialPass.Parameters.Set(uniqueExtinctionStrengthKey, ExtinctionStrength);
 
-            return new ShaderClassSource("MaterialHairShadowingFunctionScattering", uniqueExtinctionStrengthKey);
+            return new ShaderClassSource(MaterialHairShadowingFunctionScatteringKeys.ShaderName, uniqueExtinctionStrengthKey);
         }
 
         public override bool Equals(object obj)

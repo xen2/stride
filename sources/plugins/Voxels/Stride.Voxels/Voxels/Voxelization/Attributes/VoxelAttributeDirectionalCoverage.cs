@@ -42,7 +42,7 @@ namespace Stride.Rendering.Voxels
             attributes.Add(new AttributeStream(this, VoxelizationStage.Post, output));
         }
 
-        ShaderSource[] mipmapper = { new ShaderClassSource("Voxel2x2x2MipmapperSimple") };
+        ShaderSource[] mipmapper = { new ShaderClassSource(Voxel2x2x2MipmapperSimpleKeys.ShaderName) };
         public override void PostProcess(RenderDrawContext drawContext)
         {
             CoverageTex.PostProcess(drawContext, mipmapper);
@@ -51,7 +51,7 @@ namespace Stride.Rendering.Voxels
 
 
 
-        ShaderClassSource source = new ShaderClassSource("VoxelAttributeDirectionalCoverageShader");
+        ShaderClassSource source = new ShaderClassSource(VoxelAttributeDirectionalCoverageShaderKeys.ShaderName);
         ObjectParameterKey<Stride.Graphics.Texture> DirectOutput;
 
         public override ShaderSource GetVoxelizationShader()
@@ -72,7 +72,7 @@ namespace Stride.Rendering.Voxels
 
 
 
-        ShaderClassSource sampler = new ShaderClassSource("VoxelAttributeDirectionalCoverageSampler");
+        ShaderClassSource sampler = new ShaderClassSource(VoxelAttributeDirectionalCoverageSamplerKeys.ShaderName);
 
         public override ShaderSource GetSamplingShader()
         {

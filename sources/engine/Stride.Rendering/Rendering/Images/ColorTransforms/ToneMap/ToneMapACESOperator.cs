@@ -16,7 +16,7 @@ namespace Stride.Rendering.Images
         /// Initializes a new instance of the <see cref="ToneMapReinhardOperator"/> class.
         /// </summary>
         public ToneMapACESOperator()
-            : base("ToneMapACESOperatorShader")
+            : base(ToneMapACESOperatorShaderKeys.ShaderName)
         {
         }
     }

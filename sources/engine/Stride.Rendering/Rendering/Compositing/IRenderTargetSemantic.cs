@@ -2,6 +2,8 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 #pragma warning disable SA1402 // File may only contain a single class
 using Stride.Shaders;
+using Stride.Rendering.Materials;
+using Stride.Rendering.Materials.Shaders;
 
 namespace Stride.Rendering.Compositing
 {
@@ -23,22 +25,22 @@ namespace Stride.Rendering.Compositing
 
     public class NormalTargetSemantic : IRenderTargetSemantic
     {
-        public ShaderSource ShaderClass { get; } = new ShaderClassSource("GBufferOutputNormals");
+        public ShaderSource ShaderClass { get; } = new ShaderClassSource(GBufferOutputNormalsKeys.ShaderName);
     }
 
     public class SpecularColorRoughnessTargetSemantic : IRenderTargetSemantic
     {
-        public ShaderSource ShaderClass { get; } = new ShaderClassSource("GBufferOutputSpecularColorRoughness");
+        public ShaderSource ShaderClass { get; } = new ShaderClassSource(GBufferOutputSpecularColorRoughnessKeys.ShaderName);
     }
 
     public class VelocityTargetSemantic : IRenderTargetSemantic
     {
-        public ShaderSource ShaderClass { get; } = new ShaderClassSource("VelocityOutput");
+        public ShaderSource ShaderClass { get; } = new ShaderClassSource(VelocityOutputKeys.ShaderName);
     }
 
     public class MaterialIndexTargetSemantic : IRenderTargetSemantic
     {
-        public ShaderSource ShaderClass { get; } = new ShaderClassSource("GBufferOutputSubsurfaceScatteringMaterialIndex");
+        public ShaderSource ShaderClass { get; } = new ShaderClassSource(GBufferOutputSubsurfaceScatteringMaterialIndexKeys.ShaderName);
     }
 
     public class OctahedronNormalSpecularColorTargetSemantic : IRenderTargetSemantic

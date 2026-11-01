@@ -15,7 +15,7 @@ namespace Stride.Rendering.Materials
     {
         public ShaderSource Generate(MaterialGeneratorContext context)
         {
-            return new ShaderClassSource("MaterialSpecularMicrofacetNormalDistributionBlinnPhong");
+            return new ShaderClassSource(MaterialSpecularMicrofacetNormalDistributionBlinnPhongKeys.ShaderName);
         }
 
         public override bool Equals(object obj)

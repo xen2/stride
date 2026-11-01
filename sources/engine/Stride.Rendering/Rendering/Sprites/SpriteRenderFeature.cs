@@ -271,7 +271,7 @@ namespace Stride.Rendering.Sprites
 
             public EffectInstance GetOrCreatePickingSpriteEffect(EffectSystem effectSystem)
             {
-                return pickingEffect ?? (pickingEffect = new EffectInstance(effectSystem.LoadEffect("SpritePicking").WaitForResult()));
+                return pickingEffect ?? (pickingEffect = new EffectInstance(effectSystem.LoadEffect(SpritePickingKeys.ShaderName).WaitForResult()));
             }
 
             public EffectInstance GetOrCreateAlphaCutoffSpriteEffect(EffectSystem effectSystem)
@@ -279,7 +279,7 @@ namespace Stride.Rendering.Sprites
                 if (alphaCutoffEffect != null)
                     return alphaCutoffEffect;
 
-                alphaCutoffEffect = new EffectInstance(effectSystem.LoadEffect("SpriteAlphaCutoffEffect").WaitForResult());
+                alphaCutoffEffect = new EffectInstance(effectSystem.LoadEffect(SpriteAlphaCutoffEffectKeys.EffectName).WaitForResult());
                 alphaCutoffEffect.Parameters.Set(SpriteBaseKeys.ColorIsSRgb, isSrgb);
 
                 return alphaCutoffEffect;

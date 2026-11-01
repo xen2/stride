@@ -83,7 +83,7 @@ namespace Stride.Rendering.Materials
             if (NormalMap != null)
             {
                 // Inform the context that we are using matNormal (from the MaterialSurfaceNormalMap shader)
-                context.UseStreamWithCustomBlend(MaterialShaderStage.Pixel, NormalStream.Stream, new ShaderClassSource("MaterialStreamNormalBlend"));
+                context.UseStreamWithCustomBlend(MaterialShaderStage.Pixel, NormalStream.Stream, new ShaderClassSource(MaterialStreamNormalBlendKeys.ShaderName));
                 context.Parameters.Set(MaterialKeys.HasNormalMap, true);
 
                 var normalMap = NormalMap;
@@ -121,7 +121,7 @@ namespace Stride.Rendering.Materials
 
                 var computeColorSource = NormalMap.GenerateShaderSource(context, new MaterialComputeColorKeys(MaterialKeys.NormalMap, MaterialKeys.NormalValue, DefaultNormalColor, false));
                 var mixin = new ShaderMixinSource();
-                mixin.Mixins.Add(new ShaderClassSource("MaterialSurfaceNormalMap", IsXYNormal, ScaleAndBias));
+                mixin.Mixins.Add(new ShaderClassSource(MaterialSurfaceNormalMapKeys.ShaderName, IsXYNormal, ScaleAndBias));
                 mixin.AddComposition("normalMap", computeColorSource);
                 context.AddShaderSource(MaterialShaderStage.Pixel, mixin);
             }

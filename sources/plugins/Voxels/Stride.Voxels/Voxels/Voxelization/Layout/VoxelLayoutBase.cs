@@ -52,8 +52,8 @@ namespace Stride.Rendering.Voxels
 
         //Per-Layout Settings
         protected virtual int LayoutCount { get; set; } = 1;
-        protected virtual ShaderClassSource Writer { get; set; } = new ShaderClassSource("VoxelIsotropicWriter_Float4");
-        protected virtual ShaderClassSource Sampler { get; set; } = new ShaderClassSource("VoxelIsotropicSampler");
+        protected virtual ShaderClassSource Writer { get; set; } = new ShaderClassSource(VoxelIsotropicWriter_Float4Keys.ShaderName);
+        protected virtual ShaderClassSource Sampler { get; set; } = new ShaderClassSource(VoxelIsotropicSamplerKeys.ShaderName);
         protected virtual string ApplierKey { get; set; } = "Isotropic";
 
 
@@ -84,9 +84,9 @@ namespace Stride.Rendering.Voxels
             mipmapperPhysicallyBased = new ShaderSource[LayoutCount];
             mipmapperHeuristic = new ShaderSource[LayoutCount];
 
-            ShaderSource sharp = new ShaderClassSource("Voxel2x2x2MipmapperSimple");
-            ShaderSource physicallybased = new ShaderClassSource("Voxel2x2x2MipmapperPhysicallyBased");
-            ShaderSource heuristic = new ShaderClassSource("Voxel2x2x2MipmapperHeuristic");
+            ShaderSource sharp = new ShaderClassSource(Voxel2x2x2MipmapperSimpleKeys.ShaderName);
+            ShaderSource physicallybased = new ShaderClassSource(Voxel2x2x2MipmapperPhysicallyBasedKeys.ShaderName);
+            ShaderSource heuristic = new ShaderClassSource(Voxel2x2x2MipmapperHeuristicKeys.ShaderName);
             for (int i = 0; i < LayoutCount; i++)
             {
                 mipmapperSharp[i] = sharp;

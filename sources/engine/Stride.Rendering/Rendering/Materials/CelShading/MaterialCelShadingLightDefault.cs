@@ -19,7 +19,7 @@ namespace Stride.Rendering.Materials
 
         public ShaderSource Generate(MaterialGeneratorContext context)
         {
-            return new ShaderClassSource("MaterialCelShadingLightDefault", IsBlackAndWhite);
+            return new ShaderClassSource(MaterialCelShadingLightDefaultKeys.ShaderName, IsBlackAndWhite);
         }
 
         public override bool Equals(object obj)

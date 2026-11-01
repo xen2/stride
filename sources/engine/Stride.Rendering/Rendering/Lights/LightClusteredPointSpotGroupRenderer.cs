@@ -165,7 +165,7 @@ namespace Stride.Rendering.Lights
                 : base(renderContext, null)
             {
                 this.clusteredGroupRenderer = clusteredGroupRenderer;
-                ShaderSource = new ShaderClassSource("LightClusteredPointGroup");
+                ShaderSource = new ShaderClassSource(LightClusteredPointGroupKeys.ShaderName);
             }
 
             protected override void UpdateLightCount()
@@ -173,7 +173,7 @@ namespace Stride.Rendering.Lights
                 base.UpdateLightCount();
 
                 var mixin = new ShaderMixinSource();
-                mixin.Mixins.Add(new ShaderClassSource("LightClusteredPointGroup"));
+                mixin.Mixins.Add(new ShaderClassSource(LightClusteredPointGroupKeys.ShaderName));
                 ShadowGroup?.ApplyShader(mixin);
 
                 ShaderSource = mixin;
@@ -766,7 +766,7 @@ namespace Stride.Rendering.Lights
             public PointSpotShaderGroupData(RenderContext renderContext)
                 : base(renderContext, null)
             {
-                ShaderSource = new ShaderClassSource("LightClusteredSpotGroup");
+                ShaderSource = new ShaderClassSource(LightClusteredSpotGroupKeys.ShaderName);
             }
 
             // Makes LightRanges and Lights public

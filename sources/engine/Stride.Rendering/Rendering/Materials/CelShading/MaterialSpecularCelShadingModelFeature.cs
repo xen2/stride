@@ -24,7 +24,7 @@ namespace Stride.Rendering.Materials
         public override void GenerateShader(MaterialGeneratorContext context)
         {
             var shaderSource = new ShaderMixinSource();
-            shaderSource.Mixins.Add(new ShaderClassSource("MaterialSurfaceShadingSpecularCelShading"));
+            shaderSource.Mixins.Add(new ShaderClassSource(MaterialSurfaceShadingSpecularCelShadingKeys.ShaderName));
 
             GenerateShaderCompositions(context, shaderSource);
 

@@ -35,7 +35,7 @@ namespace Stride.Rendering.Materials
         public override void GenerateShader(MaterialGeneratorContext context)
         {
             var shaderSource = new ShaderMixinSource();
-            shaderSource.Mixins.Add(new ShaderClassSource("MaterialSurfaceShadingDiffuseCelShading", IsEnergyConservative, FakeNDotL));
+            shaderSource.Mixins.Add(new ShaderClassSource(MaterialSurfaceShadingDiffuseCelShadingKeys.ShaderName, IsEnergyConservative, FakeNDotL));
             if (RampFunction != null)
             {
                 shaderSource.AddComposition("celLightFunction", RampFunction.Generate(context));

@@ -13,7 +13,7 @@ namespace Stride.Rendering.Voxels
     [Display("Float16")]
     public class VoxelFragmentPackFloat16 : IVoxelFragmentPacker
     {
-        ShaderSource source = new ShaderClassSource("VoxelFragmentPackFloat16");
+        ShaderSource source = new ShaderClassSource(VoxelFragmentPackFloat16Keys.ShaderName);
         public ShaderSource GetShader()
         {
             return source;

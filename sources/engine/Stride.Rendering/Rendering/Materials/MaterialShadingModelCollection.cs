@@ -111,7 +111,7 @@ namespace Stride.Rendering.Materials
                     if (mixinSourceForLightDependentShadingModel == null)
                     {
                         mixinSourceForLightDependentShadingModel = new ShaderMixinSource();
-                        mixinSourceForLightDependentShadingModel.Mixins.Add(new ShaderClassSource("MaterialSurfaceLightingAndShading"));
+                        mixinSourceForLightDependentShadingModel.Mixins.Add(new ShaderClassSource(MaterialSurfaceLightingAndShadingKeys.ShaderName));
                     }
 
                     // Fill mixinSourceForLightDependentShadingModel

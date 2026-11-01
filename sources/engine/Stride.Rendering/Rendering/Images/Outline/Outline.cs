@@ -21,7 +21,7 @@ namespace Stride.Rendering.Images {
         /// Initializes a new instance of the <see cref="Outline"/> class.
         /// </summary>
         public Outline()
-            : this("OutlineEffect") 
+            : this(OutlineEffectKeys.ShaderName) 
         {
         }
 
