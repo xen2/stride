@@ -1,0 +1,7 @@
+using Stride.Rendering.Cubemap;
+namespace Game.Effects;
+
+effect MyEffect
+{
+    mixin CubemapUtils;
+};

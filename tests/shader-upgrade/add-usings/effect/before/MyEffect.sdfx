@@ -1,0 +1,6 @@
+namespace Game.Effects;
+
+effect MyEffect
+{
+    mixin CubemapUtils;
+};

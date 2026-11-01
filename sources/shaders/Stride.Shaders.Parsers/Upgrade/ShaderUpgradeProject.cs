@@ -25,6 +25,12 @@ internal sealed class ShaderUpgradeClass
 
     public List<string> Parents { get; init; } = [];
 
+    /// <summary>Engine classes: the full name.</summary>
+    public string? FullName { get; init; }
+
+    /// <summary>The members that have a generated key, whose name is <c>FullName.Member</c>.</summary>
+    public HashSet<string> Keys { get; init; } = [];
+
     /// <summary>Engine classes: used as the type of a <c>compose</c> declaration.</summary>
     public bool IsComposeType { get; init; }
 
@@ -288,7 +294,7 @@ internal sealed class ShaderUpgradeProject
         return null;
     }
 
-    private static IEnumerable<ShaderUpgradeClass> Parse(string path, string text, List<string> notes, bool isDependency = false)
+    internal static IEnumerable<ShaderUpgradeClass> Parse(string path, string text, List<string> notes, bool isDependency = false)
     {
         string code;
         try
@@ -321,6 +327,11 @@ internal sealed class ShaderUpgradeProject
                 Parents = declaration.Mixins.Select(x => BaseName(x.Name))
                     .Concat(declaration.Elements.OfType<ShaderImport>().Select(x => BaseName(x.Module.Name)))
                     .ToList(),
+                Keys = declaration.Elements.OfType<ShaderMember>().Concat(declaration.Elements.OfType<ShaderBuffer>().SelectMany(x => x.Members))
+                    .Where(x => !x.IsCompose && x.TypeModifier != TypeModifier.Const && x.StreamKind == StreamKind.None && x.StorageClass is not (StorageClass.Static or StorageClass.GroupShared))
+                    .Select(x => x.Name.Name)
+                    .Concat(declaration.Elements.OfType<ShaderSamplerState>().Select(x => x.Name.Name))
+                    .ToHashSet(),
             };
 
             foreach (var element in declaration.Elements)
