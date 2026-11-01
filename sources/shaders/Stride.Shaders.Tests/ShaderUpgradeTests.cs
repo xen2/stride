@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using Stride.Rendering;
 using Stride.Shaders.Parsers.Tests.Corpus;
 using Stride.Shaders.Compilers.SDSL;
 using Stride.Shaders.Parsing.Upgrade;
@@ -31,7 +32,7 @@ public class ShaderUpgradeTests
             var rootPath = Path.Combine(RepositoryRoot, root);
             if (!Directory.Exists(rootPath))
                 continue;
-            foreach (var file in Directory.EnumerateFiles(rootPath, "*.sdsl", SearchOption.AllDirectories))
+            foreach (var file in Directory.EnumerateFiles(rootPath, "*.sdsl", SearchOption.AllDirectories).Concat(Directory.EnumerateFiles(rootPath, "*.sdfx", SearchOption.AllDirectories)))
             {
                 var relative = Path.GetRelativePath(RepositoryRoot, file).Replace('\\', '/');
                 if (relative.Contains("/bin/") || relative.Contains("/obj/"))
@@ -81,7 +82,7 @@ public class ShaderUpgradeTests
         foreach (var sampleRoot in SampleRoots())
         {
             var sample = ReadShaders(sampleRoot);
-            Write(sample, ShaderUpgrader.Upgrade(sample, EngineShaderClasses.Parse(engineClasses)));
+            Write(sample, ShaderUpgrader.Upgrade(sample, EngineShaderClasses.Parse(engineClasses), implicitUsings: ShaderImplicitUsings.List));
         }
     }
 
@@ -119,7 +120,7 @@ public class ShaderUpgradeTests
     {
         var directory = Path.Combine(FixturesDirectory, fixture, part);
         return Directory.Exists(directory)
-            ? Directory.EnumerateFiles(directory, "*.sdsl").ToDictionary(Path.GetFileName, File.ReadAllText, StringComparer.Ordinal)!
+            ? Directory.EnumerateFiles(directory, "*.sd*").ToDictionary(Path.GetFileName, File.ReadAllText, StringComparer.Ordinal)!
             : [];
     }
 
@@ -131,7 +132,7 @@ public class ShaderUpgradeTests
     {
         foreach (var fixture in Fixtures().Select(x => (string)x.Data))
         {
-            var result = ShaderUpgrader.Upgrade(ReadFixture(fixture, "before"), EngineShaderClasses.Current, dependencies: ReadFixture(fixture, "dependencies"));
+            var result = ShaderUpgrader.Upgrade(ReadFixture(fixture, "before"), EngineShaderClasses.Current, implicitUsings: ShaderImplicitUsings.List, dependencies: ReadFixture(fixture, "dependencies"));
             var directory = Path.Combine(FixturesDirectory, fixture, "after");
             Directory.CreateDirectory(directory);
             foreach (var (name, text) in result.Files)
@@ -148,17 +149,17 @@ public class ShaderUpgradeTests
     {
         var expected = ReadFixture(fixture, "after");
         var dependencies = ReadFixture(fixture, "dependencies");
-        var result = ShaderUpgrader.Upgrade(ReadFixture(fixture, "before"), EngineShaderClasses.Current, dependencies: dependencies);
+        var result = ShaderUpgrader.Upgrade(ReadFixture(fixture, "before"), EngineShaderClasses.Current, implicitUsings: ShaderImplicitUsings.List, dependencies: dependencies);
         Assert.Equal(expected.Keys.Order(), result.Files.Keys.Order());
         foreach (var (name, text) in result.Files)
             Assert.Equal(expected[name].ReplaceLineEndings("\n"), text.ReplaceLineEndings("\n"));
         Assert.Empty(result.Notes.Where(x => x.Contains("dependency written for an older Stride version")));
 
-        var again = ShaderUpgrader.Upgrade(expected, EngineShaderClasses.Current, dependencies: dependencies);
+        var again = ShaderUpgrader.Upgrade(expected, EngineShaderClasses.Current, implicitUsings: ShaderImplicitUsings.List, dependencies: dependencies);
         Assert.Empty(again.Files.Where(x => expected[x.Key] != x.Value).Select(x => x.Key));
 
         var loader = new ShaderLoader(Path.Combine(FixturesDirectory, fixture, "after"), Path.Combine(FixturesDirectory, fixture, "dependencies"), "./assets/Stride/SDSL");
-        foreach (var name in expected.Keys)
+        foreach (var name in expected.Keys.Where(x => !ShaderUpgrader.IsEffectFile(x)))
             Assert.True(loader.LoadExternalBuffer(Path.GetFileNameWithoutExtension(name), [], out _, out _, out _), name);
     }
 
@@ -173,6 +174,38 @@ public class ShaderUpgradeTests
         Assert.Contains(result.Notes, x => x.StartsWith("MyLibSettings.sdsl: dependency written for an older Stride version", StringComparison.Ordinal));
         // Not a module: only its own upgrade decides that
         Assert.Contains(": MyLibSettings", result.Files["MyUser.sdsl"]);
+    }
+
+    // The keys of a shader written with an older spelling count too: it can be read before its own upgrade
+    [Fact]
+    public void WithProjectReadsAnOlderSpellingAndKeepsTheNamesOfAFileThatDoesNotParse()
+    {
+        var classes = EngineShaderClasses.Parse("").WithProject(["namespace Game; shader Old { stage float Value; float Other; };", "namespace Game; shader Broken { float + ; };"]);
+
+        Assert.Equal("Game.Old.Other", classes.ToFullKeyName("Old.Other"));
+        Assert.Equal("Game.Broken", classes.FullName("Broken"));
+        Assert.Equal("Broken.Value", classes.ToFullKeyName("Broken.Value"));
+    }
+
+    [Theory]
+    [InlineData("""[Link("Mine.Value")] float A;""", """[Link("Game.Mine.Value")] float A;""")]
+    [InlineData("Param<Mine.Value> B;", "Param<Game.Mine.Value> B;")]
+    [InlineData("""[Link("Lib.Value")] float A;""", """[Link("Library.Lib.Value")] float A;""")]
+    [InlineData("""[Link("Global.Value")] float A;""", """[Link("Global.Value")] float A;""")]
+    [InlineData("""[Link("Mine.NotAKey")] float A;""", """[Link("Mine.NotAKey")] float A;""")]
+    public void SourcesNameTheKeysOfTheProject(string member, string expected)
+    {
+        var files = new Dictionary<string, string>
+        {
+            ["Mine.sdsl"] = "namespace Game; shader Mine { float Value; };\n",
+            ["Global.sdsl"] = "shader Global { float Value; };\n",
+            ["User.sdsl"] = $"shader User {{ {member} }};\n",
+        };
+        var dependencies = new Dictionary<string, string> { ["Lib.sdsl"] = "namespace Library; shader Lib { float Value; };\n" };
+
+        var upgraded = ShaderUpgrader.Upgrade(files, EngineShaderClasses.Parse(""), dependencies: dependencies).Files["User.sdsl"];
+
+        Assert.Contains(expected, upgraded);
     }
 
     // The upgraded feature works in a composition: its helpers are module code like the code calling them
@@ -353,7 +386,7 @@ public class ShaderUpgradeTests
     {
         var loader = ShaderCorpus.CreateLoader();
         var failures = new List<string>();
-        foreach (var (path, text) in ReadShaders([.. EngineRoots, "samples"]).OrderBy(x => x.Key, StringComparer.Ordinal))
+        foreach (var (path, text) in ReadShaders([.. EngineRoots, "samples"]).Where(x => !ShaderUpgrader.IsEffectFile(x.Key)).OrderBy(x => x.Key, StringComparer.Ordinal))
         {
             var name = Path.GetFileNameWithoutExtension(path);
             if (KnownFailures.Contains(name))
@@ -382,7 +415,7 @@ public class ShaderUpgradeTests
         foreach (var sampleRoot in SampleRoots())
         {
             var sample = ReadShaders(sampleRoot);
-            var sampleResult = ShaderUpgrader.Upgrade(sample, EngineShaderClasses.Current);
+            var sampleResult = ShaderUpgrader.Upgrade(sample, EngineShaderClasses.Current, implicitUsings: ShaderImplicitUsings.List);
             Assert.Empty(sampleResult.Files.Where(x => sample[x.Key] != x.Value).Select(x => x.Key));
         }
     }

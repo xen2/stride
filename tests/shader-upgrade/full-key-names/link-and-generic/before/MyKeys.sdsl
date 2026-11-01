@@ -1,0 +1,16 @@
+namespace Game.Effects;
+
+shader MyKeys : TransformationMatrix<Transformation.WorldViewProjection>
+{
+    // A key of a shader member has the full name of its class
+    [Link("Transformation.World")]
+    float4x4 MyWorld;
+
+    // A key declared in C# keeps its name
+    [Link("Material.DiffuseValue")]
+    float4 MyDiffuse;
+
+    // A name of this project too
+    [Link("MyKeys.Other")]
+    float4 MyOther;
+};

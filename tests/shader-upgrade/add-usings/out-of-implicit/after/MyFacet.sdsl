@@ -1,0 +1,10 @@
+// Uses a module of an engine namespace the implicit list doesn't have
+using Stride.Rendering.BRDF;
+namespace Game.Effects;
+
+shader MyFacet
+{
+    import BRDFMicrofacet;
+
+    float4 Get() { return BRDFMicrofacet.FresnelNone(float3(1, 1, 1)).xyzz; }
+};

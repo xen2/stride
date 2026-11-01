@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 using System.Text.RegularExpressions;
+using Stride.Shaders.Parsing.Analysis;
 
 namespace Stride.Shaders.Parsing.Upgrade;
 
@@ -30,7 +31,16 @@ public static class ShaderUpgrader
         "module-helpers",
         // 4.5: classes with no instance part that other classes import are `module X`, imported with `import X;`
         "module-units",
+        // 4.5: engine shaders are in namespaces: a class out of scope needs a `using`
+        "add-usings",
+        // 4.5: the key of a member of a namespaced class has the full name of the class
+        "full-key-names",
     ];
+
+    /// <summary>
+    /// Whether a path is an effect source: only the steps about names read it.
+    /// </summary>
+    public static bool IsEffectFile(string path) => path.EndsWith(".sdfx", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Runs the steps up to <paramref name="lastStep"/> (all by default) on <paramref name="files"/> (path → text). The result has
@@ -41,10 +51,12 @@ public static class ShaderUpgrader
     /// The sources of the libraries the files use (path → text): read to know their classes (parents, modules, methods), never
     /// changed. They are expected to be upgraded already; one written for an older version gets a note.
     /// </param>
+    /// <param name="implicitUsings">The namespaces every class sees without a <c>using</c>.</param>
     public static ShaderUpgradeResult Upgrade(IReadOnlyDictionary<string, string> files, EngineShaderClasses? engine, string? lastStep = null,
-        IReadOnlyDictionary<string, string>? dependencies = null)
+        IReadOnlyDictionary<string, string>? dependencies = null, IReadOnlyList<string>? implicitUsings = null)
     {
-        var texts = new Dictionary<string, string>(files);
+        var effects = files.Where(x => IsEffectFile(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+        var texts = files.Where(x => !IsEffectFile(x.Key)).ToDictionary(x => x.Key, x => x.Value);
         var notes = new List<string>();
         var stepCount = lastStep == null ? Steps.Count : Steps.ToList().IndexOf(lastStep) + 1;
         if (stepCount == 0)
@@ -54,7 +66,7 @@ public static class ShaderUpgrader
         var dependencyTexts = new Dictionary<string, string>();
         foreach (var (path, text) in dependencies ?? new Dictionary<string, string>())
         {
-            var read = TextSteps.Aggregate(text, (current, step) => step(current));
+            var read = WithTextSteps(text);
             if (read != text)
                 notes.Add($"{path}: dependency written for an older Stride version, read as if upgraded but not changed; upgrade it first");
             dependencyTexts[path] = read;
@@ -73,6 +85,15 @@ public static class ShaderUpgrader
                 case "module-units":
                     Apply(texts, project => ConvertModules(project, texts, notes), engine, notes, dependencyTexts);
                     break;
+                // The engine's own sources were written in their namespaces
+                case "add-usings":
+                    if (engine != null)
+                        AddUsings(texts, effects, dependencyTexts, engine, implicitUsings ?? []);
+                    break;
+                case "full-key-names":
+                    if (engine != null)
+                        FullKeyNames(texts, engine.WithProject(texts.Values.Concat(effects.Values).Concat(dependencyTexts.Values)));
+                    break;
                 default:
                     var textStep = TextSteps[Steps.ToList().IndexOf(step)];
                     foreach (var path in texts.Keys.ToList())
@@ -81,11 +102,105 @@ public static class ShaderUpgrader
             }
         }
 
+        foreach (var (path, text) in effects)
+            texts[path] = text;
         return new ShaderUpgradeResult(texts, notes.Distinct().ToList());
+    }
+
+    /// <summary>
+    /// A file that names a class or effect of the engine, the project or a dependency out of its scope gets the <c>using</c> of its
+    /// namespace, or the full name when that <c>using</c> would make the name ambiguous.
+    /// </summary>
+    private static void AddUsings(Dictionary<string, string> texts, Dictionary<string, string> effects, Dictionary<string, string> dependencies, EngineShaderClasses engine, IReadOnlyList<string> implicitUsings)
+    {
+        var projectSources = texts.Values.Concat(effects.Values).Concat(dependencies.Values).ToList();
+        var projectNames = projectSources.SelectMany(ShaderFileDeclarations.Read).Select(x => x.FullName).ToHashSet();
+        var known = engine.Classes.Select(x => x.FullName ?? x.Name).Concat(engine.Effects.Values).Concat(projectNames).ToHashSet();
+        // A project class hides an engine class of its name, as it did when all names were global
+        var classes = engine.WithProject(projectSources);
+
+        foreach (var files in new[] { texts, effects })
+        {
+            foreach (var path in files.Keys.ToList())
+            {
+                var source = new ShaderSourceText(files[path]);
+                var declarations = ShaderFileDeclarations.Read(source.Text);
+                var usings = source.CodeMatches(@"(?<![\w.])using\s+([\w.]+)\s*;").Select(x => x.Groups[1].Value).Where(x => x != "params").ToList();
+                var added = new SortedSet<string>(StringComparer.Ordinal);
+                var scope = new ShaderNameScope(declarations.FirstOrDefault().Namespace, [], usings);
+
+                foreach (var match in source.CodeMatches(@"(?<![\w.])[A-Za-z_]\w*"))
+                {
+                    var name = match.Value;
+                    if (classes.FullName(name) is not { } fullName || fullName == name || declarations.Any(x => x.Name == name)
+                        || scope.Resolve(name, implicitUsings, known.Contains, out _) != null
+                        || IsDeclaredAsMember(source, name))
+                        continue;
+
+                    var withUsing = new ShaderNameScope(scope.Namespace, [], [.. usings, .. added, ShaderNames.Namespace(fullName)!]);
+                    withUsing.Resolve(name, implicitUsings, known.Contains, out var ambiguous);
+                    if (ambiguous != null)
+                        source.Replace(match.Index, match.Length, fullName);
+                    else
+                        added.Add(ShaderNames.Namespace(fullName)!);
+                }
+
+                if (added.Count > 0)
+                    source.Insert(UsingPosition(source), string.Concat(added.Select(x => $"using {x};{source.NewLine}")));
+                if (source.HasEdits)
+                    files[path] = source.Apply();
+            }
+        }
+    }
+
+    // A member or local of that name: "float4 Name;" or "Map<A,B> Name;", and not a keyword that takes a class or a list of parents "A, Name,"
+    private static bool IsDeclaredAsMember(ShaderSourceText source, string name)
+        => source.CodeMatches($@"(?<![\w.])([A-Za-z_](?:[\w<>,]*[\w>])?)\s+{name}\s*[;=,)(\[]").Any(x => x.Groups[1].Value is not ("import" or "mixin" or "compose" or "child" or "return"));
+
+    // After the last using, or before the first code of the file
+    private static int UsingPosition(ShaderSourceText source)
+    {
+        var lastUsing = source.CodeMatches(@"(?<![\w.])using\s+[\w.]+\s*;").Where(x => x.Groups[0].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Last() != "params;").LastOrDefault();
+        var firstDeclaration = source.CodeMatches(@"\b(?:namespace|shader|module|effect|internal|partial)\b").FirstOrDefault();
+        if (lastUsing != null && (firstDeclaration == null || lastUsing.Index < firstDeclaration.Index))
+        {
+            var lineEnd = source.Text.IndexOf('\n', lastUsing.Index);
+            return lineEnd < 0 ? source.Text.Length : lineEnd + 1;
+        }
+
+        for (var i = 0; i < source.Text.Length; i++)
+        {
+            if (source.IsCode[i] && !char.IsWhiteSpace(source.Text[i]))
+                return i;
+        }
+        return source.Text.Length;
+    }
+
+    /// <summary>
+    /// The texts that name a key: <c>[Link("Class.Member")]</c>, and a generic argument <c>Class&lt;Other.Member&gt;</c>.
+    /// </summary>
+    private static void FullKeyNames(Dictionary<string, string> texts, EngineShaderClasses classes)
+    {
+        foreach (var path in texts.Keys.ToList())
+        {
+            var source = new ShaderSourceText(texts[path]);
+            foreach (var match in source.CodeMatches(@"\[\s*Link\s*\(\s*""([^""]+)""").Concat(source.CodeMatches(@"(?<=[<,]\s*)([A-Za-z_]\w*\.[A-Za-z_][\w.\[\]]*)(?=\s*[,>])")))
+            {
+                var key = match.Groups[1];
+                var fullKey = classes.ToFullKeyName(key.Value);
+                if (fullKey != key.Value)
+                    source.Replace(key.Index, key.Length, fullKey);
+            }
+            if (source.HasEdits)
+                texts[path] = source.Apply();
+        }
     }
 
     // The steps that change text without reading the classes, in the order of Steps (they come first)
     private static readonly Func<string, string>[] TextSteps = [DropClone, StageToModule, ComposeOutOfBuffer, DropComposeValue];
+
+    // An older spelling parses after them
+    internal static string WithTextSteps(string text) => TextSteps.Aggregate(text, (current, step) => step(current));
 
     private static void Apply(Dictionary<string, string> texts, Func<ShaderUpgradeProject, Dictionary<string, ShaderSourceText>> step, EngineShaderClasses? engine,
         List<string> notes, IReadOnlyDictionary<string, string> dependencies)
