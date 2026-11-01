@@ -1,5 +1,4 @@
-// A `using` of the namespace NsUtils lives in. Resolution is by class name, so the directive
-// changes nothing, but it must be accepted: shaders in the wild carry one.
+// A `using` of the namespace NsUtils lives in: it is what makes the name visible.
 using Stride.Shaders.Parsers.Tests;
 
 namespace Stride.Shaders.Tests;

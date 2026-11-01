@@ -113,8 +113,30 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
     /// <inheritdoc/>
     public virtual IReadOnlyList<string> FindFullNames(string shortName) => [];
 
+    private readonly ConcurrentDictionary<string, string> fullNames = new();
+
+    /// <inheritdoc/>
+    public string ToFullName(string name)
+    {
+        if (fullNames.TryGetValue(name, out var fullName))
+            return fullName;
+        if (name.Contains('<'))
+            return name;
+        if (Exists(name))
+            fullName = name;
+        else if (Cache.FindFullName(ShaderNames.ShortName(name)) is { } registered)
+            fullName = registered;
+        else if (FindFullNames(ShaderNames.ShortName(name)) is { Count: > 0 } found)
+            fullName = found[0];
+        else
+            return name;
+        fullNames[name] = fullName;
+        return fullName;
+    }
+
     public bool LoadExternalBuffer(string name, ReadOnlySpan<ShaderMacro> defines, [MaybeNullWhen(false)] out ShaderBuffers buffer, out ObjectId hash, out bool isFromCache)
     {
+        name = ToFullName(name);
         isFromCache = Cache.TryLoadFromCache(name, null, defines, out buffer, out hash);
         if (isFromCache)
         {
@@ -147,6 +169,10 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
             if (!LoadFromCode(filename, code, h, macrosArray, out buf))
                 throw new InvalidOperationException($"Shader {name} could not be compiled");
 
+            // A file can hold several classes
+            if (Cache.TryLoadFromCache(name, null, macrosArray, out var declared, out var declaredHash))
+                return (declared, declaredHash);
+
             return (buf, h);
         }, LazyThreadSafetyMode.ExecutionAndPublication));
 
@@ -167,6 +193,8 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
 
     public bool LoadExternalBuffer(string name, string? filename, string code, ObjectId sourceHash, ReadOnlySpan<ShaderMacro> defines, [MaybeNullWhen(false)] out ShaderBuffers buffer, out ObjectId hash, out bool isFromCache)
     {
+        name = ToFullName(name);
+
         isFromCache = Cache.TryLoadFromCache(name, null, defines, out buffer, out hash) && ValidateCachedHashes(buffer);
         if (isFromCache)
         {

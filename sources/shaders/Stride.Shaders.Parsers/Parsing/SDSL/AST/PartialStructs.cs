@@ -31,7 +31,8 @@ internal static class PartialStructs
     /// <returns>false when a struct contains itself (SDSL0128): nothing more can be declared.</returns>
     public static bool DeclareStructs(SymbolTable table, SpirvContext context, ShaderClass shaderClass)
     {
-        var className = shaderClass.Name.Name;
+        var className = shaderClass.FullName;
+        var shortName = shaderClass.Name.Name;
         var partials = new Dictionary<string, PartialStruct>();
         var plainOwners = new Dictionary<string, string>();
 
@@ -48,7 +49,7 @@ internal static class PartialStructs
                         partials.Add(structType.Name, partial = new(structType.Name, owner));
                     else if (partial.Owner != owner)
                     {
-                        table.AddError(new(shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0124, className, structType.Name, partial.Owner, owner)));
+                        table.AddError(new(shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0124, shortName, structType.Name, ShaderNames.ShortName(partial.Owner), ShaderNames.ShortName(owner))));
                         continue;
                     }
                     for (var index = 0; index < structType.Members.Count; index++)
@@ -59,7 +60,7 @@ internal static class PartialStructs
                 }
                 else if (!plainOwners.TryAdd(structType.Name, shader.Name) && plainOwners[structType.Name] != shader.Name)
                 {
-                    table.AddWarning(new(shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0215, className, structType.Name, plainOwners[structType.Name], shader.Name)));
+                    table.AddWarning(new(shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0215, shortName, structType.Name, ShaderNames.ShortName(plainOwners[structType.Name]), shader.ShortName)));
                 }
             }
         }
@@ -71,17 +72,17 @@ internal static class PartialStructs
             {
                 case ShaderStructKind.Plain:
                     if (partials.TryGetValue(name, out var hidden))
-                        table.AddError(new(element.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0123, className, name, hidden.Owner)));
+                        table.AddError(new(element.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0123, shortName, name, ShaderNames.ShortName(hidden.Owner))));
                     break;
                 case ShaderStructKind.Partial:
                     if (partials.TryGetValue(name, out var existing))
                     {
-                        table.AddError(new(element.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0123, className, name, existing.Owner)));
+                        table.AddError(new(element.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0123, shortName, name, ShaderNames.ShortName(existing.Owner))));
                         break;
                     }
                     if (shaderClass.Generics is { Parameters.Count: > 0 })
                     {
-                        table.AddError(new(element.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0126, className, name)));
+                        table.AddError(new(element.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0126, shortName, name)));
                         break;
                     }
                     var declared = new PartialStruct(name, className);
@@ -92,9 +93,9 @@ internal static class PartialStructs
                     if (partials.TryGetValue(name, out var extended))
                         extended.OwnParts.Add(element);
                     else if (plainOwners.TryGetValue(name, out var plainOwner))
-                        table.AddError(new(element.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0122, className, name, plainOwner)));
+                        table.AddError(new(element.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0122, shortName, name, ShaderNames.ShortName(plainOwner))));
                     else
-                        table.AddError(new(element.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0121, className, name)));
+                        table.AddError(new(element.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0121, shortName, name)));
                     break;
             }
         }
@@ -133,7 +134,7 @@ internal static class PartialStructs
                 return true;
             if (path.FindIndex(x => x.Struct == name) is var start and not -1)
             {
-                var chain = string.Join(" -> ", path.Skip(start).Select(x => $"{x.Struct}.{x.Field} ({x.Declarer})").Append(name));
+                var chain = string.Join(" -> ", path.Skip(start).Select(x => $"{x.Struct}.{x.Field} ({ShaderNames.ShortName(x.Declarer)})").Append(name));
                 table.AddError(new(partial?.OwnParts.FirstOrDefault()?.TypeName.Info ?? plain?.TypeName.Info ?? shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0128, name, chain)));
                 return false;
             }
@@ -251,7 +252,7 @@ internal static class PartialStructs
             partial.Fields.Add((name, type, modifier, declarer));
         // The same part reached twice (two classes import its declarer) is one part
         else if (partial.Fields[existing].Declarer != declarer)
-            table.AddError(new(location, string.Format(SDSLErrorMessages.SDSL0120, partial.Name, name, partial.Fields[existing].Declarer, declarer)));
+            table.AddError(new(location, string.Format(SDSLErrorMessages.SDSL0120, partial.Name, name, ShaderNames.ShortName(partial.Fields[existing].Declarer), ShaderNames.ShortName(declarer))));
     }
 
     /// <summary>
