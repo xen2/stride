@@ -112,7 +112,7 @@ namespace Stride.Assets.Skyboxes
             public SkyboxCompileCommand(string url, SkyboxAsset parameters, IAssetFinder assetFinder)
                 : base(url, parameters, assetFinder)
             {
-                Version = 2;
+                Version = 3;
             }
 
             /// <inheritdoc/>
