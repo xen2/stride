@@ -78,6 +78,9 @@ namespace Stride.Shaders.Compilers
         {
             lock (locker)
             {
+                if (classNameToPath.TryGetValue(type, out var existingPath) && existingPath != sourcePath)
+                    throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0301, type, existingPath, sourcePath));
+
                 var shaderSource = new ShaderSourceWithHash() { Source = sourceCode, Path = sourcePath };
                 shaderSource.Hash = ObjectId.FromBytes(Encoding.UTF8.GetBytes(shaderSource.Source));
                 loadedShaderSources[type] = shaderSource;

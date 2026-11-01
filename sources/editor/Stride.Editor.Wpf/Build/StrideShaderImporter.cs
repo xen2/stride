@@ -19,6 +19,9 @@ namespace Stride.Editor.Build
         /// </summary>
         private readonly HashSet<string> systemProjectsLoaded = new HashSet<string>();
 
+        // Who declares each system shader: a user shader of the same full name is an error
+        private Dictionary<string, List<string>> systemShaders;
+
         private class UpdateImportShaderCacheBuildStep : BuildStep
         {
             private readonly HashSet<string> cachedProject;
@@ -92,6 +95,7 @@ namespace Stride.Editor.Build
             var context = new AssetCompilerContext { CompilationContext = typeof(AssetCompilationContext) };
             var dependenciesCompileResult = assetProjectCompiler.Prepare(context);
             context.Dispose();
+            systemShaders = EffectShaderAssetCompiler.FindDeclaredShaders(importShadersProjectSession);
 
             var buildSteps = dependenciesCompileResult.BuildSteps;
             buildSteps?.Add(new UpdateImportShaderCacheBuildStep(systemProjectsLoaded, systemPackages.Select(x => x.Package.Meta.Name).ToList()));
@@ -127,7 +131,9 @@ namespace Stride.Editor.Build
 
             // compile the fake project (create the build steps)
             var assetProjectCompiler = new PackageCompiler(new PackageAssetEnumerator(importShadersRootProject.Package));
-            var dependenciesCompileResult = assetProjectCompiler.Prepare(new AssetCompilerContext { CompilationContext = typeof(AssetCompilationContext) });
+            var userContext = new AssetCompilerContext { CompilationContext = typeof(AssetCompilationContext) };
+            userContext.Properties.Set(EffectShaderAssetCompiler.ImportedShadersKey, systemShaders);
+            var dependenciesCompileResult = assetProjectCompiler.Prepare(userContext);
 
             var buildSteps = dependenciesCompileResult.BuildSteps;
             buildSteps?.Add(new UpdateImportShaderCacheBuildStep(new HashSet<string>(), packages.Select(x => x.Package.Meta.Name).ToList()));

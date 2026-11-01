@@ -162,6 +162,19 @@ public partial class ShaderMixer
 
     private void RenameVariables(MixinGlobalContext globalContext, SpirvContext context, SpirvBuffer temp)
     {
+        // The short name is the prefix, unless two classes of the effect have it
+        var fullNamesByShortName = new Dictionary<string, string>();
+        var sharedShortNames = new HashSet<string>();
+        foreach (var i in temp)
+        {
+            if (i.Op == Specification.Op.OpShaderSDSL && (OpShaderSDSL)i is { } shader)
+            {
+                var shortName = ShaderNames.ShortNameWithGenerics(shader.ShaderName);
+                if (!fullNamesByShortName.TryAdd(shortName, shader.ShaderName) && fullNamesByShortName[shortName] != shader.ShaderName)
+                    sharedShortNames.Add(shortName);
+            }
+        }
+
         // Collect variables by names
         string? compositionPath = null;
         var shaderNameWithComposition = string.Empty;
@@ -179,9 +192,10 @@ public partial class ShaderMixer
             else if (i.Op == Specification.Op.OpShaderSDSL && (OpShaderSDSL)i is { } shader)
             {
                 var shortName = ShaderNames.ShortNameWithGenerics(shader.ShaderName);
+                var prefix = sharedShortNames.Contains(shortName) ? shader.ShaderName : shortName;
                 shaderNameWithComposition = compositionPath != null
-                    ? $"{compositionPath}.{shortName}"
-                    : shortName;
+                    ? $"{compositionPath}.{prefix}"
+                    : prefix;
             }
             else if (i.Op == Specification.Op.OpVariableSDSL && (OpVariableSDSL)i is
             { StorageClass: Specification.StorageClass.UniformConstant or Specification.StorageClass.StorageBuffer } variable)

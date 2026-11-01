@@ -5,7 +5,9 @@ using System.Linq;
 using Stride.Core.Diagnostics;
 using Stride.Core.IO;
 using Stride.Core.Storage;
+using Stride.Core.Serialization.Contents;
 using Stride.Graphics;
+using Stride.Rendering;
 using Stride.Shaders.Compiler;
 
 namespace Stride.Shaders.Parsers.Tests;
@@ -68,6 +70,97 @@ public class EffectReloadTests : IDisposable
             }
         };
         """;
+
+    private string InNamespace(string color) => $"namespace Reload.Test;\n{ShaderWithColor(color)}";
+
+    private string FullName => $"Reload.Test.{shaderName}";
+
+    [Fact]
+    public void EveryEditOfAShaderInANamespaceIsSeen()
+    {
+        var red = CompileAfterEdit(InNamespace("1, 0, 0, 1"), FullName);
+        var green = CompileAfterEdit(InNamespace("0, 1, 0, 1"), FullName);
+        var blue = CompileAfterEdit(InNamespace("0, 0, 1, 1"), FullName);
+
+        Assert.NotEqual(red, green);
+        Assert.NotEqual(green, blue);
+    }
+
+    // A dependency in a namespace: its edit invalidates the class that was compiled with it
+    [Fact]
+    public void AnEditOfAParentInANamespaceIsSeen()
+    {
+        var parentName = $"ReloadParent{Guid.NewGuid():N}";
+        var parentPath = Path.Combine(sourceDir.FullName, $"{parentName}.sdsl");
+        string Parent(string color) => $$"""
+            namespace Reload.Test.Parents;
+            shader {{parentName}} : SpriteBase
+            {
+                module float4 Color() { return float4({{color}}); }
+            };
+            """;
+        var child = $$"""
+            namespace Reload.Test;
+            using Reload.Test.Parents;
+            shader {{shaderName}} : {{parentName}}
+            {
+                module override float4 Shading() { return Color(); }
+            };
+            """;
+
+        File.WriteAllText(parentPath, Parent("1, 0, 0, 1"));
+        var red = CompileAfterEdit(child, FullName);
+
+        File.WriteAllText(parentPath, Parent("0, 1, 0, 1"));
+        cache.ResetCache([$"Reload.Test.Parents.{parentName}"]);
+        var green = CompileAfterEdit(child, FullName);
+
+        Assert.NotEqual(red, green);
+    }
+
+    [Fact]
+    public void AWatchedFileGivesTheFullNamesOfItsShaders()
+    {
+        var map = new ShaderSourceFileMap();
+        map.Add(ShaderPath, FullName);
+        map.Add(ShaderPath, $"Other.{shaderName}");
+
+        var modified = new HashSet<string>();
+        map.AddShadersOf(ShaderPath, modified);
+        Assert.Equal([$"Other.{shaderName}", FullName], modified.Order());
+
+        modified.Clear();
+        map.AddShadersOf(Path.Combine(sourceDir.FullName, "SomethingElse.sdsl"), modified);
+        Assert.Empty(modified);
+    }
+
+    private sealed class EffectIds(EffectCompilerBase compiler) : EffectCompilerChain(compiler)
+    {
+        public List<ObjectId> Ids { get; } = [];
+
+        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
+        {
+            Ids.Add(effectInputHash);
+            return base.Compile(mixinTree, effectParameters, compilerParameters, effectInputHash);
+        }
+    }
+
+    // One shader, one id: however it is named while the literals of the engine are short names
+    [Fact]
+    public void AShaderHasOneEffectId()
+    {
+        File.WriteAllText(ShaderPath, InNamespace("1, 0, 0, 1"));
+        var ids = new EffectIds(compiler);
+        var parameters = new CompilerParameters { EffectParameters = EffectCompilerParameters.Default with { Platform = GraphicsPlatform.Vulkan } };
+
+        ids.Compile(new ShaderClassSource(FullName), parameters);
+        ids.Compile(new ShaderClassSource(shaderName), parameters);
+        ids.Compile(new ShaderMixinSource { Name = FullName, Mixins = { new ShaderClassSource(FullName) } }, parameters);
+
+        Assert.Equal(3, ids.Ids.Count);
+        Assert.Equal(ids.Ids[0], ids.Ids[1]);
+        Assert.Equal(ids.Ids[0], ids.Ids[2]);
+    }
 
     [Fact]
     public void EveryShaderEditIsSeen()
@@ -140,10 +233,10 @@ public class EffectReloadTests : IDisposable
     }
 
     /// <summary>Writes a new version of the shader, then reloads it the way the runtime does.</summary>
-    private byte[] CompileAfterEdit(string code)
+    private byte[] CompileAfterEdit(string code, string? fullName = null)
     {
         File.WriteAllText(ShaderPath, code);
-        cache.ResetCache([shaderName]);
+        cache.ResetCache([fullName ?? shaderName]);
 
         // Vulkan rather than the Direct3D11 default: it consumes SPIR-V directly, so this compiles on
         // every platform, where the D3D backend throws NotSupportedException off Windows.
@@ -151,7 +244,7 @@ public class EffectReloadTests : IDisposable
         {
             EffectParameters = EffectCompilerParameters.Default with { Platform = GraphicsPlatform.Vulkan },
         };
-        var results = cache.Compile(new ShaderClassSource(shaderName), parameters);
+        var results = cache.Compile(new ShaderClassSource(fullName ?? shaderName), parameters);
         Assert.False(results.HasErrors, string.Join(Environment.NewLine, results.Messages.Select(m => m.Text)));
 
         var completed = results.Bytecode.WaitForResult();
