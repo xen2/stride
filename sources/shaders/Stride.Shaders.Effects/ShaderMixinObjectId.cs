@@ -1,7 +1,9 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Silicon Studio Corp. (https://www.siliconstudio.co.jp)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Stride.Core.Diagnostics;
 using Stride.Core.IO;
 using Stride.Core.Serialization;
@@ -39,12 +41,37 @@ namespace Stride.Shaders
         /// <param name="effectCompilerParameters">The effect compiler parameters.</param>
         /// <returns>EffectObjectIds.</returns>
         public static ObjectId Compute(ShaderMixinSource mixin, EffectCompilerParameters effectCompilerParameters)
+            => Compute(mixin, effectCompilerParameters, ObjectId.Empty);
+
+        /// <summary>
+        /// Computes a hash <see cref="ObjectId"/> for the specified mixin, in a project with these replacements.
+        /// </summary>
+        /// <param name="mixin">The mixin.</param>
+        /// <param name="effectCompilerParameters">The compiler parameters.</param>
+        /// <param name="replacements">The result of <see cref="ComputeReplacements"/>. A replacer changes the code of an effect but not its tree.</param>
+        public static ObjectId Compute(ShaderMixinSource mixin, EffectCompilerParameters effectCompilerParameters, ObjectId replacements)
         {
             lock (generatorLock)
             {
                 generator ??= new ShaderMixinObjectId();
-                return generator.ComputeInternal(mixin, effectCompilerParameters);
+                return generator.ComputeInternal(mixin, effectCompilerParameters, replacements);
             }
+        }
+
+        /// <summary>
+        /// One hash of the shader replacements of a project, the same at build and at run time. Empty when there is none, which changes no id.
+        /// </summary>
+        /// <param name="replacements">The replaced class and its replacer, by full name.</param>
+        public static ObjectId ComputeReplacements(IEnumerable<KeyValuePair<string, string>> replacements)
+        {
+            var builder = new ObjectIdBuilder();
+            var any = false;
+            foreach (var (original, replacer) in replacements.OrderBy(x => x.Key, StringComparer.Ordinal))
+            {
+                builder.Write($"{original}\0{replacer}\0");
+                any = true;
+            }
+            return any ? builder.ComputeHash() : ObjectId.Empty;
         }
 
         /// <summary>
@@ -64,7 +91,7 @@ namespace Stride.Shaders
             }
         }
 
-        private ObjectId ComputeInternal(ShaderMixinSource mixin, EffectCompilerParameters effectCompilerParameters)
+        private ObjectId ComputeInternal(ShaderMixinSource mixin, EffectCompilerParameters effectCompilerParameters, ObjectId replacements)
         {
             digestStream.Reset();
             writer.Write(EffectBytecode.MagicHeader); // Write the effect bytecode magic header
@@ -76,6 +103,8 @@ namespace Stride.Shaders
             writer.Write(effectCompilerParameters.Profile);
             writer.Write(effectCompilerParameters.Debug);
             writer.Write(effectCompilerParameters.OptimizationLevel);
+            if (replacements != ObjectId.Empty)
+                writer.Write(replacements);
 
             return digestStream.CurrentHash;
         }

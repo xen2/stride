@@ -13,6 +13,7 @@ using Stride.Core;
 using Stride.Core.IO;
 using Stride.Core.Serialization;
 using Stride.Core.Serialization.Contents;
+using Stride.Core.Storage;
 using Stride.Graphics;
 using Stride.Rendering;
 using Stride.Shaders;
@@ -53,6 +54,11 @@ namespace Stride.Assets.Effect
             writer.Serialize(ref effectName, ArchiveMode.Serialize);
             writer.Serialize(ref compilerParameters, ArchiveMode.Serialize);
             writer.Serialize(ref compilerParameters.EffectParameters, ArchiveMode.Serialize);
+
+            // A replacer changes the code of an effect, not what it names
+            var replacements = EffectShaderAssetCompiler.GetReplacementsHash(context, package.Session);
+            if (replacements != ObjectId.Empty)
+                writer.Write(replacements);
         }
 
         protected override void ComputeAssemblyHash(BinarySerializationWriter writer)

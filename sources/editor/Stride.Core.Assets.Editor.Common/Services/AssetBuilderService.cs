@@ -153,7 +153,7 @@ namespace Stride.Core.Assets.Editor.Services
             }
         }
 
-        public PriorityQueueNode<AssetBuildUnit> PushBuildUnit(AssetBuildUnit unit)
+        public virtual PriorityQueueNode<AssetBuildUnit> PushBuildUnit(AssetBuildUnit unit)
         {
             PriorityQueueNode<AssetBuildUnit> result;
 

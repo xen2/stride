@@ -20,10 +20,17 @@ namespace Stride.Shaders.Compiler
         {
             if (compiler == null) throw new ArgumentNullException("compiler");
             this.compiler = compiler;
+            compiler.ReplacementsChanged += OnReplacementsChanged;
         }
 
         /// <inheritdoc/>
         public override string ToFullShaderName(string name) => compiler.ToFullShaderName(name);
+
+        /// <inheritdoc/>
+        public override ObjectId GetReplacementsHash() => compiler.GetReplacementsHash();
+
+        /// <inheritdoc/>
+        public override void CheckReplacements() => compiler.CheckReplacements();
 
         protected EffectCompilerBase Compiler
         {
