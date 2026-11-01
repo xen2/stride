@@ -45,6 +45,11 @@ namespace Stride.Shaders.Compiler
 
         public List<string> SourceDirectories { get; private set; }
 
+        /// <summary>
+        /// The namespaces every shader sees without a <c>using</c>. Read when the compiler first loads a shader.
+        /// </summary>
+        public IReadOnlyList<string> ImplicitUsings { get; set; } = [];
+
         public Dictionary<string, string> UrlToFilePath { get; private set; }
 
         public override IVirtualFileProvider FileProvider { get; set; }
@@ -92,7 +97,7 @@ namespace Stride.Shaders.Compiler
             {
                 if (shaderLoader == null)
                 {
-                    shaderLoader = new FileShaderLoader(FileProvider);
+                    shaderLoader = new FileShaderLoader(FileProvider) { ImplicitUsings = ImplicitUsings };
                     shaderLoader.SourceManager.LookupDirectoryList.AddRange(SourceDirectories); // TODO: temp
                     shaderLoader.SourceManager.UseFileSystem = UseFileSystem;
                     shaderLoader.SourceManager.UrlToFilePath = UrlToFilePath; // TODO: temp
