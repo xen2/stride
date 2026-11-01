@@ -129,6 +129,111 @@ public class KeysGeneratorTests
         Assert.Contains($"\"{keyName}\"", generated);
     }
 
+    [Theory]
+    [InlineData("namespace A.B;", "A.B.KeysGeneratorCheck")]
+    [InlineData("", "KeysGeneratorCheck")]
+    public void AShaderWithNoKeyHasItsFullName(string @namespace, string fullName)
+    {
+        var (generated, errors) = Build($$"""
+            {{@namespace}}
+
+            shader KeysGeneratorCheck { float4 Get() { return 1; } };
+            """, "");
+
+        Assert.Empty(errors);
+        Assert.Contains($"public const string ShaderName = \"{fullName}\";", generated);
+        Assert.DoesNotContain("RunClassConstructor", generated);
+    }
+
+    [Fact]
+    public void AShaderWithKeysHasItsFullNameAndRunsItsConstructor()
+    {
+        var (generated, errors) = Build("""
+            namespace A.B;
+
+            shader KeysGeneratorCheck { cbuffer PerDraw { float4 Plain; }; };
+            """, "");
+
+        Assert.Empty(errors);
+        Assert.Contains("public const string ShaderName = \"A.B.KeysGeneratorCheck\";", generated);
+        Assert.Contains("RunClassConstructor", generated);
+    }
+
+    [Fact]
+    public void AKeysClassWrittenByHandWithoutPartialKeepsItsName()
+    {
+        var (generated, errors) = Build("""
+            namespace A.B;
+
+            shader KeysGeneratorCheck { float4 Get() { return 1; } };
+            """, "namespace A.B { public static class KeysGeneratorCheckKeys { } }");
+
+        Assert.Empty(errors);
+        Assert.DoesNotContain("ShaderName", generated);
+    }
+
+    [Fact]
+    public void AMemberNamedShaderNameWarnsAndGivesNoHandle()
+    {
+        var (generated, errors) = Build("""
+            namespace A.B;
+
+            shader KeysGeneratorCheck { cbuffer PerDraw { float4 ShaderName; }; };
+            """, "");
+
+        Assert.Empty(errors);
+        Assert.Contains("#warning KeysGeneratorCheck has a member named ShaderName", generated);
+        Assert.DoesNotContain("public const string ShaderName", generated);
+    }
+
+    // The name in a mixin resolves as in a shader: its namespace, its parents, global, usings
+    [Theory]
+    [InlineData("namespace A.B;", "Sibling", "A.B", "A.B.Sibling")]
+    [InlineData("namespace A.B;", "Sibling", "A", "A.Sibling")]
+    [InlineData("namespace A.B;", "Sibling", "", "Sibling")]
+    [InlineData("using C.D;\nnamespace A.B;", "Sibling", "C.D", "C.D.Sibling")]
+    [InlineData("namespace A.B;", "Sibling", "C.D", "Sibling")]
+    public void MixinNamesResolveWithTheScope(string header, string mixin, string siblingNamespace, string expected)
+    {
+        var sibling = siblingNamespace.Length > 0 ? $"namespace {siblingNamespace};\n" : "";
+        var effect = $$"""
+            {{header}}
+
+            effect KeysGeneratorEffect
+            {
+                mixin {{mixin}};
+            };
+            """;
+
+        var (generated, errors) = Build([("KeysGeneratorEffect.sdfx", effect), ("Sibling.sdsl", $"{sibling}shader Sibling {{ }};")], "");
+
+        Assert.Empty(errors);
+        Assert.Contains($"context.Mixin(mixin, \"{expected}\")", generated);
+    }
+
+    // A key class alone doesn't make a shader: effects have hand-written ones
+    [Fact]
+    public void AMixinNameThatOnlyHasAKeysClassStaysAsItIsWritten()
+    {
+        var (generated, errors) = Build([("KeysGeneratorEffect.sdfx", "namespace A;\neffect KeysGeneratorEffect { mixin Sibling; };")], "namespace A { public static class SiblingKeys { } }");
+
+        Assert.Empty(errors);
+        Assert.Contains("context.Mixin(mixin, \"Sibling\")", generated);
+    }
+
+    [Fact]
+    public void AMixinNameFoundInTwoUsingsStaysAsItIsWritten()
+    {
+        var (generated, errors) = Build([
+            ("KeysGeneratorEffect.sdfx", "using C;\nusing D;\nnamespace A;\neffect KeysGeneratorEffect { mixin Sibling; };"),
+            ("Sibling1.sdsl", "namespace C;\nshader Sibling { };"),
+            ("Sibling2.sdsl", "namespace D;\nshader Sibling { };"),
+        ], "");
+
+        Assert.Empty(errors);
+        Assert.Contains("context.Mixin(mixin, \"Sibling\")", generated);
+    }
+
     // A shader namespace doesn't have to exist in C#
     [Fact]
     public void UsingOfANamespaceCSharpDoesNotKnowBuilds()
@@ -156,17 +261,19 @@ public class KeysGeneratorTests
     }
 
     // Runs the generator on the shader and compiles its output with the C# source
-    private static (string Generated, List<string> Errors) Build(string shader, string csharp)
+    private static (string Generated, List<string> Errors) Build(string shader, string csharp) => Build([("KeysGeneratorCheck.sdsl", shader)], csharp);
+
+    private static (string Generated, List<string> Errors) Build((string Path, string Text)[] files, string csharp)
     {
         // The assemblies the generated keys use
-        var references = new[] { typeof(object), typeof(Stride.Rendering.ParameterKeys), typeof(Stride.Core.Mathematics.Vector4), typeof(Stride.Graphics.Texture), typeof(Stride.Core.DataContractAttribute), typeof(Stride.Shaders.ShaderMixinSource) }
+        var references = new[] { typeof(object), typeof(Stride.Rendering.ParameterKeys), typeof(Stride.Core.Mathematics.Vector4), typeof(Stride.Graphics.Texture), typeof(Stride.Core.DataContractAttribute), typeof(Stride.Shaders.ShaderMixinSource), typeof(Stride.Shaders.ShaderMixinContext) }
             .Select(x => x.Assembly.Location)
             .Concat(Directory.EnumerateFiles(Path.GetDirectoryName(typeof(object).Assembly.Location)!, "*.dll").Where(x => Path.GetFileName(x) is "System.Runtime.dll" or "netstandard.dll" or "System.Collections.dll"))
             .Distinct()
             .Select(x => MetadataReference.CreateFromFile(x))
             .ToList();
         var compilation = CSharpCompilation.Create("KeysGeneratorCheck", [CSharpSyntaxTree.ParseText(csharp)], references, new(OutputKind.DynamicallyLinkedLibrary));
-        GeneratorDriver driver = CSharpGeneratorDriver.Create([new EffectGenerator().AsSourceGenerator()], additionalTexts: [new ShaderText("KeysGeneratorCheck.sdsl", shader)]);
+        GeneratorDriver driver = CSharpGeneratorDriver.Create([new EffectGenerator().AsSourceGenerator()], additionalTexts: [.. files.Select(x => new ShaderText(x.Path, x.Text))]);
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);
 
         var generated = string.Join("\n", driver.GetRunResult().GeneratedTrees.Select(x => x.ToString()));
