@@ -7,23 +7,13 @@ using Spv = Stride.Shaders.Spirv.Tools.Spv;
 
 namespace Stride.Shaders.Parsers.Tests;
 
-class ShaderLoader(params string[] searchPaths) : ShaderLoaderBase(new TestShaderCache())
+class ShaderLoader(params string[] searchPaths) : SourceFileShaderLoader(new TestShaderCache())
 {
-    protected override bool ExternalFileExists(string name)
+    protected override bool TryReadSourceFile(string fileName, out string filename, out string code, out ObjectId hash)
     {
         foreach (var basePath in searchPaths)
         {
-            if (File.Exists($"{basePath}/{name}.sdsl"))
-                return true;
-        }
-        return false;
-    }
-
-    public override bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
-    {
-        foreach (var basePath in searchPaths)
-        {
-            filename = $"{basePath}/{name}.sdsl";
+            filename = $"{basePath}/{fileName}.sdsl";
             if (!File.Exists(filename))
                 continue;
 
