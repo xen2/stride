@@ -20,7 +20,10 @@ using Stride.Rendering.Lights;
 using Stride.Rendering.Materials;
 using Stride.Rendering.Materials.ComputeColors;
 using Stride.Rendering.ProceduralModels;
+using Stride.Rendering.Shadows;
+using Stride.Rendering.Tessellation;
 using Stride.Rendering.Voxels;
+using Stride.Rendering.Voxels.Debug;
 using Stride.Rendering.Voxels.VoxelGI;
 using Stride.Shaders;
 using Stride.Shaders.Compiler;
@@ -33,14 +36,16 @@ namespace Stride.Engine.Tests;
 /// </summary>
 /// <remarks>
 /// The tests without screenshot draw features only to compile their shaders, so the shader corpus captures their
-/// permutations: clear coat, instancing, skinned tangents, mesh velocity, voxel global illumination and the scene editor's
-/// render modes.
+/// permutations: clear coat, instancing, skinned tangents, mesh velocity, voxel global illumination, the scene editor's
+/// render modes, and the color transforms, shading models and compute nodes built in code by the tests.
 /// </remarks>
 public class RenderFeatureTests : RenderFeatureTestBase
 {
     public enum BackgroundMode { None, Cubemap3D, Cubemap2D }
 
-    public enum VoxelMode { None, Default, Variant }
+    public enum VoxelMode { None, Default, Variant, ModifiersIsotropic, ModifiersAnisotropic, ModifiersAnisotropicPaired }
+
+    public enum TessellationMode { None, Mesh, Skinned }
 
     // Temporal anti-aliasing and depth of field autofocus build up over the previous frames
     private const int ScreenshotFrame = 10;
@@ -51,6 +56,21 @@ public class RenderFeatureTests : RenderFeatureTestBase
     /// Turns on the post effects of the test, the optional ones start off. Without it, no post effects.
     /// </summary>
     public Action<PostProcessingEffects> PostEffects { get; init; }
+
+    /// <summary>
+    /// Adds one sphere per material.
+    /// </summary>
+    public Func<RenderFeatureTests, MaterialDescriptor[]> Materials { get; init; }
+
+    /// <summary>
+    /// Adds a light that casts shadows, and the shadow maps the shared test compositor doesn't render.
+    /// </summary>
+    public bool Shadows { get; init; }
+
+    /// <summary>
+    /// Draws a normal mapped, tessellated material on a mesh or on the skinned knight.
+    /// </summary>
+    public TessellationMode Tessellation { get; init; }
 
     public BackgroundMode Background { get; init; }
 
@@ -90,7 +110,8 @@ public class RenderFeatureTests : RenderFeatureTestBase
     public bool MaterialStreamFilters { get; init; }
 
     /// <summary>
-    /// Voxel global illumination. The variant uses the voxelization, march set and layout the defaults don't.
+    /// Voxel global illumination. The variant uses the voxelization, march set and layout the defaults don't, the modifier
+    /// modes the opacity modifiers of one layout, the other march methods and a debug visualization.
     /// </summary>
     public VoxelMode Voxels { get; init; }
 
@@ -98,6 +119,11 @@ public class RenderFeatureTests : RenderFeatureTestBase
     /// Compiles the scene editor's effect for a mesh whose effect failed to compile.
     /// </summary>
     public bool EditorErrorEffect { get; init; }
+
+    /// <summary>
+    /// Compiles the trees of the editor's effects for selected meshes, selected sprites and 3D texture previews.
+    /// </summary>
+    public bool EditorEffectTrees { get; init; }
 
     /// <summary>
     /// False for a render that isn't the same on every run (e.g. it depends on GPU readback timing): it then only
@@ -220,6 +246,69 @@ public class RenderFeatureTests : RenderFeatureTestBase
             var teapotModel = new ProceduralModelDescriptor(new TeapotProceduralModel { Size = 0.5f, MaterialInstance = { Material = Content.Load<Material>("c100_chr_ch00_Knight_KINGHT") } }).GenerateModel(Services);
             Scene.Entities.Add(CreateInstanced(teapotModel, new Vector3(-1, 0.3f, 1.5f)));
             Scene.Entities.Add(CreateInstanced(Content.Load<Model>("knight Model"), new Vector3(-1, 0, 0.5f)));
+
+            // No normal map
+            var sphereModel = new ProceduralModelDescriptor(new SphereProceduralModel { Radius = 0.3f, MaterialInstance = { Material = Content.Load<Material>("glossMT") } }).GenerateModel(Services);
+            Scene.Entities.Add(CreateInstanced(sphereModel, new Vector3(-1, 0.3f, 2.5f)));
+        }
+
+        if (Materials != null)
+        {
+            var descriptors = Materials(this);
+            for (int i = 0; i < descriptors.Length; i++)
+            {
+                var material = Material.New(GraphicsDevice, descriptors[i], Content);
+                var sphere = new Entity { new ModelComponent(new ProceduralModelDescriptor(new SphereProceduralModel { Radius = 0.3f, MaterialInstance = { Material = material } }).GenerateModel(Services)) };
+                sphere.Transform.Position = new Vector3(i * 0.7f - 1.5f, 0.3f, 1.5f);
+                Scene.Entities.Add(sphere);
+            }
+        }
+
+        if (Shadows)
+        {
+            var compositor = SceneSystem.GraphicsCompositor;
+            var shadowCasterStage = compositor.RenderStages.First(stage => stage.Name == "ShadowMapCaster");
+            meshRenderFeature.RenderFeatures.OfType<ForwardLightingRenderFeature>().First().ShadowMapRenderer = new ShadowMapRenderer
+            {
+                Renderers = { new LightDirectionalShadowMapRenderer { ShadowCasterRenderStage = shadowCasterStage } },
+            };
+            var light = new Entity { new LightComponent { Type = new LightDirectional { Shadow = { Enabled = true } } } };
+            light.Transform.Rotation = Quaternion.RotationX(-MathUtil.PiOverTwo);
+            Scene.Entities.Add(light);
+        }
+
+        if (Tessellation != TessellationMode.None)
+        {
+            var normalMap = Texture.New2D(GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { new Color(128, 128, 255) });
+            var material = Material.New(GraphicsDevice, new MaterialDescriptor
+            {
+                Attributes =
+                {
+                    Tessellation = new MaterialTessellationFlatFeature(),
+                    Displacement = new MaterialDisplacementMapFeature(new ComputeFloat(0.5f)),
+                    Surface = new MaterialNormalMapFeature(new ComputeTextureColor(normalMap)),
+                    Diffuse = new MaterialDiffuseMapFeature(new ComputeColor(new Color4(0.5f, 0.5f, 0.5f, 1.0f))),
+                    DiffuseModel = new MaterialDiffuseLambertModelFeature(),
+                },
+            }, Content);
+
+            var teapotModel = new ProceduralModelDescriptor(new TeapotProceduralModel { Size = 0.5f, MaterialInstance = { Material = material } }).GenerateModel(Services);
+            if (Tessellation == TessellationMode.Mesh)
+            {
+                var teapot = new Entity { new ModelComponent(teapotModel) };
+                teapot.Transform.Position = new Vector3(-1, 0.3f, 1.5f);
+                Scene.Entities.Add(teapot);
+            }
+            else
+            {
+                var knightModel = Content.Load<Model>("knight Model");
+                var knightComponent = new ModelComponent(knightModel);
+                for (int i = 0; i < knightModel.Materials.Count; i++)
+                    knightComponent.Materials[i] = material;
+                var knight = new Entity { knightComponent };
+                knight.Transform.Position = new Vector3(0.5f, 0, 1);
+                Scene.Entities.Add(knight);
+            }
         }
 
         if (SkinningTangent)
@@ -267,6 +356,33 @@ public class RenderFeatureTests : RenderFeatureTestBase
                 emissionOpacity.VoxelLayout = new VoxelLayoutAnisotropic();
                 voxelLight.DiffuseMarcher = new VoxelMarchSetRandomHemisphere();
             }
+            else if (Voxels != VoxelMode.Default)
+            {
+                emissionOpacity.VoxelLayout = Voxels switch
+                {
+                    VoxelMode.ModifiersIsotropic => new VoxelLayoutIsotropic(),
+                    VoxelMode.ModifiersAnisotropic => new VoxelLayoutAnisotropic(),
+                    _ => new VoxelLayoutAnisotropicPaired(),
+                };
+                emissionOpacity.Modifiers.Add(new VoxelModifierEmissionOpacityAntiAliasing());
+                emissionOpacity.Modifiers.Add(new VoxelModifierEmissionOpacityOpacify());
+                emissionOpacity.Modifiers.Add(new VoxelModifierEmissionOpacitySolidify());
+                emissionOpacity.LightFalloff = Voxels == VoxelMode.ModifiersIsotropic ? VoxelAttributeEmissionOpacity.LightFalloffs.Sharp : VoxelAttributeEmissionOpacity.LightFalloffs.PhysicallyBased;
+                ((VoxelLayoutBase)emissionOpacity.VoxelLayout).StorageMethod = new VoxelStorageMethodIndirect
+                {
+                    TempStorageFormat = Voxels == VoxelMode.ModifiersIsotropic ? new VoxelFragmentPackFloat16() : new VoxelFragmentPackFloat32(),
+                    // Plain stores from several draws to one buffer are a hazard for Vulkan's sync validation
+                    Filter = GraphicsDevice.Platform == GraphicsPlatform.Vulkan ? new VoxelBufferWriteMax() : new VoxelBufferWriteAssign(),
+                };
+                voxelLight.DiffuseMarcher = new VoxelMarchSetHemisphere12(new VoxelMarchBeam());
+                voxelLight.SpecularMarcher = new VoxelMarchCone();
+
+                // A debug view of an attribute that only the view samples
+                volume.Attributes.Add(Voxels == VoxelMode.ModifiersIsotropic ? new VoxelAttributeSolidity() : new VoxelAttributeDirectionalCoverage());
+                volume.VisualizeVoxels = true;
+                volume.VisualizeIndex = 1;
+                volume.Visualization = Voxels == VoxelMode.ModifiersIsotropic ? new VoxelVisualizationRaw() : new VoxelVisualizationView();
+            }
             var volumeEntity = new Entity { volume };
             volumeEntity.Transform.Position = new Vector3(0, 1, 0);
             Scene.Entities.Add(volumeEntity);
@@ -277,15 +393,27 @@ public class RenderFeatureTests : RenderFeatureTestBase
         {
             // What StrideEditorForwardShadingEffect mixes when SceneEditorParameters.IsEffectError is set (the editor's
             // effects are not in this package, its shaders are)
-            var errorEffect = new ShaderMixinSource { Name = "Stride.Rendering.StrideEditorForwardShadingEffect" };
-            foreach (var shader in new[] { "Stride.Rendering.ShaderBase", "Stride.Rendering.ShadingBase", "Stride.Rendering.TransformationBase", "Stride.Rendering.TransformationWAndVP", "Stride.Rendering.CompilationErrorShader" })
-                errorEffect.Mixins.Add(new ShaderClassSource(shader));
-            var compilerParameters = new CompilerParameters();
-            compilerParameters.EffectParameters.Platform = GraphicsDevice.Platform;
-            compilerParameters.EffectParameters.Profile = GraphicsDevice.ShaderProfile ?? GraphicsDevice.Features.RequestedProfile;
-            var result = EffectSystem.Compiler.Compile(errorEffect, compilerParameters).Bytecode.WaitForResult();
-            Assert.True(result.Bytecode != null, result.CompilationLog?.ToText());
+            CompileTree("Stride.Rendering.StrideEditorForwardShadingEffect", new ShaderClassSource("Stride.Rendering.ShaderBase"), new ShaderClassSource("Stride.Rendering.ShadingBase"), new ShaderClassSource("Stride.Rendering.TransformationBase"), new ShaderClassSource("Stride.Rendering.TransformationWAndVP"), new ShaderClassSource("Stride.Rendering.CompilationErrorShader"));
         }
+
+        if (EditorEffectTrees)
+        {
+            // Highlight, SelectedSprite and PreviewTexture in the editor's sdfx
+            CompileTree("Stride.Rendering.StrideEditorForwardShadingEffect.Highlight", new ShaderClassSource("Stride.Rendering.ShaderBase"), new ShaderClassSource("Stride.Rendering.ShadingBase"), new ShaderClassSource("Stride.Rendering.TransformationBase"), new ShaderClassSource("Stride.Rendering.TransformationWAndVP"), new ShaderClassSource("Stride.Rendering.HighlightShader"));
+            CompileTree("Stride.Rendering.SelectedSprite", new ShaderClassSource("Stride.Rendering.SpriteBatchShader", false), new ShaderClassSource("Stride.Rendering.SelectedSpriteShader"));
+            CompileTree("Stride.Rendering.PreviewTexture", new ShaderClassSource("Stride.Rendering.Sprite3DBase"), new ShaderClassSource("Stride.Rendering.SpriteBatchShader", false));
+        }
+    }
+
+    private void CompileTree(string effectName, params ShaderClassSource[] shaders)
+    {
+        var effect = new ShaderMixinSource { Name = effectName };
+        effect.Mixins.AddRange(shaders);
+        var compilerParameters = new CompilerParameters();
+        compilerParameters.EffectParameters.Platform = GraphicsDevice.Platform;
+        compilerParameters.EffectParameters.Profile = GraphicsDevice.ShaderProfile ?? GraphicsDevice.Features.RequestedProfile;
+        var result = EffectSystem.Compiler.Compile(effect, compilerParameters).Bytecode.WaitForResult();
+        Assert.True(result.Bytecode != null, result.CompilationLog?.ToText());
     }
 
     private Entity CreateInstanced(Model model, Vector3 position)
@@ -326,6 +454,7 @@ public class RenderFeatureTests : RenderFeatureTestBase
             TransparentRenderStage = forwardRenderer.TransparentRenderStage,
             PostEffects = forwardRenderer.PostEffects,
             VoxelRenderer = new VoxelRenderer { VoxelStages = voxelStages },
+            VoxelVisualization = Voxels >= VoxelMode.ModifiersIsotropic ? new VoxelDebug() : null,
         };
         voxelRenderer.ShadowMapRenderStages.AddRange(forwardRenderer.ShadowMapRenderStages);
         var renderers = ((SceneRendererCollection)((SceneCameraRenderer)compositor.Game).Child).Children;
@@ -415,6 +544,160 @@ public class RenderFeatureTests : RenderFeatureTestBase
     [SkippableFact]
     public void EditorMaterialStreamFilters() => RunGameTest(new RenderFeatureTests { MaterialStreamFilters = true, Screenshot = false, TestName = nameof(EditorMaterialStreamFilters) });
 
+    [SkippableTheory]
+    [InlineData(typeof(ToneMapACESOperator))]
+    [InlineData(typeof(ToneMapDragoOperator))]
+    [InlineData(typeof(ToneMapExponentialOperator))]
+    [InlineData(typeof(ToneMapHejlDawsonOperator))]
+    [InlineData(typeof(ToneMapLogarithmicOperator))]
+    [InlineData(typeof(ToneMapMikeDayOperator))]
+    [InlineData(typeof(ToneMapReinhardOperator))]
+    [InlineData(typeof(ToneMapU2FilmicOperator))]
+    public void ToneMapOperators(Type operatorType) => RunGameTest(new RenderFeatureTests
+    {
+        PostEffects = x => x.ColorTransforms.Transforms.Add(new ToneMap { Operator = (ToneMapOperator)Activator.CreateInstance(operatorType) }),
+        Screenshot = false,
+        TestName = $"{nameof(ToneMapOperators)}_{operatorType.Name}",
+    });
+
+    [SkippableFact]
+    public void ColorTransformsFogOutlineAfterimage() => RunGameTest(new RenderFeatureTests
+    {
+        PostEffects = x =>
+        {
+            x.ColorTransforms.Transforms.Add(new FilmGrain());
+            x.ColorTransforms.Transforms.Add(new Vignetting());
+            x.ColorTransforms.Transforms.Add(new Stride.Rendering.Images.Dither.Dither());
+            x.Fog.Enabled = true;
+            x.Outline.Enabled = true;
+            x.Bloom.Enabled = true;
+            x.Bloom.Afterimage.Enabled = true;
+        },
+        Screenshot = false,
+        TestName = nameof(ColorTransformsFogOutlineAfterimage),
+    });
+
+    [SkippableFact]
+    public void MaterialComputeNodes() => RunGameTest(new RenderFeatureTests
+    {
+        Materials = test =>
+        {
+            // One balanced tree with every blend operator: a capture file reads back up to a depth of 64
+            var operators = Enum.GetValues<BinaryOperator>();
+            var nodes = new Queue<IComputeColor>(Enumerable.Range(0, operators.Length + 1).Select(_ => new ComputeColor(new Color4(0.5f, 0.4f, 0.3f, 0.5f))));
+            foreach (var binaryOperator in operators)
+                nodes.Enqueue(new ComputeBinaryColor(nodes.Dequeue(), nodes.Dequeue(), binaryOperator));
+            var blended = nodes.Dequeue();
+
+            var texture = Texture.New2D(test.GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { Color.White });
+            return
+            [
+                LambertMaterial(blended),
+                LambertMaterial(new ComputeTextureColor(texture) { UseRandomTextureCoordinates = true }),
+                new MaterialDescriptor { Attributes = { Emissive = new MaterialEmissiveMapFeature(new ComputeSphericalHarmonicsColor()) } },
+            ];
+        },
+        Screenshot = false,
+        TestName = nameof(MaterialComputeNodes),
+    });
+
+    [SkippableFact]
+    public void MicrofacetFunctions() => RunGameTest(new RenderFeatureTests
+    {
+        Materials = _ =>
+        [
+            MicrofacetMaterial(new MaterialSpecularMicrofacetModelFeature { Visibility = new MaterialSpecularMicrofacetVisibilityCookTorrance(), Fresnel = new MaterialSpecularMicrofacetFresnelNone() }),
+            MicrofacetMaterial(new MaterialSpecularMicrofacetModelFeature { Visibility = new MaterialSpecularMicrofacetVisibilityKelemen(), NormalDistribution = new MaterialSpecularMicrofacetNormalDistributionBeckmann() }),
+            MicrofacetMaterial(new MaterialSpecularMicrofacetModelFeature { Visibility = new MaterialSpecularMicrofacetVisibilityNeumann(), Environment = new MaterialSpecularMicrofacetEnvironmentGGXPolynomial() }),
+            MicrofacetMaterial(new MaterialSpecularMicrofacetModelFeature { Visibility = new MaterialSpecularMicrofacetVisibilitySmithBeckmann() }),
+            MicrofacetMaterial(new MaterialSpecularMicrofacetModelFeature { Visibility = new MaterialSpecularMicrofacetVisibilitySmithGGXCorrelated() }),
+        ],
+        Screenshot = false,
+        TestName = nameof(MicrofacetFunctions),
+    });
+
+    [SkippableFact]
+    public void CelShading() => RunGameTest(new RenderFeatureTests
+    {
+        Materials = test =>
+        {
+            var ramp = new MaterialCelShadingLightRamp { RampTexture = Texture.New2D(test.GraphicsDevice, 2, 1, PixelFormat.R8G8B8A8_UNorm, new[] { Color.Black, Color.White }) };
+            return
+            [
+                MicrofacetMaterial(new MaterialSpecularCelShadingModelFeature(), new MaterialDiffuseCelShadingModelFeature()),
+                MicrofacetMaterial(new MaterialSpecularCelShadingModelFeature { RampFunction = ramp }, new MaterialDiffuseCelShadingModelFeature { RampFunction = ramp }),
+            ];
+        },
+        Screenshot = false,
+        TestName = nameof(CelShading),
+    });
+
+    [SkippableFact]
+    public void HairShading() => RunGameTest(new RenderFeatureTests
+    {
+        Shadows = true,
+        Materials = _ =>
+        [
+            MicrofacetMaterial(new MaterialSpecularHairModelFeature(), new MaterialDiffuseHairModelFeature()),
+            MicrofacetMaterial(
+                new MaterialSpecularHairModelFeature
+                {
+                    ShadingModel = HairShared.HairShadingModel.ScheuermannImproved,
+                    HairDirectionFunction = new MaterialHairDirectionFunctionTangent(),
+                    HairShadowingFunction = new MaterialHairShadowingFunctionScattering(),
+                    LightAttenuationFunction = new MaterialHairLightAttenuationFunctionNone(),
+                },
+                new MaterialDiffuseHairModelFeature
+                {
+                    ShadingModel = HairShared.HairShadingModel.ScheuermannImproved,
+                    HairDirectionFunction = new MaterialHairDirectionFunctionTangent(),
+                    HairShadowingFunction = new MaterialHairShadowingFunctionScattering(),
+                    LightAttenuationFunction = new MaterialHairLightAttenuationFunctionNone(),
+                }),
+        ],
+        Screenshot = false,
+        TestName = nameof(HairShading),
+    });
+
+    [SkippableFact]
+    public void SubsurfaceScatteringProfiles() => RunGameTest(new RenderFeatureTests
+    {
+        Materials = test =>
+        {
+            var falloff = Texture.New2D(test.GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { Color.Red });
+            return
+            [
+                ScatteringMaterial(new MaterialSubsurfaceScatteringScatteringProfileSkin()),
+                ScatteringMaterial(new MaterialSubsurfaceScatteringScatteringProfileCustom()),
+                ScatteringMaterial(new MaterialSubsurfaceScatteringScatteringProfileCustom { FalloffMap = new ComputeTextureColor(falloff) }),
+            ];
+        },
+        Screenshot = false,
+        TestName = nameof(SubsurfaceScatteringProfiles),
+    });
+
+    [SkippableFact]
+    public void ShadowCastersWithAlpha() => RunGameTest(new RenderFeatureTests
+    {
+        Shadows = true,
+        Materials = _ =>
+        [
+            new MaterialDescriptor { Attributes = { Diffuse = new MaterialDiffuseMapFeature(new ComputeColor(new Color4(0.5f, 0.5f, 0.5f, 0.5f))), DiffuseModel = new MaterialDiffuseLambertModelFeature(), Transparency = new MaterialTransparencyCutoffFeature() } },
+            new MaterialDescriptor { Attributes = { Diffuse = new MaterialDiffuseMapFeature(new ComputeColor(new Color4(0.5f, 0.5f, 0.5f, 0.5f))), DiffuseModel = new MaterialDiffuseLambertModelFeature(), Transparency = new MaterialTransparencyBlendFeature() } },
+        ],
+        Screenshot = false,
+        TestName = nameof(ShadowCastersWithAlpha),
+    });
+
+    [SkippableFact]
+    public void TessellationNormalMapping() => RunGameTest(new RenderFeatureTests { Tessellation = TessellationMode.Mesh, Screenshot = false, TestName = nameof(TessellationNormalMapping) });
+
+    [SkippableFact]
+    public void TessellationNormalMappingSkinned() => RunGameTest(new RenderFeatureTests { Tessellation = TessellationMode.Skinned, Screenshot = false, TestName = nameof(TessellationNormalMappingSkinned) });
+
+    [SkippableFact]
+    public void EditorEffectSubEffects() => RunGameTest(new RenderFeatureTests { EditorEffectTrees = true, Screenshot = false, TestName = nameof(EditorEffectSubEffects) });
+
     [SkippableFact]
     public void EditorEffectErrorFallback() => RunGameTest(new RenderFeatureTests { EditorErrorEffect = true, Screenshot = false, TestName = nameof(EditorEffectErrorFallback) });
 
@@ -432,6 +715,61 @@ public class RenderFeatureTests : RenderFeatureTestBase
     {
         Skip.If(Platform.Type is PlatformType.macOS or PlatformType.iOS, VoxelGlobalIlluminationUnsupported);
         RunGameTest(new RenderFeatureTests { Voxels = VoxelMode.Variant, Screenshot = false, TestName = nameof(VoxelGlobalIlluminationVariant) });
+    }
+
+    private static MaterialDescriptor LambertMaterial(IComputeColor diffuse) => new()
+    {
+        Attributes = { Diffuse = new MaterialDiffuseMapFeature(diffuse), DiffuseModel = new MaterialDiffuseLambertModelFeature() },
+    };
+
+    private static MaterialDescriptor MicrofacetMaterial(IMaterialSpecularModelFeature specularModel, IMaterialDiffuseModelFeature diffuseModel = null) => new()
+    {
+        Attributes =
+        {
+            Diffuse = new MaterialDiffuseMapFeature(new ComputeColor(new Color4(0.5f, 0.4f, 0.3f, 1.0f))),
+            DiffuseModel = diffuseModel ?? new MaterialDiffuseLambertModelFeature(),
+            MicroSurface = new MaterialGlossinessMapFeature(new ComputeFloat(0.6f)),
+            Specular = new MaterialMetalnessMapFeature(new ComputeFloat(0.5f)),
+            SpecularModel = specularModel,
+        },
+    };
+
+    private static MaterialDescriptor ScatteringMaterial(IMaterialSubsurfaceScatteringScatteringProfile profile)
+    {
+        var material = LambertMaterial(new ComputeColor(new Color4(0.7f, 0.5f, 0.4f, 1.0f)));
+        material.Attributes.SubsurfaceScattering = new MaterialSubsurfaceScatteringFeature { ProfileFunction = profile };
+        return material;
+    }
+
+    /// <summary>
+    /// The light probe gizmo's color in the scene editor.
+    /// </summary>
+    private class ComputeSphericalHarmonicsColor : ComputeValueBase<Color4>, IComputeColor
+    {
+        public bool HasChanged => false;
+
+        public override ShaderSource GenerateShaderSource(ShaderGeneratorContext context, MaterialComputeColorKeys baseKeys) => new ShaderClassSource("Stride.Rendering.LightProbes.ComputeSphericalHarmonics", 5);
+    }
+
+    [SkippableFact]
+    public void VoxelModifiersIsotropic()
+    {
+        Skip.If(Platform.Type is PlatformType.macOS or PlatformType.iOS, VoxelGlobalIlluminationUnsupported);
+        RunGameTest(new RenderFeatureTests { Voxels = VoxelMode.ModifiersIsotropic, Screenshot = false, TestName = nameof(VoxelModifiersIsotropic) });
+    }
+
+    [SkippableFact]
+    public void VoxelModifiersAnisotropic()
+    {
+        Skip.If(Platform.Type is PlatformType.macOS or PlatformType.iOS, VoxelGlobalIlluminationUnsupported);
+        RunGameTest(new RenderFeatureTests { Voxels = VoxelMode.ModifiersAnisotropic, Screenshot = false, TestName = nameof(VoxelModifiersAnisotropic) });
+    }
+
+    [SkippableFact]
+    public void VoxelModifiersAnisotropicPaired()
+    {
+        Skip.If(Platform.Type is PlatformType.macOS or PlatformType.iOS, VoxelGlobalIlluminationUnsupported);
+        RunGameTest(new RenderFeatureTests { Voxels = VoxelMode.ModifiersAnisotropicPaired, Screenshot = false, TestName = nameof(VoxelModifiersAnisotropicPaired) });
     }
 
     /// <summary>
