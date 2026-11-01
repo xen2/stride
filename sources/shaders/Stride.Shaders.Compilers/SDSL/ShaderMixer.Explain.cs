@@ -1,5 +1,6 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+using Stride.Shaders.Spirv.Building;
 using Stride.Shaders.Parsing;
 using System.Text;
 using Stride.Shaders.Core;
@@ -26,7 +27,14 @@ public partial class ShaderMixer
     /// </summary>
     public string? Explanation { get; private set; }
 
-    private static string Explain(MixinNode root, MixinGlobalContext globalContext)
+    private static string ReplacesText(MixinNode node, ShaderInfo shader, IExternalShaderLoader loader)
+    {
+        var name = ShaderNames.WithoutGenerics(shader.ShaderName);
+        var original = node.Shaders.FirstOrDefault(x => loader.FindReplacer(loader.ToFullName(ShaderNames.WithoutGenerics(x.ShaderName))) == loader.ToFullName(name));
+        return original != null ? $" (replaces {original.ShaderName})" : "";
+    }
+
+    private static string Explain(MixinNode root, MixinGlobalContext globalContext, IExternalShaderLoader loader)
     {
         var nodePaths = new Dictionary<ShaderInfo, string>();
         var nodes = new List<MixinNode>();
@@ -43,8 +51,8 @@ public partial class ShaderMixer
                 builder.AppendLine(shader switch
                 {
                     { IsCompanionModule: true } => $"  companion module {(shader.ModuleIdentity != null ? ShaderNames.ShortNameWithGenerics(shader.ModuleIdentity) : shader.ShaderName)}",
-                    { IsModule: true } => $"  module {shader.ShaderName}",
-                    _ => $"  mixin {shader.ShaderName}",
+                    { IsModule: true } => $"  module {shader.ShaderName}{ReplacesText(node, shader, loader)}",
+                    _ => $"  mixin {shader.ShaderName}{ReplacesText(node, shader, loader)}",
                 });
             }
 

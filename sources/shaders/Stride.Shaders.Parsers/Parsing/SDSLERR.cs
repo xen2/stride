@@ -83,8 +83,10 @@ public static class SDSLErrorMessages
     public const string SDSL0160 = "SDSL0160: {0} takes {1}, but the call gives {2}.";
     public const string SDSL0161 = "SDSL0161: Argument {0} of the call to {1} has type {2}, which can't be converted to {3}.";
     public const string SDSL0162 = "SDSL0162: No overload of {0} can take these arguments:{1}";
+    public const string SDSL0255 = "SDSL0255: [{0}] on {1}: \"{2}\" is a string. A name in quotes is kept for weak names, which are not supported yet: write the name without quotes.";
     public const string SDSL0163 = "SDSL0163: The call {0} is ambiguous: these overloads match equally well:{1}\nCast the arguments to the parameter types of the one to call.";
     public const string SDSL0170 = "SDSL0170: [StreamOutput] on {0} is not supported: Stride shaders have no geometry shader stream output. Remove the attribute; to keep generated vertices, write them to a RWStructuredBuffer from a compute shader instead.";
+    public const string SDSL0135 = "SDSL0135: [{0}] on {1}: {2}.";
     public const string SDSL0171 = "SDSL0171: Attribute [{0}] on method {1} is not supported. Remove it.";
     public const string SDSL0172 = "SDSL0172: Stream {0} has an initial value ({1}), but a stream has none. Remove it, and assign the value in the stage that writes the stream first (streams.{0} = {1};).";
     public const string SDSL0173 = "SDSL0173: The initial value of member {0} ({1}) is not a constant. A member's initial value is its default value, set by the application, so it must be a constant. To compute it from other members, declare it static (static {2} {0} = {1};), or compute it where it is used.";
@@ -156,6 +158,8 @@ public static class SDSLErrorMessages
     public const string SDSL0300 = "SDSL0300: {0} is ambiguous: it can be {1} or {2}. Write the full name of the one to use.";
     public const string SDSL0301 = "SDSL0301: {0} is declared twice: in {1} and in {2}. Rename one or put it in another namespace. To replace a shader, give the new one another name and use [Replaces({0})].";
     // SDSL0302, an effect declared twice: ShaderMixinManager.DuplicateEffectMessage, which doesn't see this class
+    public const string SDSL0305 = "SDSL0305: {0} can't replace {1}: {2}.";
+    public const string SDSL0306 = "SDSL0306: {0} can't replace {1}: it must declare the generic parameters of {1} ({2}), in the same order and of the same kinds, and pass them to {1} unchanged.";
 
     // Definition checks: found when a class compiles, reported as warnings (errors with ShaderLoaderBase.WarningsAsErrors)
 

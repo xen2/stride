@@ -110,6 +110,13 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
     protected abstract bool ExternalFileExists(string name);
     public abstract bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash);
 
+    /// <summary>
+    /// The replacements (<c>[Replaces]</c>) this loader knows: the full name of a class, and the full name of its replacer.
+    /// </summary>
+    public Dictionary<string, string> Replacers { get; } = [];
+
+    public virtual string? FindReplacer(string fullName) => Replacers.GetValueOrDefault(fullName);
+
     /// <inheritdoc/>
     public virtual IReadOnlyList<string> FindFullNames(string shortName) => [];
 

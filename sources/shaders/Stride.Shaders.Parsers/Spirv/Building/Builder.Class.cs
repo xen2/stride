@@ -74,6 +74,11 @@ public record class ShaderClassInstantiation(string ClassName, ConstantExpressio
 
     public ConstantExpression[] GenericArguments { get; set; } = GenericArguments;
 
+    /// <summary>
+    /// The generic arguments of a class instantiated for a mix, whose <see cref="ClassName"/> now holds them.
+    /// </summary>
+    public ConstantExpression[]? InstantiatedArguments { get; set; }
+
     public ShaderDefinition? Symbol { get; set; }
 
     /// <summary>
@@ -274,7 +279,17 @@ public partial class SpirvBuilder
                 classSource.IsRootOnly = flags.HasFlag(ShaderFlagsMask.Root);
                 classSource.IsPure = flags.HasFlag(ShaderFlagsMask.Pure);
                 BuildInheritanceListWithoutSelf(shaderLoader, context, classSource, macros, classSource.Buffer.Value.Context, inheritanceList, resolveStep);
+
+                // A replacer that adds its parent is added by the hook below, while its parent is added
+                index = inheritanceList.IndexOf(classSource);
+                if (index != -1)
+                    return inheritanceList[index];
                 inheritanceList.Add(classSource);
+
+                // A class compiles against the original alone: its replacer joins only the mix, right after it
+                if (resolveStep == ResolveStep.Mix && shaderLoader.FindReplacer(ShaderNames.WithoutGenerics(classSource.ClassName)) is { } replacer)
+                    BuildInheritanceListIncludingSelf(shaderLoader, context, new ShaderClassInstantiation(replacer, classSource.InstantiatedArguments ?? classSource.GenericArguments), macros, inheritanceList, resolveStep);
+
                 return classSource;
             }
         }
@@ -448,6 +463,7 @@ public partial class SpirvBuilder
             if (resolveStep == ResolveStep.Mix)
             {
                 classSource.ClassName = classNameWithGenerics;
+                classSource.InstantiatedArguments = classSource.GenericArguments;
                 classSource.GenericArguments = [];
             }
         }
@@ -881,6 +897,7 @@ public partial class SpirvBuilder
             // PostProcess: update classSource (same as GenericResolverFromInstantiatingBuffer.PostProcess)
             var classNameWithGenerics = $"{classSource.ClassName}<{string.Join(",", genericValues)}>";
             classSource.ClassName = classNameWithGenerics;
+            classSource.InstantiatedArguments = classSource.GenericArguments;
             classSource.GenericArguments = [];
 
             return result;
