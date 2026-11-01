@@ -21,6 +21,8 @@ public class FileShaderLoader : ShaderLoaderBase
 
     public override IReadOnlyList<string> FindFullNames(string shortName) => SourceManager.FindFullNames(shortName);
 
+    public override string? FindReplacer(string fullName) => base.FindReplacer(fullName) ?? SourceManager.FindReplacer(fullName);
+
     public override bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
     {
         if (!SourceManager.IsClassExists(name))

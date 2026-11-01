@@ -51,6 +51,19 @@ public static class MicrothreadLocalDatabases
     }
 
     /// <summary>
+    /// Removes objects from the shared group, for an output that a build no longer writes.
+    /// </summary>
+    /// <param name="urls">The urls to remove.</param>
+    public static void RemoveFromSharedGroup(IEnumerable<ObjectUrl> urls)
+    {
+        lock (SharedOutputObjects)
+        {
+            foreach (var url in urls)
+                SharedOutputObjects.Remove(url);
+        }
+    }
+
+    /// <summary>
     /// Gets a <see cref="MicroThreadLocalDatabaseFileProvider"/> containing only objects from the shared group.
     /// The shared group is a group of objects registered via <see cref="AddToSharedGroup"/> and shared amongst all databases.
     /// </summary>

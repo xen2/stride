@@ -462,7 +462,7 @@ namespace Stride.Assets.Presentation.ViewModel
         {
             // The build service is registered during plugin initialization, so it is not available yet when a save
             // runs while opening the session (e.g. persisting an upgrade); it compiles the shaders of all packages when it starts.
-            var builder = session.ServiceProvider.TryGet<AssetBuilderService>();
+            var builder = session.ServiceProvider.TryGet<GameStudioBuilderService>();
             if (builder == null)
                 return;
 
@@ -475,7 +475,7 @@ namespace Stride.Assets.Presentation.ViewModel
                     builtShaderHashes[filePath] = ObjectId.FromBytes(content);
             }
 
-            var shaderBuildSteps = new StrideShaderImporter().CreateUserShaderBuildSteps(session);
+            var shaderBuildSteps = builder.ShaderImporter.CreateUserShaderBuildSteps(session);
             if (shaderBuildSteps != null)
                 builder.PushBuildUnit(new PrecompiledAssetBuildUnit(AssetBuildUnitIdentifier.Default, shaderBuildSteps, true));
         }

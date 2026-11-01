@@ -40,7 +40,18 @@ namespace Stride.Rendering
         private readonly HashSet<string> recentlyModifiedShaders = new HashSet<string>();
         private readonly ShaderSourceFileMap shaderSourceFiles = new ShaderSourceFileMap();
 
-        public IEffectCompiler Compiler { get { return compiler; } set { compiler = (EffectCompilerBase)value; } }
+        public IEffectCompiler Compiler
+        {
+            get { return compiler; }
+            set
+            {
+                if (compiler != null)
+                    compiler.ReplacementsChanged -= ReplacementsChanged;
+                compiler = (EffectCompilerBase)value;
+                if (compiler != null)
+                    compiler.ReplacementsChanged += ReplacementsChanged;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the database file provider, to use for loading effects and shader sources.
@@ -348,12 +359,17 @@ namespace Stride.Rendering
 
         private void FileModifiedEvent(object sender, FileEvent e)
         {
-            if (e.ChangeType == FileEventChangeType.Changed || e.ChangeType == FileEventChangeType.Renamed)
+            lock (recentlyModifiedShaders)
             {
-                lock (recentlyModifiedShaders)
-                {
-                    shaderSourceFiles.AddShadersOf(e.FullPath, recentlyModifiedShaders);
-                }
+                shaderSourceFiles.AddShadersOf(e.FullPath, recentlyModifiedShaders);
+            }
+        }
+
+        private void ReplacementsChanged(IReadOnlyCollection<string> changed)
+        {
+            lock (recentlyModifiedShaders)
+            {
+                recentlyModifiedShaders.UnionWith(changed);
             }
         }
 
