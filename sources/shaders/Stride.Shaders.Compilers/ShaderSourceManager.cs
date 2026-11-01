@@ -11,6 +11,7 @@ using Stride.Core;
 using Stride.Core.IO;
 using Stride.Core.Serialization.Contents;
 using Stride.Core.Storage;
+using Stride.Shaders.Parsing;
 
 namespace Stride.Shaders.Compilers
 {
@@ -252,9 +253,18 @@ namespace Stride.Shaders.Compilers
 
                 foreach (var directory in LookupDirectoryList)
                 {
-                    var fileName = Path.ChangeExtension(type, DefaultEffectFileExtension);
-                    var testPath = Path.Combine(directory, fileName).Replace('\\', '/'); // use / for directory separation to allow to work with both Storage and FileSystem.
+                    // Under its full name
+                    var testPath = FilePath(directory, type);
                     if (FileExists(testPath))
+                    {
+                        path = testPath;
+                        break;
+                    }
+
+                    // A source directory holds C.sdsl for the class A.B.C
+                    var shortName = ShaderNames.ShortName(type);
+                    testPath = FilePath(directory, shortName);
+                    if (shortName != type && FileExists(testPath) && ShaderFileDeclarations.Holds(ReadText(testPath), shortName, type))
                     {
                         path = testPath;
                         break;
@@ -267,6 +277,65 @@ namespace Stride.Shaders.Compilers
                 }
 
                 return path;
+            }
+        }
+
+        /// <summary>
+        /// The full names of the classes with this short name. A provider that can't list files (the remote compiler's) gives only the global one.
+        /// </summary>
+        public List<string> FindFullNames(string shortName)
+        {
+            var result = new List<string>();
+            lock (locker)
+            {
+                foreach (var registered in classNameToPath.Keys)
+                {
+                    if (ShaderNames.ShortName(registered) == shortName && !result.Contains(registered))
+                        result.Add(registered);
+                }
+
+                foreach (var directory in LookupDirectoryList)
+                {
+                    var filePath = FilePath(directory, shortName);
+                    if (FileExists(filePath))
+                    {
+                        var fullName = ShaderFileDeclarations.StorageName(ReadText(filePath), shortName);
+                        if (!result.Contains(fullName))
+                            result.Add(fullName);
+                    }
+
+                    foreach (var file in ListFiles(directory, $"*.{shortName}{DefaultEffectFileExtension}"))
+                    {
+                        var fullName = Path.GetFileNameWithoutExtension(file);
+                        if (!result.Contains(fullName))
+                            result.Add(fullName);
+                    }
+                }
+            }
+            return result;
+        }
+
+        // use / for directory separation to allow to work with both Storage and FileSystem.
+        private static string FilePath(string directory, string name) => Path.Combine(directory, name + DefaultEffectFileExtension).Replace('\\', '/');
+
+        private string ReadText(string path)
+        {
+            using var stream = OpenStream(path);
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            return reader.ReadToEnd();
+        }
+
+        private string[] ListFiles(string directory, string pattern)
+        {
+            try
+            {
+                if (UseFileSystem && Platform.Type == PlatformType.Windows)
+                    return Directory.Exists(directory) ? Directory.GetFiles(directory, pattern, SearchOption.TopDirectoryOnly) : [];
+                return fileProvider.ListFiles(directory, pattern, VirtualSearchOption.TopDirectoryOnly);
+            }
+            catch (Exception e) when (e is NotImplementedException or DirectoryNotFoundException)
+            {
+                return [];
             }
         }
 
