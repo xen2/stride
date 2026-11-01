@@ -76,6 +76,30 @@ public record struct LiteralsParser : IParser<Literal>
         return Parsers.Exit(ref scanner, result, out parsed, position, orError);
     }
 
+    /// <summary>
+    /// The name of a class where a class is expected (a parent, an import): <c>X</c>, <c>A.B.X</c>, and either with generic arguments.
+    /// </summary>
+    public static bool ClassName<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out IdentifierBase parsed, in ParseError? orError = null)
+        where TScanner : struct, IScanner
+    {
+        var position = scanner.Position;
+        if (!Identifier(ref scanner, result, out _))
+            return Parsers.Exit(ref scanner, result, out parsed, position, orError);
+
+        var end = scanner.Position;
+        while (Tokens.Char('.', ref scanner, advance: true) && Identifier(ref scanner, result, out _))
+            end = scanner.Position;
+        scanner.Position = end;
+        if (scanner.Span[position..end].IndexOf('.') < 0)
+        {
+            scanner.Position = position;
+            return IdentifierBase(ref scanner, result, out parsed, orError);
+        }
+
+        var name = new Identifier(scanner.Memory[position..end].ToString(), scanner[position..end]);
+        return new GenericIdentifierParser().MatchGenerics(ref scanner, result, name, position, out parsed);
+    }
+
     public static bool TypeNameLiteral<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out Literal parsed, in ParseError? orError = null)
         where TScanner : struct, IScanner
     {
@@ -95,7 +119,7 @@ public record struct LiteralsParser : IParser<Literal>
         if (Tokens.Char('_', ref scanner) || Tokens.Letter(ref scanner))
         {
             scanner.Advance(1);
-            while (Tokens.LetterOrDigit(ref scanner) || Tokens.Char('_', ref scanner))
+            while (Tokens.LetterOrDigit(ref scanner) || Tokens.Char('_', ref scanner) || (Tokens.Char('.', ref scanner) && IsNameStart(ref scanner, scanner.Position + 1)))
                 scanner.Advance(1);
             var identifier = new Identifier(scanner.Memory[position..scanner.Position].ToString(), scanner[position..scanner.Position]);
             // HLSL's `unsigned int` (also `unsigned int2`, `unsigned int2x2`) is `uint`
@@ -145,6 +169,10 @@ public record struct LiteralsParser : IParser<Literal>
         }
         else return Parsers.Exit(ref scanner, result, out name, position, orError);
     }
+
+    private static bool IsNameStart<TScanner>(ref TScanner scanner, int position)
+        where TScanner : struct, IScanner
+        => position < scanner.Span.Length && (char.IsAsciiLetter(scanner.Span[position]) || scanner.Span[position] == '_');
 
     public static bool TypeNameOrNumber<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out Literal parsed, in ParseError? orError = null)
         where TScanner : struct, IScanner
