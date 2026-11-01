@@ -21,6 +21,9 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
     public GenericShaderCache GenericCache { get; } = new();
     public ObjectId? SourceHashOverride { get; set; }
 
+    /// <inheritdoc/>
+    public IReadOnlyList<string> ImplicitUsings { get; set; } = [];
+
     /// <summary>
     /// Ensures only one thread compiles a given shader at a time. Other threads wait for the result.
     /// </summary>
