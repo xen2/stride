@@ -127,6 +127,7 @@ public static class SDSLErrorMessages
     public const string SDSL0242 = "SDSL0242: & within |: {0} computes {1} first. Add parentheses around it to make it clear.";
     public const string SDSL0243 = "SDSL0243: && within ||: {0} computes {1} first. Add parentheses around it to make it clear.";
     public const string SDSL0244 = "SDSL0244: {0} has lower precedence than {1}: {2} computes {3} first. Add parentheses to make it clear.";
+    public const string SDSL0245 = "SDSL0245: {0}.sdsl declares {1} and no class named {0}. A class is found by its file name: rename the file or the class.";
 
     // Partial structs
 
@@ -153,6 +154,7 @@ public static class SDSLErrorMessages
     // Names and namespaces
 
     public const string SDSL0300 = "SDSL0300: {0} is ambiguous: it can be {1} or {2}. Write the full name of the one to use.";
+    public const string SDSL0301 = "SDSL0301: {0} is declared twice: in {1} and in {2}. Rename one or put it in another namespace. To replace a shader, give the new one another name and use [Replaces({0})].";
 
     // Definition checks: found when a class compiles, reported as warnings (errors with ShaderLoaderBase.WarningsAsErrors)
 
