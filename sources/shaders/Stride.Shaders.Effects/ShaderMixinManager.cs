@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Stride.Rendering;
 
@@ -12,18 +13,24 @@ namespace Stride.Shaders
     /// </summary>
     public class ShaderMixinManager
     {
+        /// <summary>
+        /// The message of an effect declared twice: its full name, and who declares it each time.
+        /// </summary>
+        public const string DuplicateEffectMessage = "SDSL0302: effect {0} is declared twice: in {1} and in {2}. Rename one or put it in another namespace.";
+
         private static readonly Dictionary<string, IShaderMixinBuilder> RegisteredBuilders = new Dictionary<string, IShaderMixinBuilder>();
 
         /// <summary>
         /// Registers a <see cref="IShaderMixinBuilder"/> with the specified sdfx effect name.
         /// </summary>
-        /// <param name="sdfxEffectName">Name of the mixin.</param>
+        /// <param name="sdfxEffectName">Full name of the effect.</param>
         /// <param name="builder">The builder.</param>
         /// <exception cref="System.ArgumentNullException">
         /// sdfxEffectName
         /// or
         /// builder
         /// </exception>
+        /// <exception cref="System.InvalidOperationException">Another type is registered with this name. The same type registers again when its assembly reloads.</exception>
         public static void Register(string sdfxEffectName, IShaderMixinBuilder builder)
         {
             if (sdfxEffectName == null)
@@ -34,9 +41,17 @@ namespace Stride.Shaders
 
             lock (RegisteredBuilders)
             {
+                if (RegisteredBuilders.TryGetValue(sdfxEffectName, out var existing) && !IsSameBuilder(existing, builder))
+                    throw new InvalidOperationException(string.Format(DuplicateEffectMessage, sdfxEffectName, Describe(existing), Describe(builder)));
+
                 RegisteredBuilders[sdfxEffectName] = builder;
             }
         }
+
+        private static bool IsSameBuilder(IShaderMixinBuilder first, IShaderMixinBuilder second)
+            => first.GetType().FullName == second.GetType().FullName && first.GetType().Assembly.GetName().Name == second.GetType().Assembly.GetName().Name;
+
+        private static string Describe(IShaderMixinBuilder builder) => $"{builder.GetType().FullName} ({builder.GetType().Assembly.GetName().Name})";
 
         /// <summary>
         /// Determines whether the specified PDXFX effect is registered.
@@ -48,12 +63,9 @@ namespace Stride.Shaders
         {
             if (sdfxEffectName == null) throw new ArgumentNullException("sdfxEffectName");
 
-            var effectName = GetEffectName(sdfxEffectName);
-            var rootEffectName = effectName.Key;
-
             lock (RegisteredBuilders)
             {
-                return RegisteredBuilders.ContainsKey(rootEffectName);
+                return RegisteredBuilders.ContainsKey(GetEffectName(sdfxEffectName).Key);
             }
         }
 
@@ -71,7 +83,7 @@ namespace Stride.Shaders
 
             lock (RegisteredBuilders)
             {
-                return RegisteredBuilders.TryGetValue(sdfxEffectName, out builder);
+                return RegisteredBuilders.TryGetValue(ToFullEffectName(sdfxEffectName), out builder);
             }
         }
 
@@ -94,23 +106,24 @@ namespace Stride.Shaders
             if (properties == null)
                 throw new ArgumentNullException("properties");
 
-            // Get the effect name and child effect name "RootEffectName.ChildEffectName"
-            var effectName = GetEffectName(sdfxEffectName);
-            var rootEffectName = effectName.Key;
-            var childEffectName = effectName.Value;
-
             IShaderMixinBuilder builder;
             Dictionary<string, IShaderMixinBuilder> builders;
+            string rootEffectName, childEffectName;
             lock (RegisteredBuilders)
             {
-                if (!TryGet(rootEffectName, out builder))
+                // Get the effect name and child effect name "Namespace.RootEffectName.ChildEffectName"
+                var effectName = GetEffectName(sdfxEffectName);
+                rootEffectName = effectName.Key;
+                childEffectName = effectName.Value;
+
+                if (!RegisteredBuilders.TryGetValue(rootEffectName, out builder))
                     throw new ArgumentException(string.Format("Xkfx effect [{0}] not found", rootEffectName), "sdfxEffectName");
 
                 builders = new Dictionary<string, IShaderMixinBuilder>(RegisteredBuilders);
             }
 
             // TODO cache mixin context and avoid to recreate one (check if if thread concurrency could occur here)
-            var mixinTree = new ShaderMixinSource() { Name = sdfxEffectName };
+            var mixinTree = new ShaderMixinSource() { Name = string.IsNullOrEmpty(childEffectName) ? rootEffectName : $"{rootEffectName}.{childEffectName}" };
             var context = new ShaderMixinContext(mixinTree, properties, builders) { ChildEffectName = childEffectName };
             try
             {
@@ -123,12 +136,33 @@ namespace Stride.Shaders
             return mixinTree;
         }
 
+        // The longest registered name is the root, the rest is the child. Takes the lock of RegisteredBuilders.
         private static KeyValuePair<string, string> GetEffectName(string sdfxEffectName)
         {
+            for (var end = sdfxEffectName.Length; end > 0; end = sdfxEffectName.LastIndexOf('.', end - 1))
+            {
+                if (RegisteredBuilders.ContainsKey(sdfxEffectName.Substring(0, end)))
+                    return new KeyValuePair<string, string>(sdfxEffectName.Substring(0, end), end < sdfxEffectName.Length ? sdfxEffectName.Substring(end + 1) : string.Empty);
+            }
+
+            // TODO(A15): remove once C# strings and stored data hold full names. A short name: the first segment is the root.
             var mainEffectNameEnd = sdfxEffectName.IndexOf('.');
             var rootEffectName = mainEffectNameEnd != -1 ? sdfxEffectName.Substring(0, mainEffectNameEnd) : sdfxEffectName;
             var childEffectName = mainEffectNameEnd != -1 ? sdfxEffectName.Substring(mainEffectNameEnd + 1) : string.Empty;
-            return new KeyValuePair<string, string>(rootEffectName, childEffectName);
+            return new KeyValuePair<string, string>(ToFullEffectName(rootEffectName), childEffectName);
+        }
+
+        /// <summary>
+        /// TODO(A15): remove once C# strings and stored data hold full names. The full name of an effect named by its short name.
+        /// </summary>
+        internal static string ToFullEffectName(string name)
+        {
+            lock (RegisteredBuilders)
+            {
+                if (RegisteredBuilders.ContainsKey(name))
+                    return name;
+                return RegisteredBuilders.Keys.Where(x => x.Substring(x.LastIndexOf('.') + 1) == name).OrderBy(x => x, StringComparer.Ordinal).FirstOrDefault() ?? name;
+            }
         }
 
         /// <summary>

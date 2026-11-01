@@ -38,7 +38,7 @@ public class EffectCodeWriter : ShaderWriter
     /// <c>DirectionalLightData</c>, written by hand); when there is none, the key is not written, so the generated code
     /// builds. A name ending in a dot is a namespace: a <c>using</c> of a shader namespace that C# doesn't know isn't
     /// written. A name ending in <c>!</c> is a type declared here without <c>partial</c>: a shader with no key writes no
-    /// class then. A name ending in <c>#</c> is a key class with a <c>ShaderName</c>, so a shader of that name exists. A name
+    /// class then. A name ending in <c>#</c> is a key class with a <c>ShaderName</c> or an <c>EffectName</c>, so a shader or effect of that name exists. A name
     /// ending in <c>*</c> is a key class that two files of the project write. Null: every struct key and <c>using</c> is
     /// written, and a <c>mixin</c> name stays as it is written.
     /// </summary>
@@ -50,8 +50,8 @@ public class EffectCodeWriter : ShaderWriter
     /// <summary>The names to ask <see cref="CSharpTypeExists"/> about, collected while writing.</summary>
     public HashSet<string> CSharpTypeCandidates { get; } = [];
 
-    /// <summary>The full names of the shaders this file writes: the other files of the project see them.</summary>
-    public HashSet<string> DeclaredShaders { get; } = [];
+    /// <summary>The full names of the shaders and effects this file writes: the other files of the project see them.</summary>
+    public HashSet<string> DeclaredClasses { get; } = [];
 
     public bool Run(Node node)
     {
@@ -359,6 +359,11 @@ public class EffectCodeWriter : ShaderWriter
 
     public override void VisitShaderEffect(ShaderEffect shaderEffect)
     {
+        var effectName = shaderEffect.Name.ToString();
+        var fullName = ShaderNames.Combine(currentShaderNamespace, effectName);
+        DeclaredClasses.Add(fullName);
+        WriteEffectNameHandle(effectName, fullName);
+
         WriteLine("internal static partial class ShaderMixins");
         {
             OpenBrace();
@@ -375,11 +380,26 @@ public class EffectCodeWriter : ShaderWriter
                     VisitNode(shaderEffect.Block!);
                 }
 
-                moduleInitializerLines.Add($"global::Stride.Shaders.ShaderMixinManager.Register(\"{shaderEffect.Name}\", new global::{currentNamespace}.ShaderMixins.{shaderEffect.Name}());");
+                moduleInitializerLines.Add($"global::Stride.Shaders.ShaderMixinManager.Register(\"{fullName}\", new global::{currentNamespace}.ShaderMixins.{shaderEffect.Name}());");
                 CloseBrace();
             }
             CloseBrace();
         }
+    }
+
+    private void WriteEffectNameHandle(string effectName, string fullName)
+    {
+        var handWritten = $"{currentNamespace}.{effectName}Keys!";
+        CSharpTypeCandidates.Add(handWritten);
+        if (CSharpTypeExists != null && (CSharpTypeExists(handWritten) || CSharpTypeExists($"{fullName}Keys*")))
+            return;
+
+        // Not static: the params block of the effect can be this class, and it has a base class
+        WriteLine($"public partial class {effectName}Keys");
+        OpenBrace();
+        WriteLine($"/// <summary>The full name of the effect, for the APIs that take an effect by name.</summary>");
+        WriteLine($"public const string EffectName = {SymbolDisplay.FormatLiteral(fullName, true)};");
+        CloseBrace();
     }
 
     public override void VisitShaderMember(ShaderMember shaderMember)
@@ -828,7 +848,7 @@ public class EffectCodeWriter : ShaderWriter
     public override void VisitShaderClass(ShaderClass shaderClass)
     {
         var fullName = ShaderNames.Combine(currentShaderNamespace, shaderClass.Name);
-        DeclaredShaders.Add(fullName);
+        DeclaredClasses.Add(fullName);
 
         // A class written by hand without partial: C# can't take a second part with only the handle
         var handWritten = $"{currentNamespace}.{shaderClass.Name}Keys!";
