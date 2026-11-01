@@ -47,7 +47,7 @@ namespace Stride.Rendering.Lights
                 base.UpdateLightCount();
 
                 var mixin = new ShaderMixinSource();
-                mixin.Mixins.Add(new ShaderClassSource("LightPointGroup", LightCurrentCount));
+                mixin.Mixins.Add(new ShaderClassSource(LightPointGroupKeys.ShaderName, LightCurrentCount));
                 // Old fixed path kept in case we need it again later
                 //mixin.Mixins.Add(new ShaderClassSource("LightPointGroup", LightCurrentCount));
                 //mixin.Mixins.Add(new ShaderClassSource("DirectLightGroupFixed", LightCurrentCount));

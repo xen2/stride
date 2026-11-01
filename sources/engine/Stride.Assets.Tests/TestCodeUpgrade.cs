@@ -12,6 +12,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using Stride.Assets;
 using Xunit;
+using Stride.Shaders.Parsing.Upgrade;
 using static Stride.Assets.CodeUpgrades;
 
 namespace Stride.Assets.Tests;
@@ -55,6 +56,180 @@ public class TestCodeUpgrade
         var document = solution.GetDocument(documentId);
         var text = await document.GetTextAsync();
         return text.ToString();
+    }
+
+    private const string ShaderApiSource = """
+        namespace Stride.Shaders
+        {
+            public class ShaderClassSource
+            {
+                public ShaderClassSource(string className, params object[] generics) { }
+                public static implicit operator ShaderClassSource(string className) => new ShaderClassSource(className);
+            }
+            public class ShaderMixinGeneratorSource { public ShaderMixinGeneratorSource(string name) { } }
+        }
+        namespace Stride.Rendering
+        {
+            public class EffectSystem { public object LoadEffect(string name) => null; }
+            public class SimpleGroupToRenderStageSelector { public string EffectName { get; set; } }
+            public class RootEffectRenderFeature { public object CreateDrawCBufferOffsetSlot(string variable) => null; }
+            public static class ParameterKeys { public static object FindByName(string name) => null; }
+        }
+        namespace Stride.Rendering.Images
+        {
+            public class ImageEffectShader { public ImageEffectShader(string name = null) { } }
+        }
+        namespace Stride.Rendering.Materials.ComputeColors
+        {
+            public class ComputeShaderClassBase<T> { public string MixinReference { get; set; } }
+            public class ComputeShaderClassColor : ComputeShaderClassBase<object> { }
+        }
+        namespace Stride.Particles.Materials
+        {
+            public abstract class ParticleMaterial { public abstract string EffectName { get; protected set; } }
+        }
+        namespace Game
+        {
+            class Other { public Other(string name) { } public string EffectName { get; set; } }
+        }
+
+        """;
+
+    private static readonly EngineShaderClasses ShaderNameEngine = EngineShaderClasses.Parse(
+        "Texturing\t0\tmodule\t-\t-\t\t\tStride.Rendering.Texturing\tTexture0\n" +
+        "Global\t0\tshader\t-\t-\t\t\tGlobal\tTime\n" +
+        "MyEffect\t0\teffect\t-\t-\t\t\tStride.Rendering.MyEffect\t\n");
+
+    [Fact]
+    public async Task ShaderNamesTakeTheirFullName()
+    {
+        var source = ShaderApiSource + """
+            namespace Game
+            {
+                using Stride.Shaders;
+                using Stride.Rendering;
+                using Stride.Rendering.Images;
+
+                class MyPost : ImageEffectShader { public MyPost() : base("MyEffect") { } }
+
+                class Usage
+                {
+                    object A = new ShaderClassSource("Texturing", "Texturing.Texture0", "TEXCOORD0", 3);
+                    object B = new ShaderMixinGeneratorSource("MyEffect.Child");
+                    object C = new ImageEffectShader("Texturing");
+                    object D(EffectSystem system) => system.LoadEffect("MyEffect");
+                    object E = new SimpleGroupToRenderStageSelector { EffectName = "MyEffect.ShadowMapCaster" };
+                    object F(RootEffectRenderFeature feature) => feature.CreateDrawCBufferOffsetSlot("Texturing.Texture0");
+                    object G = ParameterKeys.FindByName("Texturing.Texture0.composition");
+                }
+            }
+            """;
+
+        var result = await ApplyAsync(source, ShaderNames(ShaderNameEngine));
+
+        Assert.Contains("base(\"Stride.Rendering.MyEffect\")", result);
+        Assert.Contains("new ShaderClassSource(\"Stride.Rendering.Texturing\", \"Stride.Rendering.Texturing.Texture0\", \"TEXCOORD0\", 3)", result);
+        Assert.Contains("new ShaderMixinGeneratorSource(\"Stride.Rendering.MyEffect.Child\")", result);
+        Assert.Contains("new ImageEffectShader(\"Stride.Rendering.Texturing\")", result);
+        Assert.Contains("system.LoadEffect(\"Stride.Rendering.MyEffect\")", result);
+        Assert.Contains("EffectName = \"Stride.Rendering.MyEffect.ShadowMapCaster\"", result);
+        Assert.Contains("CreateDrawCBufferOffsetSlot(\"Stride.Rendering.Texturing.Texture0\")", result);
+        Assert.Contains("FindByName(\"Stride.Rendering.Texturing.Texture0.composition\")", result);
+        AssertCompiles(result);
+    }
+
+    // A particle material of a project names its effect by overriding the property
+    [Fact]
+    public async Task ShaderNamesOfOverriddenPropertiesTakeTheirFullName()
+    {
+        var source = ShaderApiSource + """
+            namespace Game
+            {
+                using Stride.Particles.Materials;
+
+                class WithField : ParticleMaterial
+                {
+                    public override string EffectName { get { return fieldName; } protected set { fieldName = value; } }
+                    private string fieldName = "MyEffect";
+                    private string unrelated = "MyEffect";
+                }
+                class WithAssignedField : ParticleMaterial
+                {
+                    public WithAssignedField() { assignedName = "MyEffect"; unrelated = "MyEffect"; }
+                    private string assignedName;
+                    private string unrelated;
+                    public override string EffectName { get => assignedName; protected set { } }
+                }
+                class WithArrow : ParticleMaterial { public override string EffectName { get => "MyEffect.Arrow"; protected set { } } }
+                class WithReturn : ParticleMaterial { public override string EffectName { get { return "MyEffect.Return"; } protected set { } } }
+                class WithInitializer : ParticleMaterial { public override string EffectName { get; protected set; } = "MyEffect.Initializer"; }
+                class WithAssignment : WithInitializer { public WithAssignment() { EffectName = "MyEffect.Assignment"; } }
+                class Unrelated { public string EffectName => "MyEffect"; string Name() { return "MyEffect"; } }
+            }
+            """;
+
+        var result = await ApplyAsync(source, ShaderNames(ShaderNameEngine));
+
+        Assert.Contains("fieldName = \"Stride.Rendering.MyEffect\"", result);
+        Assert.Contains("assignedName = \"Stride.Rendering.MyEffect\"", result);
+        Assert.Contains("get => \"Stride.Rendering.MyEffect.Arrow\"", result);
+        Assert.Contains("return \"Stride.Rendering.MyEffect.Return\"", result);
+        Assert.Contains("= \"Stride.Rendering.MyEffect.Initializer\"", result);
+        Assert.Contains("EffectName = \"Stride.Rendering.MyEffect.Assignment\"", result);
+        Assert.Contains("private string unrelated = \"MyEffect\"", result);
+        Assert.Contains("unrelated = \"MyEffect\";", result);
+        Assert.Contains("public string EffectName => \"MyEffect\"", result);
+        Assert.Contains("return \"MyEffect\";", result);
+        AssertCompiles(result);
+    }
+
+    [Fact]
+    public async Task ShaderNamesOfAssignmentsAndConversionsTakeTheirFullName()
+    {
+        var source = ShaderApiSource + """
+            namespace Game
+            {
+                using Stride.Shaders;
+                using Stride.Rendering.Materials.ComputeColors;
+
+                class Usage
+                {
+                    object A = new ComputeShaderClassColor { MixinReference = "Texturing" };
+                    ShaderClassSource B = "Texturing";
+                }
+            }
+            """;
+
+        var result = await ApplyAsync(source, ShaderNames(ShaderNameEngine));
+
+        Assert.Contains("MixinReference = \"Stride.Rendering.Texturing\"", result);
+        Assert.Contains("ShaderClassSource B = \"Stride.Rendering.Texturing\"", result);
+        AssertCompiles(result);
+    }
+
+    // By symbol: the same strings elsewhere are not names of shaders
+    [Fact]
+    public async Task OtherStringsDoNotChange()
+    {
+        var source = ShaderApiSource + """
+            namespace Game
+            {
+                using Stride.Shaders;
+
+                class Usage
+                {
+                    string A = "Texturing";
+                    object B = new Other("Texturing");
+                    object C = new Other("MyEffect") { EffectName = "MyEffect" };
+                    object D = new ShaderClassSource("MyOwnShader");
+                    object E = new ShaderClassSource("Global", "Global.Time");
+                }
+            }
+            """;
+
+        var result = await ApplyAsync(source, ShaderNames(ShaderNameEngine));
+
+        Assert.Equal(source, result);
     }
 
     private static void AssertCompiles(string source)

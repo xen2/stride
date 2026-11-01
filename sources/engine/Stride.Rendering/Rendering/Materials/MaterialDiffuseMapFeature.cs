@@ -59,7 +59,7 @@ namespace Stride.Rendering.Materials
 
                 var computeColorSource = DiffuseMap.GenerateShaderSource(context, new MaterialComputeColorKeys(MaterialKeys.DiffuseMap, MaterialKeys.DiffuseValue, Color.White));
                 var mixin = new ShaderMixinSource();
-                mixin.Mixins.Add(new ShaderClassSource("MaterialSurfaceDiffuse"));
+                mixin.Mixins.Add(new ShaderClassSource(MaterialSurfaceDiffuseKeys.ShaderName));
                 mixin.AddComposition("diffuseMap", computeColorSource);
                 context.UseStream(MaterialShaderStage.Pixel, DiffuseStream.Stream);
                 context.UseStream(MaterialShaderStage.Pixel, ColorBaseStream.Stream);

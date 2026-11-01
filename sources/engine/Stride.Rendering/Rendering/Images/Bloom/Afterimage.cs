@@ -26,8 +26,8 @@ namespace Stride.Rendering.Images
         /// </summary>
         public Afterimage()
         {
-            bloomAfterimageShader = new ImageEffectShader("BloomAfterimageShader");
-            bloomAfterimageCombineShader = new ImageEffectShader("BloomAfterimageCombineShader");
+            bloomAfterimageShader = new ImageEffectShader(BloomAfterimageShaderKeys.ShaderName);
+            bloomAfterimageCombineShader = new ImageEffectShader(BloomAfterimageCombineShaderKeys.ShaderName);
             FadeOutSpeed = 0.9f;
             Sensitivity = 0.1f;
         }

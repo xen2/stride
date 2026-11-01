@@ -24,7 +24,7 @@ namespace Stride.Rendering.Voxels
         }
         public override ShaderSource GetApplier(string layout)
         {
-            return new ShaderClassSource("VoxelModifierApplierSolidify" + layout, solidityAttribute.LocalSamplerID);
+            return new ShaderClassSource("Stride.Rendering.VoxelModifierApplierSolidify" + layout, solidityAttribute.LocalSamplerID);
         }
         public override void UpdateVoxelizationLayout(string compositionName) { }
         public override void ApplyVoxelizationParameters(ParameterCollection parameters) { }

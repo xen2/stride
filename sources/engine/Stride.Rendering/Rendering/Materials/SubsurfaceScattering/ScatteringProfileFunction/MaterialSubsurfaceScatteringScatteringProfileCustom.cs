@@ -63,7 +63,7 @@ namespace Stride.Rendering.Materials
                 shaderSource.AddComposition("FalloffMap", computeColorSource);
 
                 // Use the expensive pixel shader because the scattering falloff can vary per pixel because we're using a texture:
-                shaderSource.Mixins.Add(new ShaderClassSource("MaterialSubsurfaceScatteringScatteringProfileCustomVarying"));
+                shaderSource.Mixins.Add(new ShaderClassSource(MaterialSubsurfaceScatteringScatteringProfileCustomVaryingKeys.ShaderName));
             }
             else
             {
@@ -90,7 +90,7 @@ namespace Stride.Rendering.Materials
 
                 context.MaterialPass.Parameters.Set(MaterialSubsurfaceScatteringScatteringProfileCustomUniformKeys.ScatteringProfile, scatteringProfile);
 
-                shaderSource.Mixins.Add(new ShaderClassSource("MaterialSubsurfaceScatteringScatteringProfileCustomUniform"));
+                shaderSource.Mixins.Add(new ShaderClassSource(MaterialSubsurfaceScatteringScatteringProfileCustomUniformKeys.ShaderName));
             }
 
             return shaderSource;

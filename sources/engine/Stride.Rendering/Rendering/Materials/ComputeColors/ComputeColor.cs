@@ -117,7 +117,7 @@ namespace Stride.Rendering.Materials.ComputeColors
             }
             UsedKey = key;
 
-            return new ShaderClassSource(threeDims ? "ComputeColorConstantColor3Link" : "ComputeColorConstantColorLink", key);
+            return new ShaderClassSource(threeDims ? ComputeColorConstantColor3LinkKeys.ShaderName : ComputeColorConstantColorLinkKeys.ShaderName, key);
             // return new ShaderClassSource("ComputeColorFixed", MaterialUtility.GetAsShaderString(Value));
         }
     }

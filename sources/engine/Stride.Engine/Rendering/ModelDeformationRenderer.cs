@@ -388,7 +388,7 @@ internal sealed class ModelDeformationRenderer : IModelDeformer, IDisposable
         if (effects.TryGetValue(group, out var effect))
             return effect;
         var (threadsX, threadsY) = ThreadNumbers(group);
-        effect = new ComputeEffectShader(context.RenderContext) { ShaderSourceName = "MorphSkinning", ThreadNumbers = new Int3(threadsX, threadsY, 1) };
+        effect = new ComputeEffectShader(context.RenderContext) { ShaderSourceName = MorphSkinningKeys.ShaderName, ThreadNumbers = new Int3(threadsX, threadsY, 1) };
         effects.Add(group, effect);
         return effect;
     }

@@ -286,7 +286,7 @@ namespace Stride.Rendering.Materials
             // TODO: That doesn't seem to work well because the diffuse shader doesn't get recreated when the specular one is being recreated... unless I'm wrong about that.
 
             var shaderSource = new ShaderMixinSource();
-            shaderSource.Mixins.Add(new ShaderClassSource("MaterialSurfaceShadingSpecularHair", (int)ShadingModel, DebugRenderPasses));
+            shaderSource.Mixins.Add(new ShaderClassSource(MaterialSurfaceShadingSpecularHairKeys.ShaderName, (int)ShadingModel, DebugRenderPasses));
 
             shaderSource.AddComposition("hairLightAttenuationFunction", LightAttenuationFunction.Generate(context));
             shaderSource.AddComposition("hairDirectionFunction", HairDirectionFunction.Generate(context));

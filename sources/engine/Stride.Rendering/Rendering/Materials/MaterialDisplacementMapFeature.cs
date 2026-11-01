@@ -92,10 +92,10 @@ namespace Stride.Rendering.Materials
             var materialStage = (MaterialShaderStage)Stage;
 
             // reset the displacement streams at the beginning of the stage
-            context.AddStreamInitializer(materialStage, "MaterialDisplacementStream");
+            context.AddStreamInitializer(materialStage, MaterialDisplacementStreamKeys.ShaderName);
 
             // set the blending mode of displacement map to additive (and not default linear blending)
-            context.UseStreamWithCustomBlend(materialStage, DisplacementStream, new ShaderClassSource("MaterialStreamAdditiveBlend", DisplacementStream));
+            context.UseStreamWithCustomBlend(materialStage, DisplacementStream, new ShaderClassSource(MaterialStreamAdditiveBlendKeys.ShaderName, DisplacementStream));
 
             // build the displacement computer
             var displacement = DisplacementMap;
@@ -114,7 +114,7 @@ namespace Stride.Rendering.Materials
             var scaleNormal = materialStage != MaterialShaderStage.Vertex;
             var positionMember = materialStage == MaterialShaderStage.Vertex ? "Position" : "PositionWS";
             var normalMember = materialStage == MaterialShaderStage.Vertex ? "meshNormal" : "normalWS";
-            context.SetStreamFinalModifier<MaterialDisplacementMapFeature>(materialStage, new ShaderClassSource("MaterialSurfaceDisplacement", positionMember, normalMember, scaleNormal));
+            context.SetStreamFinalModifier<MaterialDisplacementMapFeature>(materialStage, new ShaderClassSource(MaterialSurfaceDisplacementKeys.ShaderName, positionMember, normalMember, scaleNormal));
         }
     }
 }

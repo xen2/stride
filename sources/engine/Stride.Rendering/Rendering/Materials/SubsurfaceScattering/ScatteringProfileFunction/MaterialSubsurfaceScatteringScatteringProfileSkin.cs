@@ -20,7 +20,7 @@ namespace Stride.Rendering.Materials
     {
         public ShaderSource Generate(MaterialGeneratorContext context)
         {
-            return new ShaderClassSource("MaterialSubsurfaceScatteringScatteringProfileSkin");
+            return new ShaderClassSource(MaterialSubsurfaceScatteringScatteringProfileSkinKeys.ShaderName);
         }
     }
 }

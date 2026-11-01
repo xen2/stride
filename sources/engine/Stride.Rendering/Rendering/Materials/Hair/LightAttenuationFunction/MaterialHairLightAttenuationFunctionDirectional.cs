@@ -73,7 +73,7 @@ namespace Stride.Rendering.Materials
             context.Parameters.Set(uniqueHardnessReciprocalKey, 1.0f / Hardness);
             context.Parameters.Set(uniqueBoundaryShiftKey, BoundaryShift);
 
-            return new ShaderClassSource("MaterialHairLightAttenuationFunctionDirectional", (int)SelectedNormalMode, uniqueHardnessReciprocalKey, uniqueBoundaryShiftKey);
+            return new ShaderClassSource(MaterialHairLightAttenuationFunctionDirectionalKeys.ShaderName, (int)SelectedNormalMode, uniqueHardnessReciprocalKey, uniqueBoundaryShiftKey);
         }
 
         public override bool Equals(object obj)

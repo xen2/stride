@@ -41,16 +41,16 @@ namespace Stride.Rendering.Shadows
             switch (ShadowType & LightShadowType.FilterMask)
             {
                 case LightShadowType.PCF3x3:
-                    ShadowShader.Mixins.Add(new ShaderClassSource("ShadowMapFilterPcf", FilterMemberName, 3));
+                    ShadowShader.Mixins.Add(new ShaderClassSource(ShadowMapFilterPcfKeys.ShaderName, FilterMemberName, 3));
                     break;
                 case LightShadowType.PCF5x5:
-                    ShadowShader.Mixins.Add(new ShaderClassSource("ShadowMapFilterPcf", FilterMemberName, 5));
+                    ShadowShader.Mixins.Add(new ShaderClassSource(ShadowMapFilterPcfKeys.ShaderName, FilterMemberName, 5));
                     break;
                 case LightShadowType.PCF7x7:
-                    ShadowShader.Mixins.Add(new ShaderClassSource("ShadowMapFilterPcf", FilterMemberName, 7));
+                    ShadowShader.Mixins.Add(new ShaderClassSource(ShadowMapFilterPcfKeys.ShaderName, FilterMemberName, 7));
                     break;
                 default:
-                    ShadowShader.Mixins.Add(new ShaderClassSource("ShadowMapFilterDefault", FilterMemberName));
+                    ShadowShader.Mixins.Add(new ShaderClassSource(ShadowMapFilterDefaultKeys.ShaderName, FilterMemberName));
                     break;
             }
         }

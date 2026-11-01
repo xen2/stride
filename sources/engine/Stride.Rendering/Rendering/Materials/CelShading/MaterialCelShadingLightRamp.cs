@@ -31,11 +31,11 @@ namespace Stride.Rendering.Materials
         {
             // If we haven't specified a texture use the default implementation
             if (RampTexture == null)
-                return new ShaderClassSource("MaterialCelShadingLightDefault", false);
+                return new ShaderClassSource(MaterialCelShadingLightDefaultKeys.ShaderName, false);
 
             context.MaterialPass.Parameters.Set(MaterialCelShadingLightRampKeys.CelShaderRamp, RampTexture);
 
-            return new ShaderClassSource("MaterialCelShadingLightRamp");
+            return new ShaderClassSource(MaterialCelShadingLightRampKeys.ShaderName);
         }
 
         public override bool Equals(object obj)

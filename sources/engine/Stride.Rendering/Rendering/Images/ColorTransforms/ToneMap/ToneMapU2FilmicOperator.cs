@@ -20,7 +20,7 @@ namespace Stride.Rendering.Images
         /// Initializes a new instance of the <see cref="ToneMapU2FilmicOperator"/> class.
         /// </summary>
         public ToneMapU2FilmicOperator()
-            : base("ToneMapU2FilmicOperatorShader")
+            : base(ToneMapU2FilmicOperatorShaderKeys.ShaderName)
         {
         }
 

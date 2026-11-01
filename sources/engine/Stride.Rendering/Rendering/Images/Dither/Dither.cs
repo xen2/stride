@@ -8,7 +8,7 @@ namespace Stride.Rendering.Images.Dither
     [DataContract("Dither")]
     public class Dither : ColorTransform
     {
-        public Dither() : base("Dither")
+        public Dither() : base(DitherKeys.ShaderName)
         {
         }
 

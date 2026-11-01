@@ -20,7 +20,7 @@ namespace Stride.Rendering.Materials.ComputeColors
         public override ShaderSource GenerateShaderSource(ShaderGeneratorContext context, MaterialComputeColorKeys baseKeys)
         {
             var channel = GetColorChannelAsString();
-            return Stream == null || string.IsNullOrWhiteSpace(Stream.GetSemanticName()) ? new ShaderClassSource("ComputeColor") : new ShaderClassSource("ComputeColorFromStream", Stream.GetSemanticName(), channel);
+            return Stream == null || string.IsNullOrWhiteSpace(Stream.GetSemanticName()) ? new ShaderClassSource(ComputeColorKeys.ShaderName) : new ShaderClassSource(ComputeColorFromStreamKeys.ShaderName, Stream.GetSemanticName(), channel);
         }
 
         protected abstract string GetColorChannelAsString();

@@ -41,11 +41,11 @@ namespace Stride.Rendering.Voxels
             var mixin = new ShaderMixinSource();
             if (EditMode)
             {
-                mixin.Mixins.Add(new ShaderClassSource("VoxelMarchConeEditMode"));
+                mixin.Mixins.Add(new ShaderClassSource(VoxelMarchConeEditModeKeys.ShaderName));
             }
             else
             {
-                mixin.Mixins.Add(new ShaderClassSource("VoxelMarchCone", Steps, StepScale, ConeRatio, StartOffset));
+                mixin.Mixins.Add(new ShaderClassSource(VoxelMarchConeKeys.ShaderName, Steps, StepScale, ConeRatio, StartOffset));
                 mixin.Macros.Add(new ShaderMacro("sampleFunction", Fast ? "SampleNearestMip" : "Sample"));
             }
             mixin.Macros.Add(new ShaderMacro("AttributeID", attrID));

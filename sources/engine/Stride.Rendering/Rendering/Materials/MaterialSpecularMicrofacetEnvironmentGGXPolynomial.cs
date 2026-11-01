@@ -20,7 +20,7 @@ namespace Stride.Rendering.Materials
     {
         public ShaderSource Generate(MaterialGeneratorContext context)
         {
-            return new ShaderClassSource("MaterialSpecularMicrofacetEnvironmentGGXPolynomial");
+            return new ShaderClassSource(MaterialSpecularMicrofacetEnvironmentGGXPolynomialKeys.ShaderName);
         }
 
         public override bool Equals(object obj)

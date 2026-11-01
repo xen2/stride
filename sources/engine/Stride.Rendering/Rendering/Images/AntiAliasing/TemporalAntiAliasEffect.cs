@@ -40,7 +40,7 @@ namespace Stride.Rendering.Images
         /// <summary>
         /// Initializes a new instance of the <see cref="TemporalAntiAliasEffect"/> class.
         /// </summary>
-        public TemporalAntiAliasEffect() : base("TemporalAntiAliasShader")
+        public TemporalAntiAliasEffect() : base(TemporalAntiAliasShaderKeys.ShaderName)
         {
         }
 

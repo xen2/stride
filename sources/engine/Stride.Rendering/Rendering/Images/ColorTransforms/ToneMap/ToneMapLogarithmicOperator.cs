@@ -15,7 +15,7 @@ namespace Stride.Rendering.Images
         /// Initializes a new instance of the <see cref="ToneMapLogarithmicOperator"/> class.
         /// </summary>
         public ToneMapLogarithmicOperator()
-            : base("ToneMapLogarithmicOperatorShader")
+            : base(ToneMapLogarithmicOperatorShaderKeys.ShaderName)
         {
         }
     }

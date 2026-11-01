@@ -70,7 +70,7 @@ namespace Stride.Rendering.Materials
             {
                 colorChannel = "rgb";
             }
-            return new ShaderClassSource("MaterialSurfaceStreamShading", streamName, colorChannel, remapSigned);
+            return new ShaderClassSource(MaterialSurfaceStreamShadingKeys.ShaderName, streamName, colorChannel, remapSigned);
         }
     }
 }

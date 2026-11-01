@@ -45,14 +45,14 @@ namespace Stride.Video
             minMagLinearMipPointSampler = SamplerState.New(graphicsDevice, new SamplerStateDescription(TextureFilter.MinMagLinearMipPoint, TextureAddressMode.Clamp));
 
             // Allocate the effect for copying decoder output texture to our normal render texture
-            effectDecoderTextureCopy = new EffectInstance(effectSystem.LoadEffect("SpriteEffectExtTexture").WaitForResult());
+            effectDecoderTextureCopy = new EffectInstance(effectSystem.LoadEffect(SpriteEffectExtTextureKeys.ShaderName).WaitForResult());
             effectDecoderTextureCopy.Parameters.Set(SpriteEffectExtTextureKeys.Gamma, 2.2f);
             effectDecoderTextureCopy.Parameters.Set(SpriteEffectExtTextureKeys.MipLevel, 0.0f);
             effectDecoderTextureCopy.Parameters.Set(SpriteEffectExtTextureKeys.Sampler, minMagLinearMipPointSampler);
             effectDecoderTextureCopy.UpdateEffect(graphicsDevice);
 
             // Allocate the effect for copying regular 2d textures:
-            effectTexture2DCopy = new EffectInstance(effectSystem.LoadEffect("SpriteEffectExtTextureRegular").WaitForResult());
+            effectTexture2DCopy = new EffectInstance(effectSystem.LoadEffect(SpriteEffectExtTextureRegularKeys.ShaderName).WaitForResult());
             effectTexture2DCopy.Parameters.Set(SpriteEffectExtTextureKeys.MipLevel, 0.0f);
             effectTexture2DCopy.Parameters.Set(SpriteEffectExtTextureRegularKeys.Sampler, minMagLinearMipPointSampler);
             effectTexture2DCopy.UpdateEffect(graphicsDevice);

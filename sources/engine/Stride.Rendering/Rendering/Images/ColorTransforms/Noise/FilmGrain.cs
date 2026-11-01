@@ -12,7 +12,7 @@ namespace Stride.Rendering.Images
         /// <summary>
         /// Initializes a new instance of the <see cref="FilmGrain"/> class.
         /// </summary>
-        public FilmGrain() : this("FilmGrainShader")
+        public FilmGrain() : this(FilmGrainShaderKeys.ShaderName)
         {
         }
 

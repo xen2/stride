@@ -22,7 +22,7 @@ namespace Stride.Rendering.Images
         /// Initializes a new instance of the <see cref="Fog"/> class.
         /// </summary>
         public Fog()
-            : this("FogEffect") 
+            : this(FogEffectKeys.ShaderName) 
         {
         }
 

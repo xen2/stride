@@ -58,8 +58,8 @@ namespace Stride.Rendering.Images
             LightStreak = new LightStreak();
             LensFlare = new LensFlare();
             Antialiasing = new FXAAEffect();
-            rangeCompress = new ImageEffectShader("RangeCompressorShader");
-            rangeDecompress = new ImageEffectShader("RangeDecompressorShader");
+            rangeCompress = new ImageEffectShader(RangeCompressorShaderKeys.ShaderName);
+            rangeDecompress = new ImageEffectShader(RangeDecompressorShaderKeys.ShaderName);
             colorTransformsGroup = new ColorTransformGroup();
         }
 

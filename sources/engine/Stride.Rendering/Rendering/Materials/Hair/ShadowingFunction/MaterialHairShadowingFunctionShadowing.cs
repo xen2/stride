@@ -21,7 +21,7 @@ namespace Stride.Rendering.Materials
     {
         public ShaderSource Generate(MaterialGeneratorContext context)
         {
-            return new ShaderClassSource("MaterialHairShadowingFunctionShadowing");
+            return new ShaderClassSource(MaterialHairShadowingFunctionShadowingKeys.ShaderName);
         }
 
         public override bool Equals(object obj)

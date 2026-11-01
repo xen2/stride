@@ -111,7 +111,7 @@ namespace Stride.Rendering.Images
             base.InitializeCore();
 
             directionalBlurEffect = ToLoadAndUnload(new ImageEffectShader(DepthAwareDirectionalBlurEffectKeys.EffectName));
-            finalCombineEffect = ToLoadAndUnload(new ImageEffectShader("TripleRhombiCombineShader"));
+            finalCombineEffect = ToLoadAndUnload(new ImageEffectShader(TripleRhombiCombineShaderKeys.ShaderName));
         }
 
         protected override void DrawCore(RenderDrawContext context)

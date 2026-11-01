@@ -14,7 +14,7 @@ namespace Stride.Rendering.Voxels
     [Display("None")]
     public class VoxelBufferWriteAssign : IVoxelBufferWriter
     {
-        ShaderSource source = new ShaderClassSource("VoxelBufferWriteAssign");
+        ShaderSource source = new ShaderClassSource(VoxelBufferWriteAssignKeys.ShaderName);
         public ShaderSource GetShader()
         {
             return source;

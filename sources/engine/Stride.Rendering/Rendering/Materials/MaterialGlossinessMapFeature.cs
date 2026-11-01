@@ -65,7 +65,7 @@ namespace Stride.Rendering.Materials
                 context.UseStream(MaterialShaderStage.Pixel, GlossinessStream.Stream);
                 var computeColorSource = GlossinessMap.GenerateShaderSource(context, new MaterialComputeColorKeys(MaterialKeys.GlossinessMap, MaterialKeys.GlossinessValue));
                 var mixin = new ShaderMixinSource();
-                mixin.Mixins.Add(new ShaderClassSource("MaterialSurfaceGlossinessMap", Invert));
+                mixin.Mixins.Add(new ShaderClassSource(MaterialSurfaceGlossinessMapKeys.ShaderName, Invert));
                 mixin.AddComposition("glossinessMap", computeColorSource);
                 context.AddShaderSource(MaterialShaderStage.Pixel, mixin);
             }
