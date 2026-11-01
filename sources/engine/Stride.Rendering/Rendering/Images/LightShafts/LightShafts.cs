@@ -75,10 +75,10 @@ namespace Stride.Rendering.Images
             base.InitializeCore();
 
             // Light accumulation shader
-            lightShaftsEffectShader = ToLoadAndUnload(new ImageEffectShader("LightShaftsEffect"));
+            lightShaftsEffectShader = ToLoadAndUnload(new ImageEffectShader(LightShaftsEffectKeys.EffectName));
 
             // Additive blending shader
-            applyLightEffectShader = ToLoadAndUnload(new ImageEffectShader("AdditiveLightEffect"));
+            applyLightEffectShader = ToLoadAndUnload(new ImageEffectShader(AdditiveLightEffectKeys.EffectName));
             applyLightEffectShader.BlendState = new BlendStateDescription(Blend.One, Blend.One);
 
             minmaxVolumeEffectShader = new DynamicEffectInstance("VolumeMinMaxShader");

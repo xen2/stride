@@ -4,7 +4,7 @@
 using Stride.Rendering.Data;
 using Stride.Shaders.Compiler;
 
-namespace StrideEffects
+namespace Stride.Rendering
 {
     params PreviewTextureParameters
     {

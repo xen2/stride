@@ -21,7 +21,7 @@ namespace Stride.Rendering.Compositing
         /// <summary>
         /// Creates a typical graphics compositor programatically. It can render meshes, sprites and backgrounds.
         /// </summary>
-        public static GraphicsCompositor CreateDefault(bool enablePostEffects, string modelEffectName = "StrideForwardShadingEffect", CameraComponent camera = null, Color4? clearColor = null, GraphicsProfile graphicsProfile = GraphicsProfile.Level_10_0, RenderGroupMask groupMask = RenderGroupMask.All)
+        public static GraphicsCompositor CreateDefault(bool enablePostEffects, string modelEffectName = StrideForwardShadingEffectKeys.EffectName, CameraComponent camera = null, Color4? clearColor = null, GraphicsProfile graphicsProfile = GraphicsProfile.Level_10_0, RenderGroupMask groupMask = RenderGroupMask.All)
         {
             var opaqueRenderStage = new RenderStage("Opaque", "Main") { SortMode = new StateChangeSortMode() };
             var transparentRenderStage = new RenderStage("Transparent", "Main") { SortMode = new BackToFrontSortMode() };

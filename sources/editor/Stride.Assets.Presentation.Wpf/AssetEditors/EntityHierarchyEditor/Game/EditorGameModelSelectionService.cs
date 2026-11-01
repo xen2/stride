@@ -132,10 +132,10 @@ namespace Stride.Assets.Presentation.AssetEditors.EntityHierarchyEditor.Game
                     if (renderObject.ActiveRenderStages[index].Active)
                     {
                         var effectName = renderObject.ActiveRenderStages[index].EffectSelector.EffectName;
-                        if (effectName == "StrideForwardShadingEffect"
-                            || effectName.StartsWith("StrideForwardShadingEffect.", StringComparison.Ordinal))
+                        if (effectName == StrideForwardShadingEffectKeys.EffectName
+                            || effectName.StartsWith(StrideForwardShadingEffectKeys.EffectName + ".", StringComparison.Ordinal))
                         {
-                            effectName = effectName.Replace("StrideForwardShadingEffect", "StrideEditorForwardShadingEffect");
+                            effectName = effectName.Replace(StrideForwardShadingEffectKeys.EffectName, StrideEditorForwardShadingEffectKeys.EffectName);
                             renderObject.ActiveRenderStages[index].EffectSelector = new EffectSelector(effectName);
                         }
                     }

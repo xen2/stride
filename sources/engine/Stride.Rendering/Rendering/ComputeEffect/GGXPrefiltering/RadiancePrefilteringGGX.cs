@@ -45,7 +45,7 @@ namespace Stride.Rendering.ComputeEffect.GGXPrefiltering
         public RadiancePrefilteringGGX(RenderContext context)
             : base(context, "RadiancePrefilteringGGX")
         {
-            computeShader = new ComputeEffectShader(context) { ShaderSourceName = "RadiancePrefilteringGGXEffect" };
+            computeShader = new ComputeEffectShader(context) { ShaderSourceName = RadiancePrefilteringGGXEffectKeys.EffectName };
             DoNotFilterHighestLevel = true;
             samplingsCount = 1024;
         }
