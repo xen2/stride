@@ -29,10 +29,10 @@ RenderFeatures:
             44cf4a95ef82544e9ce3c6507d5569a9: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Engine
                 OpaqueRenderStage: ref!! dfd81a8a-2b59-428a-90b2-4778e1c496b6
                 TransparentRenderStage: ref!! 9f718132-c9ef-4d1e-9a6d-266bddc86353
-                EffectName: StrideForwardShadingEffect
+                EffectName: Stride.Rendering.StrideForwardShadingEffect
             6f7224048750e7260ea87c444f74b32c: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Engine
                 ShadowMapRenderStage: ref!! c6766b3b-c5ee-4884-b4be-fa859e4e1ab6
-                EffectName: StrideForwardShadingEffect.ShadowMapCaster
+                EffectName: Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster
         PipelineProcessors:
             d70f5aee0616e4ab25081ceaf643290c: !Stride.Rendering.MeshPipelineProcessor,Stride.Engine
                 TransparentRenderStage: ref!! 9f718132-c9ef-4d1e-9a6d-266bddc86353

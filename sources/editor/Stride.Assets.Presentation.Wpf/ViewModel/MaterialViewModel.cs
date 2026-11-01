@@ -14,6 +14,8 @@ using Stride.Rendering.Materials;
 using Stride.Rendering.Materials.ComputeColors;
 using Stride.Shaders.Parsing.SDSL.AST;
 
+using Stride.Shaders.Parsing;
+
 namespace Stride.Assets.Presentation.ViewModel
 {
     [AssetViewModel<MaterialAsset>]
@@ -80,7 +82,8 @@ namespace Stride.Assets.Presentation.ViewModel
             foreach (var asset in Directory.Package.AllAssets.Where(x => x.Asset is EffectShaderAsset))
             {
                 // TODO: we don't detect collision of name here
-                projectShaders[asset.Name] = ((EffectShaderAsset)asset.Asset).Text;
+                var text = ((EffectShaderAsset)asset.Asset).Text;
+                projectShaders[ShaderFileDeclarations.StorageName(text, asset.Name)] = text;
             }
 
             var shader = node.ParseReferencedShader(projectShaders);
@@ -148,7 +151,7 @@ namespace Stride.Assets.Presentation.ViewModel
                 foreach (var member in shader.Elements.OfType<ShaderMember>().Where(x => x.IsCompose))
                 {
                     // ComputeColor only
-                    if (member.TypeName.Name == "ComputeColor")
+                    if (ShaderNames.ShortName(member.TypeName.Name) == "ComputeColor")
                     {
                         var index = new NodeIndex(member.Name.Name);
                         if (compositionNodesNode.Indices.Any(x => Equals(x, index)))
