@@ -1,0 +1,6 @@
+namespace Library;
+
+shader MyLibParent
+{
+    float4 Tint() { return float4(1, 1, 1, 1); }
+};

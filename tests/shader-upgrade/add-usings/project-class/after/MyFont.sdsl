@@ -1,0 +1,8 @@
+// The parent is in another namespace of the project
+using Game.Renderers;
+namespace Game.Effects;
+
+shader MyFont : MyShared
+{
+    float4 Get() { return Tint(); }
+};

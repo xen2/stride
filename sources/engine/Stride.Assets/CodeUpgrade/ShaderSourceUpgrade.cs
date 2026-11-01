@@ -8,22 +8,23 @@ using System.Linq;
 using System.Text;
 using Stride.Core.Assets;
 using Stride.Core.Diagnostics;
+using Stride.Rendering;
 using Stride.Shaders.Parsing.Upgrade;
 
 namespace Stride.Assets;
 
 /// <summary>
-/// Upgrades the <c>.sdsl</c> files of a project to the current shader language (<see cref="ShaderUpgrader"/>).
+/// Upgrades the <c>.sdsl</c> and <c>.sdfx</c> files of a project to the current shader language (<see cref="ShaderUpgrader"/>).
 /// </summary>
 internal static class ShaderSourceUpgrade
 {
-    /// <param name="projectDirectory">The project folder; its <c>.sdsl</c> files are upgraded (<c>bin</c> and <c>obj</c> left out).</param>
+    /// <param name="projectDirectory">The project folder; its shader and effect files are upgraded (<c>bin</c> and <c>obj</c> left out).</param>
     /// <param name="backup">The copy-on-write backup to snapshot each file into before writing it, or <c>null</c>.</param>
     public static void Run(string projectDirectory, UpgradeBackup backup, ILogger log)
     {
         var files = new Dictionary<string, string>(StringComparer.Ordinal);
         var filesWithBom = new HashSet<string>();
-        foreach (var file in Directory.EnumerateFiles(projectDirectory, "*.sdsl", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(projectDirectory, "*.sdsl", SearchOption.AllDirectories).Concat(Directory.EnumerateFiles(projectDirectory, "*.sdfx", SearchOption.AllDirectories)))
         {
             var relative = Path.GetRelativePath(projectDirectory, file);
             var parts = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -38,7 +39,7 @@ internal static class ShaderSourceUpgrade
         if (files.Count == 0)
             return;
 
-        var result = ShaderUpgrader.Upgrade(files, EngineShaderClasses.Current);
+        var result = ShaderUpgrader.Upgrade(files, EngineShaderClasses.Current, implicitUsings: ShaderImplicitUsings.List);
         foreach (var (file, text) in result.Files)
         {
             if (text == files[file])

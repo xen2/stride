@@ -1,0 +1,7 @@
+// The parent is in a library, in a namespace of its own
+namespace Game.Effects;
+
+shader MyUser : MyLibParent
+{
+    float4 Get() { return Tint(); }
+};
