@@ -150,6 +150,10 @@ public static class SDSLErrorMessages
     public const string SDSL0133 = "SDSL0133: on Direct3D 11, the push constants of this effect use register b{0}, but the effect has {1} other cbuffers, so b{0} is taken. Use fewer cbuffers, or remove [PushConstant].";
     public const string SDSL0134 = "SDSL0134: {0}: member {2} ({3}) of the [PushConstant] cbuffer {1} is at byte {4} of the push-constant block, but a {3} must start at a multiple of {5} bytes, so that the C# struct given to SetPushConstants has the same layout on every graphics API. Move it to such an offset (add a member before it), or reorder the members (for example the vectors first).";
 
+    // Names and namespaces
+
+    public const string SDSL0300 = "SDSL0300: {0} is ambiguous: it can be {1} or {2}. Write the full name of the one to use.";
+
     // Definition checks: found when a class compiles, reported as warnings (errors with ShaderLoaderBase.WarningsAsErrors)
 
     public const string SDSL0200 = "SDSL0200: {0}.{1}() is marked 'override', but no inherited class declares {1}: it starts a new method, and calls made through a parent never reach it. Inherit the class that declares {1}, or remove 'override'.";

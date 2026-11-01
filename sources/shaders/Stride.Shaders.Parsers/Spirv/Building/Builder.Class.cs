@@ -254,6 +254,7 @@ public partial class SpirvBuilder
 
     public static ShaderClassInstantiation BuildInheritanceListIncludingSelf(IExternalShaderLoader shaderLoader, SpirvContext context, ShaderClassInstantiation classSource, ReadOnlySpan<ShaderMacro> macros, List<ShaderClassInstantiation> inheritanceList, ResolveStep resolveStep)
     {
+        classSource.ClassName = shaderLoader.ToFullName(classSource.ClassName);
         // TODO: cache same instantiations within context?
         var index = inheritanceList.IndexOf(classSource);
         if (index == -1)
@@ -860,6 +861,7 @@ public partial class SpirvBuilder
     /// <param name="context">The SPIR-V context used to resolve the shader.</param>
     public static ShaderBuffers GetOrLoadShader(IExternalShaderLoader shaderLoader, ShaderClassInstantiation classSource, ReadOnlySpan<ShaderMacro> macros, ResolveStep resolveStep, SpirvContext context)
     {
+        classSource.ClassName = shaderLoader.ToFullName(classSource.ClassName);
         if (resolveStep == ResolveStep.Mix && classSource.GenericArguments.Length > 0)
         {
             // At mix time, generics are fully resolved — resolve to string values
@@ -889,6 +891,7 @@ public partial class SpirvBuilder
 
     public static ShaderBuffers GetOrLoadShader(IExternalShaderLoader shaderLoader, string className, string[]? genericValues, ReadOnlySpan<ShaderMacro> macros)
     {
+        className = shaderLoader.ToFullName(className);
         if (genericValues is null)
             return GetOrLoadShader(shaderLoader, className, macros, out var hash, out var isFromCache);
 
@@ -976,7 +979,7 @@ public partial class SpirvBuilder
         var values = genericResolver is GenericResolverFromValues && given > 0
             ? $" ({string.Join(", ", Enumerable.Range(0, given).Select(genericResolver.ResolveGenericAsString))})"
             : "";
-        throw new InvalidOperationException(string.Format(Parsing.SDSLErrorMessages.SDSL0117, className, parameters.Count, string.Join(", ", parameters), given, values));
+        throw new InvalidOperationException(string.Format(Parsing.SDSLErrorMessages.SDSL0117, Parsing.ShaderNames.ShortName(className), parameters.Count, string.Join(", ", parameters), given, values));
     }
 
     public static SpirvBuffer CopyBuffer(SpirvBuffer shader)

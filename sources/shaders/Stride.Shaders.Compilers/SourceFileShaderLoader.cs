@@ -28,7 +28,7 @@ public abstract class SourceFileShaderLoader(IShaderCache cache) : ShaderLoaderB
     private bool TryRead(string name, out string filename, out string code, out ObjectId hash)
     {
         var fileName = ShaderNames.ShortName(name);
-        if (TryReadSourceFile(fileName, out filename, out code, out hash) && (fileName == name || ShaderFileDeclarations.Holds(code, fileName, name)))
+        if (TryReadSourceFile(fileName, out filename, out code, out hash) && ShaderFileDeclarations.Holds(code, fileName, name))
             return true;
 
         filename = code = "";

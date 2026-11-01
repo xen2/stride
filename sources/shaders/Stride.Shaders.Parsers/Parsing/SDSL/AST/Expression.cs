@@ -521,7 +521,7 @@ public partial class MethodCall(Identifier name, ShaderExpressionList arguments,
             if (!loadedShaderSymbol.TryResolveSymbol(Name, out functionSymbol))
             {
                 functionSymbol = default;
-                table.AddError(new(Info, string.Format(SDSLErrorMessages.SDSL0109, Name, loadedShaderSymbol.Name)));
+                table.AddError(new(Info, string.Format(SDSLErrorMessages.SDSL0109, Name, loadedShaderSymbol.ShortName)));
                 return false;
             }
         }
@@ -1026,6 +1026,7 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
     public override void ProcessSymbol(SymbolTable table, SymbolType? expectedType = null)
     {
         ResolveThisMember(table);
+        ResolveDottedClassName(table);
 
         // A composition is used through its members: Color.Compute()
         Source.AllowComposition = true;
@@ -1042,6 +1043,33 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
     }
 
     /// <summary>
+    /// <c>A.B.C.Member</c>, where A is neither a symbol nor a class: the source is the class <c>A.B.C</c>.
+    /// </summary>
+    private void ResolveDottedClassName(SymbolTable table)
+    {
+        if (Source is not Identifier { Name: not ("this" or "base" or "streams"), MemberOnly: false } first
+            || table.TryResolveSymbol(first.Name, out _) || table.ResolveClassName(first.Name, first.Info) != null)
+            return;
+
+        var name = first.Name;
+        for (var i = 0; i < Accessors.Count; i++)
+        {
+            var generic = Accessors[i] as GenericIdentifier;
+            if (generic == null && Accessors[i] is not Identifier)
+                return;
+
+            name = $"{name}.{(generic != null ? generic.Name.Name : ((Identifier)Accessors[i]).Name)}";
+            if (table.ResolveClassName(name, first.Info) != null)
+            {
+                var className = new Identifier(name, first.Info);
+                Source = generic != null ? new GenericIdentifier(className, generic.Generics, first.Info) : className;
+                Accessors.RemoveRange(0, i + 1);
+                return;
+            }
+        }
+    }
+
+    /// <summary>
     /// <c>this.X</c> (X a variable or a composition) continues from the member X, resolved among the shader's members only.
     /// </summary>
     /// <remarks>
@@ -1055,7 +1083,7 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
             return;
 
         if (!shader.TryResolveSymbol(member.Name, out var symbol) || symbol.Id.Kind is not (SymbolKind.Variable or SymbolKind.Composition or SymbolKind.CBuffer or SymbolKind.TBuffer or SymbolKind.RGroup))
-            throw new StatementCompileException(new(member.Info, string.Format(SDSLErrorMessages.SDSL0112, member.Name, qualifier.Name, shader.Name)));
+            throw new StatementCompileException(new(member.Info, string.Format(SDSLErrorMessages.SDSL0112, member.Name, qualifier.Name, shader.ShortName)));
         if (qualifier.Name == "base")
             throw new StatementCompileException(new(Info, string.Format(SDSLErrorMessages.SDSL0192, qualifier.Name, member.Name, "a variable, which is not overridden")));
         // A cbuffer member's symbol refers to its cbuffer, which has the flag

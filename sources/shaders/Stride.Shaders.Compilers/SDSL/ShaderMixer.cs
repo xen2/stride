@@ -488,7 +488,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
     private static string GenerateLinkName(string shaderName, string variableName)
     {
-        return $"{TypeName.GetTypeNameWithoutGenerics(shaderName)}.{variableName}";
+        return $"{ShaderNames.ShortName(shaderName)}.{variableName}";
     }
 
     private static string ComposeLinkName(string linkName, string? compositionPath = null)
@@ -871,7 +871,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
             typeDuplicateInserter.ResortDecorations();
 
         // Build ShaderInfo
-        var shaderInfo = new ShaderInfo(mixinNode.Shaders.Count, shaderClass.ClassName, shaderStart, buffer.Count);
+        var shaderInfo = new ShaderInfo(mixinNode.Shaders.Count, ShaderNames.ShortNameWithGenerics(shaderClass.ClassName), shaderStart, buffer.Count);
         shaderInfo.Symbol = shaderClass.Symbol;
         foreach (var structType in structTypes)
             shaderInfo.StructTypes.Add(structType.Key, structType.Value);
@@ -888,8 +888,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
     private static string OverrideOfOtherKind(ShaderInfo shader, MixinNode mixinNode, string functionName, string parentShaderName, bool isModuleMethod)
     {
-        var className = TypeName.GetTypeNameWithoutGenerics(shader.ShaderName);
-        var parent = TypeName.GetTypeNameWithoutGenerics(parentShaderName);
+        var className = ShaderNames.ShortName(shader.ShaderName);
+        var parent = ShaderNames.ShortName(parentShaderName);
         var path = (mixinNode.CompositionPath ?? shader.UsedInComposition) is { } compositionPath ? $" (`{ReadableCompositionPath(compositionPath)}`)" : "";
         return isModuleMethod
             ? $"`{className}.{functionName}` is `module` but overrides the instance method `{parent}.{functionName}`. `{className}` is used in a composition{path}, where an instance method has one override chain per instance. Remove `module`, or mark `{parent}.{functionName}` `module`."
@@ -898,15 +898,15 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
     private static string ModuleCodeCallsInstanceMethod(ShaderInfo shader, string? functionName, string ownerName, string methodName)
     {
-        var className = TypeName.GetTypeNameWithoutGenerics(shader.ShaderName);
-        var owner = TypeName.GetTypeNameWithoutGenerics(ownerName);
+        var className = ShaderNames.ShortName(shader.ShaderName);
+        var owner = ShaderNames.ShortName(ownerName);
         var path = shader.UsedInComposition != null ? $" (`{ReadableCompositionPath(shader.UsedInComposition)}`)" : "";
         return $"Module code `{className}.{functionName ?? "?"}` calls `{owner}.{methodName}`, an instance method. `{className}` is used in a composition{path}, which has an instance per slot. Mark `{owner}.{methodName}` `module`, or mix `{className}` at the root.";
     }
 
     private static string ModuleCodeUsesInstanceMember(ShaderClassInstantiation shaderClass, string? functionName, string memberName, bool isFunction)
     {
-        var className = TypeName.GetTypeNameWithoutGenerics(shaderClass.ClassName);
+        var className = ShaderNames.ShortName(shaderClass.ClassName);
         var code = functionName != null ? $"`{className}.{functionName}`" : $"of `{className}`";
         var path = shaderClass.CompositionPath != null ? $" (`{ReadableCompositionPath(shaderClass.CompositionPath)}`)" : "";
         return isFunction
@@ -1627,11 +1627,14 @@ public class CaptureLoadedShaders(IExternalShaderLoader inner) : IExternalShader
 
     public IReadOnlyList<string> FindFullNames(string shortName) => inner.FindFullNames(shortName);
 
+    public string ToFullName(string name) => inner.ToFullName(name);
+
     public bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
         => inner.LoadExternalFileContent(name, out filename, out code, out hash);
 
     public bool LoadExternalBuffer(string name, ReadOnlySpan<ShaderMacro> defines, out ShaderBuffers bytecode, out ObjectId hash, out bool isFromCache)
     {
+        name = inner.ToFullName(name);
         var result = inner.LoadExternalBuffer(name, defines, out bytecode, out hash, out isFromCache);
         // A file-backed shader always carries a source hash. A zero here means it was compiled or cached
         // without its OpSourceHashSDSL, which would make its effect obsolete (recompiled) on every run.

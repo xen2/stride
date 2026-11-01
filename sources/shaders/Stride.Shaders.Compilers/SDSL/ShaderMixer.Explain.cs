@@ -1,5 +1,6 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+using Stride.Shaders.Parsing;
 using System.Text;
 using Stride.Shaders.Core;
 using Stride.Shaders.Parsing.SDSL.AST;
@@ -41,7 +42,7 @@ public partial class ShaderMixer
             {
                 builder.AppendLine(shader switch
                 {
-                    { IsCompanionModule: true } => $"  companion module {shader.ModuleIdentity ?? shader.ShaderName}",
+                    { IsCompanionModule: true } => $"  companion module {(shader.ModuleIdentity != null ? ShaderNames.ShortNameWithGenerics(shader.ModuleIdentity) : shader.ShaderName)}",
                     { IsModule: true } => $"  module {shader.ShaderName}",
                     _ => $"  mixin {shader.ShaderName}",
                 });

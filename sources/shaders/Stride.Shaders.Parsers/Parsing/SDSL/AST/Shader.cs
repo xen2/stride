@@ -62,6 +62,17 @@ public class ShaderLoaderImporter(IExternalShaderLoader loader) : EmptyShaderImp
 public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDeclaration(info)
 {
     public Identifier Name { get; set; } = name;
+
+    /// <summary>
+    /// Where the class is declared: the names it uses are looked up from there.
+    /// </summary>
+    public ShaderNameScope Scope { get; set; } = ShaderNameScope.Global;
+
+    /// <summary>
+    /// The identity of the class: <c>Namespace.Name</c>.
+    /// </summary>
+    public string FullName => ShaderNames.Combine(Scope.Namespace, Name.Name);
+
     public List<ShaderElement> Elements { get; set; } = [];
     public ShaderParameterDeclarations? Generics { get; set; }
     public List<IdentifierBase> Mixins { get; set; } = [];
@@ -543,9 +554,11 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         }
 
         var openGenerics = new ConstantExpression[Generics != null ? Generics.Parameters.Count : 0];
-        var currentShader = new ShaderDefinition(Name, openGenerics);
+        var fullName = FullName;
+        var currentShader = new ShaderDefinition(fullName, openGenerics);
         table.Push();
         table.CurrentShader = currentShader;
+        table.Scope = Scope;
 
         var hasUnresolvableGenerics = false;
         // Map MemberName parameter names to their GenericParamExpr so inheritance args can reference them
@@ -556,7 +569,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             {
                 var genericParameter = Generics.Parameters[i];
                 ProcessGenericSymbol(table, context, i, genericParameter);
-                openGenerics[i] = new GenericParamExpr(i, Name);
+                openGenerics[i] = new GenericParamExpr(i, fullName);
                 var genericParameterType = genericParameter.TypeName.Type;
 
                 // A generic value can't be bound to a resource, so the shader could never be instantiated.
@@ -566,7 +579,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
                 if (genericParameterType is GenericParameterType { Kind: GenericParameterKindSDSL.MemberName })
                 {
                     hasUnresolvableGenerics = true;
-                    memberNameParams[genericParameter.Name] = new GenericParamExpr(i, Name);
+                    memberNameParams[genericParameter.Name] = new GenericParamExpr(i, fullName);
                 }
             }
         }
@@ -577,28 +590,28 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         var directParents = new List<ShaderClassInstantiation>();
         foreach (var mixin in Mixins)
         {
-            if (!table.ShaderLoader.Exists(mixin.Name))
+            if (table.ResolveClassName(mixin.Name, mixin.Info) is not { } parentName)
             {
                 table.AddError(new(mixin.Info, string.Format(SDSLErrorMessages.SDSL0191, mixin.Name, Name)));
                 missingParent = true;
                 continue;
             }
 
-            var parent = AddToInheritanceList(mixin);
+            var parent = AddToInheritanceList(mixin, parentName);
             directParents.Add(parent);
             if (IsModule && !parent.IsModule)
-                table.AddError(new(mixin.Info, string.Format(SDSLErrorMessages.SDSL0199, Name, parent.ClassName)));
+                table.AddError(new(mixin.Info, string.Format(SDSLErrorMessages.SDSL0199, Name, mixin.Name)));
         }
         foreach (var import in Elements.OfType<ShaderImport>())
         {
-            if (!table.ShaderLoader.Exists(import.Module.Name))
+            if (table.ResolveClassName(import.Module.Name, import.Module.Info) is not { } moduleName)
             {
                 table.AddError(new(import.Module.Info, string.Format(SDSLErrorMessages.SDSL0196, import.Module.Name, Name)));
                 missingParent = true;
                 continue;
             }
 
-            var module = AddToInheritanceList(import.Module);
+            var module = AddToInheritanceList(import.Module, moduleName);
             directParents.Add(module);
             if (!module.IsModule)
                 table.AddError(new(import.Info, string.Format(SDSLErrorMessages.SDSL0198, import.Module.Name)));
@@ -615,12 +628,12 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             else
                 table.AddWarning(new(pureAttribute.Info, string.Format(SDSLErrorMessages.SDSL0211, Name)));
         }
-        builder.Insert(new OpShaderSDSL(Name, flags));
+        builder.Insert(new OpShaderSDSL(fullName, flags));
         table.CurrentShaderFlags = flags;
         if (flags.HasFlag(ShaderFlagsMask.Pure))
             DefinitionChecks.CheckPureModule(table, this, directParents);
 
-        ShaderClassInstantiation AddToInheritanceList(IdentifierBase mixin)
+        ShaderClassInstantiation AddToInheritanceList(IdentifierBase mixin, string mixinFullName)
         {
             var mixinGenerics = (mixin as GenericIdentifier)?.Generics;
             var generics = new ConstantExpression[mixinGenerics != null ? mixinGenerics.Values.Count : 0];
@@ -660,8 +673,8 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
                     }
                 }
             }
-            DefinitionChecks.CheckParentGenericArgumentCount(table, mixin, generics.Length);
-            var shaderClassSource = new ShaderClassInstantiation(mixin.Name, generics);
+            DefinitionChecks.CheckParentGenericArgumentCount(table, mixin, mixinFullName, generics.Length);
+            var shaderClassSource = new ShaderClassInstantiation(mixinFullName, generics);
             return SpirvBuilder.BuildInheritanceListIncludingSelf(table.ShaderLoader, context, shaderClassSource, table.CurrentMacros.AsSpan(), table.InheritedShaders, ResolveStep.Compile);
         }
 
@@ -762,11 +775,11 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
 
         if (hasUnresolvableGenerics)
         {
-            var code = Info.Text.ToString();
+            var (before, after) = Scope.WrapperCode();
             // We also store end of name so that we can later easily use macro system to rename generics without changing the generics header
             var nameInfo = Generics?.Parameters.LastOrDefault().Name.Info ?? Name.Info;
-            var endOfNameIndex = nameInfo.Range.End.Value - Info.Range.Start.Value;
-            builder.Insert(new OpUnresolvableShaderSDSL(Info.Text.ToString(), endOfNameIndex));
+            var endOfNameIndex = before.Length + nameInfo.Range.End.Value - Info.Range.Start.Value;
+            builder.Insert(new OpUnresolvableShaderSDSL($"{before}{Info.Text}{after}", endOfNameIndex));
         }
 
         table.InheritedShaders.Clear();
@@ -789,7 +802,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         table.DeclaredTypes.TryAdd(genericParameterType.ToString(), genericParameterType);
 
         var genericParameterTypeId = context.GetOrRegister(genericParameterType);
-        context.Add(new OpGenericParameterSDSL(genericParameterTypeId, context.Bound, index, Name.Name));
+        context.Add(new OpGenericParameterSDSL(genericParameterTypeId, context.Bound, index, FullName));
         context.AddName(context.Bound, genericParameter.Name);
 
         // Note: we skip MemberName because they should have been replaced with the preprocessor during SpirvBuilder.InstantiateMemberNames() step

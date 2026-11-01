@@ -205,7 +205,7 @@ namespace Stride.Shaders.Compilers.SDSL
 
             var shaders = buffer
                 .Where(x => x.Op == Op.OpShaderSDSL)
-                .Select(x => (StartIndex: x.Index, ShaderName: ((OpShaderSDSL)x).ShaderName))
+                .Select(x => (StartIndex: x.Index, ShaderName: ShaderNames.ShortNameWithGenerics(((OpShaderSDSL)x).ShaderName)))
                 .ToList();
 
             var pushConstantVariables = new HashSet<int>();

@@ -39,12 +39,19 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
         if (parsed.AST is not ShaderFile sf)
             return false;
 
-        // TODO: support namespace
-        var declarations = sf.Namespaces.SelectMany(x => x.Declarations).Concat(sf.RootDeclarations);
-        foreach (var declaration in declarations)
+        var fileUsings = sf.RootDeclarations.OfType<UsingShaderNamespace>().Select(x => string.Join('.', x.NamespacePath)).ToList();
+        var declarations = sf.Namespaces
+            .SelectMany(ns =>
+            {
+                var scope = new ShaderNameScope(ns.Namespace?.Name, ns.Declarations.OfType<UsingShaderNamespace>().Select(x => string.Join('.', x.NamespacePath)).ToList(), fileUsings);
+                return ns.Declarations.Select(x => (Declaration: x, Scope: scope));
+            })
+            .Concat(sf.RootDeclarations.Select(x => (Declaration: x, Scope: new ShaderNameScope(null, [], fileUsings))));
+        foreach (var (declaration, scope) in declarations)
         {
             if (declaration is ShaderClass shader)
             {
+                shader.Scope = scope;
                 var compiler = new CompilerUnit();
                 SymbolTable table = new(compiler.Context, ShaderLoader)
                 {
@@ -57,7 +64,7 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                     var filenameId = compiler.Context.Add(new OpString(compiler.Context.Bound++, filename)).ResultId;
                     // TODO: Add SourceLanguage.SDSL
                     compiler.Context.Add(new OpSource(Spirv.Specification.SourceLanguage.Unknown, 0, filenameId, options.OriginalCode ?? code));
-                    compiler.Context.Add(new OpSourceHashSDSL(filenameId, (int)hash.Hash1, (int)hash.Hash2, (int)hash.Hash3, (int)hash.Hash4, Path.GetFileNameWithoutExtension(filename)));
+                    compiler.Context.Add(new OpSourceHashSDSL(filenameId, (int)hash.Hash1, (int)hash.Hash2, (int)hash.Hash3, (int)hash.Hash4, ShaderNames.Combine(scope.Namespace, Path.GetFileNameWithoutExtension(filename))));
                     compiler.SourceFileId = filenameId;
                 }
                 // TODO: Do we want to record macros with a custom OpMacroSDSL? (mostly for debug purposes)
@@ -93,7 +100,7 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                 seenHashes.Add(hash);
                 foreach (var loadedShader in table.DeclaredShaders.Values)
                 {
-                    if (loadedShader.Name != shader.Name
+                    if (loadedShader.Name != shader.FullName
                         && ShaderLoader.Cache.TryLoadFromCache(loadedShader.Name, null, macros, out var depBuffer, out _))
                     {
                         CopySourceHashes(depBuffer, compiler.Context, seenHashes);
@@ -131,7 +138,7 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                 ShaderClass.ProcessNameAndTypes(lastBuffer.Context, new ShaderLoaderImporter(ShaderLoader));
 
                 if (options.RegisterInCache)
-                    ShaderLoader.Cache.RegisterShader(shader.Name, null, macros, lastBuffer, hash);
+                    ShaderLoader.Cache.RegisterShader(shader.FullName, null, macros, lastBuffer, hash);
             }
             else if (declaration is ShaderEffect or EffectParameters)
             {
@@ -139,8 +146,7 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
             }
             else if (declaration is UsingShaderNamespace)
             {
-                // Ignore: shader classes are resolved by name across every loaded namespace, so a
-                // `using` declaration carries no information the compiler needs.
+                // Part of the scope
             }
             else
             {
