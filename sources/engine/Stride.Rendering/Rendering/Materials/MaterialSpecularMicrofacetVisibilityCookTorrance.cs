@@ -15,7 +15,7 @@ namespace Stride.Rendering.Materials
     {
         public ShaderSource Generate(MaterialGeneratorContext context)
         {
-            return new ShaderClassSource("MaterialSpecularMicrofacetVisibilityCookTorrance");
+            return new ShaderClassSource(MaterialSpecularMicrofacetVisibilityCookTorranceKeys.ShaderName);
         }
 
         public override bool Equals(object obj)

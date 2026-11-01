@@ -145,7 +145,7 @@ namespace Stride.Assets.Skyboxes
                     coefficients[i] = coefficients[i]*SphericalHarmonics.BaseCoefficients[i];
                 }
 
-                skybox.DiffuseLightingParameters.Set(SkyboxKeys.Shader, new ShaderClassSource("SphericalHarmonicsEnvironmentColor", lamberFiltering.HarmonicOrder));
+                skybox.DiffuseLightingParameters.Set(SkyboxKeys.Shader, new ShaderClassSource(SphericalHarmonicsEnvironmentColorKeys.ShaderName, lamberFiltering.HarmonicOrder));
                 skybox.DiffuseLightingParameters.Set(SphericalHarmonicsEnvironmentColorKeys.SphericalColors, coefficients);
             }
 
@@ -173,7 +173,7 @@ namespace Stride.Assets.Skyboxes
 
                 cubeTexture.SetSerializationData(cubeTexture.GetDataAsImage(context.RenderDrawContext.CommandList));
 
-                skybox.SpecularLightingParameters.Set(SkyboxKeys.Shader, new ShaderClassSource("RoughnessCubeMapEnvironmentColor"));
+                skybox.SpecularLightingParameters.Set(SkyboxKeys.Shader, new ShaderClassSource(RoughnessCubeMapEnvironmentColorKeys.ShaderName));
                 skybox.SpecularLightingParameters.Set(SkyboxKeys.CubeMap, cubeTexture);
             }
             // TODO: cubeTexture is not deallocated

@@ -16,7 +16,7 @@ namespace Stride.Rendering.Voxels.Debug
         public int Mipmap = 0;
         public Vector2 Range = new Vector2(0.0f,1.0f);
         public int RangeOffset = 0;
-        private ImageEffectShader voxelDebugEffectShader = new ImageEffectShader("VoxelVisualizationRawEffect");
+        private ImageEffectShader voxelDebugEffectShader = new ImageEffectShader(VoxelVisualizationRawEffectKeys.EffectName);
         public ImageEffectShader GetShader(RenderDrawContext context, VoxelAttribute attr)
         {
             VoxelViewContext viewContext = new VoxelViewContext(false);

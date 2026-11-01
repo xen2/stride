@@ -51,7 +51,7 @@ namespace Stride.Rendering.Materials
             {
                 var mixin = new ShaderMixinSource();
                 result = mixin;
-                mixin.Mixins.Add(new ShaderClassSource("MaterialSurfaceArray"));
+                mixin.Mixins.Add(new ShaderClassSource(MaterialSurfaceArrayKeys.ShaderName));
 
                 // Squash all operations into MaterialLayerArray
                 foreach (var operation in ShaderSources)

@@ -17,7 +17,7 @@ namespace Stride.Rendering.Voxels
 
         public override ShaderSource GetApplier(string layout)
         {
-            return new ShaderClassSource("VoxelModifierApplierOpacify" + layout);
+            return new ShaderClassSource("Stride.Rendering.VoxelModifierApplierOpacify" + layout);
         }
 
         ValueParameterKey<float> AmountKey;

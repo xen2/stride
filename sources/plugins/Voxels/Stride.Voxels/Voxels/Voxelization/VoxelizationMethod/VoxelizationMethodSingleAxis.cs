@@ -133,7 +133,7 @@ namespace Stride.Rendering.Voxels
             currentViewIndex = 0;
         }
 
-        ShaderClassSource method = new ShaderClassSource("VoxelizationMethodSingleAxis");
+        ShaderClassSource method = new ShaderClassSource(VoxelizationMethodSingleAxisKeys.ShaderName);
         ShaderMixinSource methodmixin = null;
         public ShaderSource GetVoxelizationShader()
         {

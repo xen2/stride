@@ -25,9 +25,9 @@ namespace Stride.Rendering.Materials
 
             // create and affect the shader source
             var tessellationShader = new ShaderMixinSource();
-            tessellationShader.Mixins.Add(new ShaderClassSource("TessellationPN"));
+            tessellationShader.Mixins.Add(new ShaderClassSource(TessellationPNKeys.ShaderName));
             if (AdjacentEdgeAverage)
-                tessellationShader.Mixins.Add(new ShaderClassSource("TessellationAE4", "PositionWS"));
+                tessellationShader.Mixins.Add(new ShaderClassSource(TessellationAE4Keys.ShaderName, "PositionWS"));
 
             context.Parameters.Set(MaterialKeys.TessellationShader, tessellationShader);
         }

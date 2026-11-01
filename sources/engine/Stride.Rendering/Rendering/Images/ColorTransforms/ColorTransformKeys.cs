@@ -18,6 +18,6 @@ namespace Stride.Rendering.Images
         /// <summary>
         /// The shader used by <see cref="ColorTransformBase"/>.
         /// </summary>
-        public static readonly PermutationParameterKey<ShaderSource> Shader = ParameterKeys.NewPermutation<ShaderSource>(new ShaderClassSource("ColorTransformShader"));
+        public static readonly PermutationParameterKey<ShaderSource> Shader = ParameterKeys.NewPermutation<ShaderSource>(new ShaderClassSource(ColorTransformShaderKeys.ShaderName));
     }
 }

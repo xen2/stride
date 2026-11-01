@@ -50,7 +50,7 @@ namespace Stride.Rendering.Materials
 
                 var computeColorSource = MetalnessMap.GenerateShaderSource(context, new MaterialComputeColorKeys(MaterialKeys.MetalnessMap, MaterialKeys.MetalnessValue));
                 var mixin = new ShaderMixinSource();
-                mixin.Mixins.Add(new ShaderClassSource("MaterialSurfaceMetalness"));
+                mixin.Mixins.Add(new ShaderClassSource(MaterialSurfaceMetalnessKeys.ShaderName));
                 mixin.AddComposition("metalnessMap", computeColorSource);
                 context.UseStream(MaterialShaderStage.Pixel, "matSpecular");
                 context.AddShaderSource(MaterialShaderStage.Pixel, mixin);

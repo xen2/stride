@@ -94,7 +94,7 @@ namespace Stride.Rendering.Materials.ComputeColors
         public override ShaderSource GenerateShaderSource(ShaderGeneratorContext context, MaterialComputeColorKeys baseKeys)
         {
             if (string.IsNullOrEmpty(MixinReference))
-                return new ShaderClassSource("ComputeColor");
+                return new ShaderClassSource(ComputeColorKeys.ShaderName);
             var mixinName = MixinReference;
 
             object[] generics = null;

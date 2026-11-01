@@ -20,7 +20,7 @@ namespace Stride.Rendering.Images
         /// Initializes a new instance of the <see cref="LuminanceToChannelTransform"/> class.
         /// </summary>
         public LuminanceToChannelTransform()
-            : this("LuminanceToChannelShader")
+            : this(LuminanceToChannelShaderKeys.ShaderName)
         {
         }
 
@@ -47,7 +47,7 @@ namespace Stride.Rendering.Images
             set
             {
                 colorChannel = value;
-                Shader = new ShaderClassSource("LuminanceToChannelShader", value.ToString().ToLowerInvariant());
+                Shader = new ShaderClassSource(LuminanceToChannelShaderKeys.ShaderName, value.ToString().ToLowerInvariant());
             }
         }
     }

@@ -14,7 +14,7 @@ namespace Stride.Rendering.Images
         /// <summary>
         /// Initializes a new instance of the <see cref="Vignetting"/> class.
         /// </summary>
-        public Vignetting() : this("VignettingShader")
+        public Vignetting() : this(VignettingShaderKeys.ShaderName)
         {
         }
 

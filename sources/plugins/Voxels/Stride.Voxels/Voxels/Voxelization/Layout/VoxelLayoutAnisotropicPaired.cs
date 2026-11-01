@@ -15,8 +15,8 @@ namespace Stride.Rendering.Voxels
     public class VoxelLayoutAnisotropicPaired : VoxelLayoutBase, IVoxelLayout
     {
         protected override int LayoutCount { get; set; } = 3;
-        protected override ShaderClassSource Writer { get; set; } = new ShaderClassSource("VoxelAnisotropicPairedWriter_Float4");
-        protected override ShaderClassSource Sampler { get; set; } = new ShaderClassSource("VoxelAnisotropicPairedSampler");
+        protected override ShaderClassSource Writer { get; set; } = new ShaderClassSource(VoxelAnisotropicPairedWriter_Float4Keys.ShaderName);
+        protected override ShaderClassSource Sampler { get; set; } = new ShaderClassSource(VoxelAnisotropicPairedSamplerKeys.ShaderName);
         protected override string ApplierKey { get; set; } = "AnisotropicPaired";
 
         public void UpdateVoxelizationLayout(string compositionName, List<VoxelModifierEmissionOpacity> modifier)

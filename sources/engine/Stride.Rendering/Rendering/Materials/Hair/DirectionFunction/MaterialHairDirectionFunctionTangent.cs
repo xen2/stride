@@ -16,7 +16,7 @@ namespace Stride.Rendering.Materials
     {
         public ShaderSource Generate(MaterialGeneratorContext context)
         {
-            return new ShaderClassSource("MaterialHairDirectionFunctionTangent");
+            return new ShaderClassSource(MaterialHairDirectionFunctionTangentKeys.ShaderName);
         }
 
         public override bool Equals(object obj)

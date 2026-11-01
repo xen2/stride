@@ -116,7 +116,7 @@ namespace Stride.Rendering
             compilerParameters.Set(MaterialKeys.PixelStageStreamInitializer, fallbackMaterial.Passes[0].Parameters.Get(MaterialKeys.PixelStageStreamInitializer));
 
             // Set lighting permutations (use custom white light, since this effect will not be processed by the lighting render feature)
-            compilerParameters.Set(LightingKeys.EnvironmentLights, new ShaderSourceCollection { new ShaderClassSource("LightConstantWhite") });
+            compilerParameters.Set(LightingKeys.EnvironmentLights, new ShaderSourceCollection { new ShaderClassSource(LightConstantWhiteKeys.ShaderName) });
 
             // Support skinning
             if (hasSkinningPosition || hasSkinningNormal || hasSkinningTangent)

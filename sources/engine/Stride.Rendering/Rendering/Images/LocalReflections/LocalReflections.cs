@@ -328,13 +328,13 @@ namespace Stride.Rendering.Images
         {
             base.InitializeCore();
 
-            depthPassShader = ToLoadAndUnload(new ImageEffectShader("SSLRDepthPass"));
-            blurPassShaderH = ToLoadAndUnload(new ImageEffectShader("SSLRBlurPassEffectH"));
-            blurPassShaderV = ToLoadAndUnload(new ImageEffectShader("SSLRBlurPassEffectV"));
-            rayTracePassShader = ToLoadAndUnload(new ImageEffectShader("SSLRRayTracePass"));
-            resolvePassShader = ToLoadAndUnload(new ImageEffectShader("SSLRResolvePassEffect"));
-            temporalPassShader = ToLoadAndUnload(new ImageEffectShader("SSLRTemporalPass"));
-            combinePassShader = ToLoadAndUnload(new ImageEffectShader("SSLRCombinePass"));
+            depthPassShader = ToLoadAndUnload(new ImageEffectShader(SSLRDepthPassKeys.ShaderName));
+            blurPassShaderH = ToLoadAndUnload(new ImageEffectShader(SSLRBlurPassEffectHKeys.EffectName));
+            blurPassShaderV = ToLoadAndUnload(new ImageEffectShader(SSLRBlurPassEffectVKeys.EffectName));
+            rayTracePassShader = ToLoadAndUnload(new ImageEffectShader(SSLRRayTracePassKeys.ShaderName));
+            resolvePassShader = ToLoadAndUnload(new ImageEffectShader(SSLRResolvePassEffectKeys.EffectName));
+            temporalPassShader = ToLoadAndUnload(new ImageEffectShader(SSLRTemporalPassKeys.ShaderName));
+            combinePassShader = ToLoadAndUnload(new ImageEffectShader(SSLRCombinePassKeys.ShaderName));
         }
 
         protected override void Destroy()

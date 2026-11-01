@@ -21,7 +21,7 @@ namespace Stride.Rendering.Materials
         public override void GenerateShader(MaterialGeneratorContext context)
         {
             var shaderBuilder = context.AddShading(this);
-            shaderBuilder.LightDependentSurface = new ShaderClassSource("MaterialSurfaceShadingDiffuseLambert", IsEnergyConservative);
+            shaderBuilder.LightDependentSurface = new ShaderClassSource(MaterialSurfaceShadingDiffuseLambertKeys.ShaderName, IsEnergyConservative);
         }
 
         public bool Equals(MaterialDiffuseLambertModelFeature other)
