@@ -221,6 +221,22 @@ public class KeysGeneratorTests
         Assert.Contains("context.Mixin(mixin, \"Sibling\")", generated);
     }
 
+    // The key class of a shader with no namespace, from another assembly, is in the default namespace of the generated code
+    [Fact]
+    public void AMixinNameOfAGlobalShaderOfAReferenceStaysAsItIsWritten()
+    {
+        var (generated, errors) = Build([("KeysGeneratorEffect.sdfx", "namespace A;\neffect KeysGeneratorEffect { mixin Sibling; };")], """
+            namespace Stride.Rendering
+            {
+                public static class ShaderImplicitUsings { public const string Namespaces = "Stride.Rendering"; }
+                public partial class SiblingKeys { public const string ShaderName = "Sibling"; }
+            }
+            """);
+
+        Assert.Empty(errors);
+        Assert.Contains("context.Mixin(mixin, \"Sibling\")", generated);
+    }
+
     [Fact]
     public void AMixinNameFoundInTwoUsingsStaysAsItIsWritten()
     {
@@ -232,6 +248,32 @@ public class KeysGeneratorTests
 
         Assert.Empty(errors);
         Assert.Contains("context.Mixin(mixin, \"Sibling\")", generated);
+    }
+
+    [Theory]
+    [InlineData("namespace A.B;", "A.B.KeysGeneratorEffect")]
+    [InlineData("", "KeysGeneratorEffect")]
+    public void AnEffectHasItsFullName(string @namespace, string fullName)
+    {
+        var (generated, errors) = Build([("KeysGeneratorEffect.sdfx", $"{@namespace}\neffect KeysGeneratorEffect {{ mixin Sibling; }};")], "");
+
+        Assert.Empty(errors);
+        Assert.Contains($"public const string EffectName = \"{fullName}\";", generated);
+        Assert.Contains($"ShaderMixinManager.Register(\"{fullName}\"", generated);
+    }
+
+    // A mixin of an effect is resolved; the name of a child stays one segment
+    [Fact]
+    public void MixinChildResolvesItsTargetOnly()
+    {
+        var (generated, errors) = Build([
+            ("KeysGeneratorEffect.sdfx", "namespace A.B;\neffect KeysGeneratorEffect { mixin child Other; };"),
+            ("Other.sdfx", "namespace A;\neffect Other { mixin Sibling; };"),
+        ], "");
+
+        Assert.Empty(errors);
+        Assert.Contains("context.ChildEffectName == \"Other\"", generated);
+        Assert.Contains("context.Mixin(mixin, \"A.Other\")", generated);
     }
 
     // A shader namespace doesn't have to exist in C#
