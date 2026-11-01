@@ -107,6 +107,9 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
     protected abstract bool ExternalFileExists(string name);
     public abstract bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash);
 
+    /// <inheritdoc/>
+    public virtual IReadOnlyList<string> FindFullNames(string shortName) => [];
+
     public bool LoadExternalBuffer(string name, ReadOnlySpan<ShaderMacro> defines, [MaybeNullWhen(false)] out ShaderBuffers buffer, out ObjectId hash, out bool isFromCache)
     {
         isFromCache = Cache.TryLoadFromCache(name, null, defines, out buffer, out hash);
@@ -196,22 +199,7 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
             {
                 var cachedHash = new ObjectId((uint)sourceHash.Hash1, (uint)sourceHash.Hash2, (uint)sourceHash.Hash3, (uint)sourceHash.Hash4);
 
-                // Resolve filename from OpString
-                string? filename = null;
-                foreach (var s in buffer.Context)
-                {
-                    if (s.Op == Specification.Op.OpString && ((OpString)s).ResultId == sourceHash.File)
-                    {
-                        filename = ((OpString)s).Value;
-                        break;
-                    }
-                }
-                if (filename == null)
-                    continue;
-
-                // Extract shader name from filename (strip path and extension)
-                var shaderName = Path.GetFileNameWithoutExtension(filename);
-                if (!LoadExternalFileContent(shaderName, out _, out _, out var currentHash) || cachedHash != currentHash)
+                if (!LoadExternalFileContent(sourceHash.ShaderName, out _, out _, out var currentHash) || cachedHash != currentHash)
                     return false;
             }
         }

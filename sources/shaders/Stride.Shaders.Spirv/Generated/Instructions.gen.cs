@@ -132679,13 +132679,25 @@ public ref partial struct OpSourceHashSDSL : IMemoryInstruction
         }
     }
 
-    public OpSourceHashSDSL(int file, int hash1, int hash2, int hash3, int hash4)
+    public string ShaderName
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public OpSourceHashSDSL(int file, int hash1, int hash2, int hash3, int hash4, string shaderName)
     {
         File = file;
         Hash1 = hash1;
         Hash2 = hash2;
         Hash3 = hash3;
         Hash4 = hash4;
+        ShaderName = shaderName;
         UpdateInstructionMemory();
         opData = ref Unsafe.NullRef<OpData>();
     }
@@ -132698,7 +132710,7 @@ public ref partial struct OpSourceHashSDSL : IMemoryInstruction
     public void UpdateInstructionMemory()
     {
         InstructionMemory ??= MemoryOwner<int>.Empty;
-        Span<int> instruction = [(int)Op.OpSourceHashSDSL, File, ..Hash1.AsDisposableLiteralValue().Words, ..Hash2.AsDisposableLiteralValue().Words, ..Hash3.AsDisposableLiteralValue().Words, ..Hash4.AsDisposableLiteralValue().Words];
+        Span<int> instruction = [(int)Op.OpSourceHashSDSL, File, ..Hash1.AsDisposableLiteralValue().Words, ..Hash2.AsDisposableLiteralValue().Words, ..Hash3.AsDisposableLiteralValue().Words, ..Hash4.AsDisposableLiteralValue().Words, ..ShaderName.AsDisposableLiteralValue().Words];
         instruction[0] |= instruction.Length << 16;
         if (instruction.Length == InstructionMemory.Length)
             instruction.CopyTo(InstructionMemory.Span);
@@ -132731,6 +132743,9 @@ public ref partial struct OpSourceHashSDSL : IMemoryInstruction
                     break;
                 case "hash4":
                     Hash4 = o.ToLiteral<int>();
+                    break;
+                case "shaderName":
+                    ShaderName = o.ToLiteral<string>();
                     break;
                 // We ignore unrecognized operands
                 default:

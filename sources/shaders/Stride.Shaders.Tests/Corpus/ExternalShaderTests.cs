@@ -108,18 +108,16 @@ public class ExternalShaderTests
         return new Run(new Loader(engine, external) { WarningsAsErrors = false }, output, files);
     }
 
-    sealed class Loader(Dictionary<string, string> engine, Dictionary<string, ExternalFile> external) : ShaderLoaderBase(new ShaderCache())
+    sealed class Loader(Dictionary<string, string> engine, Dictionary<string, ExternalFile> external) : SourceFileShaderLoader(new ShaderCache())
     {
-        protected override bool ExternalFileExists(string name) => external.ContainsKey(name) || engine.ContainsKey(name);
-
-        public override bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
+        protected override bool TryReadSourceFile(string fileName, out string filename, out string code, out ObjectId hash)
         {
-            if (external.TryGetValue(name, out var file))
+            if (external.TryGetValue(fileName, out var file))
             {
                 filename = file.RelativePath;
                 code = file.Text;
             }
-            else if (engine.TryGetValue(name, out var path))
+            else if (engine.TryGetValue(fileName, out var path))
             {
                 filename = path;
                 using var reader = new StreamReader(path, Encoding.UTF8);

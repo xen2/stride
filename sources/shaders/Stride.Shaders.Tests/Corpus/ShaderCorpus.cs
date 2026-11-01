@@ -260,7 +260,7 @@ static class ShaderCorpus
     }
 
     /// <param name="extraFile">Found by its file name before the index (a RenderTests file).</param>
-    sealed class IndexShaderLoader(Dictionary<string, string> index, string? extraFile = null) : ShaderLoaderBase(new ShaderCache())
+    sealed class IndexShaderLoader(Dictionary<string, string> index, string? extraFile = null) : SourceFileShaderLoader(new ShaderCache())
     {
         bool TryFind(string name, out string path)
         {
@@ -272,11 +272,9 @@ static class ShaderCorpus
             return index.TryGetValue(name, out path!);
         }
 
-        protected override bool ExternalFileExists(string name) => TryFind(name, out _);
-
-        public override bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
+        protected override bool TryReadSourceFile(string fileName, out string filename, out string code, out ObjectId hash)
         {
-            if (!TryFind(name, out var path))
+            if (!TryFind(fileName, out var path))
             {
                 filename = code = "";
                 hash = default;

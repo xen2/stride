@@ -1623,6 +1623,8 @@ public class CaptureLoadedShaders(IExternalShaderLoader inner) : IExternalShader
 
     public bool Exists(string name) => inner.Exists(name);
 
+    public IReadOnlyList<string> FindFullNames(string shortName) => inner.FindFullNames(shortName);
+
     public bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
         => inner.LoadExternalFileContent(name, out filename, out code, out hash);
 
