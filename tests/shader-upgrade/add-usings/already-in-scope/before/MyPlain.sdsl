@@ -1,0 +1,11 @@
+using Stride.Rendering.BRDF;
+
+namespace Game.Effects;
+
+// Math is in an implicit namespace, and BRDFMicrofacet has its using
+shader MyPlain
+{
+    import BRDFMicrofacet;
+
+    float4 Get() { return Math.PI; }
+};
