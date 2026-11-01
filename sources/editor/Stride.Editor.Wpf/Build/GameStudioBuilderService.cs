@@ -7,6 +7,7 @@ using Stride.Core.Assets.Editor.Components.Status;
 using Stride.Core.Assets.Editor.Services;
 using Stride.Core.Assets.Editor.ViewModel;
 using Stride.Core.BuildEngine;
+using Stride.Core.Collections;
 using Stride.Core.Diagnostics;
 using Stride.Core.IO;
 using Stride.Rendering;
@@ -25,7 +26,8 @@ namespace Stride.Editor.Build
         private readonly bool createDebugTools;
         private int currentJobToken = -1;
 
-        public GameStudioBuilderService(SessionViewModel sessionViewModel, GameSettingsProviderService settingsProvider, string buildDirectory, bool createDebugTools = true)
+        /// <param name="shaderLog">Where the errors of the project's shaders go.</param>
+        public GameStudioBuilderService(SessionViewModel sessionViewModel, GameSettingsProviderService settingsProvider, string buildDirectory, ILogger shaderLog, bool createDebugTools = true)
             : base(buildDirectory)
         {
             this.createDebugTools = createDebugTools;
@@ -37,8 +39,8 @@ namespace Stride.Editor.Build
 
             SessionViewModel = sessionViewModel ?? throw new ArgumentNullException(nameof(sessionViewModel));
 
-            var shaderImporter = new StrideShaderImporter();
-            var shaderBuildSteps = shaderImporter.CreateSystemShaderBuildSteps(sessionViewModel);
+            ShaderImporter = new StrideShaderImporter(shaderLog);
+            var shaderBuildSteps = ShaderImporter.CreateSystemShaderBuildSteps(sessionViewModel);
             shaderBuildSteps.StepProcessed += ShaderBuildStepsStepProcessed;
             PushBuildUnit(new PrecompiledAssetBuildUnit(AssetBuildUnitIdentifier.Default, shaderBuildSteps, true));
 
@@ -71,6 +73,11 @@ namespace Stride.Editor.Build
         public GameStudioDatabase Database { get; }
 
         /// <summary>
+        /// Gets the importer of the session's shaders.
+        /// </summary>
+        public StrideShaderImporter ShaderImporter { get; }
+
+        /// <summary>
         /// Gets the effect compiler.
         /// </summary>
         public IEffectCompiler EffectCompiler => effectCompiler;
@@ -100,6 +107,14 @@ namespace Stride.Editor.Build
             {
                 IsDisposed = true;
             }
+        }
+
+        /// <inheritdoc/>
+        public override PriorityQueueNode<AssetBuildUnit> PushBuildUnit(AssetBuildUnit unit)
+        {
+            if (unit is PrecompiledAssetBuildUnit shaders)
+                shaders.Merged += () => effectCompiler?.CheckReplacements();
+            return base.PushBuildUnit(unit);
         }
 
         private void ShaderBuildStepsStepProcessed(object sender, BuildStepEventArgs e)

@@ -8,6 +8,7 @@ using Stride.Core.Assets;
 using Stride.Core.Assets.Compiler;
 using Stride.Core.Assets.Editor.ViewModel;
 using Stride.Core.BuildEngine;
+using Stride.Core.Diagnostics;
 using Stride.Assets.Effect;
 
 namespace Stride.Editor.Build
@@ -19,8 +20,16 @@ namespace Stride.Editor.Build
         /// </summary>
         private readonly HashSet<string> systemProjectsLoaded = new HashSet<string>();
 
-        // Who declares each system shader: a user shader of the same full name is an error
+        // Who declares each shader of a read-only package: a user shader of the same full name is an error
         private Dictionary<string, List<string>> systemShaders;
+
+        private readonly ILogger log;
+
+        /// <param name="log">Where the errors of the shaders go.</param>
+        public StrideShaderImporter(ILogger log)
+        {
+            this.log = log ?? throw new ArgumentNullException(nameof(log));
+        }
 
         private class UpdateImportShaderCacheBuildStep : BuildStep
         {
@@ -72,32 +81,11 @@ namespace Stride.Editor.Build
             if (systemPackages.Count == 0)
                 return null;
 
-            var importShadersRootProject = new StandalonePackage(new Package());
-            var importShadersProjectSession = new PackageSession();
-            importShadersProjectSession.Projects.Add(importShadersRootProject);
-
-            foreach (var package in systemPackages)
-            {
-                // Carry the resolved namespace so the wrapped StandalonePackage resolves rooted shader locations
-                var mapPackage = new Package { FullPath = package.PackagePath, AssetNamespace = package.Package.Container?.AssetNamespace };
-                foreach (var asset in package.Assets)
-                {
-                    if (typeof(EffectShaderAsset).IsAssignableFrom(asset.AssetType))
-                        mapPackage.Assets.Add(new AssetItem(asset.Url, asset.Asset) { SourceFolder = asset.AssetItem.SourceFolder, AlternativePath = asset.AssetItem.AlternativePath });
-                }
-
-                importShadersProjectSession.Projects.Add(new StandalonePackage(mapPackage));
-                importShadersRootProject.FlattenedDependencies.Add(new Dependency(mapPackage));
-            }
-
-            // compile the fake project (create the build steps)
-            var assetProjectCompiler = new PackageCompiler(new PackageAssetEnumerator(importShadersRootProject.Package));
             var context = new AssetCompilerContext { CompilationContext = typeof(AssetCompilationContext) };
-            var dependenciesCompileResult = assetProjectCompiler.Prepare(context);
+            var buildSteps = Prepare(context, systemPackages);
             context.Dispose();
-            systemShaders = EffectShaderAssetCompiler.FindDeclaredShaders(importShadersProjectSession);
+            systemShaders = EffectShaderAssetCompiler.FindDeclaredShaders(systemPackages.Where(x => x.Package.IsReadOnly).Select(x => x.Package));
 
-            var buildSteps = dependenciesCompileResult.BuildSteps;
             buildSteps?.Add(new UpdateImportShaderCacheBuildStep(systemProjectsLoaded, systemPackages.Select(x => x.Package.Meta.Name).ToList()));
 
             return buildSteps;
@@ -109,36 +97,30 @@ namespace Stride.Editor.Build
             if (packages.Count == 0)
                 return null;
 
-            var importShadersRootProject = new StandalonePackage(new Package());
-            var importShadersProjectSession = new PackageSession();
-            importShadersProjectSession.Projects.Add(importShadersRootProject);
-
-            foreach (var package in packages)
-            {
-                // Carry the resolved namespace so the wrapped StandalonePackage resolves rooted shader locations
-                var mapPackage = new Package { FullPath = package.PackagePath, AssetNamespace = package.Package.Container?.AssetNamespace };
-                foreach (var asset in package.Assets)
-                {
-                    if (typeof(EffectShaderAsset).IsAssignableFrom(asset.AssetType))
-                    {
-                        mapPackage.Assets.Add(new AssetItem(asset.Url, asset.Asset) { SourceFolder = asset.AssetItem.SourceFolder, AlternativePath = asset.AssetItem.AlternativePath });
-                    }
-                }
-
-                importShadersProjectSession.Projects.Add(new StandalonePackage(mapPackage));
-                importShadersRootProject.FlattenedDependencies.Add(new Dependency(mapPackage));
-            }
-
-            // compile the fake project (create the build steps)
-            var assetProjectCompiler = new PackageCompiler(new PackageAssetEnumerator(importShadersRootProject.Package));
             var userContext = new AssetCompilerContext { CompilationContext = typeof(AssetCompilationContext) };
             userContext.Properties.Set(EffectShaderAssetCompiler.ImportedShadersKey, systemShaders);
-            var dependenciesCompileResult = assetProjectCompiler.Prepare(userContext);
-
-            var buildSteps = dependenciesCompileResult.BuildSteps;
+            var buildSteps = Prepare(userContext, packages);
             buildSteps?.Add(new UpdateImportShaderCacheBuildStep(new HashSet<string>(), packages.Select(x => x.Package.Meta.Name).ToList()));
 
             return buildSteps;
+        }
+
+        // Compiles a fake project (creates the build steps). The asset log shows only what is selected, so the errors go to the log too.
+        private ListBuildStep Prepare(AssetCompilerContext context, List<PackageViewModel> packages)
+        {
+            var root = EffectShaderAssetCompiler.CreateImportSession(packages.Select(x => x.Package));
+            var result = new PackageCompiler(new PackageAssetEnumerator(root)).Prepare(context);
+            result.CopyTo(log);
+
+            foreach (var step in result.BuildSteps.Steps.OfType<AssetBuildStep>())
+            {
+                step.StepProcessed += (_, _) =>
+                {
+                    foreach (var message in step.Logger.Messages.Where(x => x.IsAtLeast(LogMessageType.Error)))
+                        log.Log(message);
+                };
+            }
+            return result.BuildSteps;
         }
     }
 }

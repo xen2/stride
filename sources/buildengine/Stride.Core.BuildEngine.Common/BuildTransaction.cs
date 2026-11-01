@@ -25,10 +25,7 @@ internal class BuildTransaction
 
     public IEnumerable<KeyValuePair<string, ObjectId>> SearchValues(Func<KeyValuePair<string, ObjectId>, bool> predicate)
     {
-        lock (transactionOutputObjects)
-        {
-            return transactionOutputObjects.Select(x => new KeyValuePair<string, ObjectId>(x.Key.Path, x.Value)).Where(predicate).ToList();
-        }
+        return GetMergedIdMap().Where(predicate).ToList();
     }
 
     public IEnumerable<KeyValuePair<string, ObjectId>> GetMergedIdMap()
