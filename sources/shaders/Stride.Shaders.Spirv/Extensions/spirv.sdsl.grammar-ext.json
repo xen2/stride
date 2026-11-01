@@ -379,7 +379,8 @@
         { "kind" : "LiteralInteger", "name" : "Hash1" },
         { "kind" : "LiteralInteger", "name" : "Hash2" },
         { "kind" : "LiteralInteger", "name" : "Hash3" },
-        { "kind" : "LiteralInteger", "name" : "Hash4" }
+        { "kind" : "LiteralInteger", "name" : "Hash4" },
+        { "kind" : "LiteralString",  "name" : "'ShaderName'" }
       ]
     },
     {

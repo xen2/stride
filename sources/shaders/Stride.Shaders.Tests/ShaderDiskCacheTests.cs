@@ -599,17 +599,15 @@ public class ShaderDiskCacheTests : IDisposable
     }
 
     /// <summary>Records which shaders were actually compiled, as opposed to read back from the cache.</summary>
-    private sealed class CountingLoader(IVirtualFileProvider cacheProvider, params string[] searchPaths) : ShaderLoaderBase(new FileShaderCache(cacheProvider))
+    private sealed class CountingLoader(IVirtualFileProvider cacheProvider, params string[] searchPaths) : SourceFileShaderLoader(new FileShaderCache(cacheProvider))
     {
         private readonly List<string> compiled = [];
 
         public IReadOnlyList<string> Compiled => compiled;
 
-        protected override bool ExternalFileExists(string name) => SourceOf(name) != null;
-
-        public override bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
+        protected override bool TryReadSourceFile(string fileName, out string filename, out string code, out ObjectId hash)
         {
-            var found = SourceOf(name);
+            var found = SourceOf(fileName);
             filename = found ?? "";
             if (found == null)
             {

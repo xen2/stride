@@ -57,7 +57,7 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                     var filenameId = compiler.Context.Add(new OpString(compiler.Context.Bound++, filename)).ResultId;
                     // TODO: Add SourceLanguage.SDSL
                     compiler.Context.Add(new OpSource(Spirv.Specification.SourceLanguage.Unknown, 0, filenameId, options.OriginalCode ?? code));
-                    compiler.Context.Add(new OpSourceHashSDSL(filenameId, (int)hash.Hash1, (int)hash.Hash2, (int)hash.Hash3, (int)hash.Hash4));
+                    compiler.Context.Add(new OpSourceHashSDSL(filenameId, (int)hash.Hash1, (int)hash.Hash2, (int)hash.Hash3, (int)hash.Hash4, Path.GetFileNameWithoutExtension(filename)));
                     compiler.SourceFileId = filenameId;
                 }
                 // TODO: Do we want to record macros with a custom OpMacroSDSL? (mostly for debug purposes)
@@ -186,7 +186,7 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                 if (s.Op == Spirv.Specification.Op.OpString && ((OpString)s).ResultId == sourceHash.File)
                 {
                     var depFilenameId = target.Add(new OpString(target.Bound++, ((OpString)s).Value)).ResultId;
-                    target.Add(new OpSourceHashSDSL(depFilenameId, sourceHash.Hash1, sourceHash.Hash2, sourceHash.Hash3, sourceHash.Hash4));
+                    target.Add(new OpSourceHashSDSL(depFilenameId, sourceHash.Hash1, sourceHash.Hash2, sourceHash.Hash3, sourceHash.Hash4, sourceHash.ShaderName));
                     break;
                 }
             }

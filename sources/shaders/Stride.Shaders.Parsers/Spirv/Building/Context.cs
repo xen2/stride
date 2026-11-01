@@ -130,6 +130,12 @@ public interface IExternalShaderLoader
     public GenericShaderCache GenericCache { get; }
 
     public bool Exists(string name);
+
+    /// <summary>
+    /// The full names of the classes with this short name, for the message of an error: it can be slow, and a remote source has no list to search.
+    /// </summary>
+    public IReadOnlyList<string> FindFullNames(string shortName);
+
     public bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash);
     public bool LoadExternalBuffer(string name, ReadOnlySpan<ShaderMacro> defines, [MaybeNullWhen(false)] out ShaderBuffers bytecode, out ObjectId hash, out bool isFromCache);
 

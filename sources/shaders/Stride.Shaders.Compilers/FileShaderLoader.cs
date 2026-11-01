@@ -19,6 +19,8 @@ public class FileShaderLoader : ShaderLoaderBase
 
     protected override bool ExternalFileExists(string name) => SourceManager.IsClassExists(name);
 
+    public override IReadOnlyList<string> FindFullNames(string shortName) => SourceManager.FindFullNames(shortName);
+
     public override bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
     {
         if (!SourceManager.IsClassExists(name))
