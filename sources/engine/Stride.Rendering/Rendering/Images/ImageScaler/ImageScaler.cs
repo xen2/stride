@@ -19,7 +19,7 @@ namespace Stride.Rendering.Images
         /// <param name="samplingPattern">9 taps multi-sampler (Expanded) or 1-tap Point sampling (Linear)</param>
         public ImageScaler(SamplingPattern samplingPattern, bool delaySetRenderTargets = false) : base(null, delaySetRenderTargets)
         {
-            EffectName = samplingPattern == SamplingPattern.Expanded ? "ImageSuperSamplerScalerEffect" : "ImageScalerEffect";
+            EffectName = samplingPattern == SamplingPattern.Expanded ? ImageSuperSamplerScalerEffectKeys.EffectName : ImageScalerEffectKeys.EffectName;
         }
 
         public ImageScaler()
@@ -27,7 +27,7 @@ namespace Stride.Rendering.Images
         {
         }
 
-        public SamplingPattern FilterPattern => EffectName == "ImageScalerEffect" ? SamplingPattern.Linear : SamplingPattern.Expanded;
+        public SamplingPattern FilterPattern => EffectName == ImageScalerEffectKeys.EffectName ? SamplingPattern.Linear : SamplingPattern.Expanded;
 
         /// <summary>
         /// Gets or sets the color multiplier. Default is <see cref="Stride.Core.Mathematics.Color.White"/>

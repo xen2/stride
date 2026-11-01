@@ -149,13 +149,13 @@ public class DebugRenderProcessor : EntityProcessor<DebugRenderComponent>
                 wireframeFeature = new SinglePassWireframeRenderFeature();
                 _sceneSystem.GraphicsCompositor.RenderFeatures.Add(wireframeFeature);
             }
-            AddOverlayStageSelector(wireframeFeature, "StrideSinglePassWireframeShader");
+            AddOverlayStageSelector(wireframeFeature, StrideSinglePassWireframeShaderKeys.EffectName);
             if (_sceneSystem.GraphicsCompositor.RenderFeatures.OfType<LineRenderFeature>().FirstOrDefault() is not { } lineFeature)
             {
                 lineFeature = new LineRenderFeature();
                 _sceneSystem.GraphicsCompositor.RenderFeatures.Add(lineFeature);
             }
-            AddOverlayStageSelector(lineFeature, "StrideDebugLineShader");
+            AddOverlayStageSelector(lineFeature, StrideDebugLineShaderKeys.EffectName);
         }
 
         if (_latent)

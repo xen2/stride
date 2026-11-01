@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-using StrideEffects;
+using Stride.Rendering;
 
 using Stride.Core.BuildEngine;
 using Stride.Core.Mathematics;
@@ -50,7 +50,7 @@ namespace Stride.Assets.Presentation.Preview
 
         public TexturePreview()
         {
-            currentEffect = new DynamicEffectInstance("PreviewTexture");
+            currentEffect = new DynamicEffectInstance(PreviewTextureKeys.EffectName);
         }
 
         protected override Task Initialize()

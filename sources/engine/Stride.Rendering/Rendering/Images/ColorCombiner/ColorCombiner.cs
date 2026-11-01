@@ -24,7 +24,7 @@ namespace Stride.Rendering.Images
         /// </summary>
         /// <param name="context">The context.</param>
         /// <param name="colorCombinerShaderName">Name of the color combiner shader.</param>
-        public ColorCombiner(string colorCombinerShaderName = "ColorCombinerEffect")
+        public ColorCombiner(string colorCombinerShaderName = ColorCombinerEffectKeys.EffectName)
         {
             EffectName = colorCombinerShaderName;
             factors = new float[TexturingKeys.DefaultTextures.Count];

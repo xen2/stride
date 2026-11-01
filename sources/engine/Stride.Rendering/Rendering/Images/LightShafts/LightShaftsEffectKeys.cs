@@ -6,7 +6,7 @@ using Stride.Shaders;
 namespace Stride.Rendering.Images
 {
     [EffectKeys]
-    public static class LightShaftsEffectKeys
+    public static partial class LightShaftsEffectKeys
     {
         public static readonly PermutationParameterKey<ShaderSource> LightGroup = ParameterKeys.NewPermutation<ShaderSource>();
         public static readonly PermutationParameterKey<int> SampleCount = ParameterKeys.NewPermutation<int>();

@@ -70,7 +70,7 @@ namespace Stride.Rendering.Images
 
             combiner = ToLoadAndUnload(new ColorCombiner());
             blur = ToLoadAndUnload(new GaussianBlur());
-            lightStreakEffect = ToLoadAndUnload(new ImageEffectShader("LightStreakEffect", true));
+            lightStreakEffect = ToLoadAndUnload(new ImageEffectShader(LightStreakEffectKeys.EffectName, true));
         }
 
         /// <summary>

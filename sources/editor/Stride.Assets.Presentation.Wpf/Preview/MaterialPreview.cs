@@ -32,7 +32,7 @@ namespace Stride.Assets.Presentation.Preview
     [AssetPreview<MaterialAsset>]
     public class MaterialPreview : PreviewFromEntity<MaterialAsset>
     {
-        public const string EditorMaterialPreviewEffect = "StrideEditorMaterialPreviewEffect";
+        public const string EditorMaterialPreviewEffect = StrideEditorMaterialPreviewEffectKeys.EffectName;
 
         private MaterialPreviewPrimitive previewPrimitive;
 

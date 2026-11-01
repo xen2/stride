@@ -31,7 +31,7 @@ namespace Stride.Assets.Presentation.Thumbnails
         /// </summary>
         private class MaterialThumbnailBuildCommand : ThumbnailFromEntityCommand<Material>
         {
-            private const string EditorMaterialPreviewEffect = "StrideEditorMaterialPreviewEffect";
+            private const string EditorMaterialPreviewEffect = StrideEditorMaterialPreviewEffectKeys.EffectName;
 
             private Model model;
 

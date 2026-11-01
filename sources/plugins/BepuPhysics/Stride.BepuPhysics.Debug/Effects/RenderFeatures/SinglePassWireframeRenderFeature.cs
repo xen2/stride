@@ -37,7 +37,7 @@ public class SinglePassWireframeRenderFeature : RootRenderFeature
         base.InitializeCore();
 
         // initialize shader
-        _shader = new DynamicEffectInstance("StrideSinglePassWireframeShader");
+        _shader = new DynamicEffectInstance(StrideSinglePassWireframeShaderKeys.EffectName);
         _shader.Initialize(Context.Services);
 
         // create the pipeline state and set properties that won't change

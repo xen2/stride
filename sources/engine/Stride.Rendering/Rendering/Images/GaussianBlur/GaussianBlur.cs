@@ -136,8 +136,8 @@ namespace Stride.Rendering.Images
                 this.gaussianBlur = gaussianBlur;
 
                 // Craete ImageEffectShader
-                blurH = gaussianBlur.ToLoadAndUnload(new ImageEffectShader("GaussianBlurEffect", true));
-                blurV = gaussianBlur.ToLoadAndUnload(new ImageEffectShader("GaussianBlurEffect", true));
+                blurH = gaussianBlur.ToLoadAndUnload(new ImageEffectShader(GaussianBlurEffectKeys.EffectName, true));
+                blurV = gaussianBlur.ToLoadAndUnload(new ImageEffectShader(GaussianBlurEffectKeys.EffectName, true));
                 blurH.Initialize(gaussianBlur.Context);
                 blurV.Initialize(gaussianBlur.Context);
 

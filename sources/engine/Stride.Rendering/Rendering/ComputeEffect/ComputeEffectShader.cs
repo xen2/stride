@@ -25,7 +25,7 @@ namespace Stride.Rendering.ComputeEffect
             pipelineState = new MutablePipelineState(context.GraphicsDevice);
 
             // Setup the effect compiler
-            EffectInstance = new DynamicEffectInstance("ComputeEffectShader", Parameters);
+            EffectInstance = new DynamicEffectInstance(ComputeEffectShaderKeys.EffectName, Parameters);
             EffectInstance.Initialize(context.Services);
 
             // We give ComputeEffectShader a higher priority, since they are usually executed serially and blocking
