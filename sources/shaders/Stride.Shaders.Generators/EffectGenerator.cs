@@ -21,7 +21,7 @@ public class EffectGenerator : IIncrementalGenerator
         var candidates = shaderFiles.Select((file, _) => string.Join("\n", Generate(file, null).Candidates));
         var existingTypes = candidates.Collect().Combine(context.CompilationProvider).Select((x, _) => string.Join("\n", x.Left
             .SelectMany(names => names.Split('\n'))
-            .Where(name => name.Length > 0 && x.Right.GetTypeByMetadataName(name) != null)
+            .Where(name => name.Length > 0 && CSharpNameExists(x.Right, name))
             .Distinct()
             .OrderBy(name => name, StringComparer.Ordinal)));
 
@@ -74,6 +74,18 @@ public class EffectGenerator : IIncrementalGenerator
         {
             return ($"#error Exception while running {nameof(EffectGenerator)} {e}", []);
         }
+    }
+
+    // A name ending in a dot is a namespace (see EffectCodeWriter.CSharpTypeExists)
+    private static bool CSharpNameExists(Compilation compilation, string name)
+    {
+        if (!name.EndsWith(".", StringComparison.Ordinal))
+            return compilation.GetTypeByMetadataName(name) != null;
+
+        INamespaceSymbol? current = compilation.GlobalNamespace;
+        foreach (var part in name.TrimEnd('.').Split('.'))
+            current = current?.GetMembers(part).OfType<INamespaceSymbol>().FirstOrDefault();
+        return current != null;
     }
 
     private static bool HasShaderClassDeclaration(Parsing.ShaderFile ast)
