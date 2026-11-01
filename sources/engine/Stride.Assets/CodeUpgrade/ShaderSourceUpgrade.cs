@@ -8,6 +8,8 @@ using System.Linq;
 using System.Text;
 using Stride.Core.Assets;
 using Stride.Core.Diagnostics;
+using Stride.Core.IO;
+using Stride.Core.Yaml;
 using Stride.Rendering;
 using Stride.Shaders.Parsing.Upgrade;
 
@@ -18,19 +20,74 @@ namespace Stride.Assets;
 /// </summary>
 internal static class ShaderSourceUpgrade
 {
-    /// <param name="projectDirectory">The project folder; its shader and effect files are upgraded (<c>bin</c> and <c>obj</c> left out).</param>
+    /// <summary>
+    /// The folders that hold the files of a package: the folder of its project, and its asset folders, which can be outside of it.
+    /// </summary>
+    public static IReadOnlyList<string> Folders(UFile projectFullPath, Package package)
+    {
+        var folders = new List<string> { projectFullPath.GetFullDirectory().ToOSPath() };
+        if (package.RootDirectory is { } root)
+            folders.AddRange(package.AssetFolders.Select(x => UPath.Combine(root, x.Path).ToOSPath()).Where(Directory.Exists));
+        return folders.Distinct().ToList();
+    }
+
+    /// <param name="folders">The folders of the project (<see cref="Folders"/>); their shader, effect and data files are upgraded (<c>bin</c>, <c>obj</c> and the backups of earlier upgrades left out).</param>
     /// <param name="backup">The copy-on-write backup to snapshot each file into before writing it, or <c>null</c>.</param>
-    public static void Run(string projectDirectory, UpgradeBackup backup, ILogger log)
+    public static void Run(IReadOnlyList<string> folders, UpgradeBackup backup, ILogger log)
+    {
+        RunSources(folders, backup, log);
+        RunData(folders, backup, log);
+    }
+
+    // The stored data that names a shader or an effect, after the sources it names
+    private static void RunData(IReadOnlyList<string> folders, UpgradeBackup backup, ILogger log)
+    {
+        var sources = ProjectFiles(folders, "*.sdsl").Concat(ProjectFiles(folders, "*.sdfx")).Select(File.ReadAllText);
+        var classes = EngineShaderClasses.Current.WithProject(sources);
+        foreach (var file in new[] { "*.sdeffectlog", "*.sdgfxcomp", "*.sdmat", "*.sdscene", "*.sdprefab" }.SelectMany(pattern => ProjectFiles(folders, pattern)))
+        {
+            var bytes = File.ReadAllBytes(file);
+            var text = File.ReadAllText(file);
+            string upgraded;
+            try
+            {
+                upgraded = ShaderDataUpgrader.Upgrade(file, text, classes);
+            }
+            catch (YamlException e)
+            {
+                log.Warning($"Unable to read the file [{file}]: it keeps the names of its shaders and effects", e);
+                continue;
+            }
+            if (upgraded == text)
+                continue;
+            try
+            {
+                backup?.Snapshot(file);
+                File.WriteAllText(file, upgraded, new UTF8Encoding(bytes.AsSpan().StartsWith((ReadOnlySpan<byte>)[0xEF, 0xBB, 0xBF])));
+                log.Info($"Upgraded [{file}] to the full names of shaders and effects");
+            }
+            catch (Exception e)
+            {
+                log.Warning($"Unable to write the upgraded file [{file}]", e);
+            }
+        }
+    }
+
+    private static IEnumerable<string> ProjectFiles(IReadOnlyList<string> folders, string pattern)
+    {
+        return folders.SelectMany(folder => Directory.EnumerateFiles(folder, pattern, SearchOption.AllDirectories).Where(file =>
+        {
+            var parts = Path.GetRelativePath(folder, file).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            return !parts.Contains("bin") && !parts.Contains("obj") && !parts.Any(x => x.StartsWith(".stride-backup", StringComparison.Ordinal));
+        })).Distinct();
+    }
+
+    private static void RunSources(IReadOnlyList<string> folders, UpgradeBackup backup, ILogger log)
     {
         var files = new Dictionary<string, string>(StringComparer.Ordinal);
         var filesWithBom = new HashSet<string>();
-        foreach (var file in Directory.EnumerateFiles(projectDirectory, "*.sdsl", SearchOption.AllDirectories).Concat(Directory.EnumerateFiles(projectDirectory, "*.sdfx", SearchOption.AllDirectories)))
+        foreach (var file in ProjectFiles(folders, "*.sdsl").Concat(ProjectFiles(folders, "*.sdfx")))
         {
-            var relative = Path.GetRelativePath(projectDirectory, file);
-            var parts = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            if (parts.Contains("bin") || parts.Contains("obj"))
-                continue;
-
             var bytes = File.ReadAllBytes(file);
             if (bytes.AsSpan().StartsWith((ReadOnlySpan<byte>)[0xEF, 0xBB, 0xBF]))
                 filesWithBom.Add(file);
