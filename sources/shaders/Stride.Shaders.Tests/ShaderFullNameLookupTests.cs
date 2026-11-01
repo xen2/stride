@@ -134,6 +134,32 @@ public class ShaderFullNameLookupTests : IDisposable
     }
 
     [Fact]
+    public void ASecondSourceOfOneFullNameIsAnError()
+    {
+        var manager = Manager();
+        manager.AddShaderSource("A.B.Twice", "namespace A.B; shader Twice { };", "first/Twice.sdsl");
+        manager.AddShaderSource("A.B.Twice", "namespace A.B; shader Twice { float x; };", "first/Twice.sdsl");
+
+        var error = Assert.Throws<InvalidOperationException>(() => manager.AddShaderSource("A.B.Twice", "namespace A.B; shader Twice { };", "second/Twice.sdsl"));
+        Assert.Contains("SDSL0301: A.B.Twice is declared twice", error.Message);
+        Assert.Contains("first/Twice.sdsl", error.Message);
+        Assert.Contains("second/Twice.sdsl", error.Message);
+    }
+
+    [Fact]
+    public void AFileWithoutItsClassIsAWarning()
+    {
+        WriteFile("NamedLikeNothing.sdsl", "namespace A.B; shader Other { };");
+        WriteFile("NamedLikeOne.sdsl", "namespace A.B; shader Other { }; shader NamedLikeOne { };");
+
+        var loader = new ShaderLoader(sourceDir.FullName) { WarningsAsErrors = true };
+        var error = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer("A.B.NamedLikeNothing", [], out _, out _, out _));
+        Assert.Contains("SDSL0245: NamedLikeNothing.sdsl declares Other and no class named NamedLikeNothing", error.Message);
+
+        Assert.True(loader.LoadExternalBuffer("A.B.NamedLikeOne", [], out _, out _, out _));
+    }
+
+    [Fact]
     public void TheTestLoaderChecksTheNamespaceOfASourceFile()
     {
         WriteFile("InFile.sdsl", "namespace A.B; shader InFile { };");

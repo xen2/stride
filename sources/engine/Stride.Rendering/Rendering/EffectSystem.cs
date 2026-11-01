@@ -38,6 +38,7 @@ namespace Stride.Rendering
         internal Action<EffectCompileRequest, CompilerResults> EffectUsed;
 
         private readonly HashSet<string> recentlyModifiedShaders = new HashSet<string>();
+        private readonly ShaderSourceFileMap shaderSourceFiles = new ShaderSourceFileMap();
 
         public IEffectCompiler Compiler { get { return compiler; } set { compiler = (EffectCompilerBase)value; } }
 
@@ -226,7 +227,10 @@ namespace Stride.Rendering
                             }
                         }
                         if (filePath is not null)
+                        {
                             directoryWatcher.Track(filePath);
+                            shaderSourceFiles.Add(filePath, type);
+                        }
                     }
 #endif
                 }
@@ -348,7 +352,7 @@ namespace Stride.Rendering
             {
                 lock (recentlyModifiedShaders)
                 {
-                    recentlyModifiedShaders.Add(Path.GetFileNameWithoutExtension(e.Name));
+                    shaderSourceFiles.AddShadersOf(e.FullPath, recentlyModifiedShaders);
                 }
             }
         }
