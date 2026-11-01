@@ -28,6 +28,7 @@
     </Compile>
     <Compile Include="TestAssetFileExtensionDeclarations.cs" />
     <Compile Include="TestEffectCompositorDuplicates.cs" />
+    <Compile Include="TestEffectShaderBuildChecks.cs" />
     <Compile Include="TestHeightmapAssetCompatibility.cs" />
     <Compile Include="TestPluginPackageUpgrade.cs" />
     <Compile Include="TestUpgraderGates.cs" />

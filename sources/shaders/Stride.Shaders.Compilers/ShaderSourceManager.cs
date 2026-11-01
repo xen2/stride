@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -12,6 +13,7 @@ using Stride.Core.IO;
 using Stride.Core.Serialization.Contents;
 using Stride.Core.Storage;
 using Stride.Shaders.Parsing;
+using Stride.Shaders.Parsing.SDSL.AST;
 
 namespace Stride.Shaders.Compilers
 {
@@ -23,6 +25,11 @@ namespace Stride.Shaders.Compilers
         private readonly object locker = new object();
         private readonly Dictionary<string, ShaderSourceWithHash> loadedShaderSources = new Dictionary<string, ShaderSourceWithHash>();
         private readonly Dictionary<string, string> classNameToPath = new Dictionary<string, string>();
+        // A replacer is known from its attribute when its source is added, and from a companion of the original otherwise
+        private readonly Dictionary<string, string> addedReplacers = new Dictionary<string, string>();
+        private readonly Dictionary<string, string?> storedReplacers = new Dictionary<string, string?>();
+        // Classes whose source file was deleted while running, or no longer declares them: the database still holds them, but they no longer replace anything
+        private readonly HashSet<string> deletedSources = new HashSet<string>();
 
         /// <summary>
         /// The file provider used to load shader sources.
@@ -85,9 +92,88 @@ namespace Stride.Shaders.Compilers
                 shaderSource.Hash = ObjectId.FromBytes(Encoding.UTF8.GetBytes(shaderSource.Source));
                 loadedShaderSources[type] = shaderSource;
                 classNameToPath[type] = sourcePath;
+                AddReplacers(sourceCode);
             }
         }
 
+        private void AddReplacers(string sourceCode)
+        {
+            if (!sourceCode.Contains("[Replaces", StringComparison.Ordinal) || SDSLParser.Parse(sourceCode).AST is not ShaderFile file)
+                return;
+
+            foreach (var declaration in file.RootDeclarations.Select(x => (Class: x as ShaderClass, Namespace: (string?)null))
+                .Concat(file.Namespaces.SelectMany(ns => ns.Declarations.Select(x => (Class: x as ShaderClass, Namespace: (string?)ns.Namespace?.Name)))))
+            {
+                if (declaration.Class is not { } replacer || ShaderReplacement.Target(replacer) is not { } target)
+                    continue;
+
+                var replacerName = ShaderNames.Combine(declaration.Namespace, replacer.Name.Name);
+                if (addedReplacers.TryGetValue(target, out var other) && other != replacerName)
+                    throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0304, target, other, replacerName));
+
+                if (loadedShaderSources.TryGetValue(target, out var targetSource) && FindClass(targetSource.Source, target) is { } targetClass
+                    && ShaderReplacement.Check(replacerName, replacer, target, targetClass) is { } error)
+                    throw new InvalidOperationException(error);
+
+                addedReplacers[target] = replacerName;
+            }
+        }
+
+        private static ShaderClass? FindClass(string sourceCode, string fullName)
+        {
+            if (SDSLParser.Parse(sourceCode).AST is not ShaderFile file)
+                return null;
+            return file.RootDeclarations.Concat(file.Namespaces.SelectMany(x => x.Declarations)).OfType<ShaderClass>().FirstOrDefault(x => x.Name.Name == ShaderNames.ShortName(fullName));
+        }
+
+        /// <summary>
+        /// The full name of the class that replaces a class, or null.
+        /// </summary>
+        public string? FindReplacer(string fullName)
+        {
+            lock (locker)
+            {
+                if (addedReplacers.TryGetValue(fullName, out var added))
+                    return added;
+                if (storedReplacers.TryGetValue(fullName, out var stored))
+                    return stored;
+
+                foreach (var directory in LookupDirectoryList)
+                {
+                    var path = $"{FilePath(directory, fullName)}/replacedby";
+                    if (FileExists(path))
+                    {
+                        stored = ReadText(path);
+                        break;
+                    }
+                }
+                if (stored != null && deletedSources.Contains(stored))
+                    stored = null;
+                storedReplacers[fullName] = stored;
+                return stored;
+            }
+        }
+
+        /// <summary>
+        /// The replacements declared by the sources added with <see cref="AddShaderSource"/>.
+        /// </summary>
+        public IReadOnlyDictionary<string, string> AddedReplacers
+        {
+            get
+            {
+                lock (locker)
+                    return new Dictionary<string, string>(addedReplacers);
+            }
+        }
+
+        /// <summary>
+        /// Whether the source file of a class was deleted while running, as seen by <see cref="DeleteObsoleteCache"/>.
+        /// </summary>
+        public bool IsSourceDeleted(string type)
+        {
+            lock (locker)
+                return deletedSources.Contains(type);
+        }
 
         /// <summary>
         /// Deletes the shader cache for the specified shaders.
@@ -102,6 +188,46 @@ namespace Stride.Shaders.Compilers
                     loadedShaderSources.Remove(shaderName);
                     classNameToPath.Remove(shaderName);
                 }
+                UpdateDeletedSources(modifiedShaders);
+                storedReplacers.Clear();
+            }
+        }
+
+        /// <summary>
+        /// Notes which of these classes lost their original file while running, or got it back.
+        /// </summary>
+        public void UpdateDeletedSources(IEnumerable<string> types)
+        {
+            lock (locker)
+            {
+                foreach (var type in types)
+                {
+                    if (IsOriginalFileGone(type))
+                        deletedSources.Add(type);
+                    else
+                        deletedSources.Remove(type);
+                }
+            }
+        }
+
+        private bool IsOriginalFileGone(string type)
+        {
+            if (!Platform.IsWindowsDesktop || !LoadFromOriginalPathFirst)
+                return false;
+            var pathUrl = LookupDirectoryList.Select(directory => $"{FilePath(directory, type)}/path").FirstOrDefault(FileExists);
+            if (pathUrl == null)
+                return false;
+
+            var path = ReadText(pathUrl);
+            try
+            {
+                // The file can be back with another class in it
+                return !File.Exists(path) || !ShaderFileDeclarations.Holds(File.ReadAllText(path), ShaderNames.ShortName(type), type);
+            }
+            catch (IOException)
+            {
+                // Being written: its file event comes next
+                return false;
             }
         }
 
