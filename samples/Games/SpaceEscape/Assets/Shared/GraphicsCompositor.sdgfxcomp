@@ -29,10 +29,10 @@ RenderFeatures:
             44cf4a95ef82544e9ce3c6507d5569a9: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
                 OpaqueRenderStage: ref!! 2dd24df6-33f1-4fc5-8d49-79db348db785
                 TransparentRenderStage: ref!! ab05402a-6b3f-4a95-a079-bedf1617419d
-                EffectName*: SpaceEscapeEffectMain
+                EffectName*: SpaceEscape.Effects.SpaceEscapeEffectMain
             6f7224048750e7260ea87c444f74b32c: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Rendering
                 ShadowMapRenderStage: ref!! ddc0d74e-006f-439b-8c70-235818496d9d
-                EffectName: StrideForwardShadingEffect.ShadowMapCaster
+                EffectName: Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster
         PipelineProcessors:
             d70f5aee0616e4ab25081ceaf643290c: !Stride.Rendering.MeshPipelineProcessor,Stride.Rendering
                 TransparentRenderStage: ref!! ab05402a-6b3f-4a95-a079-bedf1617419d

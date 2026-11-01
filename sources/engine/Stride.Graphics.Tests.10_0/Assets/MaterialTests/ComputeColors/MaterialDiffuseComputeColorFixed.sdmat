@@ -5,7 +5,7 @@ Tags: []
 Attributes:
     Diffuse: !MaterialDiffuseMapFeature
         DiffuseMap: !ComputeShaderClassColor
-            MixinReference: ComputeColorFixed
+            MixinReference: Stride.Rendering.ComputeColorFixed
             Generics:
                 60cdaf470077ba4aac67d79728232aff~TVALUE: !ComputeColorParameterFloat4
                     Value: {X: 0.0, Y: 0.2, Z: 1.0, W: 1.0}

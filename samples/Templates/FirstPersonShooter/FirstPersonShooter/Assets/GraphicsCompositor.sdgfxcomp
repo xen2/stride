@@ -44,19 +44,19 @@ RenderFeatures:
             44cf4a95ef82544e9ce3c6507d5569a9: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
                 OpaqueRenderStage: ref!! 50671147-a5c1-49d4-b4ad-3625f71439b3
                 TransparentRenderStage: ref!! 0fa30591-02ee-486d-9347-2b6aee83d035
-                EffectName: StrideForwardShadingEffect
+                EffectName: Stride.Rendering.StrideForwardShadingEffect
             6f7224048750e7260ea87c444f74b32c: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Rendering
                 ShadowMapRenderStage: ref!! c0524e55-4061-464d-84dd-7c4c70f70e0e
-                EffectName: StrideForwardShadingEffect.ShadowMapCaster
+                EffectName: Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster
             b60663d7cb46417a94341a39c3bc1a12: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Rendering
                 ShadowMapRenderStage: ref!! 9c51229d-d259-46dd-bf48-77578cd01f97
-                EffectName: StrideForwardShadingEffect.ShadowMapCasterParaboloid
+                EffectName: Stride.Rendering.StrideForwardShadingEffect.ShadowMapCasterParaboloid
             f5533b1249b942df8a8aba311cd79532: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Rendering
                 ShadowMapRenderStage: ref!! 738e433b-332b-437c-8d19-d4e99be09069
-                EffectName: StrideForwardShadingEffect.ShadowMapCasterCubeMap
+                EffectName: Stride.Rendering.StrideForwardShadingEffect.ShadowMapCasterCubeMap
             106341b76db9fcda6a033dad16aa708b: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
                 OpaqueRenderStage: ref!! 0fd29cfa-e18c-4936-a1ff-706523f5ea8e
-                EffectName: StrideForwardShadingEffect.ZPrepass
+                EffectName: Stride.Rendering.StrideForwardShadingEffect.ZPrepass
         PipelineProcessors:
             d70f5aee0616e4ab25081ceaf643290c: !Stride.Rendering.MeshPipelineProcessor,Stride.Rendering
                 TransparentRenderStage: ref!! 0fa30591-02ee-486d-9347-2b6aee83d035

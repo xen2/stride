@@ -34,7 +34,9 @@ public class TestCodeUpgrade
         }
     }
 
-    private static async Task<string> ApplyAsync(string source, params CodeUpgrade[] upgrades)
+    private static Task<string> ApplyAsync(string source, params CodeUpgrade[] upgrades) => ApplyAsync(source, [], upgrades);
+
+    private static async Task<string> ApplyAsync(string source, (string Name, string Text)[] additionalFiles, params CodeUpgrade[] upgrades)
     {
         using var workspace = new AdhocWorkspace();
         var projectId = ProjectId.CreateNewId();
@@ -48,6 +50,8 @@ public class TestCodeUpgrade
         var documentId = DocumentId.CreateNewId(projectId);
         // Give the document a real path: the engine only migrates on-disk user source (it writes back by path).
         var solution = workspace.CurrentSolution.AddDocument(documentId, "Test.cs", SourceText.From(source), filePath: Path.Combine(Path.GetTempPath(), "Test.cs"));
+        foreach (var (fileName, content) in additionalFiles)
+            solution = solution.AddAdditionalDocument(DocumentId.CreateNewId(projectId), fileName, SourceText.From(content));
 
         IReadOnlyList<ProjectId> targets = [projectId];
         foreach (var upgrade in upgrades)
@@ -205,6 +209,50 @@ public class TestCodeUpgrade
         Assert.Contains("MixinReference = \"Stride.Rendering.Texturing\"", result);
         Assert.Contains("ShaderClassSource B = \"Stride.Rendering.Texturing\"", result);
         AssertCompiles(result);
+    }
+
+    // A class of the project wins over an engine class of the same name, and one with no namespace keeps its name
+    [Fact]
+    public async Task TheNamesOfTheProjectTakeTheirFullName()
+    {
+        var source = ShaderApiSource + """
+            namespace Game
+            {
+                using Stride.Shaders;
+                using Stride.Rendering;
+
+                class Usage
+                {
+                    object A(EffectSystem system) => system.LoadEffect("OwnEffect");
+                    object B = new SimpleGroupToRenderStageSelector { EffectName = "OwnEffect.ShadowMapCaster" };
+                    object C = new ShaderClassSource("OwnShader");
+                    object D = new ShaderClassSource("Texturing");
+                    object E = new ShaderClassSource("MyEffect");
+                    object F = ParameterKeys.FindByName("OwnShader.Value");
+                    object G = new ShaderClassSource("Texturing", "Texturing.Own", "Texturing.Texture0");
+                    object H(RootEffectRenderFeature feature) => feature.CreateDrawCBufferOffsetSlot("Global.Value");
+                }
+            }
+            """;
+        (string, string)[] files =
+        [
+            ("OwnEffect.sdfx", "namespace Game.Effects { effect OwnEffect { }; }"),
+            ("OwnShader.sdsl", "namespace Game.Effects; shader OwnShader { float Value; };"),
+            ("Texturing.sdsl", "namespace Game.Effects; shader Texturing { float Own; };"),
+            ("Global.sdsl", "shader Global { float Value; };"),
+            ("MyEffect.sdfx", "effect MyEffect { };"),
+        ];
+
+        var result = await ApplyAsync(source, files, ShaderNames(ShaderNameEngine));
+
+        Assert.Contains("system.LoadEffect(\"Game.Effects.OwnEffect\")", result);
+        Assert.Contains("EffectName = \"Game.Effects.OwnEffect.ShadowMapCaster\"", result);
+        Assert.Contains("new ShaderClassSource(\"Game.Effects.OwnShader\")", result);
+        Assert.Contains("new ShaderClassSource(\"Game.Effects.Texturing\")", result);
+        Assert.Contains("new ShaderClassSource(\"MyEffect\")", result);
+        Assert.Contains("ParameterKeys.FindByName(\"Game.Effects.OwnShader.Value\")", result);
+        Assert.Contains("new ShaderClassSource(\"Game.Effects.Texturing\", \"Game.Effects.Texturing.Own\", \"Texturing.Texture0\")", result);
+        Assert.Contains("CreateDrawCBufferOffsetSlot(\"Global.Value\")", result);
     }
 
     // By symbol: the same strings elsewhere are not names of shaders

@@ -1,11 +1,11 @@
 ---
 !EffectCompileRequest
-EffectName: StrideEditorForwardShadingEffect
+EffectName: Stride.Rendering.StrideEditorForwardShadingEffect
 UsedParameters:
     Lighting.DirectLightGroups: null
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightConstantWhite
+            ClassName: Stride.Rendering.Lights.LightConstantWhite
     Material.HasNormalMap: false
     Material.HasSkinningPosition: false
     Material.PixelStageSurfaceShaders: null
@@ -16,12 +16,12 @@ UsedParameters:
     SceneEditorParameters.IsEffectError: false
 ---
 !EffectCompileRequest
-EffectName: StrideEditorForwardShadingEffect.Picking
+EffectName: Stride.Rendering.StrideEditorForwardShadingEffect.Picking
 UsedParameters:
     Lighting.DirectLightGroups: null
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightConstantWhite
+            ClassName: Stride.Rendering.Lights.LightConstantWhite
     Material.HasNormalMap: false
     Material.HasSkinningPosition: false
     Material.PixelStageSurfaceShaders: null
