@@ -83,8 +83,8 @@ namespace Stride.Rendering.LightProbes
             {
                 this.renderContext = renderContext;
                 this.lightProbeRenderer = lightProbeRenderer;
-                shaderSourceEnabled = new ShaderClassSource("LightProbeShader", 3);
-                shaderSourceDisabled = new ShaderClassSource("EnvironmentLight");
+                shaderSourceEnabled = new ShaderClassSource(LightProbeShaderKeys.ShaderName, 3);
+                shaderSourceDisabled = new ShaderClassSource(EnvironmentLightKeys.ShaderName);
             }
 
             public override void UpdateLayout(string compositionName)

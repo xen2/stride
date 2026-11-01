@@ -132,7 +132,7 @@ namespace Stride.Rendering.Materials
             }
 
             var mixin = new ShaderMixinSource();
-            mixin.Mixins.Add(new ShaderClassSource("MaterialSurfaceSetStreamFromComputeColor", stream, channel));
+            mixin.Mixins.Add(new ShaderClassSource(MaterialSurfaceSetStreamFromComputeColorKeys.ShaderName, stream, channel));
             mixin.AddComposition("computeColorSource", classSource);
 
             GetContextPerStage(stage).ShaderSources.Add(mixin);
@@ -150,7 +150,7 @@ namespace Stride.Rendering.Materials
             var mixin = new ShaderMixinSource();
 
             // the basic streams contained by every materials
-            mixin.Mixins.Add(new ShaderClassSource("MaterialStream"));
+            mixin.Mixins.Add(new ShaderClassSource(MaterialStreamKeys.ShaderName));
 
             // the streams coming from the material layers
             foreach (var streamInitializer in stageContext.StreamInitializers)
@@ -162,7 +162,7 @@ namespace Stride.Rendering.Materials
             // the streams specific to a stage
             // TODO: Use StreamInitializers instead of streams initializers hardcoded in MaterialPixelShadingStream.ResetStream
             if (stage == MaterialShaderStage.Pixel)
-                mixin.Mixins.Add(new ShaderClassSource("MaterialPixelShadingStream"));
+                mixin.Mixins.Add(new ShaderClassSource(MaterialPixelShadingStreamKeys.ShaderName));
 
             return mixin;
         }

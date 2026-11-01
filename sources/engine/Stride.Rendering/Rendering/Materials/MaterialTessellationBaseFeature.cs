@@ -57,7 +57,7 @@ namespace Stride.Rendering.Materials
             }
 
             // reset the tessellation stream at the beginning of the stage
-            context.AddStreamInitializer(MaterialShaderStage.Domain, "MaterialTessellationStream");
+            context.AddStreamInitializer(MaterialShaderStage.Domain, MaterialTessellationStreamKeys.ShaderName);
 
             // set the desired triangle size desired for this material
             context.Parameters.Set(TessellationKeys.DesiredTriangleSize, TriangleSize);
@@ -80,8 +80,8 @@ namespace Stride.Rendering.Materials
 
             if (context.GetStreamFinalModifier<MaterialDisplacementMapFeature>(MaterialShaderStage.Domain) != null)
             {
-                tessellationShader.Mixins.Add(new ShaderClassSource("TessellationAE2", "TexCoord")); // this suppose Displacement from Texture -> TODO make it more flexible so that it works with any kind of displacement.
-                tessellationShader.Mixins.Add(new ShaderClassSource("TessellationAE3", "normalWS"));
+                tessellationShader.Mixins.Add(new ShaderClassSource(TessellationAE2Keys.ShaderName, "TexCoord")); // this suppose Displacement from Texture -> TODO make it more flexible so that it works with any kind of displacement.
+                tessellationShader.Mixins.Add(new ShaderClassSource(TessellationAE3Keys.ShaderName, "normalWS"));
             }
         }
 

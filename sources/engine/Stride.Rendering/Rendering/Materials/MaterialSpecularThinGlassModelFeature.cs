@@ -56,7 +56,7 @@ namespace Stride.Rendering.Materials
                 context.MaterialPass.CullMode = attributes.CullMode;
 
             // Compute transmittance
-            context.GetShading(this).LightDependentExtraModels.Add(new ShaderClassSource("MaterialTransmittanceReflectanceStream"));
+            context.GetShading(this).LightDependentExtraModels.Add(new ShaderClassSource(MaterialTransmittanceReflectanceStreamKeys.ShaderName));
 
             context.Parameters.Set(MaterialTransmittanceReflectanceStreamKeys.RefractiveIndex, RefractiveIndex);
             context.MaterialPass.HasTransparency = true;
@@ -82,7 +82,7 @@ namespace Stride.Rendering.Materials
 
         private void AddMaterialSurfaceTransmittanceShading(MaterialShaderStage stage, MaterialGeneratorContext context)
         {
-            context.AddShaderSource(stage, new ShaderClassSource("MaterialSurfaceTransmittanceShading"));
+            context.AddShaderSource(stage, new ShaderClassSource(MaterialSurfaceTransmittanceShadingKeys.ShaderName));
         }
 
         public bool Equals(MaterialSpecularThinGlassModelFeature other) => base.Equals(other);

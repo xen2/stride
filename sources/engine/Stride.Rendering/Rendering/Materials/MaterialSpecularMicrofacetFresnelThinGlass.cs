@@ -15,7 +15,7 @@ namespace Stride.Rendering.Materials
     {
         public ShaderSource Generate(MaterialGeneratorContext context)
         {
-            return new ShaderClassSource("MaterialSpecularMicrofacetFresnelThinGlass");
+            return new ShaderClassSource(MaterialSpecularMicrofacetFresnelThinGlassKeys.ShaderName);
         }
 
         public override bool Equals(object obj)

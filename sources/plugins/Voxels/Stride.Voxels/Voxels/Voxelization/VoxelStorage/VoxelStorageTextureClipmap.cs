@@ -27,7 +27,7 @@ namespace Stride.Rendering.Voxels
         public Vector4[] PerMapOffsetScaleCurrent = new Vector4[20];
         public Vector3[] MippingOffset = new Vector3[20];
 
-        ShaderClassSource sampler = new ShaderClassSource("VoxelStorageTextureClipmapShader");
+        ShaderClassSource sampler = new ShaderClassSource(VoxelStorageTextureClipmapShaderKeys.ShaderName);
 
         public void UpdateVoxelizationLayout(string compositionName)
         {
@@ -52,7 +52,7 @@ namespace Stride.Rendering.Voxels
 
             if (VoxelMipmapSimple == null)
             {
-                VoxelMipmapSimple = new Stride.Rendering.ComputeEffect.ComputeEffectShader(drawContext.RenderContext) { ShaderSourceName = "Voxel2x2x2MipmapEffect" };
+                VoxelMipmapSimple = new Stride.Rendering.ComputeEffect.ComputeEffectShader(drawContext.RenderContext) { ShaderSourceName = Voxel2x2x2MipmapEffectKeys.EffectName };
             }
 
             if (VoxelMipmapSimpleGroups == null || VoxelMipmapSimpleGroups.Length != LayoutSize || VoxelMipmapSimpleGroups[0].Length != TempMipMaps.Length)
@@ -76,7 +76,7 @@ namespace Stride.Rendering.Voxels
                     VoxelMipmapSimpleGroups[axis] = new Stride.Rendering.ComputeEffect.ComputeEffectShader[TempMipMaps.Length];
                     for (int i = 0; i < VoxelMipmapSimpleGroups[axis].Length; i++)
                     {
-                        VoxelMipmapSimpleGroups[axis][i] = new Stride.Rendering.ComputeEffect.ComputeEffectShader(drawContext.RenderContext) { ShaderSourceName = "Voxel2x2x2MipmapEffect" };
+                        VoxelMipmapSimpleGroups[axis][i] = new Stride.Rendering.ComputeEffect.ComputeEffectShader(drawContext.RenderContext) { ShaderSourceName = Voxel2x2x2MipmapEffectKeys.EffectName };
                     }
                 }
             }
@@ -197,7 +197,7 @@ namespace Stride.Rendering.Voxels
         }
         public ShaderClassSource GetSamplingShader()
         {
-            sampler = new ShaderClassSource("VoxelStorageTextureClipmapShader", VoxelSize, ClipMapCount, LayoutSize, ClipMapResolution.Y/2.0f);
+            sampler = new ShaderClassSource(VoxelStorageTextureClipmapShaderKeys.ShaderName, VoxelSize, ClipMapCount, LayoutSize, ClipMapResolution.Y/2.0f);
             return sampler;
         }
         public void ApplySamplingParameters(VoxelViewContext viewContext, ParameterCollection parameters)

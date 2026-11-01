@@ -28,7 +28,7 @@ public class BrightFilter : ImageEffect
     ///   Initializes a new instance of the <see cref="BrightFilter"/> class.
     /// </summary>
     public BrightFilter()
-        : this("BrightFilterShader")
+        : this(BrightFilterShaderKeys.ShaderName)
     {
         Threshold = 0.2f;
         Steepness = 1.0f;

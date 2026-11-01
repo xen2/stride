@@ -307,9 +307,9 @@ namespace Stride.Rendering.Voxels
             var context = drawContext.RenderContext;
             if (ClearBuffer == null)
             {
-                ClearBuffer = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = "ClearBuffer" };
-                BufferToTexture = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = "BufferToTextureEffect" };
-                BufferToTextureColumns = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = "BufferToTextureColumnsEffect" };
+                ClearBuffer = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = ClearBufferKeys.ShaderName };
+                BufferToTexture = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = BufferToTextureEffectKeys.EffectName };
+                BufferToTextureColumns = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = BufferToTextureColumnsEffectKeys.EffectName };
             }
 
             bool VoxelsAreIndependent = true;

@@ -247,15 +247,15 @@ namespace Stride.Rendering.Images
         {
             base.InitializeCore();
 
-            coclinearDepthMapEffect = ToLoadAndUnload(new ImageEffectShader("CoCLinearDepthShader"));
+            coclinearDepthMapEffect = ToLoadAndUnload(new ImageEffectShader(CoCLinearDepthShaderKeys.ShaderName));
             combineLevelsEffect = ToLoadAndUnload(new ImageEffectShader(CombineLevelsFromCoCEffectKeys.EffectName));
             combineLevelsFrontEffect = ToLoadAndUnload(new ImageEffectShader(CombineFrontCoCEffectKeys.EffectName));
             combineLevelsFrontEffect.BlendState = BlendStates.AlphaBlend;
             textureScaler = ToLoadAndUnload(new ImageScaler(SamplingPattern.Expanded));
             cocMapBlur = ToLoadAndUnload(new CoCMapBlur());
-            thresholdAlphaCoC = ToLoadAndUnload(new ImageEffectShader("ThresholdAlphaCoC"));
-            thresholdAlphaCoCFront = ToLoadAndUnload(new ImageEffectShader("ThresholdAlphaCoCFront"));
-            pointDepthShader = ToLoadAndUnload(new ImageEffectShader("PointDepth"));
+            thresholdAlphaCoC = ToLoadAndUnload(new ImageEffectShader(ThresholdAlphaCoCKeys.ShaderName));
+            thresholdAlphaCoCFront = ToLoadAndUnload(new ImageEffectShader(ThresholdAlphaCoCFrontKeys.ShaderName));
+            pointDepthShader = ToLoadAndUnload(new ImageEffectShader(PointDepthKeys.ShaderName));
             depthReadBack = ToLoadAndUnload(new ImageReadback<Half>());
             depthCenter1x1 = Texture.New2D(GraphicsDevice, 1, 1, 1, PixelFormat.R16_Float, TextureFlags.ShaderResource | TextureFlags.RenderTarget).DisposeBy(this);
         }

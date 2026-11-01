@@ -57,7 +57,7 @@ namespace Stride.Rendering.Materials
 
         private void AddDiscardFromLuminance(MaterialShaderStage stage, MaterialGeneratorContext context)
         {
-            context.AddShaderSource(MaterialShaderStage.Pixel, new ShaderClassSource("MaterialSurfaceTransparentAlphaDiscard"));
+            context.AddShaderSource(MaterialShaderStage.Pixel, new ShaderClassSource(MaterialSurfaceTransparentAlphaDiscardKeys.ShaderName));
         }
     }
 }

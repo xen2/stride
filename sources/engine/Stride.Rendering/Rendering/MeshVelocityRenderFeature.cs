@@ -99,7 +99,7 @@ namespace Stride.Rendering
 
                         if (renderEffect != null)
                         {
-                            renderEffect.EffectValidator.ValidateParameter(StrideEffectBaseKeys.ComputeVelocityShader, new ShaderClassSource("MeshVelocity"));
+                            renderEffect.EffectValidator.ValidateParameter(StrideEffectBaseKeys.ComputeVelocityShader, new ShaderClassSource(MeshVelocityKeys.ShaderName));
                         }
                     }
                 }

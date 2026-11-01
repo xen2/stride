@@ -14,7 +14,7 @@ namespace Stride.Rendering.Materials
     {
         public ShaderSource Generate(MaterialGeneratorContext context, ValueParameterKey<float> uniqueAlphaThresholdKey)
         {
-            return new ShaderClassSource("MaterialHairDiscardFunctionOpaquePass", uniqueAlphaThresholdKey);
+            return new ShaderClassSource(MaterialHairDiscardFunctionOpaquePassKeys.ShaderName, uniqueAlphaThresholdKey);
         }
 
         public override bool Equals(object obj)

@@ -291,7 +291,7 @@ namespace Stride.Rendering.Materials
             EnsureStep(MaterialGeneratorStep.GenerateShader);
             ShaderSource shaderSource;
             registeredStreamBlend.TryGetValue(stream, out shaderSource);
-            return shaderSource ?? new ShaderClassSource("MaterialStreamLinearBlend", stream);
+            return shaderSource ?? new ShaderClassSource(MaterialStreamLinearBlendKeys.ShaderName, stream);
         }
 
         public void UseStreamWithCustomBlend(MaterialShaderStage stage, string stream, ShaderSource blendStream)
@@ -515,7 +515,7 @@ namespace Stride.Rendering.Materials
         private void BlendShadingModel(MaterialBlendLayerContext parent, MaterialBlendLayerPerStageContext pendingPixelLayerContext, MaterialBlendLayerPerStageContext parentPixelLayerContext)
         {
             var shaderBlendingSource = new ShaderMixinSource();
-            shaderBlendingSource.Mixins.Add(new ShaderClassSource("MaterialSurfaceShadingBlend"));
+            shaderBlendingSource.Mixins.Add(new ShaderClassSource(MaterialSurfaceShadingBlendKeys.ShaderName));
 
             parent.SetStreamBlend(MaterialShaderStage.Pixel, parent.BlendMapForShadingModel);
 
@@ -594,7 +594,7 @@ namespace Stride.Rendering.Materials
                 // Generate a dynamic shader name
                 // Create a mixin
                 var shaderMixinSource = new ShaderMixinSource();
-                shaderMixinSource.Mixins.Add(new ShaderClassSource("MaterialSurfaceStreamsBlend"));
+                shaderMixinSource.Mixins.Add(new ShaderClassSource(MaterialSurfaceStreamsBlendKeys.ShaderName));
 
                 // Add all streams that we need to blend
                 foreach (var stream in stageContext.Streams)

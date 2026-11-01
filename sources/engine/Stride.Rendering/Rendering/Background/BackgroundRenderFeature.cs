@@ -62,10 +62,10 @@ namespace Stride.Rendering.Background
 
         protected override void InitializeCore()
         {
-            background2DEffect = new DynamicEffectInstance("BackgroundShader");
-            backgroundCubemapEffect = new DynamicEffectInstance("BackgroundCubemapShader");
-            skyboxTextureEffect = new DynamicEffectInstance("SkyboxShaderTexture");
-            skyboxCubemapEffect = new DynamicEffectInstance("SkyboxShaderCubemap");
+            background2DEffect = new DynamicEffectInstance(BackgroundShaderKeys.ShaderName);
+            backgroundCubemapEffect = new DynamicEffectInstance(BackgroundCubemapShaderKeys.ShaderName);
+            skyboxTextureEffect = new DynamicEffectInstance(SkyboxShaderTextureKeys.ShaderName);
+            skyboxCubemapEffect = new DynamicEffectInstance(SkyboxShaderCubemapKeys.ShaderName);
 
             background2DEffect.Initialize(Context.Services);
             backgroundCubemapEffect.Initialize(Context.Services);

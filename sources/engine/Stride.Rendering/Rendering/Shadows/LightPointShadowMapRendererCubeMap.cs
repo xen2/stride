@@ -188,7 +188,7 @@ namespace Stride.Rendering.Shadows
 
         private class ShaderGroupData : LightShadowMapShaderGroupDataBase
         {
-            private const string ShaderName = "ShadowMapReceiverPointCubeMap";
+            private const string ShaderName = ShadowMapReceiverPointCubeMapKeys.ShaderName;
 
             private Texture shadowMapTexture;
             private Vector2 shadowMapTextureSize;

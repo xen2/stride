@@ -76,7 +76,7 @@ namespace Stride.Rendering.Voxels.VoxelGI
 
         private static LightVoxelShaderGroup CreateLightVoxelShaderGroup()
         {
-            return new LightVoxelShaderGroup(new ShaderMixinGeneratorSource("LightVoxelEffect"));
+            return new LightVoxelShaderGroup(new ShaderMixinGeneratorSource(LightVoxelEffectKeys.EffectName));
         }
 
         private class LightVoxelShaderGroup : LightShaderGroup

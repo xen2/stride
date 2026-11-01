@@ -112,69 +112,69 @@ namespace Stride.Rendering.Materials.ComputeColors
             switch (binaryOperand)
             {
                 case BinaryOperator.Add:
-                    return "ComputeColorAdd3ds";
+                    return ComputeColorAdd3dsKeys.ShaderName;
                 case BinaryOperator.AddMath:
-                    return "ComputeColorAdd";
+                    return ComputeColorAddKeys.ShaderName;
                 case BinaryOperator.Average:
-                    return "ComputeColorAverage";
+                    return ComputeColorAverageKeys.ShaderName;
                 case BinaryOperator.Color:
-                    return "ComputeColorColor";
+                    return ComputeColorColorKeys.ShaderName;
                 case BinaryOperator.ColorBurn:
-                    return "ComputeColorColorBurn";
+                    return ComputeColorColorBurnKeys.ShaderName;
                 case BinaryOperator.ColorDodge:
-                    return "ComputeColorColorDodge";
+                    return ComputeColorColorDodgeKeys.ShaderName;
                 case BinaryOperator.Darken:
-                    return "ComputeColorDarken3ds"; //"ComputeColorDarkenMaya" //TODO: change this
+                    return ComputeColorDarken3dsKeys.ShaderName; //"ComputeColorDarkenMaya" //TODO: change this
                 case BinaryOperator.Desaturate:
-                    return "ComputeColorDesaturate";
+                    return ComputeColorDesaturateKeys.ShaderName;
                 case BinaryOperator.Difference:
-                    return "ComputeColorDifference3ds"; //"ComputeColorDifferenceMaya" //TODO: change this
+                    return ComputeColorDifference3dsKeys.ShaderName; //"ComputeColorDifferenceMaya" //TODO: change this
                 case BinaryOperator.Divide:
-                    return "ComputeColorDivide";
+                    return ComputeColorDivideKeys.ShaderName;
                 case BinaryOperator.Exclusion:
-                    return "ComputeColorExclusion";
+                    return ComputeColorExclusionKeys.ShaderName;
                 case BinaryOperator.HardLight:
-                    return "ComputeColorHardLight";
+                    return ComputeColorHardLightKeys.ShaderName;
                 case BinaryOperator.HardMix:
-                    return "ComputeColorHardMix";
+                    return ComputeColorHardMixKeys.ShaderName;
                 case BinaryOperator.Hue:
-                    return "ComputeColorHue";
+                    return ComputeColorHueKeys.ShaderName;
                 case BinaryOperator.Illuminate:
-                    return "ComputeColorIlluminate";
+                    return ComputeColorIlluminateKeys.ShaderName;
                 case BinaryOperator.In:
-                    return "ComputeColorIn";
+                    return ComputeColorInKeys.ShaderName;
                 case BinaryOperator.Lighten:
-                    return "ComputeColorLighten3ds"; //"ComputeColorLightenMaya" //TODO: change this
+                    return ComputeColorLighten3dsKeys.ShaderName; //"ComputeColorLightenMaya" //TODO: change this
                 case BinaryOperator.LinearBurn:
-                    return "ComputeColorLinearBurn";
+                    return ComputeColorLinearBurnKeys.ShaderName;
                 case BinaryOperator.LinearDodge:
-                    return "ComputeColorLinearDodge";
+                    return ComputeColorLinearDodgeKeys.ShaderName;
                 case BinaryOperator.Mask:
-                    return "ComputeColorMask";
+                    return ComputeColorMaskKeys.ShaderName;
                 case BinaryOperator.Multiply:
-                    return "ComputeColorMultiply"; //return "ComputeColorMultiply3ds"; //"ComputeColorMultiplyMaya" //TODO: change this
+                    return ComputeColorMultiplyKeys.ShaderName; //return "ComputeColorMultiply3ds"; //"ComputeColorMultiplyMaya" //TODO: change this
                 case BinaryOperator.Out:
-                    return "ComputeColorOut";
+                    return ComputeColorOutKeys.ShaderName;
                 case BinaryOperator.Over:
-                    return "ComputeColorOver3ds"; //TODO: change this to "ComputeColorLerpAlpha"
+                    return ComputeColorOver3dsKeys.ShaderName; //TODO: change this to "ComputeColorLerpAlpha"
                 case BinaryOperator.Overlay:
-                    return "ComputeColorOverlay3ds"; //"ComputeColorOverlayMaya" //TODO: change this
+                    return ComputeColorOverlay3dsKeys.ShaderName; //"ComputeColorOverlayMaya" //TODO: change this
                 case BinaryOperator.PinLight:
-                    return "ComputeColorPinLight";
+                    return ComputeColorPinLightKeys.ShaderName;
                 case BinaryOperator.Saturate:
-                    return "ComputeColorSaturate";
+                    return ComputeColorSaturateKeys.ShaderName;
                 case BinaryOperator.Saturation:
-                    return "ComputeColorSaturation";
+                    return ComputeColorSaturationKeys.ShaderName;
                 case BinaryOperator.Screen:
-                    return "ComputeColorScreen";
+                    return ComputeColorScreenKeys.ShaderName;
                 case BinaryOperator.SoftLight:
-                    return "ComputeColorSoftLight";
+                    return ComputeColorSoftLightKeys.ShaderName;
                 case BinaryOperator.Subtract:
-                    return "ComputeColorSubtract"; // "ComputeColorSubtract3ds" "ComputeColorSubtractMaya" //TODO: change this
+                    return ComputeColorSubtractKeys.ShaderName; // "ComputeColorSubtract3ds" "ComputeColorSubtractMaya" //TODO: change this
                 case BinaryOperator.SubstituteAlpha:
-                    return "ComputeColorSubstituteAlpha";
+                    return ComputeColorSubstituteAlphaKeys.ShaderName;
                 case BinaryOperator.Threshold:
-                    return "ComputeColorThreshold";
+                    return ComputeColorThresholdKeys.ShaderName;
                 default:
                     throw new ArgumentOutOfRangeException("binaryOperand");
             }

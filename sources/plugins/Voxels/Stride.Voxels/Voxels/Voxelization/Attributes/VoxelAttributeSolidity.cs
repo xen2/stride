@@ -51,7 +51,7 @@ namespace Stride.Rendering.Voxels
         {
             return true;
         }
-        ShaderSource[] mipmapper = { new ShaderClassSource("Voxel2x2x2MipmapperSimple") };
+        ShaderSource[] mipmapper = { new ShaderClassSource(Voxel2x2x2MipmapperSimpleKeys.ShaderName) };
 
         public override void PostProcess(RenderDrawContext drawContext)
         {
@@ -61,7 +61,7 @@ namespace Stride.Rendering.Voxels
 
 
 
-        ShaderClassSource source = new ShaderClassSource("VoxelAttributeSolidityShader");
+        ShaderClassSource source = new ShaderClassSource(VoxelAttributeSolidityShaderKeys.ShaderName);
         ObjectParameterKey<Stride.Graphics.Texture> DirectOutput;
 
         public override ShaderSource GetVoxelizationShader()
@@ -83,7 +83,7 @@ namespace Stride.Rendering.Voxels
 
 
         ValueParameterKey<float> BrightnessKey;
-        ShaderClassSource sampler = new ShaderClassSource("VoxelAttributeSoliditySampler");
+        ShaderClassSource sampler = new ShaderClassSource(VoxelAttributeSoliditySamplerKeys.ShaderName);
 
         public override ShaderSource GetSamplingShader()
         {
