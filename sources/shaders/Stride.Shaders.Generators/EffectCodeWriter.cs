@@ -29,11 +29,12 @@ public class EffectCodeWriter : ShaderWriter
     /// <summary>
     /// Whether a C# type exists, by full name. A key of a struct type needs a C# struct with the same name (e.g.
     /// <c>DirectionalLightData</c>, written by hand); when there is none, the key is not written, so the generated code
-    /// builds. Null: every struct key is written.
+    /// builds. A name ending in a dot is a namespace: a <c>using</c> of a shader namespace that C# doesn't know isn't
+    /// written. Null: every struct key and <c>using</c> is written.
     /// </summary>
     public Func<string, bool>? CSharpTypeExists { get; init; }
 
-    /// <summary>The full names the C# type of each struct key can have, collected while writing.</summary>
+    /// <summary>The full names the C# type of each struct key can have, and the namespaces of the usings, collected while writing.</summary>
     public HashSet<string> CSharpTypeCandidates { get; } = [];
 
     public bool Run(Node node)
@@ -405,8 +406,16 @@ public class EffectCodeWriter : ShaderWriter
 
     public override void VisitUsingShaderNamespace(UsingShaderNamespace usingShaderNamespace)
     {
-        Write("using ").Write(string.Join('.', usingShaderNamespace.NamespacePath)).WriteLine(";");
-        usings.Add(string.Join('.', usingShaderNamespace.NamespacePath));
+        var name = string.Join('.', usingShaderNamespace.NamespacePath);
+        CSharpTypeCandidates.Add($"{name}.");
+        if (CSharpTypeExists != null && !CSharpTypeExists($"{name}."))
+        {
+            WriteLine($"// No using {name}: no C# namespace of this name");
+            return;
+        }
+
+        Write("using ").Write(name).WriteLine(";");
+        usings.Add(name);
     }
 
     public override void VisitShaderFile(ShaderFile shaderFile)

@@ -105,6 +105,32 @@ public class KeysGeneratorTests
         Assert.Contains("KeysGeneratorCheck.sdsl(2,2): #error bad thing", Assert.Single(errors));
     }
 
+    // A shader namespace doesn't have to exist in C#
+    [Fact]
+    public void UsingOfANamespaceCSharpDoesNotKnowBuilds()
+    {
+        var shader = """
+            using Only.Shaders.Here;
+            using Stride.Core.Mathematics;
+
+            namespace Stride.Shaders.Tests.Keys;
+
+            shader KeysGeneratorCheck
+            {
+                cbuffer PerDraw
+                {
+                    float4 Plain;
+                };
+            };
+            """;
+
+        var (generated, errors) = Build(shader, "");
+
+        Assert.Empty(errors);
+        Assert.DoesNotContain("using Only.Shaders.Here;", generated);
+        Assert.Contains("using Stride.Core.Mathematics;", generated);
+    }
+
     // Runs the generator on the shader and compiles its output with the C# source
     private static (string Generated, List<string> Errors) Build(string shader, string csharp)
     {
