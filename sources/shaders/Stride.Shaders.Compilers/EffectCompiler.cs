@@ -91,7 +91,30 @@ namespace Stride.Shaders.Compiler
         /// <param name="modifiedShaders"></param>
         public override void ResetCache(HashSet<string> modifiedShaders)
         {
+            // The effects of the replaced class change too, and they don't name a replacer that was deleted
+            foreach (var (replaced, replacer) in base.GetReplacements())
+            {
+                if (modifiedShaders.Contains(replacer))
+                    modifiedShaders.Add(replaced);
+            }
+
             GetFileShaderLoader().SourceManager.DeleteObsoleteCache(modifiedShaders);
+            base.ResetCache(modifiedShaders);
+        }
+
+        /// <inheritdoc/>
+        public override void CheckReplacements()
+        {
+            // No file event comes for a replacer that no loaded effect uses
+            GetFileShaderLoader().SourceManager.UpdateDeletedSources(base.GetReplacements().Select(x => x.Value));
+            base.CheckReplacements();
+        }
+
+        /// <inheritdoc/>
+        protected override IEnumerable<KeyValuePair<string, string>> GetReplacements()
+        {
+            var sourceManager = GetFileShaderLoader().SourceManager;
+            return base.GetReplacements().Where(x => !sourceManager.IsSourceDeleted(x.Value)).Concat(sourceManager.AddedReplacers);
         }
 
         public FileShaderLoader GetFileShaderLoader()

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Stride.Assets.Presentation.ViewModel;
 using Stride.Core.Assets.Editor.Services;
 using Stride.Core.Assets.Editor.Settings;
 using Stride.Core.Assets.Editor.ViewModel;
@@ -58,7 +59,7 @@ namespace Stride.GameStudio.Plugin
             var settingsProvider = new GameSettingsProviderService(session);
             session.ServiceProvider.RegisterService(settingsProvider);
 
-            var builderService = new GameStudioBuilderService(session, settingsProvider, buildDirectory);
+            var builderService = new GameStudioBuilderService(session, settingsProvider, buildDirectory, StrideAssetsViewModel.Instance.Code.Logger);
             session.ServiceProvider.RegisterService(builderService);
             session.ServiceProvider.RegisterService(builderService.Database); // TODO: this should be removed, the AssetBuilderService is reachable from anywhere now
 

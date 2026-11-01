@@ -30,12 +30,11 @@ namespace Stride.Assets.Presentation.ViewModel
                 // Recompile shaders. The build service is registered during plugin initialization, so it is
                 // not available yet when a save runs while opening the session (e.g. persisting an upgrade);
                 // skipping is fine there since the service compiles shaders from all packages when it starts.
-                var builder = Session.ServiceProvider.TryGet<AssetBuilderService>();
+                var builder = Session.ServiceProvider.TryGet<GameStudioBuilderService>();
                 if (builder == null)
                     return;
 
-                var shaderImporter = new StrideShaderImporter();
-                var shaderBuildSteps = shaderImporter.CreateUserShaderBuildSteps(Session);
+                var shaderBuildSteps = builder.ShaderImporter.CreateUserShaderBuildSteps(Session);
                 builder.PushBuildUnit(new PrecompiledAssetBuildUnit(AssetBuildUnitIdentifier.Default, shaderBuildSteps, true));
             }
         }
