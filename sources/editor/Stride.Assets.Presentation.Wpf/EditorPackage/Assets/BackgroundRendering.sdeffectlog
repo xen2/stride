@@ -1,16 +1,16 @@
 ---
 !EffectCompileRequest
-EffectName: BackgroundShader
+EffectName: Stride.Rendering.BackgroundShader
 UsedParameters: {}
 ---
 !EffectCompileRequest
-EffectName: BackgroundCubemapShader
+EffectName: Stride.Rendering.BackgroundCubemapShader
 UsedParameters: {}
 ---
 !EffectCompileRequest
-EffectName: SkyboxShaderTexture
+EffectName: Stride.Rendering.Skyboxes.SkyboxShaderTexture
 UsedParameters: {}
 ---
 !EffectCompileRequest
-EffectName: SkyboxShaderCubemap
+EffectName: Stride.Rendering.Skyboxes.SkyboxShaderCubemap
 UsedParameters: {}

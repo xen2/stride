@@ -1,199 +1,199 @@
 ﻿---
 !EffectCompileRequest
-EffectName: SpaceEscapeEffectMain
+EffectName: SpaceEscape.Effects.SpaceEscapeEffectMain
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+                                ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
                                 GenericArguments: [Material.DiffuseMap, TEXCOORD0, Material.Sampler.i0, rgba, Material.TextureScale, Material.TextureOffset]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [1]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     GameParameters.EnableBend: false
     GameParameters.EnableFog: true
     GameParameters.EnableOnflyTextureUVChange: true
 ---
 !EffectCompileRequest
-EffectName: SpaceEscapeEffectMain
+EffectName: SpaceEscape.Effects.SpaceEscapeEffectMain
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+                                ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
                                 GenericArguments: [Material.DiffuseMap, TEXCOORD0, Material.Sampler.i0, rgba, Material.TextureScale, Material.TextureOffset]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments: [matAlphaDiscard, r]
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.AlphaDiscardValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
                     - !ShaderClassSource
-                        ClassName: MaterialSurfaceTransparentAlphaDiscard
+                        ClassName: Stride.Rendering.Materials.MaterialSurfaceTransparentAlphaDiscard
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [1]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     GameParameters.EnableBend: true
     GameParameters.EnableFog: true
     GameParameters.EnableOnflyTextureUVChange: false
 ---
 !EffectCompileRequest
-EffectName: SpaceEscapeEffectMain
+EffectName: SpaceEscape.Effects.SpaceEscapeEffectMain
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+                                ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
                                 GenericArguments: [Material.DiffuseMap, TEXCOORD0, Material.Sampler.i0, rgba, Material.TextureScale, Material.TextureOffset]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [1]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     GameParameters.EnableBend: true
     GameParameters.EnableFog: true
     GameParameters.EnableOnflyTextureUVChange: false
 ---
 !EffectCompileRequest
-EffectName: SpaceEscapeEffectMain
+EffectName: SpaceEscape.Effects.SpaceEscapeEffectMain
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+                                ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
                                 GenericArguments: [Material.DiffuseMap, TEXCOORD0, Material.Sampler.i0, rgba, Material.TextureScale, Material.TextureOffset]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [1]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     GameParameters.EnableBend: true
     GameParameters.EnableFog: true
     GameParameters.EnableOnflyTextureUVChange: false
@@ -205,59 +205,59 @@ UsedParameters:
                 Definition: 1
 ---
 !EffectCompileRequest
-EffectName: SpaceEscapeEffectMain
+EffectName: SpaceEscape.Effects.SpaceEscapeEffectMain
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+                                ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
                                 GenericArguments: [Material.DiffuseMap, TEXCOORD0, Material.Sampler.i0, rgba, Material.TextureScale, Material.TextureOffset]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceSetStreamFromComputeColor
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceSetStreamFromComputeColor
                                 GenericArguments: [matAlphaDiscard, r]
                         Compositions:
                             computeColorSource: !ShaderClassSource
-                                ClassName: ComputeColorConstantFloatLink
+                                ClassName: Stride.Rendering.ComputeColorConstantFloatLink
                                 GenericArguments: [Material.AlphaDiscardValue]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
                     - !ShaderClassSource
-                        ClassName: MaterialSurfaceTransparentAlphaDiscard
+                        ClassName: Stride.Rendering.Materials.MaterialSurfaceTransparentAlphaDiscard
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [1]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     GameParameters.EnableBend: true
     GameParameters.EnableFog: true
     GameParameters.EnableOnflyTextureUVChange: false
@@ -269,48 +269,48 @@ UsedParameters:
                 Definition: 1
 ---
 !EffectCompileRequest
-EffectName: SpaceEscapeEffectMain
+EffectName: SpaceEscape.Effects.SpaceEscapeEffectMain
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialSurfaceArray
+                ClassName: Stride.Rendering.Materials.MaterialSurfaceArray
         Compositions:
             layers: !ShaderArraySource
                 Values:
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceDiffuse
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
-                                ClassName: ComputeColorTextureScaledOffsetDynamicSampler
+                                ClassName: Stride.Rendering.ComputeColorTextureScaledOffsetDynamicSampler
                                 GenericArguments: [Material.DiffuseMap, TEXCOORD0, Material.Sampler.i0, rgba, Material.TextureScale, Material.TextureOffset]
                     - !ShaderMixinSource
                         Mixins:
                             - !ShaderClassSource
-                                ClassName: MaterialSurfaceLightingAndShading
+                                ClassName: Stride.Rendering.Materials.MaterialSurfaceLightingAndShading
                         Compositions:
                             surfaces: !ShaderArraySource
                                 Values:
                                     - !ShaderClassSource
-                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        ClassName: Stride.Rendering.Materials.MaterialSurfaceShadingDiffuseLambert
                                         GenericArguments: [false]
     Material.PixelStageStreamInitializer: !ShaderMixinSource
         Mixins:
             - !ShaderClassSource
-                ClassName: MaterialStream
+                ClassName: Stride.Rendering.Materials.MaterialStream
             - !ShaderClassSource
-                ClassName: MaterialPixelShadingStream
+                ClassName: Stride.Rendering.Materials.MaterialPixelShadingStream
     Lighting.DirectLightGroups:
         - !ShaderMixinSource
             Mixins:
                 - !ShaderClassSource
-                    ClassName: LightDirectionalGroup
+                    ClassName: Stride.Rendering.Lights.LightDirectionalGroup
                     GenericArguments: [1]
     Lighting.EnvironmentLights:
         - !ShaderClassSource
-            ClassName: LightSimpleAmbient
+            ClassName: Stride.Rendering.Lights.LightSimpleAmbient
     GameParameters.EnableBend: false
     GameParameters.EnableFog: true
     GameParameters.EnableOnflyTextureUVChange: true

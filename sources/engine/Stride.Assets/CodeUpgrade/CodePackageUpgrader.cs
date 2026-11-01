@@ -60,9 +60,9 @@ public abstract class CodePackageUpgrader : PackageUpgrader, ICodeUpgradeProvide
         var registry = new UpgradeRegistry();
         DeclareUpgrades(registry);
 
-        // Shader language changes (r.Shader): the project's .sdsl files
+        // Shader language changes (r.Shader): the project's .sdsl files and the data that names them
         if (registry.ShaderUpgrades.Any(version => UpgradingFromBefore(dependency, version)))
-            ShaderSourceUpgrade.Run(projectFullPath.GetFullDirectory().ToOSPath(), session.UpgradeBackup, log);
+            ShaderSourceUpgrade.Run(ShaderSourceUpgrade.Folders(projectFullPath, dependentPackage), session.UpgradeBackup, log);
 
         // Bump the upgrader's own package family to the current version (subclass hook).
         UpgradeProjectReferences(projectFullPath, log);

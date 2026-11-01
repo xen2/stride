@@ -29,7 +29,7 @@ namespace ParticlesSample.Materials
             get { return effectName; }
             protected set { effectName = value; }
         }
-        private string effectName = "ParticleCustomEffect";
+        private string effectName = "Stride.Rendering.ParticleCustomEffect";
 
         /// <summary>
         /// <see cref="IComputeColor"/> allows several channels to be blended together, including textures, vertex streams and fixed values.

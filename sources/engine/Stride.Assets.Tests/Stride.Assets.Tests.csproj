@@ -54,6 +54,7 @@
     <Compile Include="TestPrefabAsset.cs" />
     <Compile Include="TestGraphicsCompositorUpgrader.cs" />
     <Compile Include="TestSceneUpgrader.cs" />
+    <Compile Include="TestShaderSourceUpgrade.cs" />
     <Compile Include="TestSystemFontProvider.cs" />
     <Compile Include="TestSignedDistanceFieldFont.cs" />
     <Compile Include="TestVisualScriptCompiler.cs" />
