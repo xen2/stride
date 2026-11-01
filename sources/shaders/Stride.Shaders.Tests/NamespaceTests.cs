@@ -4,6 +4,8 @@
 using System;
 using System.Linq;
 using Stride.Shaders.Compilers.SDSL;
+using Stride.Shaders.Parsing;
+using Stride.Shaders.Parsing.SDSL.AST;
 using Stride.Shaders.Spirv.Core.Buffers;
 using Stride.Shaders.Spirv.Tools;
 using Spv = Stride.Shaders.Spirv.Tools.Spv;
@@ -49,6 +51,89 @@ public class NamespaceTests
     {
         var (ok, log, _) = Compile("NsUnknownUsingRoot", "ComposeSharedBase", "NsUtils", "NsUnknownUsingRoot");
         Assert.True(ok, log);
+    }
+
+    private static ShaderFile Parse(string code)
+    {
+        var result = SDSLParser.Parse(code);
+        Assert.True(result.Errors.Count == 0, string.Join("\n", result.Errors));
+        return Assert.IsType<ShaderFile>(result.AST);
+    }
+
+    [Fact]
+    public void ClassNamesCanBeDotted()
+    {
+        var shader = Assert.IsType<ShaderClass>(Parse("""
+            shader Foo : A.B.Parent, A.B.Generic<3, X.Y>, Plain, PlainGeneric<1>
+            {
+                import A.B.Module;
+                import A.B.GenericModule<3>;
+                compose A.B.Compute color;
+                compose A.B.Compute colors[];
+                A.B.Bar member;
+                A.B.Bar Get(A.B.Bar parameter)
+                {
+                    A.B.Bar local = parameter;
+                    return local;
+                }
+            };
+            """).RootDeclarations[0]);
+
+        Assert.Equal(["A.B.Parent", "A.B.Generic", "Plain", "PlainGeneric"], shader.Mixins.Select(x => x is GenericIdentifier g ? g.Name.Name : x.Name));
+        Assert.Equal([false, true, false, true], shader.Mixins.Select(x => x is GenericIdentifier));
+        Assert.Equal(["A.B.Module", "A.B.GenericModule"], shader.Elements.OfType<ShaderImport>().Select(x => x.Module is GenericIdentifier g ? g.Name.Name : x.Module.Name));
+        Assert.Equal(["A.B.Compute", "A.B.Compute", "A.B.Bar"], shader.Elements.OfType<ShaderMember>().Select(x => x.TypeName.Name));
+        var method = shader.Elements.OfType<ShaderMethod>().Single();
+        Assert.Equal("A.B.Bar", method.ReturnTypeName.Name);
+    }
+
+    // What looks like a dotted name in code stays an expression
+    [Fact]
+    public void AccessChainsAreNotDottedTypes()
+    {
+        var shader = Assert.IsType<ShaderClass>(Parse("""
+            shader Foo
+            {
+                float Get()
+                {
+                    streams.Value.x = 1;
+                    Lights[0].Color.r = 2;
+                    float a = (streams.Value.x) + 1;
+                    float b = (streams.Value.x) - 1;
+                    streams.Value.x++;
+                    Math.Sum(a, b);
+                    return a < streams.Value.x ? a : b;
+                }
+            };
+            """).RootDeclarations[0]);
+
+        var statements = shader.Elements.OfType<ShaderMethod>().Single().Body!.Statements;
+        Assert.Equal(7, statements.Count);
+        Assert.IsNotType<Declare>(statements[0]);
+        Assert.IsNotType<Declare>(statements[1]);
+        Assert.IsType<Declare>(statements[2]);
+        Assert.IsNotType<Declare>(statements[4]);
+        Assert.IsNotType<Declare>(statements[5]);
+    }
+
+    [Theory]
+    [InlineData("namespace A.B { using X; using Y.Z; shader Foo { }; }")]
+    [InlineData("namespace A.B; using X; using Y.Z; shader Foo { };")]
+    public void UsingInsideANamespaceComesBeforeItsDeclarations(string code)
+    {
+        var declarations = Parse(code).Namespaces.Single().Declarations;
+        Assert.Equal(3, declarations.Count);
+        Assert.Equal(["X"], Assert.IsType<UsingShaderNamespace>(declarations[0]).NamespacePath.Select(x => x.Name));
+        Assert.Equal(["Y", "Z"], Assert.IsType<UsingShaderNamespace>(declarations[1]).NamespacePath.Select(x => x.Name));
+        Assert.IsType<ShaderClass>(declarations[2]);
+    }
+
+    [Theory]
+    [InlineData("namespace A.B { shader Foo { }; using X; }")]
+    [InlineData("namespace A.B; shader Foo { }; using X;")]
+    public void UsingAfterADeclarationOfTheNamespaceIsAnError(string code)
+    {
+        Assert.NotEmpty(SDSLParser.Parse(code).Errors);
     }
 
     // Two classes of one name in two namespaces of one file: resolution is by name alone, so the
