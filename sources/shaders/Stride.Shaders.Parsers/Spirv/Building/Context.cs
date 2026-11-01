@@ -157,6 +157,11 @@ public interface IExternalShaderLoader
     /// </summary>
     public string ToFullName(string name);
 
+    /// <summary>
+    /// The full name of the class that replaces a class (<c>[Replaces]</c>) in every mix, or null.
+    /// </summary>
+    public string? FindReplacer(string fullName);
+
     public bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash);
     public bool LoadExternalBuffer(string name, ReadOnlySpan<ShaderMacro> defines, [MaybeNullWhen(false)] out ShaderBuffers bytecode, out ObjectId hash, out bool isFromCache);
 
