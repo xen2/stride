@@ -248,8 +248,8 @@ namespace Stride.Rendering.Images
             base.InitializeCore();
 
             coclinearDepthMapEffect = ToLoadAndUnload(new ImageEffectShader("CoCLinearDepthShader"));
-            combineLevelsEffect = ToLoadAndUnload(new ImageEffectShader("CombineLevelsFromCoCEffect"));
-            combineLevelsFrontEffect = ToLoadAndUnload(new ImageEffectShader("CombineFrontCoCEffect"));
+            combineLevelsEffect = ToLoadAndUnload(new ImageEffectShader(CombineLevelsFromCoCEffectKeys.EffectName));
+            combineLevelsFrontEffect = ToLoadAndUnload(new ImageEffectShader(CombineFrontCoCEffectKeys.EffectName));
             combineLevelsFrontEffect.BlendState = BlendStates.AlphaBlend;
             textureScaler = ToLoadAndUnload(new ImageScaler(SamplingPattern.Expanded));
             cocMapBlur = ToLoadAndUnload(new CoCMapBlur());

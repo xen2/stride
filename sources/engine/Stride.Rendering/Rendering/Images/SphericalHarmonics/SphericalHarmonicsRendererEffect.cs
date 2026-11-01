@@ -14,7 +14,7 @@ namespace Stride.Rendering.Images.SphericalHarmonics
 
         public SphericalHarmonicsRendererEffect()
         {
-            EffectName = "SphericalHarmonicsRendererEffect";
+            EffectName = SphericalHarmonicsRendererEffectKeys.EffectName;
         }
 
         /// <inheritdoc/>

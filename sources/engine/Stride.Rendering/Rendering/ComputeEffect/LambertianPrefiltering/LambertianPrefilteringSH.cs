@@ -50,8 +50,8 @@ namespace Stride.Rendering.ComputeEffect.LambertianPrefiltering
         public LambertianPrefilteringSH(RenderContext context)
             : base(context, "LambertianPrefilteringSH")
         {
-            firstPassEffect = new ComputeEffectShader(context) { ShaderSourceName = "LambertianPrefilteringSHEffectPass1" };
-            secondPassEffect = new ComputeEffectShader(context) { ShaderSourceName = "LambertianPrefilteringSHEffectPass2" };
+            firstPassEffect = new ComputeEffectShader(context) { ShaderSourceName = LambertianPrefilteringSHEffectPass1Keys.EffectName };
+            secondPassEffect = new ComputeEffectShader(context) { ShaderSourceName = LambertianPrefilteringSHEffectPass2Keys.EffectName };
 
             HarmonicOrder = 3;
         }

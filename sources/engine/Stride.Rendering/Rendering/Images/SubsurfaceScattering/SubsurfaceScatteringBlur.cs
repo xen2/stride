@@ -124,11 +124,11 @@ namespace Stride.Rendering.SubsurfaceScattering
         {
             base.InitializeCore();
 
-            blurHShader = ToLoadAndUnload(new ImageEffectShader("SubsurfaceScatteringBlurEffect"));
+            blurHShader = ToLoadAndUnload(new ImageEffectShader(SubsurfaceScatteringBlurEffectKeys.EffectName));
             blurHShader.Initialize(Context);
             blurHShader.Parameters.Set(SubsurfaceScatteringKeys.BlurHorizontally, true);
 
-            blurVShader = ToLoadAndUnload(new ImageEffectShader("SubsurfaceScatteringBlurEffect"));
+            blurVShader = ToLoadAndUnload(new ImageEffectShader(SubsurfaceScatteringBlurEffectKeys.EffectName));
             blurVShader.Initialize(Context);
             blurVShader.Parameters.Set(SubsurfaceScatteringKeys.BlurHorizontally, false);
         }

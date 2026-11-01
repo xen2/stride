@@ -37,7 +37,7 @@ public class LineRenderFeature : RootRenderFeature
     {
         base.InitializeCore();
 
-        _shader = new DynamicEffectInstance("StrideDebugLineShader");
+        _shader = new DynamicEffectInstance(StrideDebugLineShaderKeys.EffectName);
         _shader.Initialize(Context.Services);
 
         _pipelineState = new MutablePipelineState(Context.GraphicsDevice);

@@ -22,7 +22,7 @@ namespace Stride.Rendering.Images
         /// <summary>
         /// Initializes a new instance of the <see cref="FXAAEffect"/> class.
         /// </summary>
-        public FXAAEffect() : this("FXAAShaderEffect")
+        public FXAAEffect() : this(FXAAShaderEffectKeys.EffectName)
         {
             InputLuminanceInAlpha = true;
         }

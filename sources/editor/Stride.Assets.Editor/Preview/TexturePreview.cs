@@ -10,7 +10,6 @@ using Stride.Editor.Annotations;
 using Stride.Editor.Preview;
 using Stride.Rendering;
 using Stride.Graphics;
-using StrideEffects;
 
 namespace Stride.Assets.Editor.Preview;
 
@@ -49,7 +48,7 @@ public class TexturePreview : PreviewFromSpriteBatch<TextureAsset>
 
     public TexturePreview()
     {
-        currentEffect = new DynamicEffectInstance("PreviewTexture");
+        currentEffect = new DynamicEffectInstance(PreviewTextureKeys.EffectName);
     }
 
     protected override Task Initialize()
