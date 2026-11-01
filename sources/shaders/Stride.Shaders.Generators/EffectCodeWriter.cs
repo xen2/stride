@@ -28,17 +28,30 @@ public class EffectCodeWriter : ShaderWriter
     // The namespace of the shaders being written: not the namespace of their generated code when they have none
     private string? currentShaderNamespace;
     private ShaderNamespace? defaultNamespace;
+    private readonly List<string> fileUsings = [];
+    private readonly List<string> namespaceUsings = [];
+    private bool insideNamespace;
+    private bool currentClassHasKeys;
 
     /// <summary>
     /// Whether a C# type exists, by full name. A key of a struct type needs a C# struct with the same name (e.g.
     /// <c>DirectionalLightData</c>, written by hand); when there is none, the key is not written, so the generated code
     /// builds. A name ending in a dot is a namespace: a <c>using</c> of a shader namespace that C# doesn't know isn't
-    /// written. Null: every struct key and <c>using</c> is written.
+    /// written. A name ending in <c>!</c> is a type declared here without <c>partial</c>: a shader with no key writes no
+    /// class then. A name ending in <c>#</c> is a key class with a <c>ShaderName</c>, so a shader of that name exists. A name
+    /// ending in <c>*</c> is a key class that two files of the project write. Null: every struct key and <c>using</c> is
+    /// written, and a <c>mixin</c> name stays as it is written.
     /// </summary>
     public Func<string, bool>? CSharpTypeExists { get; init; }
 
-    /// <summary>The full names the C# type of each struct key can have, and the namespaces of the usings, collected while writing.</summary>
+    /// <summary>The namespaces every shader and effect sees without a <c>using</c>, for the names in <c>mixin</c>.</summary>
+    public IReadOnlyList<string> ImplicitUsings { get; init; } = [];
+
+    /// <summary>The names to ask <see cref="CSharpTypeExists"/> about, collected while writing.</summary>
     public HashSet<string> CSharpTypeCandidates { get; } = [];
+
+    /// <summary>The full names of the shaders this file writes: the other files of the project see them.</summary>
+    public HashSet<string> DeclaredShaders { get; } = [];
 
     public bool Run(Node node)
     {
@@ -173,6 +186,7 @@ public class EffectCodeWriter : ShaderWriter
             }
         }
 
+        currentClassHasKeys = true;
         var csharpType = variableType ?? ToCSharpType(parameterType);
         var parameterKeyTypeName = $"{parameterKeyType}ParameterKey<{csharpType}>";
 
@@ -413,6 +427,7 @@ public class EffectCodeWriter : ShaderWriter
     public override void VisitUsingShaderNamespace(UsingShaderNamespace usingShaderNamespace)
     {
         var name = string.Join('.', usingShaderNamespace.NamespacePath);
+        (insideNamespace ? namespaceUsings : fileUsings).Add(name);
         CSharpTypeCandidates.Add($"{name}.");
         if (CSharpTypeExists != null && !CSharpTypeExists($"{name}."))
         {
@@ -464,6 +479,8 @@ public class EffectCodeWriter : ShaderWriter
         OpenBrace();
         currentNamespace = string.Join(".", shaderNamespace.NamespacePath);
         currentShaderNamespace = shaderNamespace == defaultNamespace ? null : currentNamespace;
+        insideNamespace = true;
+        namespaceUsings.Clear();
 
         var declarations = shaderNamespace.Declarations;
 
@@ -477,6 +494,7 @@ public class EffectCodeWriter : ShaderWriter
             VisitNode(node);
         }
 
+        insideNamespace = false;
         CloseBrace();
     }
 
@@ -629,7 +647,7 @@ public class EffectCodeWriter : ShaderWriter
 
                     WriteLinkLine(mixinStatement);
                     Write("context.Mixin(mixin, ");
-                    WriteMixinName(mixinName);
+                    WriteMixinTarget(mixinName);
                     WriteGenericParameters(genericParameters);
                     WriteLine(");");
                     break;
@@ -651,7 +669,7 @@ public class EffectCodeWriter : ShaderWriter
 
                         WriteLinkLine(mixinStatement);
                         Write("context.Mixin(mixin, ");
-                        WriteMixinName(mixinName);
+                        WriteMixinTarget(mixinName);
                         WriteGenericParameters(genericParameters);
                         WriteLine(");");
                         WriteLine("return;");
@@ -718,7 +736,7 @@ public class EffectCodeWriter : ShaderWriter
                     OpenBrace();
                     WriteLinkLine(mixinStatement);
                     Write("var __mixinToCompose__ = ");
-                    WriteMixinName(mixinName);
+                    WriteMixinTarget(mixinName);
                     WriteLine(";");
                     WriteLine("var __subMixin = new ShaderMixinSource();");
 
@@ -743,6 +761,27 @@ public class EffectCodeWriter : ShaderWriter
     private void WriteMixinName(Expression mixinName)
     {
         WriteStringOrExpression(mixinName);
+    }
+
+    // A name the project can resolve is written in full; another one fails or resolves when the effect runs
+    private void WriteMixinTarget(Expression mixinName)
+    {
+        if (mixinName is Identifier identifier)
+            Write("\"").Write(ResolveClassName(identifier.Name)).Write("\"");
+        else
+            WriteMixinName(mixinName);
+    }
+
+    private string ResolveClassName(string name)
+    {
+        var scope = new ShaderNameScope(currentShaderNamespace, namespaceUsings, fileUsings);
+        var resolved = scope.Resolve(name, ImplicitUsings, fullName =>
+        {
+            var keys = $"{fullName}Keys#";
+            CSharpTypeCandidates.Add(keys);
+            return CSharpTypeExists != null && CSharpTypeExists(keys);
+        }, out var ambiguousWith);
+        return ambiguousWith == null ? resolved ?? name : name;
     }
 
     private void WriteStringOrExpression(Expression expr)
@@ -788,6 +827,18 @@ public class EffectCodeWriter : ShaderWriter
 
     public override void VisitShaderClass(ShaderClass shaderClass)
     {
+        var fullName = ShaderNames.Combine(currentShaderNamespace, shaderClass.Name);
+        DeclaredShaders.Add(fullName);
+
+        // A class written by hand without partial: C# can't take a second part with only the handle
+        var handWritten = $"{currentNamespace}.{shaderClass.Name}Keys!";
+        CSharpTypeCandidates.Add(handWritten);
+        if (CSharpTypeExists != null && CSharpTypeExists(handWritten) && !HasParameterKeys(shaderClass))
+        {
+            WriteLine($"// No {shaderClass.Name}Keys: {currentNamespace}.{shaderClass.Name}Keys is written by hand without partial");
+            return;
+        }
+
         table.Push();
 
         // Process generic symbols (might be used in type arrays)
@@ -803,8 +854,10 @@ public class EffectCodeWriter : ShaderWriter
         WriteLine("Keys");
         {
             OpenBrace();
+            WriteShaderNameHandle(shaderClass, fullName);
             var previousShaderClass = currentShaderClass;
             currentShaderClass = shaderClass;
+            currentClassHasKeys = false;
             foreach (var decl in shaderClass.Elements)
             {
                 if (decl is ShaderMember or ShaderStruct or ShaderSamplerState)
@@ -821,13 +874,42 @@ public class EffectCodeWriter : ShaderWriter
             }
             currentShaderClass = previousShaderClass;
 
-            moduleInitializerLines.Add($"global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::{currentNamespace}.{shaderClass.Name}Keys).TypeHandle);");
+            // A class with only the constant has no static constructor to run
+            if (currentClassHasKeys)
+                moduleInitializerLines.Add($"global::System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(global::{currentNamespace}.{shaderClass.Name}Keys).TypeHandle);");
 
             CloseBrace();
         }
 
         table.Pop();
     }
+
+    private void WriteShaderNameHandle(ShaderClass shaderClass, string fullName)
+    {
+        // SDSL0301 reports the duplicate: a second constant would only add a C# error
+        if (CSharpTypeExists != null && CSharpTypeExists($"{fullName}Keys*"))
+            return;
+
+        if (HasMemberNamedShaderName(shaderClass))
+        {
+            WriteLine($"#warning {shaderClass.Name} has a member named ShaderName, so {shaderClass.Name}Keys has no ShaderName constant");
+            return;
+        }
+
+        WriteLine($"/// <summary>The full name of the shader, for the APIs that take a shader by name.</summary>");
+        WriteLine($"public const string ShaderName = {SymbolDisplay.FormatLiteral(fullName, true)};");
+    }
+
+    private static bool HasMemberNamedShaderName(ShaderClass shaderClass)
+        => shaderClass.Elements.OfType<ShaderMember>().Any(x => x.Name.Name == "ShaderName")
+        || shaderClass.Elements.OfType<ShaderSamplerState>().Any(x => x.Name.Name == "ShaderName")
+        || shaderClass.Elements.OfType<ShaderSamplerComparisonState>().Any(x => x.Name.Name == "ShaderName")
+        || shaderClass.Elements.OfType<ShaderBuffer>().SelectMany(x => x.Members).Any(x => x.Name.Name == "ShaderName");
+
+    private bool HasParameterKeys(ShaderClass shaderClass)
+        => shaderClass.Elements.OfType<ShaderSamplerState>().Any()
+        || shaderClass.Elements.OfType<ShaderMember>().Any(IsParameterKey)
+        || shaderClass.Elements.OfType<ShaderBuffer>().SelectMany(x => x.Members).Any(IsParameterKey);
 
     public override void VisitEffectParameters(EffectParameters effectParameters)
     {
@@ -914,23 +996,7 @@ public class EffectCodeWriter : ShaderWriter
 
         public override void VisitShaderClass(ShaderClass shaderClassType)
         {
-            // Check if there are any parameter keys in ShaderClassType and ConstantBuffer
-            CheckParameterKeys(shaderClassType.Elements.OfType<ShaderMember>());
-            CheckParameterKeys(shaderClassType.Elements.OfType<ShaderBuffer>().SelectMany(cbuffer => cbuffer.Members));
-        }
-
-        private void CheckParameterKeys(IEnumerable<ShaderMember> variables)
-        {
-            foreach (var variable in variables)
-            {
-                if (!HasShaderClassType)
-                {
-                    if (parent.IsParameterKey(variable))
-                    {
-                        HasShaderClassType = true;
-                    }
-                }
-            }
+            HasShaderClassType = true;
         }
     }
 }
