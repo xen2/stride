@@ -35,7 +35,7 @@ namespace Stride.Graphics.Tests
         {
             await base.LoadContent();
 
-            effectInstance = new DynamicEffectInstance("CustomEffect.CustomSubEffect");
+            effectInstance = new DynamicEffectInstance("Stride.Graphics.Tests.CustomEffect.CustomSubEffect");
             effectInstance.Initialize(Services);
         }
 

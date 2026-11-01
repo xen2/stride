@@ -39,7 +39,7 @@ public class HlslStatementSyntaxTests
         var parameters = new ParameterCollection();
         parameters.Set(EffectDoWhileParameters.Count, count);
 
-        var mixin = ShaderMixinManager.Generate("EffectDoWhile", parameters);
+        var mixin = ShaderMixinManager.Generate(TestShader.FullName("EffectDoWhile"), parameters);
 
         Assert.Equal([expectedMixin], mixin.Mixins.Select(x => x.ClassName));
     }
@@ -75,7 +75,7 @@ public class HlslStatementSyntaxTests
     public void CommaExpressionDroppingAValueIsAWarning()
     {
         var loader = new ShaderLoader("./assets/SDSL/RenderTests") { Log = new LoggerResult() };
-        loader.LoadExternalBuffer("CommaExpression", [], out _, out _, out _);
+        loader.LoadExternalBuffer(TestShader.FullName("CommaExpression"), [], out _, out _, out _);
 
         var warnings = ((LoggerResult)loader.Log).Messages.Where(m => m.Type == LogMessageType.Warning).Select(m => m.Text).ToList();
         var warning = Assert.Single(warnings);

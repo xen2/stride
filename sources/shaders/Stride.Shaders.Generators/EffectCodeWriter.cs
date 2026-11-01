@@ -503,6 +503,8 @@ public class EffectCodeWriter : ShaderWriter
         namespaceUsings.Clear();
 
         var declarations = shaderNamespace.Declarations;
+        foreach (var shaderClass in declarations.OfType<ShaderClass>())
+            DeclaredClasses.Add(ShaderNames.Combine(currentShaderNamespace, shaderClass.Name));
 
         // If multiple ShaderClass, we get only the last one
         // (otherwise our unit tests are generating too many collisions -- we could revisit that decision later if we allow more than one shader per file in production)
@@ -848,7 +850,6 @@ public class EffectCodeWriter : ShaderWriter
     public override void VisitShaderClass(ShaderClass shaderClass)
     {
         var fullName = ShaderNames.Combine(currentShaderNamespace, shaderClass.Name);
-        DeclaredClasses.Add(fullName);
 
         // A class written by hand without partial: C# can't take a second part with only the handle
         var handWritten = $"{currentNamespace}.{shaderClass.Name}Keys!";

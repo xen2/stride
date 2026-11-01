@@ -120,30 +120,18 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
     /// <inheritdoc/>
     public virtual IReadOnlyList<string> FindFullNames(string shortName) => [];
 
-    private readonly ConcurrentDictionary<string, string> fullNames = new();
-
-    /// <inheritdoc/>
-    public string ToFullName(string name)
+    // A short name in C# or stored data: the classes and effects it can be
+    private string NotFoundMessage(string name)
     {
-        if (fullNames.TryGetValue(name, out var fullName))
-            return fullName;
-        if (name.Contains('<'))
-            return name;
-        if (Exists(name))
-            fullName = name;
-        else if (Cache.FindFullName(ShaderNames.ShortName(name)) is { } registered)
-            fullName = registered;
-        else if (FindFullNames(ShaderNames.ShortName(name)) is { Count: > 0 } found)
-            fullName = found[0];
-        else
-            return name;
-        fullNames[name] = fullName;
-        return fullName;
+        var shortName = ShaderNames.ShortName(name);
+        var candidates = FindFullNames(shortName).Concat(ShaderMixinManager.FindFullNames(name)).Concat(ShaderMixinManager.FindFullNames(shortName)).Where(x => x != name).Distinct().ToList();
+        return candidates.Count > 0
+            ? string.Format(SDSLErrorMessages.SDSL0307, name, string.Join(" or ", candidates))
+            : $"Shader {name} could not be found";
     }
 
     public bool LoadExternalBuffer(string name, ReadOnlySpan<ShaderMacro> defines, [MaybeNullWhen(false)] out ShaderBuffers buffer, out ObjectId hash, out bool isFromCache)
     {
-        name = ToFullName(name);
         isFromCache = Cache.TryLoadFromCache(name, null, defines, out buffer, out hash);
         if (isFromCache)
         {
@@ -168,7 +156,7 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
                 return (buf, h);
 
             if (!ExternalFileExists(name))
-                throw new InvalidOperationException($"Shader {name} could not be found");
+                throw new InvalidOperationException(NotFoundMessage(name));
 
             if (!LoadExternalFileContent(name, out var filename, out var code, out h))
                 throw new InvalidOperationException($"Shader {name} could not be loaded");
@@ -200,8 +188,6 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
 
     public bool LoadExternalBuffer(string name, string? filename, string code, ObjectId sourceHash, ReadOnlySpan<ShaderMacro> defines, [MaybeNullWhen(false)] out ShaderBuffers buffer, out ObjectId hash, out bool isFromCache)
     {
-        name = ToFullName(name);
-
         isFromCache = Cache.TryLoadFromCache(name, null, defines, out buffer, out hash) && ValidateCachedHashes(buffer);
         if (isFromCache)
         {

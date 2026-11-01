@@ -202,8 +202,8 @@ public class ShaderDefinitionCheckTests : IDisposable
 
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("CheckMixRoot") },
-            Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("CheckGeneric", "1") } } },
+            Mixins = { new ShaderClassSource(TestShader.Written("CheckMixRoot")) },
+            Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("CheckGeneric"), "1") } } },
         };
         var log = new LoggerResult();
         var ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
@@ -252,10 +252,10 @@ public class ShaderDefinitionCheckTests : IDisposable
         {
             var log = new LoggerResult();
             loader.Log = log;
-            Assert.True(loader.LoadExternalBuffer("CheckOverride", [], out _, out _, out var isFromCache));
+            Assert.True(loader.LoadExternalBuffer(TestShader.Written("CheckOverride"), [], out _, out _, out var isFromCache));
             Assert.Equal(expectedFromCache, isFromCache);
             // Once per effect (logger), however many times the class is loaded
-            Assert.True(loader.LoadExternalBuffer("CheckOverride", [], out _, out _, out _));
+            Assert.True(loader.LoadExternalBuffer(TestShader.Written("CheckOverride"), [], out _, out _, out _));
             Assert.Single(log.Messages, m => m.Type == LogMessageType.Warning && m.Text.Contains("SDSL0200"));
         }
     }
@@ -435,7 +435,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
         var log = new LoggerResult();
         var loader = new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL") { Log = log };
-        Assert.True(loader.LoadExternalBuffer("CheckRootOnly", [], out var buffer, out _, out _), string.Join(Environment.NewLine, log.Messages));
+        Assert.True(loader.LoadExternalBuffer(TestShader.Written("CheckRootOnly"), [], out var buffer, out _, out _), string.Join(Environment.NewLine, log.Messages));
         Assert.Equal(expected, Spirv.Building.SpirvBuilder.GetShaderFlags(buffer).HasFlag(Spirv.Specification.ShaderFlagsMask.Root));
     }
 
@@ -465,8 +465,8 @@ public class ShaderDefinitionCheckTests : IDisposable
 
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("CheckMixRoot") },
-            Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("CheckComposed") } } },
+            Mixins = { new ShaderClassSource(TestShader.Written("CheckMixRoot")) },
+            Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("CheckComposed")) } } },
         };
         var log = new LoggerResult();
         bool ok;
@@ -514,8 +514,8 @@ public class ShaderDefinitionCheckTests : IDisposable
 
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("CheckMixRoot") },
-            Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("CheckSlotModule") } } },
+            Mixins = { new ShaderClassSource(TestShader.Written("CheckMixRoot")) },
+            Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("CheckSlotModule")) } } },
         };
 
         var log = new LoggerResult();
@@ -557,11 +557,11 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var inner = new ShaderArraySource();
-        inner.Add(new ShaderMixinSource { Mixins = { new ShaderClassSource("CheckComposed") } });
+        inner.Add(new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("CheckComposed")) } });
         var source = new ShaderMixinSource
         {
-            Mixins = { new ShaderClassSource("CheckMixRoot") },
-            Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("CheckOuter") }, Compositions = { ["inner"] = inner } } },
+            Mixins = { new ShaderClassSource(TestShader.Written("CheckMixRoot")) },
+            Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("CheckOuter")) }, Compositions = { ["inner"] = inner } } },
         };
         var log = new LoggerResult();
         bool ok;
@@ -827,7 +827,7 @@ public class ShaderDefinitionCheckTests : IDisposable
         bool ok;
         try
         {
-            ok = loader.LoadExternalBuffer(name, [], out _, out _, out _);
+            ok = loader.LoadExternalBuffer(TestShader.Written(name), [], out _, out _, out _);
         }
         catch (InvalidOperationException)
         {

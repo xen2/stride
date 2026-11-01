@@ -141,12 +141,12 @@ public class SampleOffsetTests : IDisposable
     private (bool Ok, string Log, byte[] Bytecode) Mix(string shaderName, RendererBackend backend)
     {
         var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName));
-        mixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        mixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
         var log = new LoggerResult();
         var options = backend == RendererBackend.Direct3D11
             ? new ShaderMixer.Options(ResourcesRegisterSeparate: true)
             : new ShaderMixer.Options(ResourcesRegisterSeparate: false, StripGoogleUserType: true, Direct3DStructuredBufferLayout: true);
-        var ok = mixer.MergeSDSL(new ShaderClassSource(shaderName), options, log, out var bytecode, out _, out _, out _);
+        var ok = mixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), options, log, out var bytecode, out _, out _, out _);
         return (ok && !log.HasErrors, string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)), bytecode.ToArray());
     }
 }

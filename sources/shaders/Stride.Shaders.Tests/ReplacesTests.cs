@@ -213,7 +213,7 @@ public class ReplacesTests : IDisposable
 
     private EffectCompiler Compiler(FileSystemProvider provider)
     {
-        var compiler = new EffectCompiler(provider);
+        var compiler = new EffectCompiler(provider) { ImplicitUsings = ShaderImplicitUsings.List };
         compiler.SourceDirectories.Add("assets/Stride/SDSL");
         return compiler;
     }

@@ -54,7 +54,7 @@ public class TestSyncValidationBufferHazard : GraphicTestGameBase
         var renderContext = RenderContext.GetShared(Services);
         writeEffect = new ComputeEffectShader(renderContext)
         {
-            ShaderSourceName = "BufferBarrierTestShader",
+            ShaderSourceName = "Stride.Graphics.Tests.BufferBarrierTestShader",
             ThreadNumbers = new Int3(ElementCount, 1, 1),
             ThreadGroupCounts = new Int3(1, 1, 1),
         };
@@ -62,7 +62,7 @@ public class TestSyncValidationBufferHazard : GraphicTestGameBase
 
         readEffect = new ComputeEffectShader(renderContext)
         {
-            ShaderSourceName = "BufferHazardReadTestShader",
+            ShaderSourceName = "Stride.Graphics.Tests.BufferHazardReadTestShader",
             ThreadNumbers = new Int3(ElementCount, 1, 1),
             ThreadGroupCounts = new Int3(1, 1, 1),
         };

@@ -34,7 +34,7 @@ public class TestPixelShaderUnorderedAccess : GraphicTestGameBase
             using var output = Buffer.Typed.New(device, 1, PixelFormat.R32_UInt, unorderedAccess: true);
             using var target = Texture.New2D(device, 8, 8, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget);
 
-            using var effect = new EffectInstance(game.EffectSystem.LoadEffect("PixelShaderUnorderedAccessEffect").WaitForResult());
+            using var effect = new EffectInstance(game.EffectSystem.LoadEffect("Test.PixelShaderUnorderedAccessEffect").WaitForResult());
             effect.UpdateEffect(device);
 
             var layouts = effect.DescriptorReflection.Layouts.Select(layout => layout.Layout).ToArray();

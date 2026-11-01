@@ -16,7 +16,7 @@ public class InitializerListTests
     {
         // Compile errors are thrown by the loader
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests", "./assets/Stride/SDSL");
-        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer("InitializerListErrors", [], out _, out _, out _));
+        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer(TestShader.FullName("InitializerListErrors"), [], out _, out _, out _));
 
         Assert.Contains("SDSL0156: float3x3 needs 9 values, but the initializer list has 8.", exception.Message);
         Assert.Contains("SDSL0156: float2[2] needs 4 values, but the initializer list has 5.", exception.Message);

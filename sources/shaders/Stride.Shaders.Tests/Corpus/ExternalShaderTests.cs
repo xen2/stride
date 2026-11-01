@@ -105,7 +105,7 @@ public class ExternalShaderTests
             external.TryAdd(Path.GetFileNameWithoutExtension(file.RelativePath), file);
 
         // Warnings stay warnings: the test project turns them into errors
-        return new Run(new Loader(engine, external) { WarningsAsErrors = false }, output, files);
+        return new Run(new Loader(engine, external) { WarningsAsErrors = false, ImplicitUsings = Stride.Rendering.ShaderImplicitUsings.List }, output, files);
     }
 
     sealed class Loader(Dictionary<string, string> engine, Dictionary<string, ExternalFile> external) : SourceFileShaderLoader(new ShaderCache())
@@ -197,12 +197,13 @@ public class ExternalShaderTests
             }
 
             File.AppendAllText(progress, $"load {name}{Environment.NewLine}");
+            var fullName = Stride.Shaders.Parsing.ShaderFileDeclarations.StorageName(file.Text, name);
             var log = new LoggerResult();
             run.Loader.Log = log;
             bool loaded;
             try
             {
-                loaded = run.Loader.LoadExternalBuffer(name, WithPlatformMacros(new ShaderMixinSource()).Macros.ToArray(), out _, out _, out _);
+                loaded = run.Loader.LoadExternalBuffer(fullName, WithPlatformMacros(new ShaderMixinSource()).Macros.ToArray(), out _, out _, out _);
             }
             catch (Exception e)
             {
@@ -214,7 +215,7 @@ public class ExternalShaderTests
             if (!loaded || log.HasErrors)
                 continue;
 
-            var (step, outcome) = Compile(run.Loader, name, new ShaderMixinSource { Mixins = { new ShaderClassSource(name) } }, progress, dump ? run.Output : null);
+            var (step, outcome) = Compile(run.Loader, name, new ShaderMixinSource { Mixins = { new ShaderClassSource(fullName) } }, progress, dump ? run.Output : null);
             lines.Add(Line([file.Library, file.RelativePath, name, step, .. outcome]));
         }
 

@@ -199,7 +199,7 @@ namespace Stride.Shaders
             }
 
             IShaderMixinBuilder builder;
-            if (!registeredBuilders.TryGetValue(ShaderMixinManager.ToFullEffectName(name), out builder))
+            if (!registeredBuilders.TryGetValue(name, out builder))
             {
                 // Else simply add the name of the shader
                 mixinTree.Mixins.Add(new ShaderClassSource(name));
@@ -220,7 +220,7 @@ namespace Stride.Shaders
         public void Mixin(ShaderMixinSource mixinTree, string name, params object[] genericParameters)
         {
             IShaderMixinBuilder builder;
-            if (!registeredBuilders.TryGetValue(ShaderMixinManager.ToFullEffectName(name), out builder))
+            if (!registeredBuilders.TryGetValue(name, out builder))
             {
                 // Else simply add the name of the shader
                 mixinTree.Mixins.Add(new ShaderClassSource(name, genericParameters));

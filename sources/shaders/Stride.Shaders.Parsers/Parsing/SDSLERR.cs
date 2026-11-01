@@ -162,6 +162,7 @@ public static class SDSLErrorMessages
     public const string SDSL0304 = "SDSL0304: {0} has two replacers: {1} and {2}. Keep one, or have one replace the other.";
     public const string SDSL0305 = "SDSL0305: {0} can't replace {1}: {2}.";
     public const string SDSL0306 = "SDSL0306: {0} can't replace {1}: it must declare the generic parameters of {1} ({2}), in the same order and of the same kinds, and pass them to {1} unchanged.";
+    public const string SDSL0307 = "SDSL0307: no shader or effect is named {0}. Did you mean {1}? A string in C# or in stored data takes the full name.";
 
     // Definition checks: found when a class compiles, reported as warnings (errors with ShaderLoaderBase.WarningsAsErrors)
 

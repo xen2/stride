@@ -24,9 +24,6 @@ namespace Stride.Shaders.Compiler
         }
 
         /// <inheritdoc/>
-        public override string ToFullShaderName(string name) => compiler.ToFullShaderName(name);
-
-        /// <inheritdoc/>
         public override ObjectId GetReplacementsHash() => compiler.GetReplacementsHash();
 
         /// <inheritdoc/>

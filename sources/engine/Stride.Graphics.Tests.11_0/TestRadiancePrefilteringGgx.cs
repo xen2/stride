@@ -121,7 +121,7 @@ namespace Stride.Graphics.Tests
             if (displayedViews == null || spriteBatch == null)
                 return;
 
-            spriteEffect = new EffectInstance(EffectSystem.LoadEffect("SpriteEffect").WaitForResult());
+            spriteEffect = new EffectInstance(EffectSystem.LoadEffect("Stride.Rendering.SpriteEffect").WaitForResult());
 
             var size = new Vector2(screenSize.X / 3f, screenSize.Y / 4f);
 

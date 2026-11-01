@@ -124,7 +124,7 @@ public class BufferParameterTests : IDisposable
 
         var log = new LoggerResult();
         var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName));
-        Assert.False(mixer.MergeSDSL(new ShaderClassSource("CheckType"), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
+        Assert.False(mixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("CheckType")), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
         // The class compile reports it first (SDSL0161, the argument check of a single-signature call)
         Assert.Contains(log.Messages, m => m.Text.Contains($"CheckType.sdsl(9,") && m.Text.Contains($"SDSL0161: Argument 1 of the call to Get({parameterType}) has type {bufferType}"));
     }
@@ -132,12 +132,12 @@ public class BufferParameterTests : IDisposable
     private static byte[] Mix(string folder, string shaderName, RendererBackend backend)
     {
         var mixer = new ShaderMixer(new ShaderLoader(folder));
-        mixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        mixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
         var log = new LoggerResult();
         var options = backend == RendererBackend.Direct3D11
             ? new ShaderMixer.Options(ResourcesRegisterSeparate: true)
             : new ShaderMixer.Options(ResourcesRegisterSeparate: false, StripGoogleUserType: true, Direct3DStructuredBufferLayout: true);
-        Assert.True(mixer.MergeSDSL(new ShaderClassSource(shaderName), options, log, out var bytecode, out _, out _, out _),
+        Assert.True(mixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), options, log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
         var result = bytecode.ToArray();
         var validation = Spv.ValidateBinary(result, targetVulkan: backend == RendererBackend.Vulkan);
@@ -154,7 +154,7 @@ public class BufferParameterTests : IDisposable
         bool ok;
         try
         {
-            ok = loader.LoadExternalBuffer(name, [], out _, out _, out _);
+            ok = loader.LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _);
         }
         catch (InvalidOperationException)
         {
