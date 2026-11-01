@@ -602,6 +602,9 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             if (IsModule && !parent.IsModule)
                 table.AddError(new(mixin.Info, string.Format(SDSLErrorMessages.SDSL0199, Name, mixin.Name)));
         }
+        // A parent resolves like any name, so only here it is known to be the class named by the attribute
+        if (!missingParent && ShaderReplacement.Target(this) is { } replaced && !directParents.Any(x => ShaderNames.WithoutGenerics(x.ClassName) == replaced))
+            table.AddError(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0305, fullName, replaced, $"it must inherit {replaced} directly")));
         foreach (var import in Elements.OfType<ShaderImport>())
         {
             if (table.ResolveClassName(import.Module.Name, import.Module.Info) is not { } moduleName)
@@ -698,7 +701,11 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
 
         if (IsPartial)
             table.AddWarning(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0214, Name.Name)));
-        DefinitionChecks.CheckAttributes(table, Attributes, Name.Name, "Root", "Pure");
+        DefinitionChecks.CheckAttributes(table, Attributes, Name.Name, "Root", "Pure", "Replaces");
+        if (FindAttribute("Replaces") is { Parameters: [StringLiteral text] })
+            table.AddError(new(text.Info, string.Format(SDSLErrorMessages.SDSL0255, "Replaces", Name.Name, text.Value)));
+        else if (FindAttribute("Replaces") is { } replaces && ShaderReplacement.Target(this) == null)
+            table.AddError(new(replaces.Info, string.Format(SDSLErrorMessages.SDSL0135, "Replaces", Name.Name, "on a class, [Replaces] takes the full name of one class, and replaces that whole class")));
         // Structs (plain and partial views) first, in the order they contain each other
         if (!PartialStructs.DeclareStructs(table, context, this))
             return;

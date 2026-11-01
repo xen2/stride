@@ -82,7 +82,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
             rootMixin = MergeMixinNode(globalContext, context, temp, shaderSource2);
 
             if (CollectExplanation)
-                Explanation = Explain(rootMixin, globalContext);
+                Explanation = Explain(rootMixin, globalContext, shaderLoader);
         }
         catch (ShaderErrorsLoggedException e)
         {
@@ -1628,6 +1628,8 @@ public class CaptureLoadedShaders(IExternalShaderLoader inner) : IExternalShader
     public IReadOnlyList<string> FindFullNames(string shortName) => inner.FindFullNames(shortName);
 
     public string ToFullName(string name) => inner.ToFullName(name);
+
+    public string? FindReplacer(string fullName) => inner.FindReplacer(fullName);
 
     public bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
         => inner.LoadExternalFileContent(name, out filename, out code, out hash);
