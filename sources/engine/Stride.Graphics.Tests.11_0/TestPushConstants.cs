@@ -64,12 +64,12 @@ public class TestPushConstants : GraphicTestGameBase
         await base.LoadContent();
 
         var renderContext = RenderContext.GetShared(Services);
-        pushEffect = new ComputeEffectShader(renderContext) { ShaderSourceName = "PushConstantsComputeTestShader", ThreadNumbers = new Int3(1, 1, 1), ThreadGroupCounts = new Int3(1, 1, 1) };
+        pushEffect = new ComputeEffectShader(renderContext) { ShaderSourceName = "Stride.Graphics.Tests.PushConstantsComputeTestShader", ThreadNumbers = new Int3(1, 1, 1), ThreadGroupCounts = new Int3(1, 1, 1) };
         pushEffect.DisposeBy(this);
-        otherEffect = new ComputeEffectShader(renderContext) { ShaderSourceName = "PushConstantsOtherComputeTestShader", ThreadNumbers = new Int3(1, 1, 1), ThreadGroupCounts = new Int3(1, 1, 1) };
+        otherEffect = new ComputeEffectShader(renderContext) { ShaderSourceName = "Stride.Graphics.Tests.PushConstantsOtherComputeTestShader", ThreadNumbers = new Int3(1, 1, 1), ThreadGroupCounts = new Int3(1, 1, 1) };
         otherEffect.DisposeBy(this);
-        drawEffect = new ImageEffectShader("PushConstantsDrawTestShader").DisposeBy(this);
-        plainDrawEffect = new ImageEffectShader("PushConstantsPlainDrawTestShader").DisposeBy(this);
+        drawEffect = new ImageEffectShader("Stride.Graphics.Tests.PushConstantsDrawTestShader").DisposeBy(this);
+        plainDrawEffect = new ImageEffectShader("Stride.Graphics.Tests.PushConstantsPlainDrawTestShader").DisposeBy(this);
     }
 
     private void DispatchReadsThePushConstants()

@@ -37,6 +37,6 @@ public class LeadingByteOrderMarkTests : IDisposable
         File.WriteAllBytes(Path.Combine(sourceDir.FullName, "TwoByteOrderMarks.sdsl"),
             [.. byteOrderMark, .. byteOrderMark, .. Encoding.UTF8.GetBytes("shader TwoByteOrderMarks\r\n{\r\n    float Value() { return 1; }\r\n};\r\n")]);
 
-        new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL").LoadExternalBuffer("TwoByteOrderMarks", [], out _, out _, out _);
+        new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL").LoadExternalBuffer(TestShader.FullName("TwoByteOrderMarks"), [], out _, out _, out _);
     }
 }

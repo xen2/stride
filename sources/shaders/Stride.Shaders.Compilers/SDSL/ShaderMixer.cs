@@ -871,7 +871,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
             typeDuplicateInserter.ResortDecorations();
 
         // Build ShaderInfo
-        var shaderInfo = new ShaderInfo(mixinNode.Shaders.Count, ShaderNames.ShortNameWithGenerics(shaderClass.ClassName), shaderStart, buffer.Count);
+        var shaderInfo = new ShaderInfo(mixinNode.Shaders.Count, ShaderNames.ShortNameWithGenerics(shaderClass.ClassName), shaderStart, buffer.Count) { FullName = shaderClass.ClassName };
         shaderInfo.Symbol = shaderClass.Symbol;
         foreach (var structType in structTypes)
             shaderInfo.StructTypes.Add(structType.Key, structType.Value);
@@ -1627,8 +1627,6 @@ public class CaptureLoadedShaders(IExternalShaderLoader inner) : IExternalShader
 
     public IReadOnlyList<string> FindFullNames(string shortName) => inner.FindFullNames(shortName);
 
-    public string ToFullName(string name) => inner.ToFullName(name);
-
     public string? FindReplacer(string fullName) => inner.FindReplacer(fullName);
 
     public bool LoadExternalFileContent(string name, out string filename, out string code, out ObjectId hash)
@@ -1636,7 +1634,6 @@ public class CaptureLoadedShaders(IExternalShaderLoader inner) : IExternalShader
 
     public bool LoadExternalBuffer(string name, ReadOnlySpan<ShaderMacro> defines, out ShaderBuffers bytecode, out ObjectId hash, out bool isFromCache)
     {
-        name = inner.ToFullName(name);
         var result = inner.LoadExternalBuffer(name, defines, out bytecode, out hash, out isFromCache);
         // A file-backed shader always carries a source hash. A zero here means it was compiled or cached
         // without its OpSourceHashSDSL, which would make its effect obsolete (recompiled) on every run.

@@ -14,7 +14,7 @@ public class OverloadResolutionTests
     {
         // Compile errors are thrown by the loader
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests", "./assets/Stride/SDSL");
-        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer(shaderName, [], out _, out _, out _));
+        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _));
 
         // The error says what is wrong with the call: compilation stops before it can fail on the arguments
         Assert.DoesNotContain("Cast only work", exception.Message);
@@ -27,7 +27,7 @@ public class OverloadResolutionTests
     {
         // Comparing two buffer types used to throw "Cast only work between numeral types"
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests", "./assets/Stride/SDSL");
-        loader.LoadExternalBuffer("BufferElementOverload", [], out _, out _, out _);
+        loader.LoadExternalBuffer(TestShader.FullName("BufferElementOverload"), [], out _, out _, out _);
     }
 
     [Fact]

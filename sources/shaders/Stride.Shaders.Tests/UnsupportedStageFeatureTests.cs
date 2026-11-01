@@ -71,6 +71,6 @@ public class UnsupportedStageFeatureTests : IDisposable
     {
         File.WriteAllText(Path.Combine(sourceDir.FullName, $"{name}.sdsl"), code);
         var loader = new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL");
-        return Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer(name, [], out _, out _, out _)).Message;
+        return Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _)).Message;
     }
 }

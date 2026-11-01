@@ -138,7 +138,7 @@ namespace Stride.Shaders.Compiler
 
                 if (shaderClassSource != null)
                 {
-                    mixinToCompile = new ShaderMixinSource { Name = ToFullShaderName(shaderClassSource.ClassName) };
+                    mixinToCompile = new ShaderMixinSource { Name = shaderClassSource.ClassName };
                     mixinToCompile.Mixins.Add(shaderClassSource);
                 }
 
@@ -152,7 +152,6 @@ namespace Stride.Shaders.Compiler
                 }
             }
 
-            ToFullShaderNames(mixinToCompile);
             ShaderCorpusCapture.Record(mixinToCompile, compilerParameters.EffectParameters);
 
             // Compile the whole mixin tree
@@ -183,31 +182,6 @@ namespace Stride.Shaders.Compiler
             EffectCompilerParameters effectParameters,
             CompilerParameters compilerParameters,
             ObjectId effectInputHash);
-
-        /// <summary>
-        /// TODO(A15): remove with <c>ShaderLoaderBase.ToFullName</c>. The full name of a class named by its short name, so that it has one effect id.
-        /// </summary>
-        public virtual string ToFullShaderName(string name) => name;
-
-        private void ToFullShaderNames(ShaderSource source)
-        {
-            switch (source)
-            {
-                case ShaderClassCode classCode:
-                    classCode.ClassName = ToFullShaderName(classCode.ClassName);
-                    break;
-                case ShaderArraySource array:
-                    foreach (var value in array.Values)
-                        ToFullShaderNames(value);
-                    break;
-                case ShaderMixinSource mixin:
-                    foreach (var classCode in mixin.Mixins)
-                        ToFullShaderNames(classCode);
-                    foreach (var composition in mixin.Compositions.Values)
-                        ToFullShaderNames(composition);
-                    break;
-            }
-        }
 
         public static readonly string DefaultSourceShaderFolder = "shaders";
 

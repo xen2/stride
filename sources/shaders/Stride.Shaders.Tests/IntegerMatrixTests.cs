@@ -30,12 +30,12 @@ public class IntegerMatrixTests : IDisposable
     public void IntegerMatrixIsAnArrayOfRows(bool vulkan)
     {
         var mixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/CompilerTests"));
-        mixer.ShaderLoader.LoadExternalBuffer("IntegerMatrix", [], out _, out _, out _);
+        mixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("IntegerMatrix"), [], out _, out _, out _);
         var log = new LoggerResult();
         var options = vulkan
             ? new ShaderMixer.Options(ResourcesRegisterSeparate: false, StripGoogleUserType: true, Direct3DStructuredBufferLayout: true)
             : new ShaderMixer.Options(ResourcesRegisterSeparate: true);
-        Assert.True(mixer.MergeSDSL(new ShaderClassSource("IntegerMatrix"), options, log, out var bytecode, out _, out _, out _),
+        Assert.True(mixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("IntegerMatrix")), options, log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode, targetVulkan: vulkan);
@@ -75,7 +75,7 @@ public class IntegerMatrixTests : IDisposable
         var loader = new ShaderLoader(sourceDir.FullName) { Log = log };
         try
         {
-            loader.LoadExternalBuffer("CheckMatrix", [], out _, out _, out _);
+            loader.LoadExternalBuffer(TestShader.FullName("CheckMatrix"), [], out _, out _, out _);
         }
         catch (InvalidOperationException)
         {

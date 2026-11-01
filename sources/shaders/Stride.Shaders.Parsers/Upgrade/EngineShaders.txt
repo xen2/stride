@@ -381,7 +381,7 @@ SphericalHarmonicsRenderer	1	shader	-	-	SphericalHarmonicsBase,ImageEffectShader
 SphericalHarmonicsUtils	1	module	-	-	Math		Stride.Rendering.Images.SphericalHarmonicsUtils	
 SpotLightDataInternalShader	0	module	-	-			Stride.Rendering.Lights.SpotLightDataInternalShader	
 Sprite3DBase	0	shader	-	-	SpriteBase		Stride.Rendering.Sprite3DBase	SliceCoordinate
-SpriteAlphaCutoff	1	shader	-	-	SpriteBase		SpriteAlphaCutoff	
+SpriteAlphaCutoff	1	shader	-	-	SpriteBase		Stride.Rendering.SpriteAlphaCutoff	
 SpriteBase	0	module	-	root	ShaderBase,Texturing		Stride.Rendering.SpriteBase	MatrixTransform
 SpriteBatchShader	1	shader	-	-	SpriteBase		Stride.Rendering.SpriteBatchShader	
 SpriteEffect	0	module	-	-	SpriteBase		Stride.Rendering.SpriteEffect	Color
@@ -440,7 +440,7 @@ UnorderedAccessSlowWriteTestShader	0	shader	-	-	ComputeShaderBase		Stride.Graphi
 Utilities	0	module	-	-			Stride.Rendering.Utilities	
 VelocityOutput	0	shader	-	-	ComputeColor,VelocityStream		Stride.Rendering.VelocityOutput	
 VelocityStream	0	module	-	-	ShaderBase		Stride.Rendering.VelocityStream	
-VideoShader	0	shader	-	-	SpriteBase		VideoShader	
+VideoShader	0	shader	-	-	SpriteBase		Stride.Rendering.VideoShader	
 VignettingShader	0	shader	-	-	ColorTransformShader,Texturing		Stride.Rendering.Images.VignettingShader	Amount,Color,RadiusBegin
 VolumeMinMaxShader	0	shader	-	-	PositionHStream4,ShaderBase		Stride.Rendering.VolumeMinMaxShader	WorldViewProjection
 Voxel2x2x2Mipmap	0	shader	-	-	Math,Texturing,ComputeShaderBase		Stride.Rendering.Voxels.Voxel2x2x2Mipmap	ReadOffset,ReadTex,WriteOffset,WriteTex

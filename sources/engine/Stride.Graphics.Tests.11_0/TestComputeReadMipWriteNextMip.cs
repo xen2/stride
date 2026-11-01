@@ -39,7 +39,7 @@ public class TestComputeReadMipWriteNextMip : GraphicTestGameBase
 
         computeEffect = new ComputeEffectShader(RenderContext.GetShared(Services))
         {
-            ShaderSourceName = "MipDownsampleTestShader",
+            ShaderSourceName = "Stride.Graphics.Tests.MipDownsampleTestShader",
             ThreadNumbers = new Int3(TextureSize / 2, TextureSize / 2, 1),
             ThreadGroupCounts = new Int3(1, 1, 1),
         };

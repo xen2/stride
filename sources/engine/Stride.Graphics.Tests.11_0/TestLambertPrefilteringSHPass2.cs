@@ -73,7 +73,7 @@ namespace Stride.Graphics.Tests
 
             var context = RenderContext.GetShared(Services);
 
-            computeShader = new ComputeEffectShader(context) { ShaderSourceName = "LambertianPrefilteringSHEffectPass2" };
+            computeShader = new ComputeEffectShader(context) { ShaderSourceName = "Stride.Rendering.Images.LambertianPrefilteringSHEffectPass2" };
         }
 
         /// <inheritdoc/>

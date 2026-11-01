@@ -592,7 +592,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         {
             if (table.ResolveClassName(mixin.Name, mixin.Info) is not { } parentName)
             {
-                table.AddError(new(mixin.Info, string.Format(SDSLErrorMessages.SDSL0191, mixin.Name, Name)));
+                table.AddError(new(mixin.Info, string.Format(SDSLErrorMessages.SDSL0191, mixin.Name, Name) + table.DidYouMean(mixin.Name)));
                 missingParent = true;
                 continue;
             }
@@ -609,7 +609,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         {
             if (table.ResolveClassName(import.Module.Name, import.Module.Info) is not { } moduleName)
             {
-                table.AddError(new(import.Module.Info, string.Format(SDSLErrorMessages.SDSL0196, import.Module.Name, Name)));
+                table.AddError(new(import.Module.Info, string.Format(SDSLErrorMessages.SDSL0196, import.Module.Name, Name) + table.DidYouMean(import.Module.Name)));
                 missingParent = true;
                 continue;
             }

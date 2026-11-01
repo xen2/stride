@@ -127,7 +127,7 @@ public class CodedErrorTests : IDisposable
             """);
         var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL"));
         var log = new LoggerResult();
-        var exception = Assert.Throws<InvalidOperationException>(() => mixer.MergeSDSL(new ShaderClassSource("StreamNeverWritten"), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
+        var exception = Assert.Throws<InvalidOperationException>(() => mixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("StreamNeverWritten")), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
         Assert.Contains("StreamNeverWritten.sdsl(15,9): SDSL0194: Stream Normal is read by PSMain before any stage writes it, and it has no semantic", exception.Message);
     }
 
@@ -137,6 +137,6 @@ public class CodedErrorTests : IDisposable
     private string CompileError(string name, string code)
     {
         Write(name, code);
-        return Assert.Throws<InvalidOperationException>(() => new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL").LoadExternalBuffer(name, [], out _, out _, out _)).Message;
+        return Assert.Throws<InvalidOperationException>(() => new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL").LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _)).Message;
     }
 }

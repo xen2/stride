@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using Stride.Rendering;
 using System.Text;
 using Stride.Core.Storage;
 using Stride.Core.Yaml.Serialization;
@@ -62,7 +63,7 @@ public class EmbeddedEffectTests
     /// </summary>
     static Dictionary<string, string> Generate()
     {
-        var compiler = new EffectCompiler(null!);
+        var compiler = new EffectCompiler(null!) { ImplicitUsings = ShaderImplicitUsings.List };
         // Sources given as text with \n line breaks: their hashes, stored in the bytecode, are then the same on every checkout
         var sourceManager = compiler.GetFileShaderLoader().SourceManager;
         foreach (var file in Directory.EnumerateFiles(Path.Combine(GraphicsDirectory, "Shaders"), "*.sdsl"))
@@ -110,8 +111,8 @@ public class EmbeddedEffectTests
     {
         var generics = shader.IndexOf('<');
         return generics < 0
-            ? new ShaderClassSource(shader)
-            : new ShaderClassSource(shader[..generics], shader[(generics + 1)..^1].Split(',', StringSplitOptions.TrimEntries));
+            ? new ShaderClassSource(TestShader.FullName(shader))
+            : new ShaderClassSource(TestShader.FullName(shader[..generics]), shader[(generics + 1)..^1].Split(',', StringSplitOptions.TrimEntries));
     }
 
     /// <summary>

@@ -12,7 +12,7 @@ public class PrecedenceWarningTests
     public void OperatorMixesWithoutParenthesesAreWarnings()
     {
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests") { Log = new LoggerResult() };
-        loader.LoadExternalBuffer("PrecedenceWarnings", [], out _, out _, out _);
+        loader.LoadExternalBuffer(TestShader.FullName("PrecedenceWarnings"), [], out _, out _, out _);
 
         var warnings = ((LoggerResult)loader.Log).Messages.Where(m => m.Type == LogMessageType.Warning).Select(m => m.Text).ToList();
         Assert.Equal(4, warnings.Count);

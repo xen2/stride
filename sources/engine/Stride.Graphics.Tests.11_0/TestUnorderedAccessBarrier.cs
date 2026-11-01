@@ -67,7 +67,7 @@ public class TestUnorderedAccessBarrier : GraphicTestGameBase
         var renderContext = RenderContext.GetShared(Services);
         slowWriteEffect = new ComputeEffectShader(renderContext)
         {
-            ShaderSourceName = "UnorderedAccessSlowWriteTestShader",
+            ShaderSourceName = "Stride.Graphics.Tests.UnorderedAccessSlowWriteTestShader",
             ThreadNumbers = new Int3(ThreadsPerGroup, 1, 1),
             ThreadGroupCounts = new Int3(ElementCount / ThreadsPerGroup, 1, 1),
         };
@@ -75,7 +75,7 @@ public class TestUnorderedAccessBarrier : GraphicTestGameBase
 
         reverseIncrementEffect = new ComputeEffectShader(renderContext)
         {
-            ShaderSourceName = "UnorderedAccessReverseIncrementTestShader",
+            ShaderSourceName = "Stride.Graphics.Tests.UnorderedAccessReverseIncrementTestShader",
             ThreadNumbers = new Int3(ThreadsPerGroup, 1, 1),
             ThreadGroupCounts = new Int3(ElementCount / ThreadsPerGroup, 1, 1),
         };

@@ -16,10 +16,10 @@ public class TightStructuredBufferTests
     static byte[] Compile(string shaderName, bool tightLayout, out Stride.Shaders.EffectReflection reflection)
     {
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/CompilerTests"));
-        shaderMixer.ShaderLoader.LoadExternalBuffer(shaderName, [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
         var log = new LoggerResult();
         var options = new ShaderMixer.Options(ResourcesRegisterSeparate: false, StripGoogleUserType: true, Direct3DStructuredBufferLayout: tightLayout);
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(shaderName), options, log, out var bytecode, out var effectReflection, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), options, log, out var bytecode, out var effectReflection, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
         reflection = effectReflection!;
         return bytecode.ToArray();
@@ -62,7 +62,7 @@ public class TightStructuredBufferTests
         compiler.SourceDirectories.Add("assets/SDSL/CompilerTests");
 
         var mixin = new ShaderMixinSource { Name = "TightLayoutMarker" };
-        mixin.Mixins.Add(new ShaderClassSource("TightLayoutMarker"));
+        mixin.Mixins.Add(new ShaderClassSource(TestShader.FullName("TightLayoutMarker")));
         var effectParameters = Stride.Shaders.Compiler.EffectCompilerParameters.Default with { Platform = Stride.Graphics.GraphicsPlatform.Vulkan };
         var result = compiler.Compile(mixin, effectParameters, new Stride.Shaders.Compiler.CompilerParameters(), Stride.Core.Storage.ObjectId.New()).WaitForResult();
         Assert.False(result.CompilationLog.HasErrors, string.Join(Environment.NewLine, result.CompilationLog.Messages.Select(m => m.Text)));
@@ -84,11 +84,11 @@ public class TightStructuredBufferTests
             Assert.Skip("spirv_to_dxil is only shipped for Windows");
 
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/RenderTests"));
-        shaderMixer.ShaderLoader.LoadExternalBuffer("StructuredBufferTightLayout", [], out _, out _, out _);
+        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("StructuredBufferTightLayout"), [], out _, out _, out _);
         var log = new LoggerResult();
         // The options EffectCompiler uses for Direct3D 12
         var options = new ShaderMixer.Options(ResourcesRegisterSeparate: false, Direct3DStructuredBufferLayout: true);
-        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource("StructuredBufferTightLayout"), options, log, out var bytecode, out _, out _, out var entryPoints),
+        Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("StructuredBufferTightLayout")), options, log, out var bytecode, out _, out _, out var entryPoints),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
         Assert.NotNull(TightBuffers(bytecode.ToArray()));
 
@@ -120,7 +120,7 @@ public class TightStructuredBufferTests
     public void AppendAndConsumeBuffersAreStillRejected(string kind)
     {
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests");
-        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer($"{kind}BufferMember", [], out _, out _, out _));
+        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer(TestShader.FullName($"{kind}BufferMember"), [], out _, out _, out _));
         Assert.Contains($"{kind}StructuredBuffer is not supported", exception.Message);
     }
 }

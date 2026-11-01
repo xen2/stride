@@ -17,7 +17,7 @@ public class OneComponentTypeTests
     {
         // Compile errors are thrown by the loader
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests", "./assets/Stride/SDSL");
-        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer("OneRowMatrix", [], out _, out _, out _));
+        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer(TestShader.FullName("OneRowMatrix"), [], out _, out _, out _));
 
         Assert.Contains("OneRowMatrix.sdsl(7,9): ", exception.Message);
         Assert.Contains("SDSL0155: float1x3 (a matrix with one row or one column) is not supported yet. Use float3.", exception.Message);

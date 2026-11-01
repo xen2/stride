@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using Stride.Rendering;
 using System.Text;
 using Stride.Core.Diagnostics;
 using Stride.Core.IO;
@@ -248,6 +249,69 @@ public class ShaderDiskCacheTests : IDisposable
         File.Delete(SourcePath("CacheBase"));
 
         Assert.DoesNotContain("CacheBase", Load(NewEngineLoader(sources), "CacheLeaf"));
+    }
+
+    private const string MovedNamespace = "Stride.Shaders.Tests.Moved";
+
+    private static string MovableBase(string name, string @namespace) => $$"""
+        namespace {{@namespace}};
+
+        shader {{name}}
+        {
+            int BaseValue() { return 1; }
+        }
+        """;
+
+    private static string UserOfMovableBase(string name, string baseName, string usings = "") => $$"""
+        {{usings}}
+        namespace Stride.Shaders.Tests;
+
+        shader {{name}} : {{baseName}}
+        {
+            int LeafValue() { return BaseValue(); }
+        }
+        """;
+
+    // A library moves a class to a namespace its user sees. The source of the user didn't change, and it must not keep the old code of the class.
+    // The engine loader caches in the application cache, which outlives the test run: fresh names per run.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BaseMovedToANamespaceItsUserSeesIsCompiledAgain(bool implicitUsing)
+    {
+        using var sources = new FileSystemProvider($"/shadersources-{Guid.NewGuid():N}", sourceDir.FullName);
+        var (moved, leaf) = ($"CacheMoved{Guid.NewGuid():N}", $"CacheLeaf{Guid.NewGuid():N}");
+        FileShaderLoader NewGameLoader()
+        {
+            var loader = NewEngineLoader(sources);
+            if (implicitUsing)
+                loader.ImplicitUsings = [MovedNamespace];
+            return loader;
+        }
+
+        Write(moved, MovableBase(moved, "Stride.Shaders.Tests"));
+        Write(leaf, UserOfMovableBase(leaf, moved, implicitUsing ? "" : $"using {MovedNamespace};"));
+        Assert.DoesNotContain($"{MovedNamespace}.{moved}", Load(NewGameLoader(), leaf));
+
+        Write(moved, MovableBase(moved, MovedNamespace));
+
+        Assert.Contains($"{MovedNamespace}.{moved}", Load(NewGameLoader(), leaf));
+    }
+
+    // Moved to a namespace its user doesn't see: the error of a clean compile, instead of the old code
+    [Fact]
+    public void BaseMovedToANamespaceItsUserDoesNotSeeGivesTheErrorOfACleanCompile()
+    {
+        using var sources = new FileSystemProvider($"/shadersources-{Guid.NewGuid():N}", sourceDir.FullName);
+        var (moved, leaf) = ($"CacheMoved{Guid.NewGuid():N}", $"CacheLeaf{Guid.NewGuid():N}");
+        Write(moved, MovableBase(moved, "Stride.Shaders.Tests"));
+        Write(leaf, UserOfMovableBase(leaf, moved));
+        Load(NewEngineLoader(sources), leaf);
+
+        Write(moved, MovableBase(moved, MovedNamespace));
+
+        var error = Assert.Throws<InvalidOperationException>(() => Load(NewEngineLoader(sources), leaf));
+        Assert.Contains("SDSL0191", error.Message);
     }
 
     [Fact]
@@ -563,7 +627,7 @@ public class ShaderDiskCacheTests : IDisposable
     private string SourcePath(string name) => Path.Combine(sourceDir.FullName, $"{name}.sdsl");
 
     /// <summary>A loader with an empty in-memory cache over the cache directory the previous ones filled.</summary>
-    private CountingLoader NewLoader() => new(provider, sourceDir.FullName, "./assets/Stride/SDSL");
+    private CountingLoader NewLoader() => new(provider, sourceDir.FullName, "./assets/Stride/SDSL") { ImplicitUsings = ShaderImplicitUsings.List };
 
     /// <summary>The loader of <see cref="EffectCompiler"/>, which caches in the application cache.</summary>
     private static FileShaderLoader NewEngineLoader(IVirtualFileProvider sources)
@@ -575,20 +639,20 @@ public class ShaderDiskCacheTests : IDisposable
 
     private static string Load(ShaderLoaderBase loader, string name, params ShaderMacro[] macros)
     {
-        Assert.True(loader.LoadExternalBuffer(name, macros, out var buffer, out _, out _), $"could not load shader {name}");
+        Assert.True(loader.LoadExternalBuffer(TestShader.Written(name), macros, out var buffer, out _, out _), $"could not load shader {name}");
         return Spv.Dis(buffer, DisassemblerFlags.Name);
     }
 
     /// <summary>Mixes CacheComposeRoot with CacheGenericImpl&lt;<paramref name="genericValue"/>&gt; composed into it.</summary>
     private static string Mix(CountingLoader loader, int genericValue) => Mix(loader, new ShaderMixinSource
     {
-        Mixins = { new ShaderClassSource("CacheComposeRoot") },
-        Compositions = { ["helper"] = new ShaderMixinSource { Mixins = { new ShaderClassSource("CacheGenericImpl", genericValue) } } },
+        Mixins = { new ShaderClassSource(TestShader.Written("CacheComposeRoot")) },
+        Compositions = { ["helper"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("CacheGenericImpl"), genericValue) } } },
     });
 
     /// <summary>Mixes a root shader that instantiates its generics itself, through its inheritance list.</summary>
     private static string Mix(CountingLoader loader, string rootName)
-        => Mix(loader, new ShaderMixinSource { Mixins = { new ShaderClassSource(rootName) } });
+        => Mix(loader, new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written(rootName)) } });
 
     private static string Mix(CountingLoader loader, ShaderMixinSource source)
     {

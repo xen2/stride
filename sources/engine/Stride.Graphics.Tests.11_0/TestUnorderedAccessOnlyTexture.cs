@@ -36,7 +36,7 @@ public class TestUnorderedAccessOnlyTexture : GraphicTestGameBase
 
         computeEffect = new ComputeEffectShader(RenderContext.GetShared(Services))
         {
-            ShaderSourceName = "UnorderedAccessOnlyTextureShader",
+            ShaderSourceName = "Stride.Graphics.Tests.UnorderedAccessOnlyTextureShader",
             ThreadNumbers = new Int3(TextureSize, TextureSize, 1),
             ThreadGroupCounts = new Int3(1, 1, 1),
         };

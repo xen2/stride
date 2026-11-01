@@ -14,7 +14,7 @@ public class SwizzleWriteTests
     {
         // Compile errors are thrown by the loader
         var loader = new ShaderLoader("./assets/SDSL/CompilerTests", "./assets/Stride/SDSL");
-        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer("SwizzleWritesTwice", [], out _, out _, out _));
+        var exception = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer(TestShader.FullName("SwizzleWritesTwice"), [], out _, out _, out _));
 
         Assert.Contains("SDSL0145: Swizzle _m00_m00 writes the same element twice.", exception.Message);
         Assert.Contains("SDSL0145: Swizzle xx writes the same element twice.", exception.Message);

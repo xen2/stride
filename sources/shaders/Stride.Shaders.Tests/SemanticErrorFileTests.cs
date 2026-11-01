@@ -32,7 +32,7 @@ public class SemanticErrorFileTests : IDisposable
         var log = new LoggerResult();
         var loader = new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL") { Log = log };
 
-        Assert.ThrowsAny<InvalidOperationException>(() => loader.LoadExternalBuffer("ErrorInFile", [], out _, out _, out _));
+        Assert.ThrowsAny<InvalidOperationException>(() => loader.LoadExternalBuffer(TestShader.FullName("ErrorInFile"), [], out _, out _, out _));
 
         var file = $"{sourceDir.FullName}/ErrorInFile.sdsl";
         var error = Assert.Single(log.Messages, m => m.Type == LogMessageType.Error).Text;

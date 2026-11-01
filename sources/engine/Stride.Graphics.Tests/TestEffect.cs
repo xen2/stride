@@ -77,7 +77,7 @@ namespace Stride.Graphics
 
                 var compilerParmeters = new CompilerParameters { Platform = GraphicsPlatform.Direct3D };
 
-                var compilerResults = compilerCache.Compile(new ShaderMixinSource("SimpleEffect"), compilerParmeters);
+                var compilerResults = compilerCache.Compile(new ShaderMixinSource("Test.SimpleEffect"), compilerParmeters);
                 Assert.That(compilerResults.HasErrors, Is.False);
 
                 effectBytecode = compilerResults.Bytecodes[0];
@@ -122,7 +122,7 @@ namespace Stride.Graphics
 
                 var compilerParameters = new CompilerParameters { Platform = GraphicsPlatform.OpenGLCore };
 
-                var compilerResults = compilerCache.Compile(new ShaderMixinSource("ToGlslEffect"), compilerParameters);
+                var compilerResults = compilerCache.Compile(new ShaderMixinSource("Test.ToGlslEffect"), compilerParameters);
                 Assert.That(compilerResults.HasErrors, Is.False);
 
                 effectBytecode = compilerResults.Bytecodes[0];
@@ -167,7 +167,7 @@ namespace Stride.Graphics
 
                 var compilerParameters = new CompilerParameters { Platform = GraphicsPlatform.OpenGLES };
 
-                var compilerResults = compilerCache.Compile(new ShaderMixinSource("ToGlslEffect"), compilerParameters);
+                var compilerResults = compilerCache.Compile(new ShaderMixinSource("Test.ToGlslEffect"), compilerParameters);
                 Assert.That(compilerResults.HasErrors, Is.False);
 
                 effectBytecode = compilerResults.Bytecodes[0];

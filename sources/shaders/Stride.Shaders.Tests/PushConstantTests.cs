@@ -223,7 +223,7 @@ public class PushConstantTests : IDisposable
         byte[] bytecode = [];
         try
         {
-            ok = mixer.MergeSDSL(new ShaderClassSource(root), new ShaderMixer.Options(ResourcesRegisterSeparate: direct3D11, StripGoogleUserType: !direct3D11), log, out var bytes, out reflection, out _, out _);
+            ok = mixer.MergeSDSL(new ShaderClassSource(TestShader.Written(root)), new ShaderMixer.Options(ResourcesRegisterSeparate: direct3D11, StripGoogleUserType: !direct3D11), log, out var bytes, out reflection, out _, out _);
             bytecode = bytes.ToArray();
         }
         catch (InvalidOperationException e)
@@ -242,7 +242,7 @@ public class PushConstantTests : IDisposable
         bool ok;
         try
         {
-            ok = loader.LoadExternalBuffer(name, [], out _, out _, out _);
+            ok = loader.LoadExternalBuffer(TestShader.Written(name), [], out _, out _, out _);
         }
         catch (InvalidOperationException)
         {
