@@ -1,6 +1,6 @@
 namespace Stride.Shaders.Tests;
 
-shader VSDerivative
+[Root] shader VSDerivative
 {
     stream float4 ColorTarget : SV_Target0;
     stream float4 Position : POSITION;

@@ -638,7 +638,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             if (IsModule)
                 flags |= ShaderFlagsMask.Pure;
             else
-                table.AddWarning(new(pureAttribute.Info, string.Format(SDSLErrorMessages.SDSL0211, Name)));
+                table.AddError(new(pureAttribute.Info, string.Format(SDSLErrorMessages.SDSL0211, Name)));
         }
         builder.Insert(new OpShaderSDSL(fullName, flags));
         table.CurrentShaderFlags = flags;
@@ -709,7 +709,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         }
 
         if (IsPartial)
-            table.AddWarning(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0214, Name.Name)));
+            table.AddError(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0214, Name.Name)));
         DefinitionChecks.CheckAttributes(table, Attributes, Name.Name, "Root", "Pure", "Replaces");
         if (FindAttribute("Replaces") is { Parameters: [StringLiteral text] })
             table.AddError(new(text.Info, string.Format(SDSLErrorMessages.SDSL0255, "Replaces", Name.Name, text.Value)));

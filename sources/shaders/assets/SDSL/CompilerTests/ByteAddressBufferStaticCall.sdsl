@@ -1,7 +1,7 @@
 // A static call to a module that declares byte address buffers.
 namespace Stride.Shaders.Tests;
 
-shader ByteAddressBufferStaticCall
+[Root] shader ByteAddressBufferStaticCall
 {
     RWByteAddressBuffer Result;
 

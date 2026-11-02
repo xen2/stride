@@ -82,6 +82,8 @@ public static class SDSLErrorMessages
     public const string SDSL0143 = "SDSL0143: {0} of {1}.{2}: {3}.";
     public const string SDSL0144 = "SDSL0144: {0} is a step of the pipeline {1}.{2}, so it doesn't call next or base: the steps run in phase order.";
     public const string SDSL0145 = "SDSL0145: Swizzle {0} writes the same element twice. Write each element once.";
+    public const string SDSL0146 = "SDSL0146: {0}: these classes inherit, import or use each other in a cycle, so none of them can compile first. Remove one of these links.";
+    public const string SDSL0147 = "SDSL0147: #{0} reads {1}, a generic parameter of {2}. A condition runs before generics get their value, so {1} would count as undefined here. Use a plain if, or a separate class for each value.";
     public const string SDSL0160 = "SDSL0160: {0} takes {1}, but the call gives {2}.";
     public const string SDSL0161 = "SDSL0161: Argument {0} of the call to {1} has type {2}, which can't be converted to {3}.";
     public const string SDSL0162 = "SDSL0162: No overload of {0} can take these arguments:{1}";
@@ -192,7 +194,7 @@ public static class SDSLErrorMessages
 
     public const string SDSL0200 = "SDSL0200: {0}.{1}() is marked 'override', but no inherited class declares {1}: it starts a new method, and calls made through a parent never reach it. Inherit the class that declares {1}, or remove 'override'.";
     public const string SDSL0201 = "SDSL0201: base.{1}() in {0}: no inherited class declares {1}() with this signature, so mixing {0} always fails. Inherit the class that declares it, or call {1}() without 'base'.";
-    public const string SDSL0202 = "SDSL0202: {0} has {1} generic parameter(s) ({2}), but {3} given: the extra values are ignored. Remove them.";
+    public const string SDSL0202 = "SDSL0202: {0} has {1} generic parameter(s) ({2}), but {3} given. Remove the extra values.";
     public const string SDSL0203 = "SDSL0203: [Color] on {0}, of type {1}: only float3 and float4 (or arrays of them) can be colors. Remove [Color], or change the type.";
 
     // Module rules: checked when a shader that is not root-only compiles (in a composition, the mixer reports them as errors)
@@ -210,7 +212,7 @@ public static class SDSLErrorMessages
     public const string SDSL0211 = "SDSL0211: [Pure] on shader {0}: only a module can be pure. Remove [Pure], or make {0} a module.";
     public const string SDSL0212 = "SDSL0212: {0}.{1}(): 'clone' has no effect since Stride 4.4. Remove it.";
     public const string SDSL0213 = "SDSL0213: [Pure] module {0}: {1} in {2}() works only in a pixel shader, and a pure module can run in any stage. Compute the value in the caller and pass it as a parameter, or remove [Pure] from {0}.";
-    public const string SDSL0214 = "SDSL0214: 'partial' on {0} has no meaning and is ignored. Remove it.";
+    public const string SDSL0214 = "SDSL0214: 'partial' on {0} has no meaning. Remove it.";
     public const string SDSL0217 = "SDSL0217: Attribute [{0}] on {1} does nothing: the compiler only knows {2} there. Check its spelling.";
     public const string SDSL0215 = "SDSL0215: {0} sees two structs named {1}, declared by {2} and {3}: {1} means the one of {2} (the first inherited or imported). Rename one of them.";
 }

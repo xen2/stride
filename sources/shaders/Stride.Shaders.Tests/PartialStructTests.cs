@@ -247,18 +247,18 @@ public class PartialStructTests : IDisposable
     [InlineData("partial shader PsCheck { }")]
     [InlineData("[Root] partial shader PsCheck { }")]
     [InlineData("partial module PsCheck { }")]
-    public void PartialOnAClassIsIgnored(string code)
+    public void PartialOnAClassIsAnError(string code)
     {
         Write("PsCheck", code);
 
         var (ok, log) = Compile("PsCheck");
-        Assert.True(ok, log);
-        Assert.Contains("SDSL0214: 'partial' on PsCheck has no meaning and is ignored. Remove it.", log);
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0214: 'partial' on PsCheck has no meaning. Remove it.", log);
     }
 
     // SDSL0215: two plain structs of one name, the first import wins; one struct reached twice is fine
     [Theory]
-    [InlineData("import PsS1; import PsS2;", "Warning: PsCheck.sdsl(2,8): SDSL0215: PsCheck sees two structs named S, declared by PsS1 and PsS2: S means the one of PsS1 (the first inherited or imported). Rename one of them.")]
+    [InlineData("import PsS1; import PsS2;", "Error: PsCheck.sdsl(2,8): SDSL0215: PsCheck sees two structs named S, declared by PsS1 and PsS2: S means the one of PsS1 (the first inherited or imported). Rename one of them.")]
     [InlineData("import PsS1; import PsS1User;", null)]
     public void TwoPlainStructsOfOneName(string imports, string? expected)
     {
@@ -268,7 +268,7 @@ public class PartialStructTests : IDisposable
         Write("PsCheck", $"module PsCheck {{ {imports} }}");
 
         var (ok, log) = Compile("PsCheck");
-        Assert.True(ok, log);
+        Assert.Equal(expected == null, ok);
         if (expected == null)
             Assert.DoesNotContain("SDSL0215", log);
         else

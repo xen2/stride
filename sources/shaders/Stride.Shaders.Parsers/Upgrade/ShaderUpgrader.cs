@@ -27,6 +27,10 @@ public static partial class ShaderUpgrader
         "drop-compose-value",
         // 4.5: `partial` on an effect never did anything, and a layer is `extend effect` (SDSL0311)
         "effect-not-partial",
+        // 4.5: `partial` on a class never meant anything (SDSL0214). A partial struct does
+        "drop-partial",
+        // 4.5: [Color] on a member of another type than float3 or float4 never did anything (SDSL0203)
+        "drop-wrong-color",
         // 4.4: an implementation of an abstract method is marked `override` (SDSL0114); after the rename, the parser rejects `stage`
         "add-override",
         // 4.5: module code of a class used in compositions can only call module methods
@@ -217,7 +221,7 @@ public static partial class ShaderUpgrader
     }
 
     // The steps that change text without reading the classes, in the order of Steps (they come first)
-    private static readonly Func<string, string>[] TextSteps = [DropClone, StageToModule, ComposeOutOfBuffer, DropComposeValue, EffectNotPartial];
+    private static readonly Func<string, string>[] TextSteps = [DropClone, StageToModule, ComposeOutOfBuffer, DropComposeValue, EffectNotPartial, DropPartial, DropWrongColor];
 
     // An older spelling parses after them
     internal static string WithTextSteps(string text) => TextSteps.Aggregate(text, (current, step) => step(current));
@@ -241,6 +245,46 @@ public static partial class ShaderUpgrader
         var source = new ShaderSourceText(text);
         foreach (var match in source.CodeMatches(@"(?<![\w.])(?<!\bmixin\s+)clone\s+(?=[A-Za-z_])"))
             source.Replace(match.Index, match.Length, "");
+        return source.Apply();
+    }
+
+    /// <summary>
+    /// <c>partial</c> on a class is removed, not in comments or strings.
+    /// </summary>
+    internal static string DropPartial(string text)
+    {
+        var source = new ShaderSourceText(text);
+        foreach (var match in source.CodeMatches(@"(?<![\w.])partial\s+(?=(?:shader|module)\s)"))
+            source.Replace(match.Index, match.Length, "");
+        return source.Apply();
+    }
+
+    /// <summary>
+    /// <c>[Color]</c> is removed from a member whose type isn't float3 or float4, or an array of them. On its own line, the line goes with it.
+    /// </summary>
+    internal static string DropWrongColor(string text)
+    {
+        var source = new ShaderSourceText(text);
+        foreach (var match in source.CodeMatches(@"\[\s*Color\s*\]"))
+        {
+            var after = source.Text[(match.Index + match.Length)..];
+            var member = Regex.Match(after, @"^\s*(?:\[[^\]]*\]\s*)*(?:(?:module|stage|static|const|compose|stream|override|clone)\s+)*(?<type>[A-Za-z_][\w.]*)(?:<[^>;]*>)?\s*(?:\[[^\]]*\]\s*)*[A-Za-z_]\w*");
+            if (!member.Success || member.Groups["type"].Value is "float3" or "float4" or "vector")
+                continue;
+
+            var start = match.Index;
+            var end = match.Index + match.Length;
+            var lineStart = source.Text.LastIndexOf('\n', Math.Max(start - 1, 0)) + 1;
+            var lineEnd = source.Text.IndexOf('\n', end);
+            if (lineEnd >= 0 && string.IsNullOrWhiteSpace(source.Text[lineStart..start]) && string.IsNullOrWhiteSpace(source.Text[end..lineEnd]))
+                source.Replace(lineStart, lineEnd + 1 - lineStart, "");
+            else
+            {
+                while (end < source.Text.Length && source.Text[end] is ' ' or '\t')
+                    end++;
+                source.Replace(start, end - start, "");
+            }
+        }
         return source.Apply();
     }
 

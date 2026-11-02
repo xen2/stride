@@ -2,7 +2,7 @@
 
 namespace Stride.Shaders.Tests;
 
-shader AbstractCallInReplacedMethodBase
+[Root] shader AbstractCallInReplacedMethodBase
 {
     stream float4 ColorTarget : SV_Target0;
 
