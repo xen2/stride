@@ -59,6 +59,8 @@ public partial class ShaderMixer
             methodGroup.Unbind.AddRange(Names(contribution.Unbind));
             if (contribution.Form == MethodExtensionPoint.ExtendForm)
                 methodGroup.Extends.Add(functionId);
+            else if (contribution.Form == MethodExtensionPoint.PatchForm)
+                methodGroup.Patches.Add(functionId);
         }
     }
 
@@ -74,12 +76,14 @@ public partial class ShaderMixer
 
         foreach (var group in mixinNode.MethodGroups.Values.Distinct())
         {
-            if (group.ExtensionPoint == null)
-                continue;
-
             // 1. Collect: the blocks of an effect are about the effect, so about its module methods. A block replaces what a class states.
             var rules = mixinNode.IsRoot ? CollectRules(globalContext, group) : EffectRules.None;
             ApplyPhaseRules(group, rules);
+            if (group.ExtensionPoint == null)
+            {
+                OrderPatches(globalContext, group, rules);
+                continue;
+            }
 
             // 2. The phase list: declared phases keep their order, added phases go next to their neighbours
             AddPhases(group, rules);
@@ -138,7 +142,8 @@ public partial class ShaderMixer
     /// </summary>
     private static bool IsAbout(ShaderLinkageRule rule, MethodGroup group)
     {
-        return rule.Method == group.Name && IsClass(ShaderNames.WithoutGenerics(group.ExtensionPoint!.Owner), rule.Owner ?? rule.Shader)
+        var owner = group.ExtensionPoint is { } point ? ShaderNames.WithoutGenerics(point.Owner) : ClassName(group.Methods[0].Shader);
+        return rule.Method == group.Name && IsClass(owner, rule.Owner ?? rule.Shader)
             && (rule.Parameters == null || rule.Parameters == string.Join(",", group.FunctionType.ParameterTypes.Select(x => (x.Type is PointerType pointer ? pointer.BaseType : x.Type).ToString())));
     }
 
@@ -173,15 +178,17 @@ public partial class ShaderMixer
     {
         foreach (var rule in globalContext.Linkage.Where(x => mixinNode.Shaders.Any(y => IsClass(ClassName(y), x.Shader))))
         {
-            var groups = mixinNode.MethodGroups.Values.Distinct().Where(x => x.Name == rule.Method && x.ExtensionPoint is { } point && IsClass(ShaderNames.WithoutGenerics(point.Owner), rule.Owner ?? rule.Shader)).ToList();
+            var groups = mixinNode.MethodGroups.Values.Distinct().Where(x => x.Name == rule.Method && IsClass(x.ExtensionPoint is { } point ? ShaderNames.WithoutGenerics(point.Owner) : ClassName(x.Methods[0].Shader), rule.Owner ?? rule.Shader)).ToList();
             string? problem;
             if (rule.Parameters == null && groups.Select(x => x.FunctionType).Distinct().Count() > 1)
                 problem = $"{rule.Method} has several overloads: write the parameter types, as in {rule.Method}({string.Join(",", groups[0].FunctionType.ParameterTypes.Select(x => (x.Type is PointerType pointer ? pointer.BaseType : x.Type).ToString()))})";
             else if (!groups.Any(x => IsAbout(rule, x)))
-                problem = rule.IsOnContribution ? $"{ShaderNames.ShortName(rule.Owner!)} has no method {rule.Member()[(rule.Owner!.Length + 1)..]} that is an extension point"
-                    : $"has no method {rule.Member()} that is an extension point";
+                problem = rule.IsOnContribution ? $"{ShaderNames.ShortName(rule.Owner!)} has no method {rule.Member()[(rule.Owner!.Length + 1)..]} that is an extension point or has patches"
+                    : $"has no method {rule.Member()} that is an extension point{(rule.Kind == ShaderLinkageKind.MixinOrder ? " or has patches" : "")}";
             else if (rule.IsOnContribution && !groups.Where(x => IsAbout(rule, x)).Any(x => x.Methods.Skip(1).Concat(x.Replaced.Values.Select(y => (y.Shader, 0, FunctionFlagsMask.None))).Any(y => IsClass(ClassName(y.Shader), rule.Shader))))
                 problem = $"doesn't contribute to {rule.Member()}";
+            else if (rule.Kind == ShaderLinkageKind.Unbind && !groups.Any(x => IsAbout(rule, x) && x.ExtensionPoint != null))
+                problem = $"{rule.Member()} is not an extension point, so there is nothing to unbind";
             else
                 continue;
             throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0154, ShaderNames.ShortName(rule.Shader), SourceOf(rule), rule.Member(), problem));
@@ -247,6 +254,34 @@ public partial class ShaderMixer
                 group.AddedPhases.Remove(contributor.MethodId);
             }
         }
+    }
+
+    /// <summary>
+    /// A method that is not an extension point has no phases, and only its patches have to state their order (SDSL0148), with
+    /// <c>[MixinOrder]</c> on a patch or on the method, or a block of the effect. Its plain overrides follow the order of the mix.
+    /// </summary>
+    private static void OrderPatches(MixinGlobalContext globalContext, MethodGroup group, EffectRules rules)
+    {
+        var contributors = group.Methods.Skip(1).ToList();
+        var patches = contributors.Where(x => group.Patches.Contains(x.MethodId)).ToList();
+        if (patches.Count < 2)
+            return;
+
+        group.Pairs.AddRange(MergePairs(group, CollectPairs(group, rules, contributors)));
+        var owner = group.Methods[0].Shader;
+        for (var a = 0; a < patches.Count; a++)
+        {
+            for (var b = a + 1; b < patches.Count; b++)
+            {
+                if (!IsOrdered(group, patches[a].Shader, patches[b].Shader))
+                    throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0148, ShaderNames.WithoutGenerics(patches[a].Shader.ShaderName), ShaderNames.WithoutGenerics(patches[b].Shader.ShaderName), ShaderNames.WithoutGenerics(owner.ShaderName), group.Name));
+            }
+        }
+
+        var sorted = FollowPairs(group, null, MethodExtensionPoint.ImplicitPhase, contributors).ToList();
+        group.Methods.RemoveRange(1, sorted.Count);
+        group.Methods.AddRange(sorted);
+        SortSymbols(globalContext.Table.CurrentFrame, group, sorted.Select(x => x.MethodId).ToList());
     }
 
     private static string ClassName(ShaderInfo shader) => ShaderNames.WithoutGenerics(shader.FullName);
@@ -493,14 +528,14 @@ public partial class ShaderMixer
     /// The contributors of one phase in chain order: the order of the mix, moved only as far as the pairs ask. A phase reached from the
     /// outside (<c>around</c>, or a pipeline step before the default body) runs from the end of the chain.
     /// </summary>
-    private static IEnumerable<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> FollowPairs(MethodGroup group, MethodExtensionPoint point, string? phase, List<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> contributors)
+    private static IEnumerable<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> FollowPairs(MethodGroup group, MethodExtensionPoint? point, string? phase, List<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> contributors)
     {
         var names = contributors.Select(x => ClassName(x.Shader)).ToHashSet();
         var pairs = group.Pairs.Where(x => names.Contains(x.Earlier) && names.Contains(x.Later)).ToList();
         if (pairs.Count == 0)
             return contributors;
 
-        var fromOutside = IsReachedFromOutside(point, phase);
+        var fromOutside = point != null && IsReachedFromOutside(point, phase);
         var first = contributors.ToDictionary(x => x.MethodId, _ => new List<int>());
         foreach (var pair in pairs)
         {

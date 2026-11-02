@@ -84,6 +84,7 @@ public static class SDSLErrorMessages
     public const string SDSL0145 = "SDSL0145: Swizzle {0} writes the same element twice. Write each element once.";
     public const string SDSL0146 = "SDSL0146: {0}: these classes inherit, import or use each other in a cycle, so none of them can compile first. Remove one of these links.";
     public const string SDSL0147 = "SDSL0147: #{0} reads {1}, a generic parameter of {2}. A condition runs before generics get their value, so {1} would count as undefined here. Use a plain if, or a separate class for each value.";
+    public const string SDSL0148 = "SDSL0148: {0} and {1} both patch {2}.{3}, and nothing orders them. Add [MixinOrder(After = {0})] to the patch in {1}, or this block to the effect: extend shader {2} {{ [MixinOrder({0}, {1})] {3}; }}";
     public const string SDSL0160 = "SDSL0160: {0} takes {1}, but the call gives {2}.";
     public const string SDSL0161 = "SDSL0161: Argument {0} of the call to {1} has type {2}, which can't be converted to {3}.";
     public const string SDSL0162 = "SDSL0162: No overload of {0} can take these arguments:{1}";
@@ -151,7 +152,7 @@ public static class SDSLErrorMessages
     public const string SDSL0158 = "SDSL0158: the {1} names the class {0}, which doesn't exist. Check the name. If the class comes from a package, reference that package from the project, or remove the name.";
     public const string SDSL0218 = "SDSL0218: phase {0} added by {1} to {2} has no place: {2} has no phase {3}.";
     public const string SDSL0216 = "SDSL0216: {0}.{1} doesn't call base, so {2} never run in this effect. Call base to keep them.";
-    public const string SDSL0246 = "SDSL0246: {0} overrides {1} of {2}, which is not an extension point. The first definition of {1} in {2} has to say how its overrides combine: write replace, pipeline or around on it. If {2} is in a library or in the engine, its author has to write it.";
+    public const string SDSL0246 = "SDSL0246: {0} overrides {1} of {2}, which is not an extension point. If you own {2}, write replace, pipeline or around on the first definition of {1}. If you don't, write patch {2}.{1} instead of override.";
 
     // Partial structs
 
