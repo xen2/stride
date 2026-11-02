@@ -10,11 +10,8 @@ namespace Stride.Rendering.Materials
         compose IMaterialSurface materialVertexStage;
         compose IStreamInitializer streamInitializerVertexStage;
 
-        [Phase(Deform)]
-        module override void VSMain()
+        extend ShaderBase.VSMain in Deform
         {
-            base.VSMain();
-
             // Reset material streams 
             streamInitializerVertexStage.ResetStream();
 

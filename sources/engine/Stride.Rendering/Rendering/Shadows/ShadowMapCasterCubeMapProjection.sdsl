@@ -16,8 +16,7 @@ namespace Stride.Rendering.Shadows
             streams.ShadingPosition = ComputeShadingPosition(streams.PositionWS);
         }
 
-		[Replaces(TransformationWAndVP)]
-		module override float4 ComputeShadingPosition(float4 world)
+		extend TransformationBase.ComputeShadingPosition(float4 world) replaces TransformationWAndVP
 		{
 			return mul(world, Transformation.ViewProjection);
 		}

@@ -403,6 +403,11 @@ public partial class MethodParameter(TypeName type, Identifier name, TextLocatio
     }
 }
 
+/// <summary>
+/// The header of <c>extend Owner.Method in Phase after X replaces Y</c> or <c>patch Owner.Method</c>.
+/// </summary>
+public sealed record ExtendClause(bool IsPatch, string Owner, bool HasParameters, Identifier? Phase, List<Identifier> After, List<Identifier> Replaces);
+
 public partial class ShaderMethod(
         TypeName returnType,
         Identifier name,
@@ -448,6 +453,11 @@ public partial class ShaderMethod(
     public Identifier? ReturnSemantic { get; set; }
 
     public BlockStatement? Body { get; set; }
+
+    /// <summary>
+    /// What <c>extend</c> or <c>patch</c> wrote instead of a signature. <see cref="ExtensionPoints.ResolveExtend"/> makes it an override.
+    /// </summary>
+    public ExtendClause? Extend { get; set; }
 
     public SymbolFrame? SymbolFrame { get; private set; }
     public List<Symbol> ParameterSymbols { get; private set; } = new();
@@ -513,7 +523,7 @@ public partial class ShaderMethod(
             CheckMissingOverride(table, ftype);
         else
         {
-            DefinitionChecks.CheckOverride(table, Name, ftype, IsStaged);
+            DefinitionChecks.CheckOverride(table, Name, ftype, IsStaged, isPatch: Extend?.IsPatch == true);
             CheckOverriddenMethod(table, ftype);
         }
         if (IsClone)

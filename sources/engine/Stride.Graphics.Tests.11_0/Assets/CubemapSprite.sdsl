@@ -11,9 +11,7 @@ shader CubemapSprite
     module float ViewIndex;
 
     // Shading of the sprite
-    [Phase(Post)]
-    [Replaces(SpriteEffect)]
-    module override float4 Shading()
+    extend SpriteBase.Shading in Post replaces SpriteEffect
     {
         return TextureCube0.Sample(Sampler, CubemapUtils.ConvertTexcoordsNoFlip(streams.TexCoord, ViewIndex));
     }

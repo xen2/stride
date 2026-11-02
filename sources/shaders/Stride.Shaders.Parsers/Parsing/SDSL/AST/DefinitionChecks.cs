@@ -19,7 +19,7 @@ internal static class DefinitionChecks
     /// signature is error SDSL0175 / SDSL0176 (<c>ShaderMethod.CheckOverriddenMethod</c>). It must also be of the same kind, module
     /// or instance, unless the class is root-only (SDSL0206 / SDSL0207).
     /// </summary>
-    public static void CheckOverride(SymbolTable table, Identifier name, FunctionType type, bool isModule)
+    public static void CheckOverride(SymbolTable table, Identifier name, FunctionType type, bool isModule, bool isPatch = false)
     {
         var inherited = table.InheritedShaders
             .SelectMany(x => x.Symbol!.Methods.Select(m => (Owner: x.Symbol!.ShortName, m.Symbol, m.Flags)))
@@ -39,7 +39,7 @@ internal static class DefinitionChecks
             else if (ChecksModuleRules(table) && !parentIsModule && isModule)
                 table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0207, shaderName, name.Name, parent.Owner)));
             // Implementing an abstract method is not a contribution. A root-only shader can override a module method without 'module'
-            else if (parentIsModule && parent.Symbol.ExtensionPoint == null && (sameSignature[0].Flags & FunctionFlagsMask.Abstract) == 0)
+            else if (!isPatch && parentIsModule && parent.Symbol.ExtensionPoint == null && (sameSignature[0].Flags & FunctionFlagsMask.Abstract) == 0)
                 table.AddError(new(name.Info, string.Format(SDSLErrorMessages.SDSL0246, shaderName, name.Name, sameSignature[0].Owner)));
         }
     }

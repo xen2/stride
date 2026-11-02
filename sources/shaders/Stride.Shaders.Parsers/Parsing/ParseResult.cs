@@ -76,4 +76,11 @@ public class ParseResult<T>
 /// <summary>
 /// Default parser result
 /// </summary>
-public class ParseResult : ParseResult<Node>;
+public class ParseResult : ParseResult<Node>
+{
+    /// <summary>
+    /// The method being extended while the parser reads the body of an <c>extend</c> or a <c>patch</c>: there, <c>next(...)</c> calls
+    /// what <c>base.Method(...)</c> calls.
+    /// </summary>
+    internal string? ExtendedMethod { get; set; }
+}

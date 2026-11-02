@@ -16,7 +16,7 @@ namespace Stride.Rendering;
 
 shader TessellationFlat : TessellationBase
 {
-    module override float ComputeClipping(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants)
+    extend TessellationBase.ComputeClipping(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants)
     {
         return ComputeClippingGroup3(input[0].PositionWS, input[1].PositionWS, input[2].PositionWS);
     }
