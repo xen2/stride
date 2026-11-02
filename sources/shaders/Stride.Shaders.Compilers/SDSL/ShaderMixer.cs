@@ -69,6 +69,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         var globalContext = new MixinGlobalContext(table, log);
 
         MixinNode rootMixin;
+        var conflicts = new List<ContributionConflict>();
         try
         {
             var shaderSource2 = EvaluateInheritanceAndCompositions(shaderLoader, context, null, shaderSource);
@@ -80,6 +81,9 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
             DeclarePartialStructs(globalContext, context, shaderSource2);
 
             rootMixin = MergeMixinNode(globalContext, context, temp, shaderSource2);
+
+            if (table.Errors.Count == 0)
+                conflicts = FindContributionConflicts(rootMixin, globalContext, context, temp);
 
             if (CollectExplanation)
                 Explanation = Explain(rootMixin, globalContext, shaderLoader);
@@ -107,7 +111,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
             return false;
 
         ReportDroppedContributors(rootMixin, globalContext, log);
-        if (IsAssetBuild && !CheckContributionConflicts(rootMixin, globalContext, context, temp, log))
+        if (!ReportContributionConflicts(conflicts, log))
             return false;
 
         // Note: done first, so that the code analysis only has to know about OpSwitch
@@ -1003,9 +1007,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
             }
         }
 
-        // Extension points are per effect: module methods, all in the root node
-        if (mixinNode.IsRoot)
-            SortContributions(globalContext, mixinNode);
+        // A module method is in the root node, for the whole effect. An instance method is in its own node, for that node.
+        SortContributions(globalContext, mixinNode);
     }
 
     private static void ExpandForeach(MixinGlobalContext globalContext, SpirvContext context, SpirvBuffer buffer, MixinNode mixinNode, int index, OpForeachSDSL @foreach)
