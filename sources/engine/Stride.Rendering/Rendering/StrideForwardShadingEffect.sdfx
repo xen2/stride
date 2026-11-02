@@ -62,8 +62,6 @@ namespace Stride.Rendering
             {
                 mixin (extensionPixelStageSurfaceFilter);
             }
-
-            mixin child GBuffer;
         }
 
         // Depth-only sub-effects don't need lighting; declare them before StrideLighting

@@ -1,6 +1,6 @@
 namespace Game.Effects;
 
-shader MyKeys : TransformationMatrix<Stride.Rendering.Transformation.WorldViewProjection>
+shader MyKeys : MyMatrix<Stride.Rendering.Transformation.WorldViewProjection>
 {
     // A key of a shader member has the full name of its class
     [Link("Stride.Rendering.Transformation.World")]
