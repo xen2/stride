@@ -36,7 +36,7 @@ namespace Stride.Rendering.Images
         groupshared float4 PartialSHCoeffs[TBlockSize][TBlockSize][CoefficientsCount];
 
         // Projects radiance on SH basis and sums results along rows.
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
 	        // Determine the indices of the texel to compute
 	        const int3 location = int3(streams.GroupThreadId.xy + streams.GroupId.xy * TBlockSize, streams.GroupId.z);

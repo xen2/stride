@@ -14,7 +14,7 @@ namespace Stride.Graphics.Tests
         module RWStructuredBuffer<uint> Input;
         module RWStructuredBuffer<uint> Result;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             Result[streams.DispatchThreadId.x] = Input[streams.DispatchThreadId.x] + 1;
         }

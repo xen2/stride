@@ -48,6 +48,8 @@ Direct3D11/RenderTests.DerivativeControl strict=1be3281776ea legal=e720e3be141c 
 Direct3D11/RenderTests.DoWhile strict=ec80718951ee legal=c589fa651bd6 reflection=e3b0c44298fc explain=ccbaa6abdd24
 Direct3D11/RenderTests.EmptyStatements strict=044bcba85511 legal=74d69c4e610a reflection=e3b0c44298fc explain=5c8e6420fd03
 Direct3D11/RenderTests.ExtensionPointEntry strict=3d2e5feb941d legal=f0fef86380f8 reflection=ca914904170c explain=edd10ef37b37
+Direct3D11/RenderTests.ExtensionPointExtend strict=7c56a6f0155c legal=842b725fe492 reflection=ca914904170c explain=57e2be1588a5
+Direct3D11/RenderTests.ExtensionPointJoinedPhase strict=a726a98c27de legal=b9e0007e75b3 reflection=ca914904170c explain=2f4823ca41e2
 Direct3D11/RenderTests.ExtensionPointPhases strict=cd3bfc614760 legal=f0fef86380f8 reflection=ca914904170c explain=b86e5ccb53fd
 Direct3D11/RenderTests.ExtensionPointReplaces strict=2296171ca8c4 legal=b86528ea22e3 reflection=ca914904170c explain=0e9dbe6685c8
 Direct3D11/RenderTests.FloatIndex strict=c8adb3ebb55b legal=00d4a9e7abfd reflection=e3b0c44298fc explain=b4625b5d2ea9
@@ -776,6 +778,8 @@ Vulkan/RenderTests.DerivativeControl strict=cee9597a33ee legal=750f42d2200c refl
 Vulkan/RenderTests.DoWhile strict=57902f738d4c legal=ed56658a4c49 reflection=e3b0c44298fc explain=ccbaa6abdd24
 Vulkan/RenderTests.EmptyStatements strict=035a0989b85e legal=9ec84ec8893a reflection=e3b0c44298fc explain=5c8e6420fd03
 Vulkan/RenderTests.ExtensionPointEntry strict=bc389f2329d5 legal=59e9de690d40 reflection=ca914904170c explain=edd10ef37b37
+Vulkan/RenderTests.ExtensionPointExtend strict=24b1d74a783e legal=1e6c5fc8f44d reflection=ca914904170c explain=57e2be1588a5
+Vulkan/RenderTests.ExtensionPointJoinedPhase strict=59d834ffc692 legal=783494ee19c1 reflection=ca914904170c explain=2f4823ca41e2
 Vulkan/RenderTests.ExtensionPointPhases strict=acf2473e575e legal=59e9de690d40 reflection=ca914904170c explain=b86e5ccb53fd
 Vulkan/RenderTests.ExtensionPointReplaces strict=f2ca4a5f62b6 legal=9b155c16e544 reflection=ca914904170c explain=0e9dbe6685c8
 Vulkan/RenderTests.FloatIndex strict=ea835fa4cc30 legal=6d2768455cce reflection=e3b0c44298fc explain=b4625b5d2ea9

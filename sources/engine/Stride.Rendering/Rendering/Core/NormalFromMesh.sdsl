@@ -27,7 +27,7 @@ module NormalFromMesh
         streams.meshNormalWS = streams.normalWS;
     }
     
-    override void UpdateNormalFromTangentSpace(float3 normalInTangentSpace)
+    extend NormalUpdate.UpdateNormalFromTangentSpace(float3 normalInTangentSpace)
     {
         // Override the default behavior, as we are not changing the NormalVS calculated at vertex stage when normal mapping is not used
     }

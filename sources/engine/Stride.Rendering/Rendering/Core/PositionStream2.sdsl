@@ -17,9 +17,8 @@ module PositionStream2
     stream float4 Position : ExpandedPosition4;
     
     [Phase(Input)]
-    override void VSMain()
+    extend ShaderBase.VSMain()
     {
         streams.Position = float4(streams.Position2, 0.0f, 1.0f);
-        base.VSMain();
     }
 };

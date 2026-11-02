@@ -18,9 +18,9 @@ namespace Stride.Rendering.Images
         // Shading of the sprite
         [Phase(Post)]
         [MixinOrder(After = SpriteSuperSampler)]
-        module override float4 Shading()
+        extend SpriteBase.Shading()
         {
-            float4 color = base.Shading();
+            float4 color = next();
             if (IsOnlyChannelRed != 0)
             {
                 color = float4(color.rrr, 1);

@@ -16,8 +16,8 @@ namespace Stride.Shaders.Compilers.SDSL;
 public partial class ShaderMixer
 {
     /// <summary>
-    /// An effect the asset build compiles. A contributor that drops others is then a warning (SDSL0216), and
-    /// information in a mix built at run time, where replacing engine code is often the point.
+    /// An effect the asset build compiles. A contributor that drops others is then a warning (SDSL0216) or an error (SDSL0136),
+    /// and information in a mix built at run time, where replacing engine code is often the point.
     /// </summary>
     public bool IsAssetBuild { get; set; }
 
@@ -35,7 +35,7 @@ public partial class ShaderMixer
         var index = functionIndex + 2;
         if (buffer[index].Op == Op.OpExtensionPointSDSL && (OpExtensionPointSDSL)buffer[index] is { } point)
         {
-            methodGroup.ExtensionPoint ??= new(point.Kind, point.Owner, point.Phases.Split(',', StringSplitOptions.RemoveEmptyEntries));
+            methodGroup.ExtensionPoint ??= new(point.Kind, point.Owner, point.Phases.Split(',', StringSplitOptions.RemoveEmptyEntries), point.Parameters.Split(',', StringSplitOptions.RemoveEmptyEntries));
             index++;
         }
         if (buffer[index].Op == Op.OpContributionSDSL && (OpContributionSDSL)buffer[index] is { } contribution)
@@ -57,6 +57,8 @@ public partial class ShaderMixer
             // Only the first definition writes these
             methodGroup.MixinOrder.AddRange(Names(contribution.MixinOrder));
             methodGroup.Unbind.AddRange(Names(contribution.Unbind));
+            if (contribution.Form == MethodExtensionPoint.ExtendForm)
+                methodGroup.Extends.Add(functionId);
         }
     }
 
@@ -90,7 +92,8 @@ public partial class ShaderMixer
             RemoveReplaced(globalContext.Table.CurrentFrame, group, rules);
             // 5. The running order inside each phase, then the chain
             OrderPhases(globalContext.Table.CurrentFrame, group, rules);
-            // 6. Where each step of a pipeline calls base: a check of every step
+            // 6. Where each step of a pipeline calls base: the form of an extend that fits its phase, then a check of every step
+            PickBaseCallForms(globalContext.Table.CurrentFrame, group);
             CheckBaseCalls(group);
         }
 
@@ -530,6 +533,48 @@ public partial class ShaderMixer
 
     private static bool IsReachedFromOutside(MethodExtensionPoint point, string? phase)
         => phase != null && (point.Kind != ExtensionPointKindSDSL.Pipeline || Array.IndexOf(point.Phases, phase) < point.DefaultPhaseIndex);
+
+    // What the class wrote after OpFunctionMetadataSDSL says
+    private static bool IsBaseLastForm(SpirvBuffer buffer, int functionIndex)
+    {
+        var index = functionIndex + 2;
+        if (buffer[index].Op == Op.OpExtensionPointSDSL)
+            index++;
+        return buffer[index].Op == Op.OpContributionSDSL && ((OpContributionSDSL)buffer[index]).Form == MethodExtensionPoint.BaseLastForm;
+    }
+
+    /// <summary>
+    /// An <c>extend</c> whose phase its class couldn't place compiled twice, calling <c>base</c> first and last. The chain holds the first
+    /// form: before the default body, the second one takes its place. The form left out is never called.
+    /// </summary>
+    private static void PickBaseCallForms(SymbolFrame frame, MethodGroup group)
+    {
+        var point = group.ExtensionPoint!;
+        foreach (var (first, last) in group.BaseLastForms)
+        {
+            var index = group.Methods.FindIndex(x => x.MethodId == first);
+            if (index < 0 || !group.Phases.TryGetValue(first, out var phase) || Array.IndexOf(point.Phases, phase) >= point.DefaultPhaseIndex)
+                continue;
+
+            group.Methods[index] = (group.Methods[index].Shader, last, group.Methods[index].Flags);
+            foreach (var byMethod in new IDictionary<int, string[]>[] { group.After, group.Before, group.Drops })
+            {
+                if (byMethod.Remove(first, out var names))
+                    byMethod[last] = names;
+            }
+            group.Phases.Remove(first);
+            group.Phases[last] = phase;
+            if (group.AddedPhases.Remove(first, out var added))
+                group.AddedPhases[last] = added;
+            group.Lines[last] = group.Lines.GetValueOrDefault(first);
+            group.BaseCalls.Remove(first);
+            group.BaseCalls[last] = MethodExtensionPoint.BaseCallLast;
+            if (group.Extends.Remove(first))
+                group.Extends.Add(last);
+            if (frame.TryGetValue(group.Name, out var symbol) && symbol.Type is FunctionGroupType)
+                frame[group.Name] = symbol with { GroupMembers = [.. symbol.GroupMembers.Select(x => x.IdRef == first ? x with { IdRef = last } : x)] };
+        }
+    }
 
     /// <summary>
     /// A step before the phase of the default body calls <c>base</c> last, a step after it first (SDSL0140). A class checks the phases it
@@ -1042,12 +1087,30 @@ public partial class ShaderMixer
         }
     }
 
-    private void ReportDroppedContributors(MixinNode rootMixin, MixinGlobalContext globalContext, ILogger log)
+    private bool ReportDroppedContributors(MixinNode rootMixin, MixinGlobalContext globalContext, ILogger log)
     {
+        var result = true;
         foreach (var group in NodesOf(rootMixin).SelectMany(x => x.MethodGroups.Values).Distinct())
         {
             if (group.ExtensionPoint == null || FindDropped(group, globalContext) is not var (by, dropped))
                 continue;
+
+            // In an asset build the target syntax has to say it. The compat form stays what it always was.
+            if (group.Extends.Contains(group.Methods.Find(x => x.Shader == by).MethodId))
+            {
+                var names = string.Join(", ", dropped.Select(x => ShaderNames.WithoutGenerics(x.ShaderName)));
+                var dropMessage = string.Format(SDSLErrorMessages.SDSL0136, by.ShaderName, group.Name, names, names);
+                if (IsAssetBuild)
+                {
+                    log.Error(dropMessage);
+                    result = false;
+                }
+                else
+                {
+                    log.Info(dropMessage);
+                }
+                continue;
+            }
 
             var message = string.Format(SDSLErrorMessages.SDSL0216, by.ShaderName, group.Name, string.Join(", ", dropped.Select(x => x.ShaderName)));
             if (IsAssetBuild)
@@ -1055,6 +1118,7 @@ public partial class ShaderMixer
             else
                 log.Info(message);
         }
+        return result;
     }
 
     /// <summary>

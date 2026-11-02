@@ -11,8 +11,8 @@ module BackgroundShader
 
     // Shading of the sprite
     [Phase(Post)]
-    override float4 Shading()
+    extend SpriteBase.Shading()
     { 
-        return Intensity * base.Shading();
+        return Intensity * next();
     }
 };

@@ -1,0 +1,55 @@
+// PSMain(ExpectedResult=#29292929)
+
+namespace Stride.Shaders.Tests;
+
+// A class joins a phase that another class adds before the default body. When it compiles, it can't know where that phase is, so it
+// compiles with base first and with base last, and the mixer keeps base last: ((1 + 3) * 5) * 2 + 1 = 41. With base first, the default
+// body would run before it, and give 45.
+module JoinedPhaseOwner
+{
+    stream float4 Position : POSITION;
+    stream float4 ShadingPosition : SV_Position;
+    stream float4 ColorTarget : SV_Target0;
+    stream float Steps;
+
+    [Phases(Early, Default)]
+    pipeline void Run() { streams.Steps = streams.Steps * 2 + 1; }
+
+    void VSMain() { streams.ShadingPosition = streams.Position; }
+
+    void PSMain()
+    {
+        streams.Steps = 1;
+        Run();
+        streams.ColorTarget = streams.Steps / 255.0;
+    }
+}
+
+module JoinedPhaseAdder
+{
+    import JoinedPhaseOwner;
+
+    [Phase(Tests.Wind, After = Early)]
+    extend JoinedPhaseOwner.Run()
+    {
+        streams.Steps = streams.Steps + 3;
+    }
+}
+
+module JoinedPhaseJoiner
+{
+    import JoinedPhaseOwner;
+
+    [Phase(Tests.Wind)]
+    [MixinOrder(After = JoinedPhaseAdder)]
+    extend JoinedPhaseOwner.Run()
+    {
+        streams.Steps = streams.Steps * 5;
+    }
+}
+
+shader ExtensionPointJoinedPhase
+{
+    import JoinedPhaseJoiner;
+    import JoinedPhaseAdder;
+}

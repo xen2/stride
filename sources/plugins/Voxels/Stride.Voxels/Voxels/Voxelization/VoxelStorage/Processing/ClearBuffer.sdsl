@@ -15,7 +15,7 @@ namespace Stride.Rendering.Voxels
         int rowLength;
         int count;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             uint index = streams.DispatchThreadId.x + streams.DispatchThreadId.y * (uint)rowLength;
             if (index < (uint)count)

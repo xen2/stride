@@ -113,7 +113,7 @@ public record struct EffectStatementParsers : IParser<Statement>
 /// </summary>
 public record struct EffectShaderBlockParser : IParser<EffectShaderBlock>
 {
-    private static bool DottedName<TScanner>(ref TScanner scanner, ParseResult result, out List<string> parts) where TScanner : struct, IScanner
+    internal static bool DottedName<TScanner>(ref TScanner scanner, ParseResult result, out List<string> parts) where TScanner : struct, IScanner
     {
         parts = [];
         do

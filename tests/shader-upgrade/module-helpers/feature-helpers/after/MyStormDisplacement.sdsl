@@ -1,7 +1,7 @@
 // Changes a helper of the wind feature
 shader MyStormDisplacement : MyWindDisplacement
 {
-    module override float Gust()
+    extend MyWindDisplacement.Gust()
     {
         return 3.0;
     }

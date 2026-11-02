@@ -94,7 +94,7 @@ shader TessellationPN : TessellationFlat
         return !all(planeTest != 0.0f) ? 1.0 : 0.0;
     }
     
-    module override float ComputeClipping(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants)
+    extend TessellationBase.ComputeClipping(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants)
     {
         // For now, Displacement clipping is hardcoded here, need to be able to split that! (maybe not that easy, need array or something)
         const float displacementSize = 75;
@@ -116,7 +116,7 @@ shader TessellationPN : TessellationFlat
         streams.nextPositionVS2 = ComputeControlPoint((float3)input[NextCPID].PositionWS, (float3)input[uCPID].PositionWS, input[NextCPID].normalWS);
     }
 
-    module override void TessellateHullConstant(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants)
+    extend TessellationBase.TessellateHullConstant(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants)
     {
         float3 f3B300 = output[0].PositionWS.xyz,
                f3B210 = output[0].nextPositionVS1.xyz,
@@ -145,10 +145,8 @@ shader TessellationPN : TessellationFlat
     }
 
     [Phase(Interpolate)]
-    module override void InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords)
+    extend TessellationBase.InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords)
     {
-        base.InterpolateBarycentric(input, constants, f3BarycentricCoords);
-
         float fU = f3BarycentricCoords.x;
         float fV = f3BarycentricCoords.y;
         float fW = f3BarycentricCoords.z;

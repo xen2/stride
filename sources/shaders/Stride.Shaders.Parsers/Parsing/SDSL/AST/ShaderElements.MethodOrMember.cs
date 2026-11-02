@@ -403,6 +403,11 @@ public partial class MethodParameter(TypeName type, Identifier name, TextLocatio
     }
 }
 
+/// <summary>
+/// The header of <c>extend Owner.Method(parameters)</c> or <c>patch Owner.Method(parameters)</c>.
+/// </summary>
+public sealed record ExtendClause(bool IsPatch, string Owner, bool HasParameters);
+
 public partial class ShaderMethod(
         TypeName returnType,
         Identifier name,
@@ -452,6 +457,21 @@ public partial class ShaderMethod(
     public Identifier? ReturnSemantic { get; set; }
 
     public BlockStatement? Body { get; set; }
+
+    /// <summary>
+    /// What <c>extend</c> or <c>patch</c> wrote instead of a signature. <see cref="ExtensionPoints.ResolveExtend"/> makes it an override.
+    /// </summary>
+    public ExtendClause? Extend { get; set; }
+
+    /// <summary>
+    /// The second form of an <c>extend</c> whose phase is only placed at link, calling <c>base</c> last: see <see cref="MethodExtensionPoint.BaseLastForm"/>.
+    /// </summary>
+    public ShaderMethod? BaseLastForm { get; set; }
+
+    /// <summary>
+    /// Whether this is the <see cref="BaseLastForm"/> of another method. It isn't a method of the class: a class that inherits sees the other one.
+    /// </summary>
+    public bool IsBaseLastForm { get; set; }
 
     public SymbolFrame? SymbolFrame { get; private set; }
     public List<Symbol> ParameterSymbols { get; private set; } = new();
@@ -517,7 +537,7 @@ public partial class ShaderMethod(
             CheckMissingOverride(table, ftype);
         else
         {
-            DefinitionChecks.CheckOverride(table, Name, ftype, IsStaged);
+            DefinitionChecks.CheckOverride(table, Name, ftype, IsStaged, isPatch: Extend?.IsPatch == true);
             CheckOverriddenMethod(table, ftype);
         }
         if (IsClone)
@@ -543,7 +563,8 @@ public partial class ShaderMethod(
         table.DeclaredTypes.TryAdd(Type.ToString(), Type);
 
         SymbolFrame = table.Pop();
-        table.CurrentShader!.Methods.Add((symbol, functionFlags));
+        if (!IsBaseLastForm)
+            table.CurrentShader!.Methods.Add((symbol, functionFlags));
     }
 
     // Without 'override', a method with the signature of an inherited one starts a separate method group,

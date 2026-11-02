@@ -6,10 +6,10 @@ namespace Stride.Rendering.Materials
     shader MaterialSurfaceStreamShading<MemberName TStreamName, MemberName TStreamRGB, bool RemapSigned> : ShadingBase, MaterialPixelShadingStream
     {
         [Phase(Post)]
-        module override float4 Shading()
+        extend ShadingBase.Shading()
         {
             // Run surface shading but don't take the result
-            base.Shading();
+            next();
             var value = streams.TStreamName;
             if (RemapSigned)
                 value = value * 0.5f + 0.5f;

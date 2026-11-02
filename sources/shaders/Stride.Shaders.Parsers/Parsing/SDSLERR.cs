@@ -79,6 +79,8 @@ public static class SDSLErrorMessages
     public const string SDSL0118 = "SDSL0118: {0} declares generic parameter '{1}' of type {2} at line {3}. Texture and sampler generic parameters are not supported. Declare a texture or sampler member instead, or use a ComputeColorTexture...Sampler shader with a texture key.";
     public const string SDSL0119 = "SDSL0119: {0} can only be mixed at the root of an effect ([Root] on it, or on a class it inherits or imports), but it is in the composition {1}. Mix it at the root, or remove [Root].";
     public const string SDSL0247 = "SDSL0247: {0} is a module, but it is in the composition {1}. A module goes to the root of the effect, so a call through a composition can reach the wrong one. Compose a shader, and call the module from it.";
+    public const string SDSL0143 = "SDSL0143: {0} of {1}.{2}: {3}.";
+    public const string SDSL0144 = "SDSL0144: {0} is a step of the pipeline {1}.{2}, so it doesn't call next or base: the steps run in phase order.";
     public const string SDSL0145 = "SDSL0145: Swizzle {0} writes the same element twice. Write each element once.";
     public const string SDSL0160 = "SDSL0160: {0} takes {1}, but the call gives {2}.";
     public const string SDSL0161 = "SDSL0161: Argument {0} of the call to {1} has type {2}, which can't be converted to {3}.";
@@ -92,6 +94,7 @@ public static class SDSLErrorMessages
     public const string SDSL0163 = "SDSL0163: The call {0} is ambiguous: these overloads match equally well:{1}\nCast the arguments to the parameter types of the one to call.";
     public const string SDSL0170 = "SDSL0170: [StreamOutput] on {0} is not supported: Stride shaders have no geometry shader stream output. Remove the attribute; to keep generated vertices, write them to a RWStructuredBuffer from a compute shader instead.";
     public const string SDSL0135 = "SDSL0135: [{0}] on {1}: {2}.";
+    public const string SDSL0136 = "SDSL0136: {0}.{1} doesn't call next, so {2} never run in this effect. Write [Drops(Mixins = {{ {3} }})] on it, or call next.";
     public const string SDSL0137 = "SDSL0137: {0} and {1} are both in phase {2} of {3} and {4}, and nothing orders them. Add [MixinOrder(After = {0})] to {1}, or this block to the effect: extend shader {5} {{ [MixinOrder({0}, {1})] {6}; }}";
     public const string SDSL0137InComposition = "SDSL0137: {0} and {1} are both in phase {2} of {3}, in a composition, and {4}, and nothing orders them. A block of the effect doesn't reach a composition: add [MixinOrder(After = {0})] to {1}, or give one of them a phase of its own, such as [Phase(Vendor.Later, After = {2})].";
     public const string SDSL0138 = "SDSL0138: the order of {0} can't be followed: {1}.";

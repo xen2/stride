@@ -3275,11 +3275,13 @@ public partial class InstructionInfo
         Instance.Register(Op.OpExtensionPointSDSL, OperandKind.ExtensionPointKindSDSL, OperandQuantifier.One, "kind", "Miscellaneous", []);
         Instance.Register(Op.OpExtensionPointSDSL, OperandKind.LiteralString, OperandQuantifier.One, "owner", "Miscellaneous", []);
         Instance.Register(Op.OpExtensionPointSDSL, OperandKind.LiteralString, OperandQuantifier.One, "phases", "Miscellaneous", []);
+        Instance.Register(Op.OpExtensionPointSDSL, OperandKind.LiteralString, OperandQuantifier.One, "parameters", "Miscellaneous", []);
         Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "phase", "Miscellaneous", []);
         Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "after", "Miscellaneous", []);
         Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "before", "Miscellaneous", []);
         Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "drops", "Miscellaneous", []);
         Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "addedPhase", "Miscellaneous", []);
+        Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "form", "Miscellaneous", []);
         Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "baseCall", "Miscellaneous", []);
         Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "mixinOrder", "Miscellaneous", []);
         Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "unbind", "Miscellaneous", []);

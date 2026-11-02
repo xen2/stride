@@ -9,10 +9,20 @@ namespace Stride.Shaders.Core;
 /// </summary>
 /// <param name="Owner">The full name of the class of the first definition.</param>
 /// <param name="Phases">In the order the call reaches them.</param>
-public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Owner, string[] Phases)
+/// <param name="ParameterNames">The names of the parameters of the first definition: the error of an <c>extend</c> with no parameters names them.</param>
+public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Owner, string[] Phases, string[] ParameterNames)
 {
     /// <summary>The phase of a <c>pipeline</c> or <c>around</c> written without phases, and of the default body of a pipeline that declares it.</summary>
     public const string DefaultPhase = "Default";
+
+    /// <summary>What a contribution records when it is written with <c>extend</c>.</summary>
+    public const string ExtendForm = "extend";
+
+    /// <summary>
+    /// What the second form of an <c>extend</c> records: one whose phase its class can't place compiles twice, calling <c>base</c> first
+    /// and last, and the mixer keeps the one that fits.
+    /// </summary>
+    public const string BaseLastForm = "extend, base last";
 
     /// <summary>The implicit phase after every declared phase, in the order of the mix: where a contributor without a phase is.</summary>
     public const string ImplicitPhase = "External";

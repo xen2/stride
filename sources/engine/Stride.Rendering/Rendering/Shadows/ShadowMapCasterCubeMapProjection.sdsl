@@ -17,7 +17,7 @@ namespace Stride.Rendering.Shadows
         }
 
 		[Drops(Mixins = { TransformationWAndVP })]
-		module override float4 ComputeShadingPosition(float4 world)
+		extend TransformationBase.ComputeShadingPosition(float4 world)
 		{
 			return mul(world, Transformation.ViewProjection);
 		}

@@ -11,9 +11,8 @@ module VelocityStream
     stream float2 velocity;
 
     [Phase(Attributes)]
-    override void VSMain()
+    extend ShaderBase.VSMain()
     {
-        base.VSMain();
         streams.velocity = float2(0,0);
     }
 };

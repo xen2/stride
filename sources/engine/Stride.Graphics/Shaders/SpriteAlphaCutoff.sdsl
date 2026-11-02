@@ -28,12 +28,12 @@ shader SpriteAlphaCutoff<bool TSRgb>
 
     // Shading of the sprite
     [Phase(Post)]
-    module override float4 Shading()
+    extend SpriteBase.Shading()
     {
         // Because we use float input values we should allow certain threshold - lets fix it at 0.1
 
         // Alpha grayscale
-        float4 swizzleColor = (abs(streams.Swizzle - 1) <= 0.1) ? base.Shading().rrrr : base.Shading();
+        float4 swizzleColor = (abs(streams.Swizzle - 1) <= 0.1) ? next().rrrr : next();
 
         // Normal maps
         if (abs(streams.Swizzle - 2) <= 0.1)

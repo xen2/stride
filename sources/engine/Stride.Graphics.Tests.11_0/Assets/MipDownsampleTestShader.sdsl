@@ -13,7 +13,7 @@ namespace Stride.Graphics.Tests
         module Texture2D<float4> Input;
         module RWTexture2D<float4> Output;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             int2 position = (int2) streams.DispatchThreadId.xy * 2;
             Output[streams.DispatchThreadId.xy] = (Input.Load(int3(position, 0)) + Input.Load(int3(position + int2(1, 0), 0))

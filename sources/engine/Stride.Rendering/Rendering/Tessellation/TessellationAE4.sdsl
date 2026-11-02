@@ -24,10 +24,8 @@ shader TessellationAE4<MemberName TStream> : TessellationBase, MaterialDomainStr
     }
 
     [Phase(Fixup)]
-    module override void InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords)
+    extend TessellationBase.InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords)
     {
-        base.InterpolateBarycentric(input, constants, f3BarycentricCoords);
-
         float fU = f3BarycentricCoords.x;
         float fV = f3BarycentricCoords.y;
         float fW = f3BarycentricCoords.z;

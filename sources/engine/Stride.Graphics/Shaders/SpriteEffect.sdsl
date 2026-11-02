@@ -13,8 +13,8 @@ module SpriteEffect
 
     // Shading of the sprite
     [Phase(Post)]
-    override float4 Shading()
+    extend SpriteBase.Shading()
     {
-        return base.Shading() * Color;
+        return next() * Color;
     }
 };

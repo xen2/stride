@@ -14,9 +14,9 @@ shader SpritePicking
 
     // method computing color
     [Phase(Post)]
-    module override float4 Shading()
+    extend SpriteBase.Shading()
     {
-        base.Shading(); // discard pixel if needed.
+        next(); // discard pixel if needed.
 
         return streams.Color;
     }

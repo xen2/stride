@@ -130798,11 +130798,23 @@ public ref partial struct OpExtensionPointSDSL : IMemoryInstruction
         }
     }
 
-    public OpExtensionPointSDSL(ExtensionPointKindSDSL kind, string owner, string phases)
+    public string Parameters
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public OpExtensionPointSDSL(ExtensionPointKindSDSL kind, string owner, string phases, string parameters)
     {
         Kind = kind;
         Owner = owner;
         Phases = phases;
+        Parameters = parameters;
         UpdateInstructionMemory();
         opData = ref Unsafe.NullRef<OpData>();
     }
@@ -130815,7 +130827,7 @@ public ref partial struct OpExtensionPointSDSL : IMemoryInstruction
     public void UpdateInstructionMemory()
     {
         InstructionMemory ??= MemoryOwner<int>.Empty;
-        Span<int> instruction = [(int)Op.OpExtensionPointSDSL, (int)Kind, ..Owner.AsDisposableLiteralValue().Words, ..Phases.AsDisposableLiteralValue().Words];
+        Span<int> instruction = [(int)Op.OpExtensionPointSDSL, (int)Kind, ..Owner.AsDisposableLiteralValue().Words, ..Phases.AsDisposableLiteralValue().Words, ..Parameters.AsDisposableLiteralValue().Words];
         instruction[0] |= instruction.Length << 16;
         if (instruction.Length == InstructionMemory.Length)
             instruction.CopyTo(InstructionMemory.Span);
@@ -130842,6 +130854,9 @@ public ref partial struct OpExtensionPointSDSL : IMemoryInstruction
                     break;
                 case "phases":
                     Phases = o.ToLiteral<string>();
+                    break;
+                case "parameters":
+                    Parameters = o.ToLiteral<string>();
                     break;
                 // We ignore unrecognized operands
                 default:
@@ -130953,6 +130968,17 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
         }
     }
 
+    public string Form
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
     public string BaseCall
     {
         get;
@@ -130997,13 +131023,14 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
         }
     }
 
-    public OpContributionSDSL(string phase, string after, string before, string drops, string addedPhase, string baseCall, string mixinOrder, string unbind, int line)
+    public OpContributionSDSL(string phase, string after, string before, string drops, string addedPhase, string form, string baseCall, string mixinOrder, string unbind, int line)
     {
         Phase = phase;
         After = after;
         Before = before;
         Drops = drops;
         AddedPhase = addedPhase;
+        Form = form;
         BaseCall = baseCall;
         MixinOrder = mixinOrder;
         Unbind = unbind;
@@ -131020,7 +131047,7 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
     public void UpdateInstructionMemory()
     {
         InstructionMemory ??= MemoryOwner<int>.Empty;
-        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words, ..After.AsDisposableLiteralValue().Words, ..Before.AsDisposableLiteralValue().Words, ..Drops.AsDisposableLiteralValue().Words, ..AddedPhase.AsDisposableLiteralValue().Words, ..BaseCall.AsDisposableLiteralValue().Words, ..MixinOrder.AsDisposableLiteralValue().Words, ..Unbind.AsDisposableLiteralValue().Words, ..Line.AsDisposableLiteralValue().Words];
+        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words, ..After.AsDisposableLiteralValue().Words, ..Before.AsDisposableLiteralValue().Words, ..Drops.AsDisposableLiteralValue().Words, ..AddedPhase.AsDisposableLiteralValue().Words, ..Form.AsDisposableLiteralValue().Words, ..BaseCall.AsDisposableLiteralValue().Words, ..MixinOrder.AsDisposableLiteralValue().Words, ..Unbind.AsDisposableLiteralValue().Words, ..Line.AsDisposableLiteralValue().Words];
         instruction[0] |= instruction.Length << 16;
         if (instruction.Length == InstructionMemory.Length)
             instruction.CopyTo(InstructionMemory.Span);
@@ -131053,6 +131080,9 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
                     break;
                 case "addedPhase":
                     AddedPhase = o.ToLiteral<string>();
+                    break;
+                case "form":
+                    Form = o.ToLiteral<string>();
                     break;
                 case "baseCall":
                     BaseCall = o.ToLiteral<string>();

@@ -14,7 +14,7 @@ namespace Stride.Rendering.Materials
         compose IStreamInitializer streamInitializerPixelStage;
 
         [Phase(Surface)]
-        module override float4 Shading()
+        extend ShadingBase.Shading()
         {
             // Prepare global streams (temp)
             streams.viewWS = normalize(Eye.xyz - streams.PositionWS.xyz);

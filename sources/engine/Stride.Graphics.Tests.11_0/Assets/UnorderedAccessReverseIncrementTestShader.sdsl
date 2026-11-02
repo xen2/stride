@@ -14,7 +14,7 @@ namespace Stride.Graphics.Tests
         module RWStructuredBuffer<uint> Data;
         module uint Count;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             uint index = Count - 1 - streams.DispatchThreadId.x;
             Data[index] = Data[index] + 1;

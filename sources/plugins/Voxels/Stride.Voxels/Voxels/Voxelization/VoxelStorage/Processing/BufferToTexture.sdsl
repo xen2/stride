@@ -25,7 +25,7 @@ namespace Stride.Rendering.Voxels
             #define IndirectReadAndStoreMacro
         #endif
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             int3 clipMapResolutionI = (int3)clipMapResolution;
 

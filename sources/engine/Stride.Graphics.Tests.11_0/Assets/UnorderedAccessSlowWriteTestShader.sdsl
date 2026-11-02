@@ -14,7 +14,7 @@ namespace Stride.Graphics.Tests
         module RWStructuredBuffer<uint> Output;
         module uint Iterations;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             uint index = streams.DispatchThreadId.x;
             uint state = index;

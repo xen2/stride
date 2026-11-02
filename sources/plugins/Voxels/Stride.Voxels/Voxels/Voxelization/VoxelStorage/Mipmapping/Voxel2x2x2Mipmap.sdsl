@@ -15,7 +15,7 @@ namespace Stride.Rendering.Voxels
 
         compose Voxel2x2x2Mipmapper mipmapper;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             uint3 pos = streams.DispatchThreadId;
 
