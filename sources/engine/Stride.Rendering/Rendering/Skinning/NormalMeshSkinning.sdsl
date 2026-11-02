@@ -12,6 +12,7 @@ shader NormalMeshSkinning
     import NormalStream;
 
     [Phase(World)]
+    [MixinOrder(After = { TransformationSkinning, TransformationSkinningInstanced })]
     override module void PreTransformPosition()
     {
         base.PreTransformPosition();

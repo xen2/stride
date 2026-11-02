@@ -218,6 +218,418 @@ public partial class ExtensionPointTests : IDisposable
         Assert.Contains(code, log);
     }
 
+    [Theory]
+    [InlineData("[MixinOrder(After = StepB)] void F() { }", "SDSL0135")]
+    [InlineData("[MixinOrder(After = StepB)] override float Plain() { return 2; }", "SDSL0246")]
+    [InlineData("[MixinOrder(After = StepB)] override float Pick() { return 2; }", "SDSL0135")]
+    [InlineData("[MixinOrder] override void Run() { base.Run(); }", "SDSL0135")]
+    [InlineData("[MixinOrder(After = StepB + 1)] override void Run() { base.Run(); }", "SDSL0135")]
+    [InlineData("[MixinOrder(StepB)] override void Run() { base.Run(); }", "SDSL0135: [MixinOrder] on Wrong.Run: on an override, [MixinOrder] takes After = and Before =")]
+    [InlineData("[MixinOrder(After = \"Test.StepB\")] override void Run() { base.Run(); }", "SDSL0255: [MixinOrder] on Wrong.Run: \"Test.StepB\" is a string.")]
+    [InlineData("[MixinOrder(After = NoSuchClass)] override void Run() { base.Run(); }", "SDSL0110")]
+    public void AWrongMixinOrderIsAnError(string member, string code)
+    {
+        WriteOwner();
+        WriteModule("StepB", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("Wrong", member);
+
+        var (ok, log, _) = Mix("Test.Wrong");
+
+        Assert.False(ok, log);
+        Assert.Contains(code, log);
+    }
+
+    // After a phase that runs later: B runs after A whatever the mix says, so A can't run after B
+    [Fact]
+    public void MixinOrderAfterAClassOfALaterPhaseIsAnError()
+    {
+        WriteOwner();
+        WriteModule("StepB", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("StepA", "[Phase(A)] [MixinOrder(After = StepB)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix("Test.StepB", "Test.StepA");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138", log);
+    }
+
+    [Fact]
+    public void MixinOrderAfterAnOverrideWithoutPhaseIsAnError()
+    {
+        WriteOwner();
+        WriteModule("Patch", "override void Run() { base.Run(); }");
+        WriteModule("StepA", "[Phase(A)] [MixinOrder(After = Patch)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix("Test.Patch", "Test.StepA");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138", log);
+    }
+
+    [Fact]
+    public void MixinOrderAfterGoingInACircleIsAnError()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] [MixinOrder(After = Second)] override void Run() { base.Run(); }");
+        WriteModule("Second", "[Phase(A)] [MixinOrder(After = First)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix("Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138", log);
+    }
+
+    [Fact]
+    public void MixinOrderAfterOrdersAPhaseThatCallsBaseFirst()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] [MixinOrder(After = Second)] override void Run() { base.Run(); }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix("Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Contains("A: Second > First", Block(explanation, "Run"));
+    }
+
+    // The chain is run from its end here: the step that runs later is reached from the one that runs first, so it is lower in the chain
+    [Fact]
+    public void MixinOrderAfterOrdersAPhaseThatCallsBaseLast()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(Early)] override void Run() { streams.Steps = 2; base.Run(); }");
+        WriteModule("Second", "[Phase(Early)] [MixinOrder(After = First)] override void Run() { streams.Steps = 3; base.Run(); }");
+
+        var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Run() -> void = Owner > Second > First", Block(explanation, "Run")[0]);
+    }
+
+    [Fact]
+    public void MixinOrderAfterOrdersAnAroundPhaseFromTheOutside()
+    {
+        WriteOwner();
+        WriteModule("Inner", "[Phase(Outer)] [MixinOrder(After = Outermost)] override float Wrap() { return base.Wrap(); }");
+        WriteModule("Outermost", "[Phase(Outer)] override float Wrap() { return base.Wrap(); }");
+
+        var (ok, log, explanation) = Mix("Test.Outermost", "Test.Inner");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Wrap() -> float = Owner > Inner > Outermost", Block(explanation, "Wrap")[0]);
+    }
+
+    [Fact]
+    public void MixinOrderAfterAClassThatIsNotInTheEffectIsIgnored()
+    {
+        WriteOwner();
+        WriteModule("Absent", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Step", "[Phase(A)] [MixinOrder(After = Absent)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix("Test.Step");
+
+        Assert.True(ok, log);
+    }
+
+    [Theory]
+    [InlineData("streams.Steps = 2;", "streams.Steps = 3;", "streams.Steps")]
+    [InlineData("streams.Other = streams.Steps;", "streams.Steps = 3;", "streams.Steps")]
+    [InlineData("Helper();", "streams.Steps = 3;", "streams.Steps")]
+    [InlineData("discard;", "discard;", "side effect")]
+    [InlineData("Values[0] = 1;", "discard;", "side effect")]
+    public void AConflictInAPhaseIsAnErrorInAnAssetBuild(string first, string second, string message)
+    {
+        WriteOwner();
+        Write("Helpers", "module Helpers { import Owner; stream float Other; RWStructuredBuffer<float> Values; void Helper() { streams.Steps = 2; } }");
+        Write("First", $"module First {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {first} }} }}");
+        Write("Second", $"module Second {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {second} }} }}");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0137", log);
+        Assert.Contains(message, log);
+
+        // In a mix built at run time, the order of the mix decides
+        var (runtimeOk, runtimeLog, _) = Mix("Test.First", "Test.Second");
+
+        Assert.True(runtimeOk, runtimeLog);
+    }
+
+    private void WritePlaces(string first, string second)
+    {
+        Write("Places", """
+            module Places
+            {
+                struct Data { float a; float b; float c[2]; };
+                static Data Current;
+                static float Shared;
+
+                [Phases(A)]
+                pipeline void Run(inout Data s) { }
+
+                [Phases(A)]
+                pipeline void Fill(out Data s) { s = (Data)0; }
+
+                [Phases(A)]
+                pipeline void Look(Data s) { }
+
+                void SetA(inout Data d) { d.a = 1; }
+                void SetALocally(Data d) { d.a = 1; }
+                float GetA(Data d) { return d.a; }
+                void SetCurrent() { Current.a = 1; }
+            }
+            """);
+        Write("First", $"module First {{ import Places; [Phase(A)] override void Run(inout Data s) {{ base.Run(s); {first} }} }}");
+        Write("Second", $"module Second {{ import Places; [Phase(A)] override void Run(inout Data s) {{ base.Run(s); {second} }} }}");
+    }
+
+    // A field of an inout parameter or of a module static is a place, as a stream is
+    [Theory]
+    [InlineData("s.a = 1;", "s.a = 2;", "s.a")]
+    [InlineData("s.b = s.a;", "s.a = 2;", "s.a")]
+    [InlineData("s = (Data)0;", "s.b = 2;", "s")]
+    [InlineData("Data copy = s; s.b = copy.b;", "s.a = 2;", "s.a")]
+    [InlineData("SetA(s);", "s.a = 2;", "s.a")]
+    [InlineData("s.b = GetA(s);", "s.a = 2;", "s.a")]
+    [InlineData("s.c[0] = 1;", "s.c[0] = 2;", "s.c[0]")]
+    [InlineData("int i = 1; s.c[i] = 1;", "s.c[1] = 2;", "s.c")]
+    [InlineData("Current.a = 1;", "Current.a = 2;", "Current.a")]
+    [InlineData("SetCurrent();", "s.b = Current.a;", "Current.a")]
+    [InlineData("Shared = 1;", "s.b = Shared;", "Shared")]
+    public void TwoContributorsOfOnePlaceConflict(string first, string second, string place)
+    {
+        WritePlaces(first, second);
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0137", log);
+        Assert.Contains($"share {place}", log);
+    }
+
+    // The copy of the struct around the call to the next one, the copy a helper takes by value, and other fields are nothing to order
+    [Theory]
+    [InlineData("s.a = 1;", "s.b = 2;")]
+    [InlineData("s.b = s.a;", "s.c[0] = s.a;")]
+    [InlineData("s.c[0] = 1;", "s.c[1] = 2;")]
+    [InlineData("float x = s.a;", "float y = s.a;")]
+    [InlineData("SetALocally(s);", "s.a = 2;")]
+    [InlineData("s.c[0] = GetA(s);", "s.b = 2;")]
+    [InlineData("Current.a = 1;", "Current.b = 2;")]
+    [InlineData("Data local = (Data)0; local.a = 1;", "s.a = 2;")]
+    public void OtherPlacesDoNotConflict(string first, string second)
+    {
+        WritePlaces(first, second);
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
+    [Fact]
+    public void AnOutParameterIsAPlace()
+    {
+        WritePlaces("", "");
+        Write("First", "module First { import Places; [Phase(A)] override void Fill(out Data s) { base.Fill(s); s.a = 1; } }");
+        Write("Second", "module Second { import Places; [Phase(A)] override void Fill(out Data s) { base.Fill(s); s.a = 2; } }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("share s.a", log);
+    }
+
+    // Each one gets its own copy
+    [Fact]
+    public void AParameterByValueIsNotAPlace()
+    {
+        WritePlaces("", "");
+        Write("First", "module First { import Places; [Phase(A)] override void Look(Data s) { base.Look(s); s.a = 1; } }");
+        Write("Second", "module Second { import Places; [Phase(A)] override void Look(Data s) { base.Look(s); s.a = 2; } }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
+    [Fact]
+    public void TwoWrappersOfOnePhaseConflict()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(Inner)] override float Wrap() { return base.Wrap() + 1; }");
+        WriteModule("Second", "[Phase(Inner)] override float Wrap() { return base.Wrap() * 2; }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0137", log);
+        Assert.Contains("wrap each other", log);
+    }
+
+    [Theory]
+    [InlineData("[Phase(Inner)] [MixinOrder(After = First)]", "[Phase(Inner)]")]
+    [InlineData("[Phase(Outer)]", "[Phase(Inner)]")]
+    public void WrappersWithAnOrderDoNotConflict(string secondAttributes, string firstAttributes)
+    {
+        WriteOwner();
+        WriteModule("First", $"{firstAttributes} override float Wrap() {{ return base.Wrap() + 1; }}");
+        WriteModule("Second", $"{secondAttributes} override float Wrap() {{ return base.Wrap() * 2; }}");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
+    // Streams with one semantic become one field, so a contributor reads what the other wrote under another name
+    [Theory]
+    [InlineData("streams.One = 2;", "streams.Two = 3;")]
+    [InlineData("streams.Other = streams.One;", "streams.Two = 3;")]
+    public void StreamsWithOneSemanticAreOneField(string first, string second)
+    {
+        WriteOwner();
+        Write("Helpers", "module Helpers { import Owner; stream float Other; stream float One : SAME; stream float Two : SAME; }");
+        Write("First", $"module First {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {first} }} }}");
+        Write("Second", $"module Second {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {second} }} }}");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0137", log);
+        Assert.Contains("streams.One and streams.Two (semantic SAME)", log);
+    }
+
+    [Fact]
+    public void StreamsWithTwoSemanticsAreTwoFields()
+    {
+        WriteOwner();
+        Write("Helpers", "module Helpers { import Owner; stream float One : ONE; stream float Two : TWO; }");
+        Write("First", "module First { import Helpers; [Phase(A)] override void Run() { base.Run(); streams.One = 2; } }");
+        Write("Second", "module Second { import Helpers; [Phase(A)] override void Run() { base.Run(); streams.Two = 3; } }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
+    // A store to the whole of streams writes every field the other contributor uses
+    [Theory]
+    [InlineData("var saved = streams; streams = saved;", "streams.Steps = 3;", "streams.Steps")]
+    [InlineData("var saved = streams; streams = saved;", "streams.Other = streams.Steps;", "streams.Other, streams.Steps")]
+    [InlineData("Restore();", "streams.Steps = 3;", "streams.Steps")]
+    [InlineData("var saved = streams; streams = saved;", "var saved = streams; streams = saved;", "the whole of streams")]
+    public void AWriteOfTheWholeValueIsAWriteOfEveryField(string first, string second, string message)
+    {
+        WriteOwner();
+        Write("Helpers", "module Helpers { import Owner; stream float Other; void Restore() { var saved = streams; streams = saved; } }");
+        Write("First", $"module First {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {first} }} }}");
+        Write("Second", $"module Second {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {second} }} }}");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0137", log);
+        Assert.Contains(message, log);
+    }
+
+    // A copy is a local variable: writing to it changes no stream. And a contributor that uses no stream shares nothing
+    [Theory]
+    [InlineData("var saved = streams;", "streams.Steps = 3;")]
+    [InlineData("var saved = streams; streams = saved;", "discard;")]
+    public void AWriteOfACopyOrOfNothingSharedIsNoConflict(string first, string second)
+    {
+        WriteOwner();
+        WriteModule("First", $"[Phase(A)] override void Run() {{ base.Run(); {first} }}");
+        WriteModule("Second", $"[Phase(A)] override void Run() {{ base.Run(); {second} }}");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
+    [Theory]
+    [InlineData("streams.Other = 2;", "streams.Steps = 3;")]
+    [InlineData("streams.Other = streams.Steps;", "streams.Third = streams.Steps;")]
+    [InlineData("discard;", "streams.Steps = 3;")]
+    public void NoConflictNeedsNoOrder(string first, string second)
+    {
+        WriteOwner();
+        Write("Helpers", "module Helpers { import Owner; stream float Other; stream float Third; }");
+        Write("First", $"module First {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {first} }} }}");
+        Write("Second", $"module Second {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {second} }} }}");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
+    // What the steps of other phases do isn't part of the step, although base reaches them
+    [Fact]
+    public void BaseIsNotPartOfWhatAContributorDoes()
+    {
+        WriteOwner();
+        WriteModule("Writes", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Later", "[Phase(B)] override void Run() { base.Run(); streams.Steps = 3; }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.Writes", "Test.Later");
+
+        Assert.True(ok, log);
+    }
+
+    [Theory]
+    [InlineData("[MixinOrder(After = First)]")]
+    [InlineData("[MixinOrder(After = Middle)]")]
+    public void MixinOrderAfterSettlesAConflict(string attribute)
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Middle", "[Phase(A)] [MixinOrder(After = First)] override void Run() { base.Run(); }");
+        Write("Last", $"module Last {{ import First; import Middle; [Phase(A)] {attribute} override void Run() {{ base.Run(); streams.Steps = 3; }} }}");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Middle", "Test.Last");
+
+        Assert.True(ok, log);
+    }
+
+    // A class comes after its parents, so inheritance is an order
+    [Fact]
+    public void InheritanceSettlesAConflict()
+    {
+        WriteOwner();
+        Write("Parent", "shader Parent { import Owner; [Phase(A)] module override void Run() { base.Run(); streams.Steps = 2; } }");
+        Write("Child", "shader Child : Parent { [Phase(A)] module override void Run() { base.Run(); streams.Steps = 3; } }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.Child");
+
+        Assert.True(ok, log);
+    }
+
+    // A contributor that a replacement drops never runs
+    [Fact]
+    public void ADroppedContributorConflictsWithNothing()
+    {
+        WriteOwner();
+        WriteModule("Dropped", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Replacement", "[Phase(A)] override void Run() { streams.Steps = 3; }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.Dropped", "Test.Replacement");
+
+        Assert.True(ok, log);
+    }
+
+    // The order of the mix: code without a phase never needs an order
+    [Fact]
+    public void ExternalHasNoConflicts()
+    {
+        WriteOwner();
+        WriteModule("First", "override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Second", "override void Run() { base.Run(); streams.Steps = 3; }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
     [Fact]
     public void AStringInReplacesOnAClassIsAnError()
     {
@@ -398,6 +810,7 @@ public partial class ExtensionPointTests : IDisposable
     [Theory]
     [InlineData("[Phases(A, B)] shader Wrong { }")]
     [InlineData("[Phase(A)] shader Wrong { }")]
+    [InlineData("[MixinOrder(After = Other)] shader Wrong { }")]
     [InlineData("shader Wrong { [Phases(A)] cbuffer PerDraw { float A; } }")]
     public void AKindOrAPhaseOnAClassIsAnError(string code)
     {

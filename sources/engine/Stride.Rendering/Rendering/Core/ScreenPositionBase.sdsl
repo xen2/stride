@@ -22,6 +22,7 @@ module ScreenPositionBase
     }
 
     [Phase(Input)]
+    [MixinOrder(After = MeshVelocity)]
     override void PSMain()
     {
         streams.ScreenPosition /= streams.ScreenPosition.w;

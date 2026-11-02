@@ -130909,9 +130909,57 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
         }
     }
 
-    public OpContributionSDSL(string phase)
+    public string After
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public string Before
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public string MixinOrder
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public int Line
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public OpContributionSDSL(string phase, string after, string before, string mixinOrder, int line)
     {
         Phase = phase;
+        After = after;
+        Before = before;
+        MixinOrder = mixinOrder;
+        Line = line;
         UpdateInstructionMemory();
         opData = ref Unsafe.NullRef<OpData>();
     }
@@ -130924,7 +130972,7 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
     public void UpdateInstructionMemory()
     {
         InstructionMemory ??= MemoryOwner<int>.Empty;
-        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words];
+        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words, ..After.AsDisposableLiteralValue().Words, ..Before.AsDisposableLiteralValue().Words, ..MixinOrder.AsDisposableLiteralValue().Words, ..Line.AsDisposableLiteralValue().Words];
         instruction[0] |= instruction.Length << 16;
         if (instruction.Length == InstructionMemory.Length)
             instruction.CopyTo(InstructionMemory.Span);
@@ -130945,6 +130993,18 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
             {
                 case "phase":
                     Phase = o.ToLiteral<string>();
+                    break;
+                case "after":
+                    After = o.ToLiteral<string>();
+                    break;
+                case "before":
+                    Before = o.ToLiteral<string>();
+                    break;
+                case "mixinOrder":
+                    MixinOrder = o.ToLiteral<string>();
+                    break;
+                case "line":
+                    Line = o.ToLiteral<int>();
                     break;
                 // We ignore unrecognized operands
                 default:

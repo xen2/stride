@@ -630,8 +630,8 @@ public class ShaderUpgradeTests
                 text = text.Replace(upgradedText, todayText);
             // The kinds the upgrade writes are not the ones the engine chose by hand
             text = WithoutEngineNamespaceLines(WithoutKinds(text));
-            // [Root], [Pure] and the kinds and phases of extension points are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
-            var expected = WithoutEngineNamespaceLines(WithoutKinds(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|(Phases|Phase)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline)));
+            // [Root], [Pure] and the kinds, phases and orders of extension points are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
+            var expected = WithoutEngineNamespaceLines(WithoutKinds(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|(Phases|Phase|MixinOrder)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline)));
             if (text != expected)
                 differences.Add(path);
         }

@@ -13,6 +13,7 @@ shader TangentMeshSkinning
     import NormalStream;
 
     [Phase(World)]
+    [MixinOrder(After = { TransformationSkinning, TransformationSkinningInstanced })]
     override void PreTransformPosition()
     {
         base.PreTransformPosition();
