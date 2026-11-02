@@ -11,6 +11,7 @@ shader NormalFromMeshInstanced
     import NormalFromMesh;
     import TransformationInstancing;
 
+    [Phase(Generate)]
     override module void GenerateNormal_VS()
     {
         // Perform normal generation at the end in case meshNormal is modified

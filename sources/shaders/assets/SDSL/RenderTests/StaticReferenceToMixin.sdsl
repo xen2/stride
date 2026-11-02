@@ -4,6 +4,7 @@ namespace Stride.Shaders.Tests;
 
 module StaticReferenceToMixinBase
 {
+    [Replace]
     float Value()
     {
         return 1.0;
