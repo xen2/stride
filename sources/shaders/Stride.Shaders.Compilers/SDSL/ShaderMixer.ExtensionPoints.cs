@@ -40,7 +40,7 @@ public partial class ShaderMixer
     /// Sorts the contributors with a phase by phase, among the places they hold in the chain. A contributor without a phase
     /// keeps its exact place, so that code written before extension points links as it always did. Inside a phase, today's order.
     /// </summary>
-    private static void SortContributions(MixinNode mixinNode)
+    private static void SortContributions(MixinGlobalContext globalContext, MixinNode mixinNode)
     {
         foreach (var group in mixinNode.MethodGroups.Values.Distinct())
         {
@@ -51,7 +51,28 @@ public partial class ShaderMixer
             var sorted = places.Select(x => group.Methods[x]).OrderBy(x => ChainRank(point, group.Phases[x.MethodId])).ToList();
             for (var i = 0; i < places.Count; i++)
                 group.Methods[places[i]] = sorted[i];
+
+            SortSymbols(globalContext.Table.CurrentFrame, group, sorted.Select(x => x.MethodId).ToList());
         }
+    }
+
+    /// <summary>
+    /// Entry points are found in the symbol table, where the last method of a name wins: its order has to follow the chain.
+    /// </summary>
+    private static void SortSymbols(SymbolFrame frame, MethodGroup group, List<int> sortedIds)
+    {
+        if (!frame.TryGetValue(group.Name, out var symbol) || symbol.Type is not FunctionGroupType)
+            return;
+
+        var members = symbol.GroupMembers.ToArray();
+        var byId = members.Where(x => sortedIds.Contains(x.IdRef)).ToDictionary(x => x.IdRef);
+        var next = 0;
+        for (var i = 0; i < members.Length; i++)
+        {
+            if (sortedIds.Contains(members[i].IdRef))
+                members[i] = byId[sortedIds[next++]];
+        }
+        frame[group.Name] = symbol with { GroupMembers = [.. members] };
     }
 
     /// <summary>

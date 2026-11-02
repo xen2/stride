@@ -991,7 +991,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
         // Extension points are per effect: module methods, all in the root node
         if (mixinNode.IsRoot)
-            SortContributions(mixinNode);
+            SortContributions(globalContext, mixinNode);
     }
 
     private static void ExpandForeach(MixinGlobalContext globalContext, SpirvContext context, SpirvBuffer buffer, MixinNode mixinNode, int index, OpForeachSDSL @foreach)
