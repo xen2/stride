@@ -107,6 +107,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
             return false;
 
         ReportDroppedContributors(rootMixin, globalContext, log);
+        if (IsAssetBuild && !CheckContributionConflicts(rootMixin, globalContext, context, temp, log))
+            return false;
 
         // Note: done first, so that the code analysis only has to know about OpSwitch
         if (!LowerSwitchIds(context, temp, log))

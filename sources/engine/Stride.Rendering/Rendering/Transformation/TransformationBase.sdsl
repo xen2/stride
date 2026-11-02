@@ -30,7 +30,7 @@ module TransformationBase
     [Replace]
     float4 ComputeShadingPosition(float4 world) { return 0; }
 
-    [Pipeline]
+    [Replace]
     void BaseTransformVS()
     {
         this.PreTransformPosition();
