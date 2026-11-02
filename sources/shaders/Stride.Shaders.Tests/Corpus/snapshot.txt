@@ -24,7 +24,6 @@ Direct3D11/RenderTests.CallNonStageFromStageMethodInherited strict=374ebd2a41a6 
 Direct3D11/RenderTests.CommaExpression strict=ff72386b4bad legal=458450d3bd0e reflection=e3b0c44298fc explain=98ed123ff40a
 Direct3D11/RenderTests.CompanionModuleStruct strict=9a355600c8d9 legal=3a27056eb0eb reflection=e3b0c44298fc explain=d2ae350b2e63
 Direct3D11/RenderTests.CompanionModuleUnusedGeneric strict=855bf5065bfb legal=9910b171319e reflection=e3b0c44298fc explain=78443a61d162
-Direct3D11/RenderTests.ComposeWithValue strict=60a6452ed263 legal=849e69425dde reflection=e3b0c44298fc explain=1541c6bc1b57
 Direct3D11/RenderTests.CompositeCtor strict=1985c5aff2d1 legal=08f36d5819d9 reflection=f3b7e60e0f73 explain=0d8e5d10e8a1
 Direct3D11/RenderTests.CompositionArray1 strict=5bccdb7240ef legal=3aa4b4330f13 reflection=e3b0c44298fc explain=70e12ec0352e
 Direct3D11/RenderTests.CompositionArrayForInsideForeach strict=78a81c1f3271 legal=4cd10a12dd73 reflection=e3b0c44298fc explain=d02aca41295f
@@ -754,7 +753,6 @@ Vulkan/RenderTests.CallNonStageFromStageMethodInherited strict=08b92bdd69f3 lega
 Vulkan/RenderTests.CommaExpression strict=efa155da699f legal=f524e0e61450 reflection=e3b0c44298fc explain=98ed123ff40a
 Vulkan/RenderTests.CompanionModuleStruct strict=a969fefc981b legal=840b627aa3e0 reflection=e3b0c44298fc explain=d2ae350b2e63
 Vulkan/RenderTests.CompanionModuleUnusedGeneric strict=a939408fb662 legal=3414ec4c8cc6 reflection=e3b0c44298fc explain=78443a61d162
-Vulkan/RenderTests.ComposeWithValue strict=20d88ed49bf7 legal=1772ff98f1dd reflection=e3b0c44298fc explain=1541c6bc1b57
 Vulkan/RenderTests.CompositeCtor strict=40722a62291f legal=842c0e6888ab reflection=f3b7e60e0f73 explain=0d8e5d10e8a1
 Vulkan/RenderTests.CompositionArray1 strict=5c1e6dca76bb legal=937437d9aae9 reflection=e3b0c44298fc explain=70e12ec0352e
 Vulkan/RenderTests.CompositionArrayForInsideForeach strict=f6b0c26013ec legal=c887932f160c reflection=e3b0c44298fc explain=d02aca41295f

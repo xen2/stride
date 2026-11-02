@@ -60,7 +60,7 @@ internal static class PartialStructs
                 }
                 else if (!plainOwners.TryAdd(structType.Name, shader.Name) && plainOwners[structType.Name] != shader.Name)
                 {
-                    table.AddWarning(new(shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0215, shortName, structType.Name, ShaderNames.ShortName(plainOwners[structType.Name]), shader.ShortName)));
+                    table.AddError(new(shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0215, shortName, structType.Name, ShaderNames.ShortName(plainOwners[structType.Name]), shader.ShortName)));
                 }
             }
         }

@@ -1,5 +1,3 @@
-// PSMain(ExpectedResult=#336699FF)
-
 namespace Stride.Shaders.Tests;
 
 shader ComposeWithValueColor
@@ -14,7 +12,7 @@ shader ComposeWithValue
 {
     stream float4 ColorTarget : SV_Target0;
 
-    // The values are ignored (SDSL0236): a composition gets its shader from the effect, here the default one
+    // SDSL0236: a composition gets its shader from the effect
     compose ComposeWithValueColor Color = float4(1.0, 0.0, 0.0, 1.0);
     compose ComposeWithValueColor Scale = 0.5f;
     compose ComposeWithValueColor Count = 1;

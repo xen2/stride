@@ -2,7 +2,10 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using Stride.Core.Diagnostics;
+using Stride.Core.Storage;
+using Stride.Rendering;
 using Stride.Shaders.Compilers.SDSL;
+using Stride.Shaders.Spirv.Building;
 
 namespace Stride.Shaders.Parsers.Tests;
 
@@ -50,7 +53,7 @@ public class ShaderDefinitionCheckTests : IDisposable
     // SDSL0200: without an inherited method, 'override' starts a new method that calls through a parent never reach
     [Theory]
     [InlineData("override float4 Compute() { return 1; }", null)]
-    [InlineData("override float4 Other() { return 1; }", "Warning: CheckOverride.sdsl(5,21): SDSL0200: CheckOverride.Other() is marked 'override', but no inherited class declares Other")]
+    [InlineData("override float4 Other() { return 1; }", "Error: CheckOverride.sdsl(5,21): SDSL0200: CheckOverride.Other() is marked 'override', but no inherited class declares Other")]
     public void OverrideNeedsAnInheritedMethod(string method, string? expected)
     {
         Write("CheckContract", Contract);
@@ -64,8 +67,7 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckOverride");
-        Assert.True(ok, log);
-        AssertWarning(expected, "SDSL0200", log);
+        AssertMistake(expected, "SDSL0200", ok, log);
     }
 
     // SDSL0217: a misspelled attribute does nothing on a class or a cbuffer; libraries read attributes of their own
@@ -78,9 +80,9 @@ public class ShaderDefinitionCheckTests : IDisposable
     [InlineData("[Route] shader CheckAttribute { }", null)]
     [InlineData("shader CheckAttribute { [Tags(\"Any\")] cbuffer Block { float Value; } }", null)]
     [InlineData("shader CheckAttribute { [Link(\"Value\")] float Value; }", null)]
-    [InlineData("[root] shader CheckAttribute { }", "Warning: CheckAttribute.sdsl(3,1): SDSL0217: Attribute [root] on CheckAttribute does nothing: the compiler only knows [Root] and [Pure] and [Replaces] there. Check its spelling.")]
-    [InlineData("shader CheckAttribute { [PushConstants] cbuffer Block { float Value; } }", "Warning: CheckAttribute.sdsl(3,25): SDSL0217: Attribute [PushConstants] on cbuffer Block does nothing: the compiler only knows [PushConstant] there. Check its spelling.")]
-    [InlineData("shader CheckAttribute { [PushConstnt] cbuffer Block { float Value; } }", "Warning: CheckAttribute.sdsl(3,25): SDSL0217: Attribute [PushConstnt] on cbuffer Block does nothing: the compiler only knows [PushConstant] there. Check its spelling.")]
+    [InlineData("[root] shader CheckAttribute { }", "Error: CheckAttribute.sdsl(3,1): SDSL0217: Attribute [root] on CheckAttribute does nothing: the compiler only knows [Root] and [Pure] and [Replaces] there. Check its spelling.")]
+    [InlineData("shader CheckAttribute { [PushConstants] cbuffer Block { float Value; } }", "Error: CheckAttribute.sdsl(3,25): SDSL0217: Attribute [PushConstants] on cbuffer Block does nothing: the compiler only knows [PushConstant] there. Check its spelling.")]
+    [InlineData("shader CheckAttribute { [PushConstnt] cbuffer Block { float Value; } }", "Error: CheckAttribute.sdsl(3,25): SDSL0217: Attribute [PushConstnt] on cbuffer Block does nothing: the compiler only knows [PushConstant] there. Check its spelling.")]
     public void MisspelledAttributeOnClassOrCBufferIsReported(string shader, string? expected)
     {
         Write("CheckAttribute", $$"""
@@ -90,8 +92,7 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckAttribute");
-        Assert.True(ok, log);
-        AssertWarning(expected, "SDSL0217", log);
+        AssertMistake(expected, "SDSL0217", ok, log);
     }
 
     // SDSL0176 (from CheckOverriddenMethod): an inherited method of the same name but another signature
@@ -116,7 +117,7 @@ public class ShaderDefinitionCheckTests : IDisposable
     // SDSL0201: base.X() looks for the previous method of the same chain, so it needs an inherited X
     [Theory]
     [InlineData("override float4 Compute() { return base.Compute() + 1; }", null)]
-    [InlineData("float4 Other() { return base.Other(); }", "Warning: CheckBase.sdsl(5,34): SDSL0201: base.Other() in CheckBase: no inherited class declares Other()")]
+    [InlineData("float4 Other() { return base.Other(); }", "Error: CheckBase.sdsl(5,34): SDSL0201: base.Other() in CheckBase: no inherited class declares Other()")]
     public void BaseCallNeedsAnInheritedMethod(string method, string? expected)
     {
         Write("CheckContract", Contract);
@@ -130,8 +131,7 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckBase");
-        Assert.True(ok, log);
-        AssertWarning(expected, "SDSL0201", log);
+        AssertMistake(expected, "SDSL0201", ok, log);
     }
 
     private const string Generic = """
@@ -146,7 +146,7 @@ public class ShaderDefinitionCheckTests : IDisposable
     // SDSL0202: values past the generic parameters of a parent are ignored
     [Theory]
     [InlineData("CheckGeneric<1, 2>", null)]
-    [InlineData("CheckGeneric<1, 2, 3>", "Warning: CheckChild.sdsl(3,21): SDSL0202: CheckGeneric has 2 generic parameter(s) (N, M), but 3 given")]
+    [InlineData("CheckGeneric<1, 2, 3>", "Error: CheckChild.sdsl(3,21): SDSL0202: CheckGeneric has 2 generic parameter(s) (N, M), but 3 given")]
     public void ParentGetsOneValuePerGenericParameter(string parent, string? expected)
     {
         Write("CheckContract", Contract);
@@ -160,8 +160,7 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckChild");
-        Assert.True(ok, log);
-        AssertWarning(expected, "SDSL0202", log);
+        AssertMistake(expected, "SDSL0202", ok, log);
     }
 
     // SDSL0117: too few values for the generic parameters of a parent
@@ -215,8 +214,8 @@ public class ShaderDefinitionCheckTests : IDisposable
     [Theory]
     [InlineData("cbuffer PerMaterial { [Color] float3 Tint; }", null)]
     [InlineData("cbuffer PerMaterial { [Color] float3 Tints[4]; }", null)]
-    [InlineData("cbuffer PerMaterial { [Color] float Tint; }", "Warning: CheckColor.sdsl(5,27): SDSL0203: [Color] on Tint, of type float")]
-    [InlineData("[Color] float2 Tint;", "Warning: CheckColor.sdsl(5,5): SDSL0203: [Color] on Tint, of type float2")]
+    [InlineData("cbuffer PerMaterial { [Color] float Tint; }", "Error: CheckColor.sdsl(5,27): SDSL0203: [Color] on Tint, of type float")]
+    [InlineData("[Color] float2 Tint;", "Error: CheckColor.sdsl(5,5): SDSL0203: [Color] on Tint, of type float2")]
     public void ColorIsAFloat3OrFloat4(string member, string? expected)
     {
         Write("CheckColor", $$"""
@@ -229,11 +228,10 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckColor");
-        Assert.True(ok, log);
-        AssertWarning(expected, "SDSL0203", log);
+        AssertMistake(expected, "SDSL0203", ok, log);
     }
 
-    // The warnings are kept with the compiled class: an effect compiled later from the cache reports them too
+    // The warnings are kept with the compiled class: an effect compiled later from the cache reports them too. SDSL0219 is a lint on valid HLSL
     [Fact]
     public void WarningsAreReportedForEachEffectFromTheCache()
     {
@@ -243,7 +241,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
             shader CheckOverride : CheckContract
             {
-                override float4 Other() { return 1; }
+                override float4 Compute() { return (1, 0, 0, 1); }
             }
             """);
 
@@ -256,7 +254,7 @@ public class ShaderDefinitionCheckTests : IDisposable
             Assert.Equal(expectedFromCache, isFromCache);
             // Once per effect (logger), however many times the class is loaded
             Assert.True(loader.LoadExternalBuffer(TestShader.Written("CheckOverride"), [], out _, out _, out _));
-            Assert.Single(log.Messages, m => m.Type == LogMessageType.Warning && m.Text.Contains("SDSL0200"));
+            Assert.Single(log.Messages, m => m.Type == LogMessageType.Warning && m.Text.Contains("SDSL0219"));
         }
     }
 
@@ -270,13 +268,14 @@ public class ShaderDefinitionCheckTests : IDisposable
 
             shader CheckOverride : CheckContract
             {
-                override float4 Other() { return 1; }
+                override float4 Compute() { return (1, 0, 0, 1); }
             }
             """);
 
         var (ok, log) = Compile("CheckOverride", warningsAsErrors: true);
         Assert.False(ok);
-        Assert.Contains("Error: CheckOverride.sdsl(5,21): SDSL0200", log);
+        Assert.Contains("Error: CheckOverride.sdsl(5,", log);
+        Assert.Contains("SDSL0219", log);
     }
 
     // Imported and inherited modules count as inherited classes, so overrides and base calls in the module model don't warn;
@@ -350,7 +349,7 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile(name);
-        Assert.True(ok, log);
+        Assert.Equal(expected == null, ok);
         if (expected == null)
             Assert.DoesNotContain("SDSL02", log);
         else
@@ -582,7 +581,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
     // SDSL0204: module code runs once per effect, so in a shader used in compositions it can't read one instance's members
     [Theory]
-    [InlineData("shader CheckRead", "float Radius; module float4 Shading() { return Radius; }", "Warning: CheckRead.sdsl(6,52): SDSL0204: CheckRead.Shading() is module code and reads Radius, an instance member of CheckRead.")]
+    [InlineData("shader CheckRead", "float Radius; module float4 Shading() { return Radius; }", "Error: CheckRead.sdsl(6,52): SDSL0204: CheckRead.Shading() is module code and reads Radius, an instance member of CheckRead.")]
     [InlineData("shader CheckRead", "cbuffer PerMaterial { float Radius; } module float4 Shading() { return Radius; }", "SDSL0204: CheckRead.Shading() is module code and reads Radius, an instance member of CheckRead.")]
     [InlineData("shader CheckRead", "compose CheckContract color; module float4 Shading() { return color.Compute(); }", "SDSL0204: CheckRead.Shading() is module code and reads color, an instance member of CheckRead.")]
     [InlineData("shader CheckRead : CheckParent", "module float4 Shading() { return Radius; }", "SDSL0204: CheckRead.Shading() is module code and reads Radius, an instance member of CheckParent.")]
@@ -611,13 +610,12 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckRead");
-        Assert.True(ok, log);
-        AssertWarning(expected, "SDSL0204", log);
+        AssertMistake(expected, "SDSL0204", ok, log);
     }
 
     // SDSL0205: module code can't call an instance method of its class or a parent
     [Theory]
-    [InlineData("shader CheckCall", "float4 Helper() { return 1; } module float4 Shading() { return Helper(); }", "Warning: CheckCall.sdsl(5,68): SDSL0205: CheckCall.Shading() is module code and calls CheckCall.Helper(), an instance method.")]
+    [InlineData("shader CheckCall", "float4 Helper() { return 1; } module float4 Shading() { return Helper(); }", "Error: CheckCall.sdsl(5,68): SDSL0205: CheckCall.Shading() is module code and calls CheckCall.Helper(), an instance method.")]
     [InlineData("shader CheckCall", "float4 Helper() { return 1; } module float4 Shading() { return this.Helper(); }", "SDSL0205: CheckCall.Shading() is module code and calls CheckCall.Helper()")]
     [InlineData("shader CheckCall : CheckParent", "module float4 Shading() { return Value(); }", "SDSL0205: CheckCall.Shading() is module code and calls CheckParent.Value()")]
     [InlineData("shader CheckCall", "module float4 Helper() { return 1; } module float4 Shading() { return Helper(); }", null)]
@@ -637,13 +635,12 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckCall");
-        Assert.True(ok, log);
-        AssertWarning(expected, "SDSL0205", log);
+        AssertMistake(expected, "SDSL0205", ok, log);
     }
 
     // SDSL0206 / SDSL0207: an override has the kind of the method it overrides (in a composition, they are in different nodes)
     [Theory]
-    [InlineData("shader CheckKind : CheckParent", "override float4 Knob() { return 1; }", "Warning: CheckKind.sdsl(5,21): SDSL0206: CheckKind.Knob() overrides the module method CheckParent.Knob but is not 'module'.")]
+    [InlineData("shader CheckKind : CheckParent", "override float4 Knob() { return 1; }", "Error: CheckKind.sdsl(5,21): SDSL0206: CheckKind.Knob() overrides the module method CheckParent.Knob but is not 'module'.")]
     [InlineData("shader CheckKind", "import CheckModule; override float4 Helper() { return 1; }", "SDSL0206: CheckKind.Helper() overrides the module method CheckModule.Helper but is not 'module'.")]
     [InlineData("shader CheckKind : CheckParent", "override module float4 Value() { return 1; }", "SDSL0207: CheckKind.Value() is 'module' but overrides the instance method CheckParent.Value.")]
     [InlineData("shader CheckKind : CheckParent", "override module float4 Knob() { return 1; }", null)]
@@ -662,7 +659,7 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckKind");
-        Assert.True(ok, log);
+        Assert.Equal(expected == null, ok);
         if (expected == null)
         {
             Assert.DoesNotContain("SDSL0206", log);
@@ -692,18 +689,17 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckBaseKind");
-        Assert.True(ok, log);
-        AssertWarning(expected, "SDSL0208", log);
+        AssertMistake(expected, "SDSL0208", ok, log);
     }
 
     // SDSL0209 / SDSL0210 / SDSL0213: a [Pure] module has functions and constants only, imports pure modules, and runs in any stage
     [Theory]
     [InlineData("static const float Scale = 2; float F(float x) { return abs(x) * Scale; }", null, null)]
-    [InlineData("float Scale;", "SDSL0209", "Warning: CheckPure.sdsl(6,5): SDSL0209: [Pure] module CheckPure declares the variable Scale: a pure module has functions and constants only.")]
+    [InlineData("float Scale;", "SDSL0209", "Error: CheckPure.sdsl(6,5): SDSL0209: [Pure] module CheckPure declares the variable Scale: a pure module has functions and constants only.")]
     [InlineData("cbuffer PerFrame { float Time; }", "SDSL0209", "SDSL0209: [Pure] module CheckPure declares PerFrame")]
     [InlineData("Texture2D Tex;", "SDSL0209", "SDSL0209: [Pure] module CheckPure declares the variable Tex")]
     [InlineData("stream float4 Color;", "SDSL0209", "SDSL0209: [Pure] module CheckPure declares the stream Color")]
-    [InlineData("import CheckStreams; float4 F() { return streams.Color; }", "SDSL0209", "SDSL0209: [Pure] module CheckPure reads streams in F()")]
+    [InlineData("import CheckStreams; float4 F() { return streams.Color; }", "SDSL0210", "SDSL0210: [Pure] module CheckPure uses CheckStreams")]
     [InlineData("import CheckModule;", "SDSL0210", "SDSL0210: [Pure] module CheckPure uses CheckModule, which is not a pure module.")]
     [InlineData("float4 F() { return CheckModule.Helper(); }", "SDSL0210", "SDSL0210: [Pure] module CheckPure uses CheckModule")]
     [InlineData("float F() { return Global.Time; }", "SDSL0210", "SDSL0210: [Pure] module CheckPure uses Global")]
@@ -749,11 +745,15 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckPure");
-        Assert.True(ok, log);
         if (code == null)
+        {
+            Assert.True(ok, log);
             Assert.DoesNotContain("SDSL02", log);
+        }
         else
-            AssertWarning(expected, code, log);
+        {
+            AssertMistake(expected, code, ok, log);
+        }
     }
 
     // Without [Pure], a module may read state and use pixel shader intrinsics
@@ -777,7 +777,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
     // SDSL0211: only a module can be pure
     [Fact]
-    public void PureShaderIsAWarning()
+    public void PureShaderIsAnError()
     {
         Write("CheckPureShader", """
             namespace Stride.Shaders.Tests;
@@ -789,15 +789,15 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckPureShader");
-        Assert.True(ok, log);
+        Assert.False(ok, log);
         Assert.Contains("SDSL0211: [Pure] on shader CheckPureShader: only a module can be pure.", log);
     }
 
     // SDSL0212: 'clone' is parsed and ignored since Stride 4.4
     [Theory]
-    [InlineData("clone float4 F() { return 0; }", "Warning: CheckClone.sdsl(5,18): SDSL0212: CheckClone.F(): 'clone' has no effect since Stride 4.4. Remove it.")]
+    [InlineData("clone float4 F() { return 0; }", "Error: CheckClone.sdsl(5,18): SDSL0212: CheckClone.F(): 'clone' has no effect since Stride 4.4. Remove it.")]
     [InlineData("float4 F() { return 0; }", null)]
-    public void CloneIsAWarning(string member, string? expected)
+    public void CloneIsAnError(string member, string? expected)
     {
         Write("CheckClone", $$"""
             namespace Stride.Shaders.Tests;
@@ -809,12 +809,198 @@ public class ShaderDefinitionCheckTests : IDisposable
             """);
 
         var (ok, log) = Compile("CheckClone");
-        Assert.True(ok, log);
-        AssertWarning(expected, "SDSL0212", log);
+        AssertMistake(expected, "SDSL0212", ok, log);
     }
 
-    private static void AssertWarning(string? expected, string code, string log)
+    private const string Tests = "Stride.Shaders.Tests.";
+
+    // SDSL0146: one file, whichever class comes first
+    [Theory]
+    [InlineData("shader CycleA : CycleB { } shader CycleB : CycleA { }", "CycleA -> CycleB -> CycleA")]
+    [InlineData("shader CycleB : CycleA { } shader CycleA : CycleB { }", "CycleB -> CycleA -> CycleB")]
+    [InlineData("shader CycleA : CycleA { }", "CycleA -> CycleA")]
+    [InlineData("shader CycleA : Stride.Shaders.Tests.CycleB { } shader CycleB : CycleC { } shader CycleC : CycleA { }", "CycleA -> CycleB -> CycleC -> CycleA")]
+    [InlineData("module CycleA { import CycleB; } module CycleB { import CycleA; }", "CycleA -> CycleB -> CycleA")]
+    [InlineData("shader CycleA<int N> : CycleB<N> { } shader CycleB<int N> : CycleA<N> { }", "CycleA -> CycleB -> CycleA")]
+    public void CycleInOneFileIsAnError(string classes, string cycle)
     {
+        Write("CycleA", $"namespace Stride.Shaders.Tests;\n\n{classes}");
+
+        var (ok, log) = Compile("CycleA");
+        Assert.False(ok);
+        Assert.Contains($"SDSL0146: {Tests}{cycle.Replace(" -> ", " -> " + Tests)}: these classes inherit, import or use each other in a cycle", log);
+        Assert.Contains("CycleA.sdsl(3,", log);
+    }
+
+    // SDSL0146: two files, from the class asked for
+    [Theory]
+    [InlineData("shader CycleA : CycleB { }", "shader CycleB : CycleA { }", "CycleA -> CycleB -> CycleA")]
+    [InlineData("module CycleA { import CycleB; }", "module CycleB { import CycleA; }", "CycleA -> CycleB -> CycleA")]
+    [InlineData("shader CycleA<int N> : CycleB<N> { }", "shader CycleB<int N> : CycleA<N> { }", "CycleA -> CycleB -> CycleA")]
+    [InlineData("shader CycleA { float F() { return CycleB.G(); } }", "shader CycleB { float G() { return CycleA.F(); } }", "CycleA -> CycleB -> CycleA")]
+    public void CycleInTwoFilesIsAnError(string first, string second, string cycle)
+    {
+        Write("CycleA", $"namespace Stride.Shaders.Tests;\n\n{first}");
+        Write("CycleB", $"namespace Stride.Shaders.Tests;\n\n{second}");
+
+        var (ok, log) = Compile("CycleA");
+        Assert.False(ok);
+        Assert.Contains($"SDSL0146: {Tests}{cycle.Replace(" -> ", " -> " + Tests)}: these classes inherit, import or use each other in a cycle", log);
+    }
+
+    [Fact]
+    public void CycleInThreeFilesListsThemAll()
+    {
+        Write("CycleA", "namespace Stride.Shaders.Tests; shader CycleA : CycleEnter { }");
+        Write("CycleEnter", "namespace Stride.Shaders.Tests; shader CycleEnter : CycleB { }");
+        Write("CycleB", "namespace Stride.Shaders.Tests; shader CycleB : CycleC { }");
+        Write("CycleC", "namespace Stride.Shaders.Tests; shader CycleC : CycleEnter { }");
+
+        // The class that leads to the cycle isn't in it
+        var (ok, log) = Compile("CycleA");
+        Assert.False(ok);
+        Assert.Contains($"SDSL0146: {Tests}CycleEnter -> {Tests}CycleB -> {Tests}CycleC -> {Tests}CycleEnter:", log);
+    }
+
+    // SDSL0146: two threads, each compiling one class of the cycle, would wait for each other forever
+    [Fact]
+    public void CycleOnTwoThreadsIsAnError()
+    {
+        Write("CycleA", "namespace Stride.Shaders.Tests; shader CycleA : CycleB { }");
+        Write("CycleB", "namespace Stride.Shaders.Tests; shader CycleB : CycleA { }");
+
+        var loader = new BothCompilingLoader(sourceDir.FullName);
+        var first = Task.Factory.StartNew(() => Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer($"{Tests}CycleA", [], out _, out _, out _)), TaskCreationOptions.LongRunning);
+        var second = Task.Factory.StartNew(() => Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer($"{Tests}CycleB", [], out _, out _, out _)), TaskCreationOptions.LongRunning);
+
+        Assert.True(Task.WaitAll([first, second], TimeSpan.FromMinutes(1)), "The two threads wait for each other");
+        Assert.Contains("SDSL0146", first.Result.Message);
+        Assert.Contains("SDSL0146", second.Result.Message);
+    }
+
+    // Both threads hold their class when they go on to its parent
+    private sealed class BothCompilingLoader(string path) : ShaderLoader(path)
+    {
+        private readonly Barrier barrier = new(2);
+        private int compiles;
+
+        protected override bool LoadFromCode(string? filename, string code, ObjectId hash, ReadOnlySpan<ShaderMacro> macros, out ShaderBuffers buffer, bool registerInCache = true)
+        {
+            if (Interlocked.Increment(ref compiles) <= 2)
+                barrier.SignalAndWait();
+            return base.LoadFromCode(filename, code, hash, macros, out buffer, registerInCache);
+        }
+    }
+
+    // A class used twice on the way is no cycle
+    [Fact]
+    public void ClassReachedTwiceIsNoCycle()
+    {
+        Write("CycleTop", "namespace Stride.Shaders.Tests; shader CycleTop : CycleLeft, CycleRight { }");
+        Write("CycleLeft", "namespace Stride.Shaders.Tests; shader CycleLeft : CycleBase { }");
+        Write("CycleRight", "namespace Stride.Shaders.Tests; shader CycleRight : CycleBase { }");
+        Write("CycleBase", "namespace Stride.Shaders.Tests; shader CycleBase { }");
+
+        var (ok, log) = Compile("CycleTop");
+        Assert.True(ok, log);
+    }
+
+    // A parent further down the file is no cycle: it compiles first
+    [Fact]
+    public void ParentLaterInTheFileIsNoCycle()
+    {
+        Write("CycleA", "namespace Stride.Shaders.Tests; shader CycleHelper : CycleA { float F() { return G(); } } shader CycleA { float G() { return 1; } }");
+
+        var (ok, log) = Compile("CycleA");
+        Assert.True(ok, log);
+    }
+
+    // A name of another namespace, or one in another class of the file, is not this class
+    [Theory]
+    [InlineData("namespace Stride.Shaders.Tests; shader CycleA : Other.CycleA { }")]
+    [InlineData("namespace Stride.Shaders.Tests; shader CycleHelper { } shader CycleA : CycleHelper { }")]
+    public void SameNameElsewhereIsNoCycle(string code)
+    {
+        Write("CycleA", code);
+        Write("Other.CycleA", "namespace Other; shader CycleA { }");
+
+        var (_, log) = Compile("CycleA");
+        Assert.DoesNotContain("SDSL0146", log);
+    }
+
+    // SDSL0147: a condition runs before generics get their value, so it would always take the same branch
+    [Theory]
+    [InlineData("int N", "#if N == 3\n#endif", "#if reads N", 5, 1)]
+    [InlineData("int N", "#ifdef N\n#endif", "#ifdef reads N", 5, 1)]
+    [InlineData("int N", "#ifndef N\n#endif", "#ifndef reads N", 5, 1)]
+    [InlineData("int N", "#if defined(N)\n#endif", "#if reads N", 5, 1)]
+    [InlineData("int N", "#if defined N\n#endif", "#if reads N", 5, 1)]
+    [InlineData("int N", "#if !N\n#endif", "#if reads N", 5, 1)]
+    [InlineData("int N", "#if 0\n#elif N\n#endif", "#elif reads N", 6, 1)]
+    [InlineData("int N", "#define COUNT N\n#if COUNT == 3\n#endif", "#if reads N", 6, 1)]
+    [InlineData("int N", "  #if N\n  #endif", "#if reads N", 5, 3)]
+    [InlineData("MemberName N", "#if N == 3\n#endif", "#if reads N", 5, 1)]
+    [InlineData("int M, int N", "#if M\n#endif\n#if 0\n\n\n#else\n#ifdef N\n#endif\n#endif", "#ifdef reads N", 11, 1)]
+    public void ConditionOnAGenericIsAnError(string parameters, string body, string expected, int line, int column)
+    {
+        Write("CheckGeneric", $"namespace Stride.Shaders.Tests;\n\nshader CheckGeneric<{parameters}>\n{{\n{body}\n}}");
+
+        var (ok, log) = Compile("CheckGeneric");
+        Assert.False(ok);
+        Assert.Contains($"CheckGeneric.sdsl({line},{column}): SDSL0147: {expected}, a generic parameter of CheckGeneric.", log);
+    }
+
+    // Valid HLSL: only a name that is a generic parameter of the class, and no macro at that point
+    [Theory]
+    [InlineData("#if OTHER\n#endif")]
+    [InlineData("#ifdef OTHER\n#endif")]
+    [InlineData("#if defined(OTHER)\n#endif")]
+    [InlineData("static const int VALUE = 3;\n#if VALUE\n#endif")]
+    [InlineData("#define N 3\n#if N == 3\n#endif")]
+    [InlineData("#define N\n#ifdef N\n#endif")]
+    [InlineData("#if 0\n#if N\n#endif\n#ifdef N\n#endif\n#endif")]
+    [InlineData("#if 1\n#elif N\n#endif")]
+    [InlineData("// #if N\n/* #ifdef N */")]
+    public void OtherConditionsCompile(string body)
+    {
+        Write("CheckGeneric", $"namespace Stride.Shaders.Tests;\n\nshader CheckGeneric<int N>\n{{\n{body}\n}}");
+
+        var (ok, log) = Compile("CheckGeneric");
+        Assert.True(ok, log);
+        Assert.DoesNotContain("SDSL0147", log);
+    }
+
+    [Fact]
+    public void ConditionOutsideTheClassOfTheGenericCompiles()
+    {
+        Write("CheckGeneric", """
+            namespace Stride.Shaders.Tests;
+
+            #if N
+            #endif
+
+            shader CheckGeneric<int N>
+            {
+            }
+
+            #ifdef N
+            #endif
+
+            shader CheckOther
+            {
+            #if N
+            #endif
+            }
+            """);
+
+        var (ok, log) = Compile("CheckGeneric");
+        Assert.True(ok, log);
+    }
+
+    // A mistake doesn't compile, and code without it compiles with no mention of it
+    private static void AssertMistake(string? expected, string code, bool ok, string log)
+    {
+        Assert.Equal(expected == null, ok);
         if (expected == null)
             Assert.DoesNotContain(code, log);
         else

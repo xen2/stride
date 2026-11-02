@@ -21,6 +21,7 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 using System.IO;
+using Stride.Shaders.Parsing;
 
 namespace CppNet {
 
@@ -1534,6 +1535,15 @@ internal class Preprocessor : IDisposable {
 	}
 
 
+	/* Stride: when set, collects each name a condition reads that is no macro at that point. */
+	public List<UndefinedConditionName> UndefinedConditionNames { get; set; }
+
+	private Token	_condition_directive = null;
+
+	private void undefined_in_condition(String name) {
+		UndefinedConditionNames?.Add(new UndefinedConditionName(name, _condition_directive.getText(), 0, 0));
+	}
+
 	private Token	_expr_token = null;
 
 	private Token expr_token() {
@@ -1577,6 +1587,7 @@ internal class Preprocessor : IDisposable {
                             "1", 1);
                 } else {
                     // System.out.println("Not found macro");
+                    undefined_in_condition(la.getText());
                     tok = new Token(Token.INTEGER,
                             la.getLine(), la.getColumn(),
                             "0", 0);
@@ -1678,6 +1689,7 @@ internal class Preprocessor : IDisposable {
                         warning(tok, "Undefined token '" + tok.getText() +
                                 "' encountered in conditional.");
                     }
+                    undefined_in_condition(tok.getText());
 				    lhs = 0;
                 }
 				break;
@@ -1963,6 +1975,7 @@ internal class Preprocessor : IDisposable {
 							tok.getText());
 						return source_skipline(false);
 					}
+					_condition_directive = tok;
 
                 PP: switch(ppcmd) {
 
@@ -2080,6 +2093,8 @@ internal class Preprocessor : IDisposable {
                                     String text = tok.getText();
                                     bool exists =
                                         macros.ContainsKey(text);
+                                    if(!exists)
+                                        undefined_in_condition(text);
                                     states.Peek().setActive(exists);
                                     return source_skipline(true);
                                 }
@@ -2101,6 +2116,8 @@ internal class Preprocessor : IDisposable {
                                     String text = tok.getText();
                                     bool exists =
                                         macros.ContainsKey(text);
+                                    if(!exists)
+                                        undefined_in_condition(text);
                                     states.Peek().setActive(!exists);
                                     return source_skipline(true);
                                 }

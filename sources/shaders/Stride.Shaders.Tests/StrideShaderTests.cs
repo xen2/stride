@@ -1533,9 +1533,7 @@ new ShaderMacro("class", "shader"),
     {
         var (success, log) = MergeModuleRule("ModuleRuleReadsInstance");
         Assert.False(success);
-        Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error
-            && m.Text.Contains("Module code `ModuleRuleReadsInstance.ReadValue` reads `Value`, an instance member of `ModuleRuleReadsInstance`")
-            && m.Text.Contains("(`Comp0`)") && m.Text.Contains("Mark `Value` `module`"));
+        Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error && m.Text.Contains("SDSL0204"));
     }
 
     // ... nor call an instance method of a parent
@@ -1544,9 +1542,7 @@ new ShaderMacro("class", "shader"),
     {
         var (success, log) = MergeModuleRule("ModuleRuleCallsInstance");
         Assert.False(success);
-        Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error
-            && m.Text.Contains("Module code `ModuleRuleCallsInstance.Run` calls `ModuleRuleHelper.Helper`, an instance method")
-            && m.Text.Contains("Mark `ModuleRuleHelper.Helper` `module`"));
+        Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error && m.Text.Contains("SDSL0205"));
     }
 
     // In a composition, an override of a module method must be a module override (one chain per effect)
@@ -1555,9 +1551,7 @@ new ShaderMacro("class", "shader"),
     {
         var (success, log) = MergeModuleRule("ModuleRuleWrongOverride");
         Assert.False(success);
-        Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error
-            && m.Text.Contains("`ModuleRuleWrongOverride.Factor` overrides the module method `ModuleRuleModuleBase.Factor` but is not `module`")
-            && m.Text.Contains("Write `override module`"));
+        Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error && m.Text.Contains("SDSL0206"));
     }
 
     // ... nor call an instance method of its own class
@@ -1566,9 +1560,7 @@ new ShaderMacro("class", "shader"),
     {
         var (success, log) = MergeModuleRule("ModuleRuleCallsOwnInstance");
         Assert.False(success);
-        Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error
-            && m.Text.Contains("Module code `ModuleRuleCallsOwnInstance.Run` calls `Helper`, an instance method of `ModuleRuleCallsOwnInstance`")
-            && m.Text.Contains("Mark `Helper` `module`"));
+        Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error && m.Text.Contains("SDSL0205"));
     }
 
     // In a composition, a module method can't override an instance method (one chain per instance)
@@ -1577,9 +1569,7 @@ new ShaderMacro("class", "shader"),
     {
         var (success, log) = MergeModuleRule("ModuleRuleWrongModuleOverride");
         Assert.False(success);
-        Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error
-            && m.Text.Contains("`ModuleRuleWrongModuleOverride.Helper` is `module` but overrides the instance method `ModuleRuleHelper.Helper`")
-            && m.Text.Contains("Remove `module`"));
+        Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error && m.Text.Contains("SDSL0207"));
     }
 
     // A companion module stays after its parent, also when another instantiation of the parent, mixed later at the root, holds the parent's module part

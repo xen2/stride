@@ -205,7 +205,7 @@ public sealed partial class ShaderMember(
         base.ProcessSymbol(table, context);
         WarnIgnoredRegister(table, Name);
         if (IsCompose && Value != null)
-            table.AddWarning(new(Value.Info, string.Format(SDSLErrorMessages.SDSL0236, Name, Value.Info.Text)));
+            table.AddError(new(Value.Info, string.Format(SDSLErrorMessages.SDSL0236, Name, Value.Info.Text)));
         foreach (var generic in TypeName.Generics)
             generic.ProcessSymbol(table);
         if (!TypeName.TryResolveType(table, context, out var memberType))
@@ -541,7 +541,7 @@ public partial class ShaderMethod(
             CheckOverriddenMethod(table, ftype);
         }
         if (IsClone)
-            table.AddWarning(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0212, table.CurrentShader!.ShortName, Name.Name)));
+            table.AddError(new(Name.Info, string.Format(SDSLErrorMessages.SDSL0212, table.CurrentShader!.ShortName, Name.Name)));
 
         var symbol = new Symbol(new(Name, SymbolKind.Method, IsStage: IsStaged), ftype, function.Id, MemberAccessWithImplicitThis: ftype, OwnerType: table.CurrentShader);
 
