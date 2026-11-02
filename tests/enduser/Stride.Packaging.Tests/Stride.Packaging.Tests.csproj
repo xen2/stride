@@ -14,6 +14,8 @@
     <SkipXunitReference>true</SkipXunitReference>
     <SkipTestSdkReference>true</SkipTestSdkReference>
     <SkipSourceLink>true</SkipSourceLink>
+    <!-- The shaders of the fixtures belong to the fixtures -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Fixtures\**</DefaultItemExcludes>
     <!-- Override SDK test output path since this project is outside sources/ -->
     <OutputPath>$(MSBuildThisFileDirectory)..\..\..\bin\Tests\$(MSBuildProjectName)\$(StridePlatform)\</OutputPath>
   </PropertyGroup>

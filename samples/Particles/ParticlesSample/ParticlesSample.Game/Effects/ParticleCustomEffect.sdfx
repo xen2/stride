@@ -3,7 +3,7 @@
 
 namespace Stride.Rendering
 {
-    partial effect ParticleCustomEffect
+    effect ParticleCustomEffect
     {
         // Use the ParticleBaseKeys for constant attributes, defined in the game engine
         using params ParticleBaseKeys;

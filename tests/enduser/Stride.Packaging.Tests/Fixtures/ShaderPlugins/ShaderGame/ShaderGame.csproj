@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ShaderGame</RootNamespace>
+    <Nullable>enable</Nullable>
+    <StrideContainsAssetTypes>false</StrideContainsAssetTypes>
+    <StridePlatform Condition="$([MSBuild]::IsOSPlatform('Linux'))">Linux</StridePlatform>
+    <StridePlatform Condition="$([MSBuild]::IsOSPlatform('OSX'))">macOS</StridePlatform>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="ShaderGame.Game\ShaderGame.Game.csproj" />
+    <Compile Remove="ShaderGame.Game\**" />
+  </ItemGroup>
+</Project>

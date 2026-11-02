@@ -13,7 +13,7 @@ using Stride.Shaders.Parsing;
 namespace Stride.Assets.Effect
 {
     /// <summary>
-    /// Reports an effect declared twice in a session. The effect itself is C#, built by the generator, so there is nothing else to build.
+    /// Reports an effect declared twice in a session. An <c>extend effect</c> doesn't declare one. The effect itself is C#, built by the generator, so there is nothing else to build.
     /// </summary>
     [AssetCompiler(typeof(EffectCompositorAsset), typeof(AssetCompilationContext))]
     public class EffectCompositorAssetCompiler : AssetCompilerBase
@@ -62,7 +62,7 @@ namespace Stride.Assets.Effect
         }
 
         private static IEnumerable<string> DeclaredEffects(AssetItem assetItem)
-            => ShaderFileDeclarations.Read(File.ReadAllText(assetItem.FullPath)).Where(x => x.IsEffect).Select(x => x.FullName).Distinct();
+            => ShaderFileDeclarations.Read(File.ReadAllText(assetItem.FullPath)).Where(x => x.IsEffect && !x.IsLayer).Select(x => x.FullName).Distinct();
 
         private static string Describe(AssetItem assetItem) => $"{assetItem.FullPath} (package {assetItem.Package.Meta.Name})";
     }

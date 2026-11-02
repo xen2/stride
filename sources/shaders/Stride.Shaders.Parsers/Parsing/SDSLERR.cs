@@ -84,12 +84,16 @@ public static class SDSLErrorMessages
     public const string SDSL0161 = "SDSL0161: Argument {0} of the call to {1} has type {2}, which can't be converted to {3}.";
     public const string SDSL0162 = "SDSL0162: No overload of {0} can take these arguments:{1}";
     public const string SDSL0250 = "SDSL0250: {0} on {1}: {2}.";
+    public const string SDSL0252 = "SDSL0252: phase {0}, added by {1}, has a plain name. Only the owner of {2} declares plain names, in [Phases]: give the phase a prefix of your own, such as {3}.";
+    public const string SDSL0253 = "SDSL0253: phase {0}, added by {1}: a name that starts with Stride. is kept for the engine. Give the phase a prefix of your own.";
     public const string SDSL0254 = "SDSL0254: [{0}] on {1}: {2}.";
     public const string SDSL0255 = "SDSL0255: [{0}] on {1}: \"{2}\" is a string. A name in quotes is kept for weak names, which are not supported yet: write the name without quotes.";
+    public const string SDSL0256 = "SDSL0256: extend shader {0}: {1}.";
     public const string SDSL0163 = "SDSL0163: The call {0} is ambiguous: these overloads match equally well:{1}\nCast the arguments to the parameter types of the one to call.";
     public const string SDSL0170 = "SDSL0170: [StreamOutput] on {0} is not supported: Stride shaders have no geometry shader stream output. Remove the attribute; to keep generated vertices, write them to a RWStructuredBuffer from a compute shader instead.";
     public const string SDSL0135 = "SDSL0135: [{0}] on {1}: {2}.";
-    public const string SDSL0137 = "SDSL0137: {0} and {1} are both in phase {2} of {3} and {4}, and nothing orders them. Add [MixinOrder(After = {0})] to {1}, or [MixinOrder(After = {1})] to {0}.";
+    public const string SDSL0137 = "SDSL0137: {0} and {1} are both in phase {2} of {3} and {4}, and nothing orders them. Add [MixinOrder(After = {0})] to {1}, or this block to the effect: extend shader {5} {{ [MixinOrder({0}, {1})] {6}; }}";
+    public const string SDSL0137InComposition = "SDSL0137: {0} and {1} are both in phase {2} of {3}, in a composition, and {4}, and nothing orders them. A block of the effect doesn't reach a composition: add [MixinOrder(After = {0})] to {1}, or give one of them a phase of its own, such as [Phase(Vendor.Later, After = {2})].";
     public const string SDSL0138 = "SDSL0138: the order of {0} can't be followed: {1}.";
     public const string SDSL0139 = "SDSL0139: collect on {0}: collect is reserved for a later version. Use pipeline or around.";
     public const string SDSL0140 = "SDSL0140: {0} is in phase {1} of {2} and {3}. A step before the phase of the default body ({4}) calls base last, a step after it calls base first.";
@@ -138,6 +142,9 @@ public static class SDSLErrorMessages
     public const string SDSL0243 = "SDSL0243: && within ||: {0} computes {1} first. Add parentheses around it to make it clear.";
     public const string SDSL0244 = "SDSL0244: {0} has lower precedence than {1}: {2} computes {3} first. Add parentheses to make it clear.";
     public const string SDSL0245 = "SDSL0245: {0}.sdsl declares {1} and no class named {0}. A class is found by its file name: rename the file or the class.";
+    public const string SDSL0154 = "SDSL0154: the block extend shader {0} ({1}) names {2}, but {0} is in the effect and {3}. A block is about a method of its class, or one the class contributes to, written Owner.Method.";
+    public const string SDSL0158 = "SDSL0158: the {1} names the class {0}, which doesn't exist. Check the name. If the class comes from a package, reference that package from the project, or remove the name.";
+    public const string SDSL0218 = "SDSL0218: phase {0} added by {1} to {2} has no place: {2} has no phase {3}.";
     public const string SDSL0216 = "SDSL0216: {0}.{1} doesn't call base, so {2} never run in this effect. Call base to keep them.";
     public const string SDSL0246 = "SDSL0246: {0} overrides {1} of {2}, which is not an extension point. The first definition of {1} in {2} has to say how its overrides combine: write replace, pipeline or around on it. If {2} is in a library or in the engine, its author has to write it.";
 
@@ -173,6 +180,10 @@ public static class SDSLErrorMessages
     public const string SDSL0305 = "SDSL0305: {0} can't replace {1}: {2}.";
     public const string SDSL0306 = "SDSL0306: {0} can't replace {1}: it must declare the generic parameters of {1} ({2}), in the same order and of the same kinds, and pass them to {1} unchanged.";
     public const string SDSL0307 = "SDSL0307: no shader or effect is named {0}. Did you mean {1}? A string in C# or in stored data takes the full name.";
+    // SDSL0308-0309: kept for shader namespaces
+    public const string SDSL0310 = "SDSL0310: extend effect {0}: no effect has this name. Check the name and the namespace, and reference the project that declares the effect.";
+    public const string SDSL0311 = "SDSL0311: 'partial effect' doesn't exist. Write 'effect' to declare an effect, or 'extend effect' to add to an effect of another project.";
+    public const string SDSL0312 = "SDSL0312: extend effect {0}: a project can only extend an effect once, and only an effect of another project. Write these statements in one place.";
 
     // Definition checks: found when a class compiles, reported as warnings (errors with ShaderLoaderBase.WarningsAsErrors)
 

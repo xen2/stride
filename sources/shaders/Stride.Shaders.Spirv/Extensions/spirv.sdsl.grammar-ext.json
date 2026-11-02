@@ -232,7 +232,19 @@
         },
         {
           "kind": "LiteralString",
+          "name": "addedPhase"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "baseCall"
+        },
+        {
+          "kind": "LiteralString",
           "name": "mixinOrder"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "unbind"
         },
         {
           "kind": "LiteralInteger",

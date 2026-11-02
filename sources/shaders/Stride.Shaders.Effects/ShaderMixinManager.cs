@@ -18,7 +18,68 @@ namespace Stride.Shaders
         /// </summary>
         public const string DuplicateEffectMessage = "SDSL0302: effect {0} is declared twice: in {1} and in {2}. Rename one or put it in another namespace.";
 
+        /// <summary>
+        /// The message of a layer whose effect no loaded assembly declares: its full name. The generator gives this error too, when a project builds.
+        /// </summary>
+        public const string LayerWithoutEffectMessage = "SDSL0310: extend effect {0}: no effect has this name. Check the name and the namespace, and reference the project that declares the effect.";
+
         private static readonly Dictionary<string, IShaderMixinBuilder> RegisteredBuilders = new Dictionary<string, IShaderMixinBuilder>();
+
+        /// <summary>
+        /// The parts of an effect that assemblies declare: the effect, then its layers. The statements add up, and the blocks of each layer
+        /// are one level further out than the ones before it.
+        /// </summary>
+        private sealed class LayeredEffectBuilder : IShaderMixinBuilder
+        {
+            public string Name { get; init; }
+
+            public IShaderMixinBuilder Effect { get; set; }
+
+            // Replaced, not changed: an assembly can load while another thread generates this effect
+            public IReadOnlyList<IShaderMixinBuilder> Layers { get; private set; } = [];
+
+            private readonly Dictionary<string, string[]> writtenReferences = [];
+
+            public void Generate(ShaderMixinSource mixin, ShaderMixinContext context)
+            {
+                if (Effect == null)
+                    throw new InvalidOperationException(string.Format(LayerWithoutEffectMessage, Name));
+
+                Effect.Generate(mixin, context);
+                foreach (var layer in Layers)
+                {
+                    var level = context.EnterLayer();
+                    layer.Generate(mixin, context);
+                    context.LeaveLayer(level);
+                }
+            }
+
+            /// <summary>
+            /// An assembly that references the assembly of another layer comes after it, so that a project wins over the plugins it uses:
+            /// a reference in its metadata, or one the generator wrote. Layers that don't know each other are in the order of their assembly names.
+            /// </summary>
+            public void AddLayer(IShaderMixinBuilder builder, string[] references)
+            {
+                writtenReferences[builder.GetType().Assembly.GetName().Name] = references;
+                var layers = Layers.Where(x => !IsSameBuilder(x, builder)).Append(builder).ToList();
+                var assemblies = layers.Select(x => x.GetType().Assembly).ToList();
+                int Depth(System.Reflection.Assembly assembly, HashSet<string> path)
+                {
+                    var depth = 0;
+                    foreach (var referenced in assembly.GetReferencedAssemblies().Select(x => x.Name).Concat(writtenReferences.GetValueOrDefault(assembly.GetName().Name, [])))
+                    {
+                        var layer = assemblies.Find(x => x.GetName().Name == referenced);
+                        if (layer != null && path.Add(referenced))
+                        {
+                            depth = Math.Max(depth, Depth(layer, path) + 1);
+                            path.Remove(referenced);
+                        }
+                    }
+                    return depth;
+                }
+                Layers = layers.OrderBy(x => Depth(x.GetType().Assembly, [])).ThenBy(x => x.GetType().Assembly.GetName().Name, StringComparer.Ordinal).ToList();
+            }
+        }
 
         /// <summary>
         /// Registers a <see cref="IShaderMixinBuilder"/> with the specified sdfx effect name.
@@ -41,10 +102,44 @@ namespace Stride.Shaders
 
             lock (RegisteredBuilders)
             {
-                if (RegisteredBuilders.TryGetValue(sdfxEffectName, out var existing) && !IsSameBuilder(existing, builder))
+                if (RegisteredBuilders.TryGetValue(sdfxEffectName, out var existing) && existing is LayeredEffectBuilder layered)
+                {
+                    // The effect itself, with the layers that were there before it
+                    if (layered.Effect != null && !IsSameBuilder(layered.Effect, builder))
+                        throw new InvalidOperationException(string.Format(DuplicateEffectMessage, sdfxEffectName, Describe(layered.Effect), Describe(builder)));
+
+                    layered.Effect = builder;
+                    return;
+                }
+                if (existing != null && !IsSameBuilder(existing, builder))
                     throw new InvalidOperationException(string.Format(DuplicateEffectMessage, sdfxEffectName, Describe(existing), Describe(builder)));
 
                 RegisteredBuilders[sdfxEffectName] = builder;
+            }
+        }
+
+        /// <summary>
+        /// Registers an <c>extend effect</c>: a layer on top of the effect of this name. The effect can register after it, as assemblies load in any order.
+        /// </summary>
+        /// <param name="sdfxEffectName">Full name of the effect.</param>
+        /// <param name="builder">The builder.</param>
+        /// <param name="references">The assemblies with a layer that the project of this builder references, also when its code uses none of their types.</param>
+        /// <exception cref="System.ArgumentNullException">sdfxEffectName or builder</exception>
+        public static void RegisterLayer(string sdfxEffectName, IShaderMixinBuilder builder, params string[] references)
+        {
+            if (sdfxEffectName == null)
+                throw new ArgumentNullException("sdfxEffectName");
+
+            if (builder == null)
+                throw new ArgumentNullException("builder");
+
+            lock (RegisteredBuilders)
+            {
+                RegisteredBuilders.TryGetValue(sdfxEffectName, out var existing);
+                if (existing is not LayeredEffectBuilder layered)
+                    RegisteredBuilders[sdfxEffectName] = layered = new LayeredEffectBuilder { Name = sdfxEffectName, Effect = existing };
+
+                layered.AddLayer(builder, references);
             }
         }
 

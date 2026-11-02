@@ -5,7 +5,7 @@ using Stride.Rendering.Voxels;
 
 namespace Stride.Rendering.Voxels
 {
-    partial effect VoxelizeToFragmentsEffect
+    effect VoxelizeToFragmentsEffect
     {
         using params MaterialKeys;
         using params VoxelizeToFragmentsKeys;

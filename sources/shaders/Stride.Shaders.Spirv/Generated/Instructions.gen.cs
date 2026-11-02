@@ -130942,7 +130942,40 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
         }
     }
 
+    public string AddedPhase
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public string BaseCall
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
     public string MixinOrder
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public string Unbind
     {
         get;
         set
@@ -130964,13 +130997,16 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
         }
     }
 
-    public OpContributionSDSL(string phase, string after, string before, string drops, string mixinOrder, int line)
+    public OpContributionSDSL(string phase, string after, string before, string drops, string addedPhase, string baseCall, string mixinOrder, string unbind, int line)
     {
         Phase = phase;
         After = after;
         Before = before;
         Drops = drops;
+        AddedPhase = addedPhase;
+        BaseCall = baseCall;
         MixinOrder = mixinOrder;
+        Unbind = unbind;
         Line = line;
         UpdateInstructionMemory();
         opData = ref Unsafe.NullRef<OpData>();
@@ -130984,7 +131020,7 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
     public void UpdateInstructionMemory()
     {
         InstructionMemory ??= MemoryOwner<int>.Empty;
-        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words, ..After.AsDisposableLiteralValue().Words, ..Before.AsDisposableLiteralValue().Words, ..Drops.AsDisposableLiteralValue().Words, ..MixinOrder.AsDisposableLiteralValue().Words, ..Line.AsDisposableLiteralValue().Words];
+        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words, ..After.AsDisposableLiteralValue().Words, ..Before.AsDisposableLiteralValue().Words, ..Drops.AsDisposableLiteralValue().Words, ..AddedPhase.AsDisposableLiteralValue().Words, ..BaseCall.AsDisposableLiteralValue().Words, ..MixinOrder.AsDisposableLiteralValue().Words, ..Unbind.AsDisposableLiteralValue().Words, ..Line.AsDisposableLiteralValue().Words];
         instruction[0] |= instruction.Length << 16;
         if (instruction.Length == InstructionMemory.Length)
             instruction.CopyTo(InstructionMemory.Span);
@@ -131015,8 +131051,17 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
                 case "drops":
                     Drops = o.ToLiteral<string>();
                     break;
+                case "addedPhase":
+                    AddedPhase = o.ToLiteral<string>();
+                    break;
+                case "baseCall":
+                    BaseCall = o.ToLiteral<string>();
+                    break;
                 case "mixinOrder":
                     MixinOrder = o.ToLiteral<string>();
+                    break;
+                case "unbind":
+                    Unbind = o.ToLiteral<string>();
                     break;
                 case "line":
                     Line = o.ToLiteral<int>();

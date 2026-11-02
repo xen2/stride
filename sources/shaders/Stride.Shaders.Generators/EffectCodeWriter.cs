@@ -32,6 +32,8 @@ public class EffectCodeWriter : ShaderWriter
     private readonly List<string> namespaceUsings = [];
     private bool insideNamespace;
     private bool currentClassHasKeys;
+    private bool hasLayer;
+    private string? currentEffect;
 
     /// <summary>
     /// Whether a C# type exists, by full name. A key of a struct type needs a C# struct with the same name (e.g.
@@ -39,13 +41,23 @@ public class EffectCodeWriter : ShaderWriter
     /// builds. A name ending in a dot is a namespace: a <c>using</c> of a shader namespace that C# doesn't know isn't
     /// written. A name ending in <c>!</c> is a type declared here without <c>partial</c>: a shader with no key writes no
     /// class then. A name ending in <c>#</c> is a key class with a <c>ShaderName</c> or an <c>EffectName</c>, so a shader or effect of that name exists. A name
-    /// ending in <c>*</c> is a key class that two files of the project write. Null: every struct key and <c>using</c> is
-    /// written, and a <c>mixin</c> name stays as it is written.
+    /// ending in <c>*</c> is a key class that two files of the project write. A name with <c>@</c> is a key class of another
+    /// project, then the full name of the effect its <c>EffectName</c> gives. Null: every struct key and <c>using</c> is
+    /// written, a <c>mixin</c> name stays as it is written, and the effect of a layer isn't looked for.
     /// </summary>
     public Func<string, bool>? CSharpTypeExists { get; init; }
 
+    /// <summary>The name of the file, for the place of a block in messages.</summary>
+    public string? FileName { get; init; }
+
     /// <summary>The namespaces every shader and effect sees without a <c>using</c>, for the names in <c>mixin</c>.</summary>
     public IReadOnlyList<string> ImplicitUsings { get; init; } = [];
+
+    /// <summary>The key of the <c>AssemblyMetadata</c> that says an assembly holds a layer. A reference assembly keeps it, and its internal layers are not in there.</summary>
+    public const string LayerMetadataKey = "Stride.Shaders.EffectLayers";
+
+    /// <summary>The assemblies this project references that hold a layer, sorted. C# only records a reference that the code uses, so a layer says them itself.</summary>
+    public IReadOnlyList<string> ReferencedLayers { get; init; } = [];
 
     /// <summary>The names to ask <see cref="CSharpTypeExists"/> about, collected while writing.</summary>
     public HashSet<string> CSharpTypeCandidates { get; } = [];
@@ -59,7 +71,7 @@ public class EffectCodeWriter : ShaderWriter
         {
             foreach (var reportMessage in logging)
             {
-                Write("#error ").WriteLine(reportMessage.ToString());
+                Write("#error ").WriteLine($"{reportMessage.Message} (line {reportMessage.Location.Line}, column {reportMessage.Location.Column})");
             }
         }
 
@@ -361,8 +373,12 @@ public class EffectCodeWriter : ShaderWriter
     {
         var effectName = shaderEffect.Name.ToString();
         var fullName = ShaderNames.Combine(currentShaderNamespace, effectName);
+        currentEffect = fullName;
         DeclaredClasses.Add(fullName);
-        WriteEffectNameHandle(effectName, fullName);
+        if (shaderEffect.IsLayer)
+            CheckEffectOfLayer(effectName, fullName, shaderEffect.Name.Info);
+        else
+            WriteEffectNameHandle(effectName, fullName);
 
         WriteLine("internal static partial class ShaderMixins");
         {
@@ -380,11 +396,26 @@ public class EffectCodeWriter : ShaderWriter
                     VisitNode(shaderEffect.Block!);
                 }
 
-                moduleInitializerLines.Add($"global::Stride.Shaders.ShaderMixinManager.Register(\"{fullName}\", new global::{currentNamespace}.ShaderMixins.{shaderEffect.Name}());");
+                var references = shaderEffect.IsLayer ? string.Concat(ReferencedLayers.Select(x => $", {SymbolDisplay.FormatLiteral(x, true)}")) : "";
+                moduleInitializerLines.Add($"global::Stride.Shaders.ShaderMixinManager.{(shaderEffect.IsLayer ? "RegisterLayer" : "Register")}(\"{fullName}\", new global::{currentNamespace}.ShaderMixins.{shaderEffect.Name}(){references});");
                 CloseBrace();
             }
             CloseBrace();
         }
+    }
+
+    // Nothing asks for an effect that doesn't exist, so without this a misspelled layer would never do anything and never fail
+    private void CheckEffectOfLayer(string effectName, string fullName, TextLocation info)
+    {
+        var keys = $"{currentNamespace}.{effectName}Keys@{fullName}";
+        CSharpTypeCandidates.Add(keys);
+        if (CSharpTypeExists == null)
+            return;
+
+        if (CSharpTypeExists($"{fullName}Keys*"))
+            logging.Add((string.Format(SDSLErrorMessages.SDSL0312, fullName), info));
+        else if (!CSharpTypeExists(keys))
+            logging.Add((string.Format(SDSLErrorMessages.SDSL0310, fullName), info));
     }
 
     private void WriteEffectNameHandle(string effectName, string fullName)
@@ -476,6 +507,7 @@ public class EffectCodeWriter : ShaderWriter
             shaderFile.Namespaces.Add(defaultNamespace);
         }
 
+        hasLayer = shaderFile.Namespaces.Any(x => x.Declarations.OfType<ShaderEffect>().Any(y => y.IsLayer));
         base.VisitShaderFile(shaderFile);
 
         if (moduleInitializerLines.Count > 0)
@@ -495,6 +527,13 @@ public class EffectCodeWriter : ShaderWriter
 
     public override void VisitShaderNamespace(ShaderNamespace shaderNamespace)
     {
+        // An attribute of the assembly goes before the first namespace, after the usings of the file
+        if (hasLayer)
+        {
+            WriteLine($"[assembly: global::System.Reflection.AssemblyMetadata({SymbolDisplay.FormatLiteral(LayerMetadataKey, true)}, \"true\")]");
+            hasLayer = false;
+        }
+
         Write("namespace ").Write(string.Join(".", shaderNamespace.NamespacePath)).WriteLine();
         OpenBrace();
         currentNamespace = string.Join(".", shaderNamespace.NamespacePath);
@@ -505,6 +544,10 @@ public class EffectCodeWriter : ShaderWriter
         var declarations = shaderNamespace.Declarations;
         foreach (var shaderClass in declarations.OfType<ShaderClass>())
             DeclaredClasses.Add(ShaderNames.Combine(currentShaderNamespace, shaderClass.Name));
+
+        // In one file. Across the files of a project, it's CheckEffectOfLayer
+        foreach (var effects in declarations.OfType<ShaderEffect>().GroupBy(x => x.Name.ToString()).Where(x => x.Count() > 1 && x.Any(y => y.IsLayer)))
+            logging.Add((string.Format(SDSLErrorMessages.SDSL0312, ShaderNames.Combine(currentShaderNamespace, effects.Key)), effects.First().Name.Info));
 
         // If multiple ShaderClass, we get only the last one
         // (otherwise our unit tests are generating too many collisions -- we could revisit that decision later if we allow more than one shader per file in production)
@@ -777,6 +820,34 @@ public class EffectCodeWriter : ShaderWriter
                     CloseBrace();
                     break;
                 }
+        }
+    }
+
+    /// <summary>
+    /// One call per attribute of the block, with where it is written.
+    /// </summary>
+    public override void VisitEffectShaderBlock(EffectShaderBlock block)
+    {
+        var errors = new List<(string Message, TextLocation Location)>();
+        var source = $"{FileName ?? $"effect {ShaderNames.ShortName(currentEffect ?? "")}"}, line {block.Info.Line}";
+        var rules = block.ReadRules(ResolveClassName, source, errors);
+        logging.AddRange(errors);
+        foreach (var rule in rules)
+        {
+            static string Literal(string? text) => text != null ? SymbolDisplay.FormatLiteral(text, true) : "null";
+            static string Names(List<string> names) => string.Join(", ", names.Select(x => Literal(x)));
+            // The block gives one rule per key
+            var attribute = rule.Kind switch
+            {
+                ShaderLinkageKind.MixinOrder when !rule.IsOnContribution => $"MixinOrder({Names(rule.Names)})",
+                ShaderLinkageKind.MixinOrder when rule.After.Count > 0 => $"MixinOrderAfter({Names(rule.After)})",
+                ShaderLinkageKind.MixinOrder => $"MixinOrderBefore({Names(rule.Before)})",
+                ShaderLinkageKind.Unbind when rule.Phases.Count > 0 => $"UnbindPhases({Names(rule.Phases)})",
+                ShaderLinkageKind.Unbind => $"UnbindMixins({Names(rule.Mixins)})",
+                _ => $"Phase({Literal(rule.Phase)}, after: {Literal(rule.After.FirstOrDefault())}, before: {Literal(rule.Before.FirstOrDefault())})",
+            };
+            WriteLinkLine(block);
+            WriteLine($"context.ExtendShader({Literal(rule.Shader)}, {Literal(source)}).Method({Literal(rule.Member())}).{attribute};");
         }
     }
 

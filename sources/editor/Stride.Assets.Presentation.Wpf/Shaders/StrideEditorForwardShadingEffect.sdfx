@@ -50,5 +50,6 @@ namespace Stride.Rendering
     effect Highlight
     {
         mixin HighlightShader;
+        extend shader ShaderBase { [Unbind(Phases = { Shade })] PSMain; }
     }
 }

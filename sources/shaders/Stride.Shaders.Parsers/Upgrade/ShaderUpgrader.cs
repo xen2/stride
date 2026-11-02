@@ -25,6 +25,8 @@ public static class ShaderUpgrader
         "compose-out-of-buffer",
         // 4.5: the value of a composition (`compose ComputeFloat C = 0.5;`) never did anything (SDSL0236)
         "drop-compose-value",
+        // 4.5: `partial` on an effect never did anything, and a layer is `extend effect` (SDSL0311)
+        "effect-not-partial",
         // 4.4: an implementation of an abstract method is marked `override` (SDSL0114); after the rename, the parser rejects `stage`
         "add-override",
         // 4.5: module code of a class used in compositions can only call module methods
@@ -40,7 +42,7 @@ public static class ShaderUpgrader
     ];
 
     /// <summary>
-    /// Whether a path is an effect source: only the steps about names read it.
+    /// Whether a path is an effect source: only <c>effect-not-partial</c> and the steps about names read it.
     /// </summary>
     public static bool IsEffectFile(string path) => path.EndsWith(".sdfx", StringComparison.OrdinalIgnoreCase);
 
@@ -103,6 +105,11 @@ public static class ShaderUpgrader
                     var textStep = TextSteps[Steps.ToList().IndexOf(step)];
                     foreach (var path in texts.Keys.ToList())
                         texts[path] = textStep(texts[path]);
+                    if (step == "effect-not-partial")
+                    {
+                        foreach (var path in effects.Keys.ToList())
+                            effects[path] = textStep(effects[path]);
+                    }
                     break;
             }
         }
@@ -202,7 +209,7 @@ public static class ShaderUpgrader
     }
 
     // The steps that change text without reading the classes, in the order of Steps (they come first)
-    private static readonly Func<string, string>[] TextSteps = [DropClone, StageToModule, ComposeOutOfBuffer, DropComposeValue];
+    private static readonly Func<string, string>[] TextSteps = [DropClone, StageToModule, ComposeOutOfBuffer, DropComposeValue, EffectNotPartial];
 
     // An older spelling parses after them
     internal static string WithTextSteps(string text) => TextSteps.Aggregate(text, (current, step) => step(current));
@@ -404,6 +411,17 @@ public static class ShaderUpgrader
             var indentation = text[blockLine..block.Index];
             source.Insert(after, string.Concat(moved.Select(x => source.NewLine + indentation + x)));
         }
+        return source.Apply();
+    }
+
+    /// <summary>
+    /// <c>partial effect</c> becomes <c>effect</c>, not in comments or strings: <c>partial</c> did nothing before 4.5.
+    /// </summary>
+    internal static string EffectNotPartial(string text)
+    {
+        var source = new ShaderSourceText(text);
+        foreach (var match in source.CodeMatches(@"(?<![\w.])partial\s+(?=effect\s)"))
+            source.Replace(match.Index, match.Length, "");
         return source.Apply();
     }
 
