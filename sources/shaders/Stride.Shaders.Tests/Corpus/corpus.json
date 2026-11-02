@@ -5308,24 +5308,6 @@
     }
   },
   {
-    "effect": "Stride.Rendering.SelectedSprite",
-    "profile": "Level_11_0",
-    "sources": [
-      "Stride.Engine.Tests"
-    ],
-    "mixin": {
-      "mixins": [
-        {
-          "class": "Stride.Rendering.SpriteBatchShader",
-          "generics": [
-            "false"
-          ]
-        },
-        "Stride.Rendering.SelectedSpriteShader"
-      ]
-    }
-  },
-  {
     "effect": "Stride.Rendering.SignedDistanceFieldFontShader",
     "profile": "Level_9_3",
     "sources": [
