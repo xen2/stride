@@ -1,7 +1,7 @@
 // A geometry shader is present but does not write SV_PrimitiveID, which the pixel shader reads: an error.
 namespace Stride.Shaders.Tests;
 
-shader PSPrimitiveIdGSNoWrite
+[Root] shader PSPrimitiveIdGSNoWrite
 {
     stream float4 ColorTarget : SV_Target0;
     stream float4 Position : POSITION;

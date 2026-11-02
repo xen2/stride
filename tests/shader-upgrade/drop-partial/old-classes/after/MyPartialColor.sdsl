@@ -1,0 +1,8 @@
+// `partial` on a class never meant anything. In a comment, partial shader stays
+shader MyPartialColor : ComputeColor
+{
+    override float4 Compute()
+    {
+        return 1;
+    }
+};

@@ -1,7 +1,7 @@
 // A geometry shader writes SV_PrimitiveID, the pixel shader reads it.
 namespace Stride.Shaders.Tests;
 
-shader PSPrimitiveIdFromGS
+[Root] shader PSPrimitiveIdFromGS
 {
     stream float4 ColorTarget : SV_Target0;
     stream float4 Position : POSITION;

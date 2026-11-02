@@ -1,7 +1,7 @@
 // [loop] and [unroll] on for/while loops must reach OpLoopMerge's loop control.
 namespace Stride.Shaders.Tests;
 
-shader LoopControlRoot
+[Root] shader LoopControlRoot
 {
     module stream uint3 DispatchThreadId : SV_DispatchThreadID;
 

@@ -3,6 +3,15 @@ using CppNet;
 
 namespace Stride.Shaders.Parsing;
 
+/// <summary>
+/// A name a condition of the preprocessor read that was no macro at that point, so it counted as 0.
+/// </summary>
+/// <param name="Name">The name.</param>
+/// <param name="Directive">The directive of the condition, such as <c>if</c> or <c>ifdef</c>.</param>
+/// <param name="Line">The line of the directive.</param>
+/// <param name="Column">The column of the directive.</param>
+public readonly record struct UndefinedConditionName(string Name, string Directive, int Line, int Column);
+
 public static class MonoGamePreProcessor
 {
     public static string OpenAndRun(string filepath, params ReadOnlySpan<(string Name, string Definition)> defines)
@@ -11,17 +20,22 @@ public static class MonoGamePreProcessor
     }
 
     public static string Run(string content, string? filename, params ReadOnlySpan<(string Name, string Definition)> defines)
-        => Run(content, filename, null, defines);
+        => Run(content, filename, null, null, defines);
+
+    public static string Run(string content, string? filename, Action<string>? onWarning, params ReadOnlySpan<(string Name, string Definition)> defines)
+        => Run(content, filename, onWarning, null, defines);
 
     /// <summary>
     /// Runs the preprocessor on the code of a shader.
     /// </summary>
     /// <param name="onWarning">Receives each warning, in the form file(line,col): warning.</param>
+    /// <param name="undefinedConditionNames">Collects each name a condition reads that is no macro at that point.</param>
     /// <exception cref="ShaderPreprocessorException">The code has a preprocessor error.</exception>
-    public static string Run(string content, string? filename, Action<string>? onWarning, params ReadOnlySpan<(string Name, string Definition)> defines)
+    public static string Run(string content, string? filename, Action<string>? onWarning, List<UndefinedConditionName>? undefinedConditionNames, params ReadOnlySpan<(string Name, string Definition)> defines)
     {
         var cpp = new Preprocessor();
         cpp.setListener(new DiagnosticListener(filename, onWarning));
+        cpp.UndefinedConditionNames = undefinedConditionNames;
         cpp.addFeature(Feature.DIGRAPHS);
         cpp.addWarning(Warning.IMPORT);
         cpp.addFeature(Feature.INCLUDENEXT);
@@ -54,10 +68,19 @@ public static class MonoGamePreProcessor
 
         var textBuilder = new StringBuilder();
 
+        var located = 0;
         var isEndOfStream = false;
         while (!isEndOfStream)
         {
             Token tok = cpp.token();
+            // The output keeps the lines of the input, which the lexer's own positions don't always follow
+            if (undefinedConditionNames != null && undefinedConditionNames.Count > located)
+            {
+                var line = textBuilder.ToString().AsSpan().Count('\n') + 1;
+                var column = content.Split('\n').ElementAtOrDefault(line - 1)?.IndexOf('#') + 1 ?? 1;
+                for (; located < undefinedConditionNames.Count; located++)
+                    undefinedConditionNames[located] = undefinedConditionNames[located] with { Line = line, Column = column };
+            }
             switch (tok.getType())
             {
                 case Token.EOF:
