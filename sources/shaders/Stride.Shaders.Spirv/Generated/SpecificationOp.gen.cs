@@ -776,6 +776,8 @@ public static partial class Specification
         OpMemberAccessSDSL = 8012,
         OpTypeFunctionSDSL = 8013,
         OpFunctionMetadataSDSL = 8014,
+        OpExtensionPointSDSL = 8034,
+        OpContributionSDSL = 8035,
         OpBaseSDSL = 8015,
         OpThisSDSL = 8016,
         OpStreamsSDSL = 8018,

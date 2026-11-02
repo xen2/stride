@@ -152,7 +152,7 @@ namespace Stride.Assets.Effect
                 if (compiler == null)
                 {
                     // Create compiler
-                    var effectCompiler = new EffectCompiler(MicrothreadLocalDatabases.DatabaseFileProvider) { ImplicitUsings = ShaderImplicitUsings.List };
+                    var effectCompiler = new EffectCompiler(MicrothreadLocalDatabases.DatabaseFileProvider) { ImplicitUsings = ShaderImplicitUsings.List, CompilesWiredEffects = true };
                     effectCompiler.SourceDirectories.Add(EffectCompilerBase.DefaultSourceShaderFolder);
                     compiler = new EffectCompilerCache(effectCompiler, MicrothreadLocalDatabases.DatabaseFileProvider) { CurrentCache = EffectBytecodeCacheLoadSource.StartupCache };
                     context.Properties.Set(CompilerKey, compiler);

@@ -1,8 +1,21 @@
 using System.Collections.Immutable;
+using static Stride.Shaders.Spirv.Specification;
 
 namespace Stride.Shaders.Core;
 
+/// <summary>
+/// A module method declared for overriding, with how its overrides combine.
+/// </summary>
+/// <param name="Owner">The full name of the class of the first definition.</param>
+/// <param name="Phases">In the order the call reaches them.</param>
+public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Owner, string[] Phases)
+{
+    /// <summary>The phase of a <c>[Pipeline]</c> or <c>[Around]</c> written without phases, and of the default body of a pipeline that declares it.</summary>
+    public const string DefaultPhase = "Default";
 
+    /// <summary>The phase of the default body of a pipeline: <see cref="DefaultPhase"/>, else the first one.</summary>
+    public int DefaultPhaseIndex => Math.Max(Array.IndexOf(Phases, DefaultPhase), 0);
+}
 
 
 public enum SymbolKind
@@ -50,7 +63,7 @@ public record struct ExternalConstant(ConstantExpression Expression);
 /// Defines a symbol.
 /// </summary>
 /// <param name="GroupMembers">Only used for specific <see cref="Type"/> such as <see cref="FunctionGroupType"/></param>
-public record Symbol(SymbolID Id, SymbolType Type, int IdRef, int? AccessChain = null, SymbolType? MemberAccessWithImplicitThis = null, ImmutableArray<Symbol> GroupMembers = default, MethodSymbolDefaultParameters? MethodDefaultParameters = null, ExternalConstant? ExternalConstant = null, ShaderDefinition? OwnerType = null)
+public record Symbol(SymbolID Id, SymbolType Type, int IdRef, int? AccessChain = null, SymbolType? MemberAccessWithImplicitThis = null, ImmutableArray<Symbol> GroupMembers = default, MethodSymbolDefaultParameters? MethodDefaultParameters = null, ExternalConstant? ExternalConstant = null, ShaderDefinition? OwnerType = null, MethodExtensionPoint? ExtensionPoint = null)
 {
     public int IdRef { get; set; } = IdRef;
     public SymbolType Type { get; set; } = Type;

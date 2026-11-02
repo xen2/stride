@@ -721,7 +721,7 @@ public partial class ShaderMethod(
                     {
                         table.AddError(new(anyAttribute.Info, string.Format(SDSLErrorMessages.SDSL0170, Name)));
                     }
-                    else
+                    else if (!ExtensionPoints.IsAttribute(anyAttribute.Name.Name))
                     {
                         table.AddError(new(anyAttribute.Info, string.Format(SDSLErrorMessages.SDSL0171, anyAttribute.Name, Name)));
                     }
@@ -758,6 +758,7 @@ public partial class ShaderMethod(
             functionInfo.Flags |= Specification.FunctionFlagsMask.Stage;
 
         builder.Insert(functionInfo);
+        ExtensionPoints.Compile(table, builder, this, ftype);
 
         for (var index = 0; index < Parameters.Count; index++)
         {
