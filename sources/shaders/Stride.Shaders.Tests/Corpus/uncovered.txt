@@ -1,14 +1,11 @@
 # Engine shader classes that no corpus permutation mixes. Written by ShaderCorpusTests.UpdateSnapshot; checked by
 # CompilerOutputUnchanged: a new engine shader the corpus doesn't reach fails it. Capture an effect that uses it
 # (Corpus/README.md), or list it here with UpdateSnapshot. One class per line, sorted by file.
-BackgroundVelocity  # sources/engine/Stride.Rendering/Rendering/Core/BackgroundVelocity.sdsl
 ColorBase  # sources/engine/Stride.Rendering/Rendering/Core/ColorBase.sdsl
 DynamicTextureCube  # sources/engine/Stride.Rendering/Rendering/Core/DynamicTextureCube.sdsl
 NormalFromNormalMappingTessellationInstanced  # sources/engine/Stride.Rendering/Rendering/Core/NormalFromNormalMappingTessellationInstanced.sdsl
 PositionStream2  # sources/engine/Stride.Rendering/Rendering/Core/PositionStream2.sdsl
 PositionVertexTransform  # sources/engine/Stride.Rendering/Rendering/Core/PositionVertexTransform.sdsl
-ShadingColor  # sources/engine/Stride.Rendering/Rendering/Core/ShadingColor.sdsl
-GBuffer  # sources/engine/Stride.Rendering/Rendering/Deferred/GBuffer.sdsl
 McIntoshCombineShader  # sources/engine/Stride.Rendering/Rendering/Images/DepthOfField/BokehTechnique/Hexagonal/McIntoshCombineShader.sdsl
 SubsurfaceScatteringBlurShader  # sources/engine/Stride.Rendering/Rendering/Images/SubsurfaceScattering/SubsurfaceScatteringBlurShader.sdsl
 DirectLightGroupFixed  # sources/engine/Stride.Rendering/Rendering/Lights/DirectLightGroupFixed.sdsl
@@ -24,7 +21,6 @@ ComputeColorOne  # sources/engine/Stride.Rendering/Rendering/Materials/ComputeCo
 ComputeColorOutdoor  # sources/engine/Stride.Rendering/Rendering/Materials/ComputeColors/Shaders/ComputeColorOutdoor.sdsl
 ComputeColorOverlay  # sources/engine/Stride.Rendering/Rendering/Materials/ComputeColors/Shaders/ComputeColorOverlay.sdsl
 ComputeColorParameter  # sources/engine/Stride.Rendering/Rendering/Materials/ComputeColors/Shaders/ComputeColorParameter.sdsl
-ComputeColorScaler  # sources/engine/Stride.Rendering/Rendering/Materials/ComputeColors/Shaders/ComputeColorScaler.sdsl
 ComputeColorStream  # sources/engine/Stride.Rendering/Rendering/Materials/ComputeColors/Shaders/ComputeColorStream.sdsl
 ComputeColorSubstituteAlphaWithColor  # sources/engine/Stride.Rendering/Rendering/Materials/ComputeColors/Shaders/ComputeColorSubstituteAlphaWithColor.sdsl
 ComputeColorTextureLodSampler  # sources/engine/Stride.Rendering/Rendering/Materials/ComputeColors/Shaders/ComputeColorTextureLodSampler.sdsl
@@ -49,13 +45,8 @@ GlobalVR  # sources/engine/Stride.Rendering/Rendering/Shaders/GlobalVR.sdsl
 ShadowMapCasterVsm  # sources/engine/Stride.Rendering/Rendering/Shadows/ShadowMapCasterVsm.sdsl
 ShadowMapFilterVsm  # sources/engine/Stride.Rendering/Rendering/Shadows/ShadowMapFilterVsm.sdsl
 LevelCubeMapEnvironmentColor  # sources/engine/Stride.Rendering/Rendering/Skyboxes/LevelCubeMapEnvironmentColor.sdsl
-TransformationMatrix  # sources/engine/Stride.Rendering/Rendering/Transformation/TransformationMatrix.sdsl
-TransformationWVP  # sources/engine/Stride.Rendering/Rendering/Transformation/TransformationWVP.sdsl
-TransformationZero  # sources/engine/Stride.Rendering/Rendering/Transformation/TransformationZero.sdsl
-FlattenLayers  # sources/engine/Stride.Rendering/Rendering/Utils/FlattenLayers.sdsl
 ModelComponentPickingShader  # sources/engine/Stride.Rendering/Rendering/Utils/ModelComponentPickingShader.sdsl
 OpaqueBase  # sources/engine/Stride.Rendering/Rendering/Utils/OpaqueBase.sdsl
-SwapUV  # sources/engine/Stride.Rendering/Rendering/Utils/SwapUV.sdsl
 DebugLineShader  # sources/plugins/BepuPhysics/Stride.BepuPhysics.Debug/Effects/DebugLineShader.sdsl
 SinglePassWireframeShader  # sources/plugins/BepuPhysics/Stride.BepuPhysics.Debug/Effects/SinglePassWireframeShader.sdsl
 ComputeColorWhite  # sources/plugins/Particles/Stride.Particles/Shaders/ComputeColorWhite.sdsl
