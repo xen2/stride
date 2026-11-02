@@ -38,6 +38,8 @@ public partial class ShaderMixer
                 methodGroup.Phases[functionId] = contribution.Phase;
             if (contribution.After.Length > 0)
                 methodGroup.After[functionId] = contribution.After.Split(',');
+            if (contribution.Replaces.Length > 0)
+                methodGroup.Replaces[functionId] = contribution.Replaces.Split(',');
         }
     }
 
@@ -50,9 +52,10 @@ public partial class ShaderMixer
     {
         foreach (var group in mixinNode.MethodGroups.Values.Distinct())
         {
-            if (group.ExtensionPoint is not { } point || (group.Phases.Count == 0 && group.After.Count == 0))
+            if (group.ExtensionPoint is not { } point || (group.Phases.Count == 0 && group.After.Count == 0 && group.Replaces.Count == 0))
                 continue;
 
+            RemoveReplaced(globalContext.Table.CurrentFrame, group);
             CheckAfterAgainstPhases(group, point);
 
             // The first definition holds the default body: the chain starts there
@@ -69,6 +72,38 @@ public partial class ShaderMixer
     }
 
     private static string ClassName(ShaderInfo shader) => ShaderNames.WithoutGenerics(shader.FullName);
+
+    /// <summary>
+    /// Takes out of the chain what a contributor replaces, a class or a whole phase. Only this chain: the class still contributes
+    /// to other methods. The first definition is not a contributor, and a contributor doesn't replace itself.
+    /// </summary>
+    private static void RemoveReplaced(SymbolFrame frame, MethodGroup group)
+    {
+        foreach (var (method, targets) in group.Replaces)
+        {
+            var by = group.Methods.Find(x => x.MethodId == method).Shader;
+            foreach (var target in group.Methods.Skip(1).Where(x => x.MethodId != method))
+            {
+                var isTarget = targets.Contains(ClassName(target.Shader))
+                    || (group.Phases.TryGetValue(target.MethodId, out var phase) && targets.Contains($"{MethodExtensionPoint.ReplacedPhasePrefix}{phase}"));
+                if (isTarget)
+                    group.Replaced.TryAdd(target.MethodId, (target.Shader, by));
+            }
+        }
+        if (group.Replaced.Count == 0)
+            return;
+
+        foreach (var (method, (shader, by)) in group.Replaced)
+        {
+            if (group.Methods.Find(x => x.Shader == by).MethodId is var byMethod && group.Replaced.TryGetValue(byMethod, out var other) && other.By == shader)
+                throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0138, group.Name, $"{by.ShaderName} and {shader.ShaderName} replace each other"));
+        }
+
+        group.Methods.RemoveAll(x => group.Replaced.ContainsKey(x.MethodId));
+        // Entry points are found in the symbol table
+        if (frame.TryGetValue(group.Name, out var symbol) && symbol.Type is FunctionGroupType)
+            frame[group.Name] = symbol with { GroupMembers = symbol.GroupMembers.RemoveAll(x => group.Replaced.ContainsKey(x.IdRef)) };
+    }
 
     /// <summary>
     /// A phase wins over <c>[After]</c>: a contributor can't run after a class of a phase that comes later, or of <c>External</c>,
@@ -613,5 +648,7 @@ public partial class ShaderMixer
 
         if (FindDropped(group, globalContext) is var (by, dropped))
             builder.AppendLine($"    dropped by {by.ShaderName}: {string.Join(", ", dropped.Select(x => x.ShaderName))}");
+        foreach (var replaced in group.Replaced.Values.GroupBy(x => x.By))
+            builder.AppendLine($"    replaced by {replaced.Key.ShaderName}: {string.Join(", ", replaced.Select(x => x.Shader.ShaderName))}");
     }
 }

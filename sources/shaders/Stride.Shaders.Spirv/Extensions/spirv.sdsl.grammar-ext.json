@@ -221,6 +221,10 @@
         {
           "kind": "LiteralString",
           "name": "after"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "replaces"
         }
       ]
     },

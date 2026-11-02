@@ -84,6 +84,12 @@ public partial class ShaderMixer
         /// <summary>The full names of the classes a contributor runs after, by method.</summary>
         public Dictionary<int, string[]> After { get; } = new();
 
+        /// <summary>What a contributor replaces, by method: full names of classes, and phases with their prefix.</summary>
+        public Dictionary<int, string[]> Replaces { get; } = new();
+
+        /// <summary>The contributors taken out of the chain by <c>[Replaces]</c>, by method, and the class that did it.</summary>
+        public Dictionary<int, (ShaderInfo Shader, ShaderInfo By)> Replaced { get; } = new();
+
         public override string ToString() => $"{Name} (shader: {Shader}, function Id: {string.Join(", ", Methods.Select(x => $"{x.Shader.ShaderName} {x.MethodId}"))})";
     }
 }
