@@ -198,6 +198,35 @@ public class NamespaceTests : IDisposable
         Assert.Contains("SDSL0307: no shader or effect is named Target. Did you mean F.Target?", error.Message);
     }
 
+    // A shader the engine removed: a string, by either name, and a parent say so
+    [Theory]
+    [InlineData("SwapUV")]
+    [InlineData("Stride.Rendering.SwapUV")]
+    public void ARemovedEngineShaderInAStringSaysItWasRemoved(string name)
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => Loader().LoadExternalBuffer(name, [], out _, out _, out _));
+        Assert.Contains($"{name} was removed from the engine in Stride 4.5", error.Message);
+    }
+
+    [Fact]
+    public void ARemovedEngineShaderAsAParentSaysItWasRemoved()
+    {
+        Write("Root", "shader Root : SwapUV { };");
+
+        var error = Assert.Throws<InvalidOperationException>(() => Loader().LoadExternalBuffer("Root", [], out _, out _, out _));
+        Assert.Contains("SDSL0191", error.Message);
+        Assert.Contains("SwapUV was removed from the engine in Stride 4.5", error.Message);
+    }
+
+    // A class of the project with that name is that class
+    [Fact]
+    public void AProjectClassCanHaveTheNameOfARemovedEngineShader()
+    {
+        Write("SwapUV", "shader SwapUV { };");
+
+        Assert.True(Loader().LoadExternalBuffer("SwapUV", [], out _, out _, out _));
+    }
+
     // A member comes before a namespace of that name
     [Fact]
     public void AMemberComesBeforeANamespace()

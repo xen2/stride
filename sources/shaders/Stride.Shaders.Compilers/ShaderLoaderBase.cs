@@ -3,6 +3,7 @@ using Stride.Core.Diagnostics;
 using Stride.Core.Storage;
 using Stride.Shaders.Compilers.SDSL;
 using Stride.Shaders.Parsing;
+using Stride.Shaders.Parsing.Upgrade;
 using Stride.Shaders.Spirv;
 using Stride.Shaders.Spirv.Building;
 using Stride.Shaders.Spirv.Core;
@@ -127,7 +128,7 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
         var candidates = FindFullNames(shortName).Concat(ShaderMixinManager.FindFullNames(name)).Concat(ShaderMixinManager.FindFullNames(shortName)).Where(x => x != name).Distinct().ToList();
         return candidates.Count > 0
             ? string.Format(SDSLErrorMessages.SDSL0307, name, string.Join(" or ", candidates))
-            : $"Shader {name} could not be found";
+            : $"Shader {name} could not be found.{EngineShaderClasses.RemovedHint(name)}";
     }
 
     public bool LoadExternalBuffer(string name, ReadOnlySpan<ShaderMacro> defines, [MaybeNullWhen(false)] out ShaderBuffers buffer, out ObjectId hash, out bool isFromCache)
