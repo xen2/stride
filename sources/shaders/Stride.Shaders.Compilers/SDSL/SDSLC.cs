@@ -50,6 +50,8 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
             .ToList();
         var classes = declarations.Select(x => x.Declaration).OfType<ShaderClass>().ToList();
         var fileName = Path.GetFileNameWithoutExtension(filename);
+        // Every class of the file is validated against the file, whichever namespace the class is in
+        var storageName = filename != null ? ShaderFileDeclarations.StorageName(options.OriginalCode ?? code, fileName!) : null;
         foreach (var (declaration, scope) in declarations)
         {
             if (declaration is ShaderClass shader)
@@ -67,7 +69,7 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                     var filenameId = compiler.Context.Add(new OpString(compiler.Context.Bound++, filename)).ResultId;
                     // TODO: Add SourceLanguage.SDSL
                     compiler.Context.Add(new OpSource(Spirv.Specification.SourceLanguage.Unknown, 0, filenameId, options.OriginalCode ?? code));
-                    compiler.Context.Add(new OpSourceHashSDSL(filenameId, (int)hash.Hash1, (int)hash.Hash2, (int)hash.Hash3, (int)hash.Hash4, ShaderNames.Combine(scope.Namespace, Path.GetFileNameWithoutExtension(filename))));
+                    compiler.Context.Add(new OpSourceHashSDSL(filenameId, (int)hash.Hash1, (int)hash.Hash2, (int)hash.Hash3, (int)hash.Hash4, storageName));
                     compiler.SourceFileId = filenameId;
                 }
                 // TODO: Do we want to record macros with a custom OpMacroSDSL? (mostly for debug purposes)
