@@ -11,15 +11,16 @@ namespace Stride.Shaders.Parsing.SDSL.AST;
 
 /// <summary>
 /// Extension points: <c>[Replace]</c>, <c>[Pipeline(A, B)]</c> or <c>[Around(A, B)]</c> on the first definition of a module
-/// method, <c>[Phase(A)]</c> and <c>[After(X)]</c> on an override. The class records them next to <see cref="OpFunctionMetadataSDSL"/>,
+/// method, <c>[Phase(A)]</c>, <c>[After(X)]</c> and <c>[Replaces(X)]</c> on an override. The class records them next to <see cref="OpFunctionMetadataSDSL"/>,
 /// and the mixer orders the override chain with them.
 /// </summary>
 internal static class ExtensionPoints
 {
     private const string PhaseAttribute = "Phase";
     private const string AfterAttribute = "After";
+    private const string ReplacesAttribute = "Replaces";
 
-    public static bool IsAttribute(string name) => name is "Replace" or "Pipeline" or "Around" or "Collect" or PhaseAttribute or AfterAttribute;
+    public static bool IsAttribute(string name) => name is "Replace" or "Pipeline" or "Around" or "Collect" or PhaseAttribute or AfterAttribute or ReplacesAttribute;
 
     /// <summary>
     /// Checks the attributes of a method and writes what the mixer needs. An override of a declared point carries the point too,
@@ -32,6 +33,7 @@ internal static class ExtensionPoints
         var point = inherited;
         string? phase = null;
         var after = new List<string>();
+        var replaces = new List<string>();
         var shaderName = table.CurrentShader!.ShortName;
         var methodName = $"{shaderName}.{method.Name.Name}";
 
@@ -44,6 +46,8 @@ internal static class ExtensionPoints
                 phase = ReadPhase(table, attribute, method, methodName, inherited) ?? phase;
             else if (name == AfterAttribute)
                 ReadAfter(table, attribute, method, methodName, inherited, after);
+            else if (name == ReplacesAttribute)
+                ReadReplaces(table, attribute, method, methodName, inherited, replaces);
             else if (method.IsOverride)
                 table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0142, name, method.Name.Name, methodName)));
             else if (!method.IsStaged)
@@ -56,8 +60,8 @@ internal static class ExtensionPoints
 
         if (point != null)
             builder.Insert(new OpExtensionPointSDSL(point.Kind, point.Owner, string.Join(',', point.Phases)));
-        if (phase != null || after.Count > 0)
-            builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', after)));
+        if (phase != null || after.Count > 0 || replaces.Count > 0)
+            builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', after), string.Join(',', replaces)));
         if (phase != null && point != null)
             CheckBasePosition(table, method, methodName, point, phase);
     }
@@ -146,6 +150,35 @@ internal static class ExtensionPoints
                 else
                     table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0110, identifier.Name) + table.DidYouMean(identifier.Name)));
             }
+        }
+    }
+
+    /// <summary>
+    /// What doesn't run in this chain when this contributor is in the effect: a class, or a phase of the point, which wins over a
+    /// class of the same name. A class that isn't in the effect is ignored at link, but it has to exist.
+    /// </summary>
+    private static void ReadReplaces(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, MethodExtensionPoint? point, List<string> replaces)
+    {
+        if (!method.IsOverride || point == null)
+        {
+            table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "on a method, [Replaces] goes on an override of an extension point. To replace a whole class, put [Replaces(\"Full.Name\")] on the class")));
+            return;
+        }
+        if (attribute.Parameters.Count == 0)
+            table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "[Replaces] takes names of classes or phases")));
+
+        foreach (var parameter in attribute.Parameters)
+        {
+            if (parameter is StringLiteral)
+                table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "on an override, [Replaces] takes names without quotes. A string names a whole class, and goes on the class")));
+            else if (parameter is not Identifier identifier)
+                table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, $"'{parameter}' is not the name of a class or a phase")));
+            else if (point.Phases.Contains(identifier.Name))
+                replaces.Add($"{MethodExtensionPoint.ReplacedPhasePrefix}{identifier.Name}");
+            else if (table.ResolveClassName(identifier.Name, identifier.Info) is { } fullName)
+                replaces.Add(fullName);
+            else
+                table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0110, identifier.Name) + table.DidYouMean(identifier.Name)));
         }
     }
 

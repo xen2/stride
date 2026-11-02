@@ -473,7 +473,7 @@ public class ShaderUpgradeTests
             text = System.Text.RegularExpressions.Regex.Replace(text, @"^[ \t]*\[(Replace|Pipeline)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline);
             text = WithoutEngineNamespaceLines(text);
             // [Root], [Pure] and the kinds, phases and orders of extension points are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
-            var expected = WithoutEngineNamespaceLines(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|Replace|(Pipeline|Around|Phase|After)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline));
+            var expected = WithoutEngineNamespaceLines(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|Replace|(Pipeline|Around|Phase|After|Replaces)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline));
             if (text != expected)
                 differences.Add(path);
         }
