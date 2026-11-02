@@ -11,6 +11,7 @@ module NormalBase
     import NormalUpdate;
     import ShaderBase;
 
+    [Phase(Attributes)]
     override void VSMain()
     {
         base.VSMain();

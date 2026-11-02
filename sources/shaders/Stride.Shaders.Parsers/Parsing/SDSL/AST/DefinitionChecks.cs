@@ -40,7 +40,7 @@ internal static class DefinitionChecks
                 table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0207, shaderName, name.Name, parent.Owner)));
             // Implementing an abstract method is not a contribution. A root-only shader can override a module method without 'module'
             else if (parentIsModule && parent.Symbol.ExtensionPoint == null && (sameSignature[0].Flags & FunctionFlagsMask.Abstract) == 0)
-                table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0246, shaderName, name.Name, sameSignature[0].Owner)));
+                table.AddError(new(name.Info, string.Format(SDSLErrorMessages.SDSL0246, shaderName, name.Name, sameSignature[0].Owner)));
         }
     }
 
@@ -178,7 +178,10 @@ internal static class DefinitionChecks
             return;
         foreach (var attribute in attributes.Attributes.OfType<AnyShaderAttribute>())
         {
-            if (!known.Contains(attribute.Name.Name) && known.Any(x => IsMisspelling(attribute.Name.Name, x)))
+            // What goes on a method means nothing here, and a class that writes it expects it to do something
+            if (!known.Contains(attribute.Name.Name) && ExtensionPoints.IsAttribute(attribute.Name.Name))
+                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, declaration, "it goes on a method")));
+            else if (!known.Contains(attribute.Name.Name) && known.Any(x => IsMisspelling(attribute.Name.Name, x)))
                 table.AddWarning(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0217, attribute.Name.Name, declaration, string.Join(" and ", known.Select(x => $"[{x}]")))));
         }
     }

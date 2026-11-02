@@ -37,8 +37,8 @@ public partial class ShaderMixer
     }
 
     /// <summary>
-    /// Sorts the contributors with a phase by phase, among the places they hold in the chain. A contributor without a phase
-    /// keeps its exact place, so that code written before extension points links as it always did. Inside a phase, today's order.
+    /// Sorts the contributors by phase: a phase wins over inheritance and over the order of the mix. A contributor without a phase
+    /// is in the implicit phase <c>External</c>, outside every declared phase, in the order of the mix. Inside a phase, the order of the mix.
     /// </summary>
     private static void SortContributions(MixinGlobalContext globalContext, MixinNode mixinNode)
     {
@@ -47,10 +47,10 @@ public partial class ShaderMixer
             if (group.ExtensionPoint is not { } point || group.Phases.Count == 0)
                 continue;
 
-            var places = Enumerable.Range(0, group.Methods.Count).Where(x => group.Phases.ContainsKey(group.Methods[x].MethodId)).ToList();
-            var sorted = places.Select(x => group.Methods[x]).OrderBy(x => ChainRank(point, group.Phases[x.MethodId])).ToList();
-            for (var i = 0; i < places.Count; i++)
-                group.Methods[places[i]] = sorted[i];
+            // The first definition holds the default body: the chain starts there
+            var sorted = group.Methods.Skip(1).OrderBy(x => group.Phases.TryGetValue(x.MethodId, out var phase) ? ChainRank(point, phase) : int.MaxValue).ToList();
+            group.Methods.RemoveRange(1, sorted.Count);
+            group.Methods.AddRange(sorted);
 
             SortSymbols(globalContext.Table.CurrentFrame, group, sorted.Select(x => x.MethodId).ToList());
         }
