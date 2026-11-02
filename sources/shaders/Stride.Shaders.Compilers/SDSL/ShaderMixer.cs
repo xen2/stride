@@ -67,7 +67,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
             PropagateMacrosRecursively(mixinSource, null);
 
         // Root shader
-        var globalContext = new MixinGlobalContext(table, log);
+        var globalContext = new MixinGlobalContext(table, log) { Wiring = (shaderSource as ShaderMixinSource)?.Wiring ?? [] };
 
         MixinNode rootMixin;
         var conflicts = new List<ContributionConflict>();
@@ -364,6 +364,9 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
     {
         public SymbolTable Table { get; } = table;
         public ILogger Log { get; } = log;
+
+        /// <summary>The wiring lines of the effect.</summary>
+        public List<ShaderWiringLine> Wiring { get; set; } = [];
         public EffectReflection Reflection { get; } = new();
 
         public Dictionary<int, string> ExternalShaders { get; } = new();

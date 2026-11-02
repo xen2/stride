@@ -85,7 +85,7 @@ public static class SDSLErrorMessages
     public const string SDSL0163 = "SDSL0163: The call {0} is ambiguous: these overloads match equally well:{1}\nCast the arguments to the parameter types of the one to call.";
     public const string SDSL0170 = "SDSL0170: [StreamOutput] on {0} is not supported: Stride shaders have no geometry shader stream output. Remove the attribute; to keep generated vertices, write them to a RWStructuredBuffer from a compute shader instead.";
     public const string SDSL0135 = "SDSL0135: [{0}] on {1}: {2}.";
-    public const string SDSL0137 = "SDSL0137: {0} and {1} are both in phase {2} of {3} and {4}, and nothing orders them. Add [After({0})] to {1}, or [After({1})] to {0}.";
+    public const string SDSL0137 = "SDSL0137: {0} and {1} are both in phase {2} of {3} and {4}, and nothing orders them. Add [After({0})] to {1}, or this line to the effect: order {3}.{2}: {0}, {1};";
     public const string SDSL0138 = "SDSL0138: the order of {0} can't be followed: {1}.";
     public const string SDSL0139 = "SDSL0139: [Collect] on {0}: collect is reserved for a later version. Use [Pipeline] or [Around].";
     public const string SDSL0140 = "SDSL0140: {0} is in phase {1} of {2} and {3}. A step before the phase of the default body ({4}) calls base last, a step after it calls base first.";
@@ -134,6 +134,7 @@ public static class SDSLErrorMessages
     public const string SDSL0243 = "SDSL0243: && within ||: {0} computes {1} first. Add parentheses around it to make it clear.";
     public const string SDSL0244 = "SDSL0244: {0} has lower precedence than {1}: {2} computes {3} first. Add parentheses to make it clear.";
     public const string SDSL0245 = "SDSL0245: {0}.sdsl declares {1} and no class named {0}. A class is found by its file name: rename the file or the class.";
+    public const string SDSL0218 = "SDSL0218: phase {0} added by {1} to {2} has no place: {2} has no phase {3}.";
     public const string SDSL0216 = "SDSL0216: {0}.{1} doesn't call base, so {2} never run in this effect. Call base to keep them.";
     public const string SDSL0246 = "SDSL0246: {0} overrides {1} of {2}, which is not an extension point. The first definition of {1} in {2} has to say how its overrides combine: add [Replace], [Pipeline] or [Around] to it. If {2} is in a library or in the engine, its author has to add it.";
 

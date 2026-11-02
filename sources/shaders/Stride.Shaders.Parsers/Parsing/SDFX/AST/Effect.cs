@@ -101,6 +101,63 @@ public partial class EffectDiscardStatement(TextLocation info) : EffectStatement
 }
 
 /// <summary>
+/// A wiring line: <c>order</c>, <c>bind</c>, <c>unbind</c> or <c>phase</c>.
+/// </summary>
+/// <param name="keyword">The word that starts the line.</param>
+/// <param name="path">The dotted name after it, cut at the dots.</param>
+/// <param name="names">The class names, or for <c>phase</c> the phases after and before it (empty when not given).</param>
+public partial class EffectWiring(string keyword, List<string> path, List<string> names, TextLocation info) : EffectStatement(info)
+{
+    public string Keyword { get; } = keyword;
+    public List<string> Path { get; } = path;
+    public List<string> Names { get; } = names;
+
+    public override void Compile(SymbolTable table, CompilerUnit compiler) => throw new NotImplementedException();
+
+    public override string ToString() => $"{Keyword} {string.Join('.', Path)} {string.Join(", ", Names)}";
+}
+
+/// <summary>
+/// <c>feature K.Flag { } else { }</c>: an <c>if</c> on a parameter that a tool can list as a structural axis.
+/// </summary>
+public partial class EffectFeature(Expression condition, BlockStatement block, BlockStatement? otherwise, TextLocation info) : EffectStatement(info)
+{
+    public Expression Condition { get; } = condition;
+    public BlockStatement Block { get; } = block;
+    public BlockStatement? Otherwise { get; } = otherwise;
+
+    public override void Compile(SymbolTable table, CompilerUnit compiler) => throw new NotImplementedException();
+
+    public override string ToString() => $"feature {Condition}";
+}
+
+/// <summary>
+/// <c>optional K.Slot { }</c>: what an effect mixes when C# gives a value to a parameter. The value is data, its presence is an axis.
+/// </summary>
+public partial class EffectOptional(Expression slot, BlockStatement block, TextLocation info) : EffectStatement(info)
+{
+    public Expression Slot { get; } = slot;
+    public BlockStatement Block { get; } = block;
+
+    public override void Compile(SymbolTable table, CompilerUnit compiler) => throw new NotImplementedException();
+
+    public override string ToString() => $"optional {Slot}";
+}
+
+/// <summary>
+/// <c>variant Name { }</c>: the effect with what the block adds. Unlike <c>mixin child</c>, it has all the statements of the effect, wherever it is written.
+/// </summary>
+public partial class EffectVariant(Identifier name, BlockStatement block, TextLocation info) : EffectStatement(info)
+{
+    public Identifier Name { get; } = name;
+    public BlockStatement Block { get; } = block;
+
+    public override void Compile(SymbolTable table, CompilerUnit compiler) => throw new NotImplementedException();
+
+    public override string ToString() => $"variant {Name}";
+}
+
+/// <summary>
 /// Type of a mixin.
 /// </summary>
 public enum MixinStatementType

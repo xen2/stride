@@ -32,6 +32,7 @@ public class EffectCodeWriter : ShaderWriter
     private readonly List<string> namespaceUsings = [];
     private bool insideNamespace;
     private bool currentClassHasKeys;
+    private HashSet<EffectVariant> topLevelVariants = [];
 
     /// <summary>
     /// Whether a C# type exists, by full name. A key of a struct type needs a C# struct with the same name (e.g.
@@ -364,9 +365,18 @@ public class EffectCodeWriter : ShaderWriter
         DeclaredClasses.Add(fullName);
         WriteEffectNameHandle(effectName, fullName);
 
+        // Variants have all the statements of the effect, wherever they are written
+        var block = shaderEffect.Block!;
+        topLevelVariants = block.Statements.OfType<EffectVariant>().ToHashSet();
+        block.Statements = [.. block.Statements.Where(x => x is not EffectVariant), .. topLevelVariants];
+
         WriteLine("internal static partial class ShaderMixins");
         {
             OpenBrace();
+            var axes = new EffectAxesCollector();
+            axes.VisitNode(block);
+            if (axes.Axes.Count > 0)
+                WriteLine($"[global::Stride.Shaders.EffectAxes({string.Join(", ", axes.Axes.Select(x => SymbolDisplay.FormatLiteral(x, true)))})]");
             Write("internal partial class");
             Write(" ");
             Write(shaderEffect.Name);
@@ -380,7 +390,7 @@ public class EffectCodeWriter : ShaderWriter
                     VisitNode(shaderEffect.Block!);
                 }
 
-                moduleInitializerLines.Add($"global::Stride.Shaders.ShaderMixinManager.Register(\"{fullName}\", new global::{currentNamespace}.ShaderMixins.{shaderEffect.Name}());");
+                moduleInitializerLines.Add($"global::Stride.Shaders.ShaderMixinManager.{(shaderEffect.IsPartial ? "RegisterPartial" : "Register")}(\"{fullName}\", new global::{currentNamespace}.ShaderMixins.{shaderEffect.Name}());");
                 CloseBrace();
             }
             CloseBrace();
@@ -777,6 +787,80 @@ public class EffectCodeWriter : ShaderWriter
                     CloseBrace();
                     break;
                 }
+        }
+    }
+
+    public override void VisitEffectWiring(EffectWiring wiring)
+    {
+        var isUnbindOfClass = wiring.Keyword == "unbind" && wiring.Names.Count == 1;
+        var methodIndex = wiring.Path.Count - (isUnbindOfClass ? 1 : 2);
+        var owner = ResolveClassName(string.Join('.', wiring.Path.Take(methodIndex)));
+        var phase = isUnbindOfClass ? "null" : SymbolDisplay.FormatLiteral(wiring.Path[^1], true);
+        var kind = wiring.Keyword switch { "order" => "Order", "bind" => "Bind", "unbind" => "Unbind", _ => "Phase" };
+        var names = wiring.Keyword == "phase" ? wiring.Names : wiring.Names.Select(ResolveClassName);
+
+        WriteLinkLine(wiring);
+        Write($"mixin.AddWiring(global::Stride.Shaders.ShaderWiringKind.{kind}, {SymbolDisplay.FormatLiteral(owner, true)}, {SymbolDisplay.FormatLiteral(wiring.Path[methodIndex], true)}, {phase}");
+        foreach (var name in names)
+            Write($", {SymbolDisplay.FormatLiteral(name, true)}");
+        WriteLine(");");
+    }
+
+    public override void VisitEffectFeature(EffectFeature feature)
+    {
+        WriteLinkLine(feature);
+        Write("if (");
+        VisitNode(feature.Condition);
+        WriteLine(")");
+        VisitNode(feature.Block);
+        if (feature.Otherwise != null)
+        {
+            WriteLine("else");
+            VisitNode(feature.Otherwise);
+        }
+    }
+
+    public override void VisitEffectOptional(EffectOptional optional)
+    {
+        WriteLinkLine(optional);
+        Write("if (");
+        VisitNode(optional.Slot);
+        WriteLine(" != null)");
+        VisitNode(optional.Block);
+    }
+
+    public override void VisitEffectVariant(EffectVariant variant)
+    {
+        if (!topLevelVariants.Contains(variant))
+        {
+            logging.Add(("A variant goes at the top of an effect: it has all the statements of the effect", variant.Info));
+            return;
+        }
+
+        WriteLinkLine(variant);
+        Write("if (context.ChildEffectName == ");
+        WriteMixinName(variant.Name);
+        WriteLine(")");
+        OpenBrace();
+        VisitNode(variant.Block);
+        WriteLine("return;");
+        CloseBrace();
+    }
+
+    private sealed class EffectAxesCollector : NodeWalker
+    {
+        public List<string> Axes { get; } = [];
+
+        public override void VisitEffectFeature(EffectFeature feature)
+        {
+            Axes.Add(feature.Condition.ToString()!);
+            base.VisitEffectFeature(feature);
+        }
+
+        public override void VisitEffectOptional(EffectOptional optional)
+        {
+            Axes.Add(optional.Slot.ToString()!);
+            base.VisitEffectOptional(optional);
         }
     }
 

@@ -98,6 +98,8 @@ namespace Stride.Shaders
             writer.Write(ShaderCompilerVersion.Shader);
             writer.Write(ShaderCompilerVersion.Effect);
             writer.Write(mixin);
+            foreach (var line in mixin.Wiring)
+                writer.Write(line.ToString());
 
             writer.Write(effectCompilerParameters.Platform);
             writer.Write(effectCompilerParameters.Profile);

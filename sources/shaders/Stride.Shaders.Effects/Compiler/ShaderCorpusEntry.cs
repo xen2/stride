@@ -39,7 +39,7 @@ namespace Stride.Shaders.Compiler
         public SortedSet<string> Sources { get; } = new(StringComparer.Ordinal);
 
         /// <summary>
-        /// SHA-256 of the effect name, profile and mixin tree. Two entries with the same hash compile to the same shader.
+        /// SHA-256 of the effect name, profile and mixin tree, without its wiring lines, which come from the same effect and parameters.
         /// </summary>
         public string Hash => hash ??= ComputeHash();
 
@@ -52,7 +52,7 @@ namespace Stride.Shaders.Compiler
         {
             using var stream = new MemoryStream();
             using (var writer = new Utf8JsonWriter(stream))
-                WriteEntry(writer, this, includeSources: false);
+                WriteEntry(writer, this, includeDetails: false);
             return Convert.ToHexString(SHA256.HashData(stream.ToArray())).ToLowerInvariant();
         }
 
@@ -71,7 +71,7 @@ namespace Stride.Shaders.Compiler
             using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
             writer.WriteStartArray();
             foreach (var entry in entries.OrderBy(x => x.Id, StringComparer.Ordinal))
-                WriteEntry(writer, entry, includeSources: true);
+                WriteEntry(writer, entry, includeDetails: true);
             writer.WriteEndArray();
         }
 
@@ -79,7 +79,7 @@ namespace Stride.Shaders.Compiler
         {
             using var stream = new MemoryStream();
             using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
-                WriteEntry(writer, entry, includeSources: true);
+                WriteEntry(writer, entry, includeDetails: true);
             return Encoding.UTF8.GetString(stream.ToArray());
         }
 
@@ -89,12 +89,12 @@ namespace Stride.Shaders.Compiler
             return ReadEntry(document.RootElement);
         }
 
-        private static void WriteEntry(Utf8JsonWriter writer, ShaderCorpusEntry entry, bool includeSources)
+        private static void WriteEntry(Utf8JsonWriter writer, ShaderCorpusEntry entry, bool includeDetails)
         {
             writer.WriteStartObject();
             writer.WriteString("effect", entry.EffectName);
             writer.WriteString("profile", entry.Profile.ToString());
-            if (includeSources && entry.Sources.Count > 0)
+            if (includeDetails && entry.Sources.Count > 0)
             {
                 writer.WriteStartArray("sources");
                 foreach (var source in entry.Sources)
@@ -103,6 +103,22 @@ namespace Stride.Shaders.Compiler
             }
             writer.WritePropertyName("mixin");
             WriteSource(writer, entry.Mixin);
+            if (includeDetails && entry.Mixin.Wiring.Count > 0)
+            {
+                writer.WriteStartArray("wiring");
+                foreach (var line in entry.Mixin.Wiring)
+                {
+                    writer.WriteStartArray();
+                    writer.WriteStringValue(line.Kind.ToString());
+                    writer.WriteStringValue(line.Owner);
+                    writer.WriteStringValue(line.Method);
+                    writer.WriteStringValue(line.Phase);
+                    foreach (var name in line.Names)
+                        writer.WriteStringValue(name);
+                    writer.WriteEndArray();
+                }
+                writer.WriteEndArray();
+            }
             writer.WriteEndObject();
         }
 
@@ -111,6 +127,14 @@ namespace Stride.Shaders.Compiler
             var mixin = (ShaderMixinSource)ReadSource(element.GetProperty("mixin"));
             var effectName = element.GetProperty("effect").GetString()!;
             mixin.Name = effectName;
+            if (element.TryGetProperty("wiring", out var wiring))
+            {
+                foreach (var line in wiring.EnumerateArray())
+                {
+                    var words = line.EnumerateArray().Select(x => x.GetString()).ToList();
+                    mixin.AddWiring(Enum.Parse<ShaderWiringKind>(words[0]!), words[1]!, words[2]!, words[3], words.Skip(4).Select(x => x!).ToArray());
+                }
+            }
             var entry = new ShaderCorpusEntry(effectName, Enum.Parse<GraphicsProfile>(element.GetProperty("profile").GetString()!), mixin);
             if (element.TryGetProperty("sources", out var sources))
             {

@@ -55,12 +55,15 @@ public class ExtensionPointTests : IDisposable
 
     private void WriteModule(string name, string body) => Write(name, $"module {name} {{ import Owner; {body} }}");
 
-    private (bool Ok, string Log, string Explanation) Mix(bool wired, params string[] classes)
+    private (bool Ok, string Log, string Explanation) Mix(bool wired, params string[] classes) => Mix(wired, _ => { }, classes);
+
+    private (bool Ok, string Log, string Explanation) Mix(bool wired, Action<ShaderMixinSource> wiring, params string[] classes)
     {
         Write("Entry", Entry);
         var source = new ShaderMixinSource { Mixins = { new ShaderClassSource("Test.Entry") } };
         foreach (var name in classes)
             source.Mixins.Add(new ShaderClassSource(name));
+        wiring(source);
 
         var log = new LoggerResult();
         var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL") { WarningsAsErrors = false }) { CollectExplanation = true, IsWiredEffect = wired };
@@ -784,6 +787,179 @@ public class ExtensionPointTests : IDisposable
 
         Assert.True(ok, log);
         Assert.Equal(["module method Pick() -> float = Owner > Winner", "replace: Winner"], Block(explanation, "Pick"));
+    }
+
+    [Fact]
+    public void AnOrderLineOrdersAPhaseAndWinsOverAfter()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] [After(Second)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 3; }");
+
+        var (ok, log, explanation) = Mix(true, x => x.AddWiring(ShaderWiringKind.Order, "Test.Owner", "Run", "A", "Test.First", "Test.Second"), "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Contains("A: First > Second   order: order line", Block(explanation, "Run"));
+    }
+
+    [Fact]
+    public void AnOrderLineSettlesAConflict()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 3; }");
+
+        var (noLine, noLineLog, _) = Mix(wired: true, "Test.First", "Test.Second");
+        Assert.False(noLine, noLineLog);
+        Assert.Contains("this line to the effect: order Owner.Run.A: First, Second;", noLineLog);
+
+        // The last layer wins, and a name as written counts
+        var (ok, log, explanation) = Mix(true, x =>
+        {
+            x.AddWiring(ShaderWiringKind.Order, "Test.Owner", "Run", "A", "Test.First", "Test.Second");
+            x.AddWiring(ShaderWiringKind.Order, "Owner", "Run", "A", "Second", "First");
+        }, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Contains("A: Second > First   order: order line", Block(explanation, "Run"));
+    }
+
+    [Fact]
+    public void AnOrderLineOfAPhaseReachedFromTheOutsideIsTheRunningOrder()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(Early)] override void Run() { streams.Steps = 2; base.Run(); }");
+        WriteModule("Second", "[Phase(Early)] override void Run() { streams.Steps = 3; base.Run(); }");
+
+        var (ok, log, explanation) = Mix(true, x => x.AddWiring(ShaderWiringKind.Order, "Test.Owner", "Run", "Early", "Test.First", "Test.Second"), "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Run() -> void = Owner > Second > First", Block(explanation, "Run")[0]);
+    }
+
+    [Fact]
+    public void BindGivesAPhaseToAClassThatHasNone()
+    {
+        WriteOwner();
+        WriteModule("Later", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("Patch", "override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix(true, x => x.AddWiring(ShaderWiringKind.Bind, "Test.Owner", "Run", "A", "Test.Patch"), "Test.Later", "Test.Patch");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Equal("module method Run() -> void = Owner > Patch > Later", block[0]);
+        Assert.Contains("A: Patch", block);
+    }
+
+    [Fact]
+    public void UnbindTakesAPhaseOrAClassOutOfTheChainWithoutADrop()
+    {
+        WriteOwner();
+        WriteModule("InPhase", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Patch", "override void Run() { base.Run(); }");
+        WriteModule("Replacement", "override void Run() { streams.Steps = 2; }");
+
+        var (ok, log, explanation) = Mix(true, x =>
+        {
+            x.AddWiring(ShaderWiringKind.Unbind, "Test.Owner", "Run", "A");
+            x.AddWiring(ShaderWiringKind.Unbind, "Test.Owner", "Run", null, "Test.Patch");
+        }, "Test.InPhase", "Test.Patch", "Test.Replacement");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Equal("module method Run() -> void = Owner > Replacement", block[0]);
+        Assert.Contains("not bound by the effect: InPhase, Patch", block);
+        Assert.DoesNotContain("SDSL0216", log);
+    }
+
+    [Theory]
+    [InlineData(ShaderWiringKind.Order)]
+    [InlineData(ShaderWiringKind.Bind)]
+    [InlineData(ShaderWiringKind.Unbind)]
+    public void ALineWithAPhaseThatDoesNotExistIsAnError(ShaderWiringKind kind)
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = MixCatching(x => x.AddWiring(kind, "Test.Owner", "Run", "Missing", "Test.Step"), "Test.Step");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0141", log);
+    }
+
+    private (bool Ok, string Log, string Explanation) MixCatching(Action<ShaderMixinSource> wiring, params string[] classes) => Mix(false, wiring, classes);
+
+    [Fact]
+    public void ALineAboutAPointThatIsNotInTheEffectIsIgnored()
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix(true, x => x.AddWiring(ShaderWiringKind.Unbind, "Test.Other", "Run", "A"), "Test.Step");
+
+        Assert.True(ok, log);
+    }
+
+    [Fact]
+    public void APhaseLineAddsAPhase()
+    {
+        WriteOwner();
+        WriteModule("InB", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("InA", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Patch", "override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix(true, x =>
+        {
+            x.AddWiring(ShaderWiringKind.Phase, "Test.Owner", "Run", "Wind", "A", "B");
+            x.AddWiring(ShaderWiringKind.Bind, "Test.Owner", "Run", "Wind", "Test.Patch");
+        }, "Test.InB", "Test.InA", "Test.Patch");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Equal("module method Run() -> void = Owner > InA > Patch > InB", block[0]);
+        Assert.Contains("Wind: Patch", block);
+    }
+
+    [Fact]
+    public void AnOverrideAddsAPhase()
+    {
+        WriteOwner();
+        WriteModule("InB", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("InA", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Wind", "[Phase(Wind, After = A, Before = B)] override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix(wired: true, "Test.InB", "Test.Wind", "Test.InA");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Run() -> void = Owner > InA > Wind > InB", Block(explanation, "Run")[0]);
+    }
+
+    [Fact]
+    public void APhaseAddedNextToAPhaseThatDoesNotExistIsAnError()
+    {
+        WriteOwner();
+        WriteModule("InB", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("Wind", "[Phase(Wind, After = Missing)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix(wired: false, "Test.Wind", "Test.InB");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0218: phase Wind added by Wind to Owner.Run has no place: Owner.Run has no phase Missing", log);
+    }
+
+    [Theory]
+    [InlineData("[Phase(Wind, Other = A)] override void Run() { base.Run(); }", "SDSL0135")]
+    [InlineData("[Phase(Wind, After = A)] void F() { }", "SDSL0141")]
+    public void AWrongAddedPhaseIsAnError(string member, string code)
+    {
+        WriteOwner();
+        WriteModule("Wrong", member);
+
+        var (ok, log, _) = Mix("Test.Wrong");
+
+        Assert.False(ok, log);
+        Assert.Contains(code, log);
     }
 
     // A misspelled kind on a method is an unknown attribute, which is an error

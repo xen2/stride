@@ -33,6 +33,7 @@ internal static class ExtensionPoints
         string? phase = null;
         var after = new List<string>();
         var replaces = new List<string>();
+        var addedPhase = "";
         var shaderName = table.CurrentShader!.ShortName;
         var methodName = $"{shaderName}.{method.Name.Name}";
 
@@ -42,7 +43,7 @@ internal static class ExtensionPoints
             if (name == "Collect")
                 table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0139, methodName)));
             else if (name == PhaseAttribute)
-                phase = ReadPhase(table, attribute, method, methodName, inherited) ?? phase;
+                phase = ReadPhase(table, attribute, method, methodName, inherited, out addedPhase) ?? phase;
             else if (name == AfterAttribute)
                 ReadAfter(table, attribute, method, methodName, inherited, after);
             else if (name == ReplacesAttribute)
@@ -58,8 +59,9 @@ internal static class ExtensionPoints
         if (point != null)
             builder.Insert(new OpExtensionPointSDSL(point.Kind, point.Owner, string.Join(',', point.Phases)));
         if (phase != null || after.Count > 0 || replaces.Count > 0)
-            builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', after), string.Join(',', replaces)));
-        if (phase != null && point != null)
+            builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', after), string.Join(',', replaces), addedPhase));
+        // The place of an added phase is only known at link
+        if (phase != null && point != null && addedPhase.Length == 0)
             CheckBasePosition(table, method, methodName, point, phase);
     }
 
@@ -107,13 +109,40 @@ internal static class ExtensionPoints
         return new MethodExtensionPoint(kind, owner, [.. phases]);
     }
 
-    private static string? ReadPhase(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, MethodExtensionPoint? point)
+    private static string? ReadPhase(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, MethodExtensionPoint? point, out string addedPhase)
     {
-        if (attribute.Parameters is not [Identifier phase])
+        addedPhase = "";
+        if (attribute.Parameters is not [Identifier phase, ..])
         {
             table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "[Phase] takes one phase name")));
             return null;
         }
+
+        // [Phase(Wind, After = A, Before = B)] adds a phase. Its neighbours are checked at link: another class can add them.
+        string? after = null, before = null;
+        foreach (var parameter in attribute.Parameters.Skip(1))
+        {
+            if (parameter is AssignExpression { Target: Identifier { Name: "After" }, Value: Identifier afterName })
+                after = afterName.Name;
+            else if (parameter is AssignExpression { Target: Identifier { Name: "Before" }, Value: Identifier beforeName })
+                before = beforeName.Name;
+            else
+            {
+                table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "[Phase] takes one phase name, and After = and Before = to add a phase")));
+                return null;
+            }
+        }
+        if (after != null || before != null)
+        {
+            if (!method.IsOverride || point == null || point.Kind == ExtensionPointKindSDSL.Replace)
+            {
+                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0141, phase.Name, methodName, "a phase is added by an override of a [Pipeline] or [Around] point")));
+                return null;
+            }
+            addedPhase = $"{after},{before}";
+            return phase.Name;
+        }
+
         if (!method.IsOverride)
             table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0141, phase.Name, methodName, "[Phase] goes on an override")));
         else if (point == null)

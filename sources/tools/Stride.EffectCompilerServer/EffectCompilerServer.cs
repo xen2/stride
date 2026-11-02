@@ -103,6 +103,7 @@ namespace Stride.EffectCompilerServer
             await Task.Yield();
 
             Console.WriteLine($"Compiling shader: {remoteEffectCompilerEffectRequest.MixinTree.Name}");
+            remoteEffectCompilerEffectRequest.MixinTree.Wiring = remoteEffectCompilerEffectRequest.Wiring ?? [];
 
             // A shader has been requested, compile it (asynchronously)!
             var effectInputHash = ShaderMixinObjectId.Compute(remoteEffectCompilerEffectRequest.MixinTree, remoteEffectCompilerEffectRequest.EffectParameters);

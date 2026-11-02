@@ -96,6 +96,7 @@ namespace Stride.Shaders.Compiler
             var shaderCompilerAnswer = (RemoteEffectCompilerEffectAnswer)await socketMessageLayer.SendReceiveAsync(new RemoteEffectCompilerEffectRequest
             {
                 MixinTree = mixinTree,
+                Wiring = mixinTree.Wiring,
                 EffectParameters = effectParameters,
             });
 

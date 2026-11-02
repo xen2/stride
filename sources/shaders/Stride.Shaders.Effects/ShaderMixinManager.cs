@@ -21,6 +21,47 @@ namespace Stride.Shaders
         private static readonly Dictionary<string, IShaderMixinBuilder> RegisteredBuilders = new Dictionary<string, IShaderMixinBuilder>();
 
         /// <summary>
+        /// The parts of a <c>partial effect</c> declared by several assemblies: the first one, then the others. The statements add up,
+        /// and for one <c>order</c> target, the last layer wins.
+        /// </summary>
+        private sealed class LayeredEffectBuilder(IShaderMixinBuilder first, bool firstIsPartial) : IShaderMixinBuilder
+        {
+            public IShaderMixinBuilder First { get; set; } = first;
+            public bool FirstIsPartial { get; set; } = firstIsPartial;
+            public List<IShaderMixinBuilder> Layers { get; } = [];
+
+            public void Generate(ShaderMixinSource mixin, ShaderMixinContext context)
+            {
+                First.Generate(mixin, context);
+                foreach (var layer in Layers)
+                    layer.Generate(mixin, context);
+            }
+
+            /// <summary>
+            /// An assembly that references the assembly of another layer comes after it, so that a project wins over the plugins it uses.
+            /// Layers that don't know each other are in the order of their assembly names.
+            /// </summary>
+            public void Sort()
+            {
+                var assemblies = Layers.Select(x => x.GetType().Assembly).ToList();
+                int Depth(System.Reflection.Assembly assembly, HashSet<string> visited)
+                {
+                    var depth = 0;
+                    foreach (var referenced in assembly.GetReferencedAssemblies())
+                    {
+                        var layer = assemblies.Find(x => x.GetName().Name == referenced.Name);
+                        if (layer != null && visited.Add(referenced.Name))
+                            depth = Math.Max(depth, Depth(layer, visited) + 1);
+                    }
+                    return depth;
+                }
+                var sorted = Layers.OrderBy(x => Depth(x.GetType().Assembly, [])).ThenBy(x => x.GetType().Assembly.GetName().Name, StringComparer.Ordinal).ToList();
+                Layers.Clear();
+                Layers.AddRange(sorted);
+            }
+        }
+
+        /// <summary>
         /// Registers a <see cref="IShaderMixinBuilder"/> with the specified sdfx effect name.
         /// </summary>
         /// <param name="sdfxEffectName">Full name of the effect.</param>
@@ -41,10 +82,80 @@ namespace Stride.Shaders
 
             lock (RegisteredBuilders)
             {
-                if (RegisteredBuilders.TryGetValue(sdfxEffectName, out var existing) && !IsSameBuilder(existing, builder))
+                if (RegisteredBuilders.TryGetValue(sdfxEffectName, out var existing) && existing is LayeredEffectBuilder layered)
+                {
+                    // The effect itself, with the partial parts that were there before it
+                    if (!layered.FirstIsPartial && !IsSameBuilder(layered.First, builder))
+                        throw new InvalidOperationException(string.Format(DuplicateEffectMessage, sdfxEffectName, Describe(layered.First), Describe(builder)));
+
+                    if (layered.FirstIsPartial && !IsSameBuilder(layered.First, builder))
+                        AddLayer(layered, layered.First);
+                    layered.First = builder;
+                    layered.FirstIsPartial = false;
+                    return;
+                }
+                if (existing != null && !IsSameBuilder(existing, builder))
                     throw new InvalidOperationException(string.Format(DuplicateEffectMessage, sdfxEffectName, Describe(existing), Describe(builder)));
 
                 RegisteredBuilders[sdfxEffectName] = builder;
+            }
+        }
+
+        /// <summary>
+        /// Registers a <c>partial effect</c>: the effect if no assembly declared it yet, else a layer on top of it.
+        /// </summary>
+        /// <param name="sdfxEffectName">Full name of the effect.</param>
+        /// <param name="builder">The builder.</param>
+        /// <exception cref="System.ArgumentNullException">sdfxEffectName or builder</exception>
+        public static void RegisterPartial(string sdfxEffectName, IShaderMixinBuilder builder)
+        {
+            if (sdfxEffectName == null)
+                throw new ArgumentNullException("sdfxEffectName");
+
+            if (builder == null)
+                throw new ArgumentNullException("builder");
+
+            lock (RegisteredBuilders)
+            {
+                if (!RegisteredBuilders.TryGetValue(sdfxEffectName, out var existing))
+                {
+                    RegisteredBuilders[sdfxEffectName] = new LayeredEffectBuilder(builder, firstIsPartial: true);
+                    return;
+                }
+
+                var layered = existing as LayeredEffectBuilder;
+                if (layered == null)
+                    RegisteredBuilders[sdfxEffectName] = layered = new LayeredEffectBuilder(existing, firstIsPartial: false);
+
+                // An assembly that reloads registers the same type again
+                if (IsSameBuilder(layered.First, builder))
+                    layered.First = builder;
+                else
+                    AddLayer(layered, builder);
+            }
+        }
+
+        private static void AddLayer(LayeredEffectBuilder layered, IShaderMixinBuilder builder)
+        {
+            layered.Layers.RemoveAll(x => IsSameBuilder(x, builder));
+            layered.Layers.Add(builder);
+            layered.Sort();
+        }
+
+        /// <summary>
+        /// The structural axes of an effect (<see cref="EffectAxesAttribute"/>), of all its layers. The effects it mixes have their own.
+        /// </summary>
+        /// <param name="sdfxEffectName">Full name of the effect.</param>
+        /// <returns>The axes, empty if the effect has none or isn't registered.</returns>
+        public static IReadOnlyList<string> GetStructuralAxes(string sdfxEffectName)
+        {
+            lock (RegisteredBuilders)
+            {
+                if (!RegisteredBuilders.TryGetValue(sdfxEffectName, out var builder))
+                    return [];
+
+                var parts = builder is LayeredEffectBuilder layered ? layered.Layers.Prepend(layered.First) : [builder];
+                return parts.SelectMany(x => x.GetType().GetCustomAttributes(typeof(EffectAxesAttribute), false).Cast<EffectAxesAttribute>().SelectMany(y => y.Axes)).Distinct().ToList();
             }
         }
 

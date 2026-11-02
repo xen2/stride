@@ -40,6 +40,8 @@ public partial class ShaderMixer
                 methodGroup.After[functionId] = contribution.After.Split(',');
             if (contribution.Replaces.Length > 0)
                 methodGroup.Replaces[functionId] = contribution.Replaces.Split(',');
+            if (contribution.AddedPhase.Length > 0 && contribution.AddedPhase.Split(',') is [var after, var before])
+                methodGroup.AddedPhases[functionId] = (contribution.Phase, after, before);
         }
     }
 
@@ -52,7 +54,16 @@ public partial class ShaderMixer
     {
         foreach (var group in mixinNode.MethodGroups.Values.Distinct())
         {
-            if (group.ExtensionPoint is not { } point || (group.Phases.Count == 0 && group.After.Count == 0 && group.Replaces.Count == 0))
+            if (group.ExtensionPoint == null)
+                continue;
+
+            // The lines of an effect are about the effect: its module methods
+            if (mixinNode.IsRoot)
+                ApplyWiring(globalContext, group);
+            AddPhases(group);
+
+            var point = group.ExtensionPoint;
+            if (group.Phases.Count == 0 && group.After.Count == 0 && group.Replaces.Count == 0 && group.Replaced.Count == 0)
                 continue;
 
             RemoveReplaced(globalContext.Table.CurrentFrame, group);
@@ -72,6 +83,84 @@ public partial class ShaderMixer
     }
 
     private static string ClassName(ShaderInfo shader) => ShaderNames.WithoutGenerics(shader.FullName);
+
+    // A line of an effect has a full name when its project could resolve it, else the name as written
+    private static bool IsClass(string fullName, string written) => fullName == written || fullName.EndsWith($".{written}", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The wiring lines of the effect about this method: what they name that isn't in the effect is ignored.
+    /// </summary>
+    private static void ApplyWiring(MixinGlobalContext globalContext, MethodGroup group)
+    {
+        var point = group.ExtensionPoint!;
+        foreach (var line in globalContext.Wiring.Where(x => x.Method == group.Name && IsClass(ShaderNames.WithoutGenerics(point.Owner), x.Owner)))
+        {
+            var pointName = $"{ShaderNames.ShortName(point.Owner)}.{group.Name}";
+            switch (line.Kind)
+            {
+                case ShaderWiringKind.Phase:
+                    group.ExtensionPoint = AddPhase(group.ExtensionPoint!, pointName, "the effect", line.Phase, line.Names[0], line.Names[1]);
+                    break;
+                case ShaderWiringKind.Bind:
+                    CheckPhase(group, pointName, line.Phase);
+                    foreach (var contributor in group.Methods.Skip(1).Where(x => IsClass(ClassName(x.Shader), line.Names[0])))
+                        group.Phases[contributor.MethodId] = line.Phase;
+                    break;
+                case ShaderWiringKind.Order:
+                    CheckPhase(group, pointName, line.Phase);
+                    // For one target, the last layer wins
+                    group.OrderLines[line.Phase] = line.Names;
+                    break;
+                case ShaderWiringKind.Unbind:
+                    if (line.Phase != null)
+                        CheckPhase(group, pointName, line.Phase);
+                    foreach (var contributor in group.Methods.Skip(1))
+                    {
+                        if (line.Phase != null ? group.Phases.GetValueOrDefault(contributor.MethodId) == line.Phase : IsClass(ClassName(contributor.Shader), line.Names[0]))
+                            group.Replaced.TryAdd(contributor.MethodId, (contributor.Shader, null));
+                    }
+                    break;
+            }
+        }
+    }
+
+    private static void CheckPhase(MethodGroup group, string pointName, string phase)
+    {
+        if (!group.ExtensionPoint!.Phases.Contains(phase))
+            throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0141, phase, "a line of the effect", $"{pointName} declares {string.Join(", ", group.ExtensionPoint.Phases)}"));
+    }
+
+    private static void AddPhases(MethodGroup group)
+    {
+        foreach (var (method, (phase, after, before)) in group.AddedPhases)
+        {
+            var contributor = group.Methods.Find(x => x.MethodId == method).Shader;
+            group.ExtensionPoint = AddPhase(group.ExtensionPoint!, $"{ShaderNames.ShortName(group.ExtensionPoint!.Owner)}.{group.Name}", contributor.ShaderName, phase, after, before);
+        }
+    }
+
+    /// <summary>
+    /// A phase next to the ones the point has. It goes right after <paramref name="after"/>, else right before <paramref name="before"/>.
+    /// </summary>
+    private static MethodExtensionPoint AddPhase(MethodExtensionPoint point, string pointName, string by, string phase, string after, string before)
+    {
+        if (point.Phases.Contains(phase))
+            return point;
+
+        foreach (var neighbour in new[] { after, before })
+        {
+            if (neighbour.Length > 0 && !point.Phases.Contains(neighbour))
+                throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0218, phase, by, pointName, neighbour));
+        }
+
+        var afterIndex = Array.IndexOf(point.Phases, after);
+        var beforeIndex = Array.IndexOf(point.Phases, before);
+        if (after.Length > 0 && before.Length > 0 && afterIndex > beforeIndex)
+            throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0138, pointName, $"phase {phase} is added after {after} and before {before}, which comes first"));
+
+        var index = after.Length > 0 ? afterIndex + 1 : beforeIndex;
+        return point with { Phases = [.. point.Phases[..index], phase, .. point.Phases[index..]] };
+    }
 
     /// <summary>
     /// Takes out of the chain what a contributor replaces, a class or a whole phase. Only this chain: the class still contributes
@@ -95,7 +184,7 @@ public partial class ShaderMixer
 
         foreach (var (method, (shader, by)) in group.Replaced)
         {
-            if (group.Methods.Find(x => x.Shader == by).MethodId is var byMethod && group.Replaced.TryGetValue(byMethod, out var other) && other.By == shader)
+            if (by != null && group.Methods.Find(x => x.Shader == by).MethodId is var byMethod && group.Replaced.TryGetValue(byMethod, out var other) && other.By == shader)
                 throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0138, group.Name, $"{by.ShaderName} and {shader.ShaderName} replace each other"));
         }
 
@@ -132,19 +221,30 @@ public partial class ShaderMixer
     /// </summary>
     private static IEnumerable<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> FollowAfter(MethodGroup group, MethodExtensionPoint point, string? phase, List<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> contributors)
     {
-        if (!contributors.Any(x => group.After.ContainsKey(x.MethodId)))
+        var orderLine = phase != null ? group.OrderLines.GetValueOrDefault(phase) : null;
+        if (orderLine == null && !contributors.Any(x => group.After.ContainsKey(x.MethodId)))
             return contributors;
 
         var fromOutside = IsReachedFromOutside(point, phase);
         var first = contributors.ToDictionary(x => x.MethodId, _ => new List<int>());
+        void RunsAfter((ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags) later, (ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags) earlier)
+        {
+            if (fromOutside)
+                first[earlier.MethodId].Add(later.MethodId);
+            else
+                first[later.MethodId].Add(earlier.MethodId);
+        }
+
+        // An order line is the strongest: [After] doesn't count between the classes it lists
+        var listed = (orderLine ?? []).SelectMany(x => contributors.Where(y => IsClass(ClassName(y.Shader), x))).ToList();
+        for (var i = 1; i < listed.Count; i++)
+            RunsAfter(listed[i], listed[i - 1]);
         foreach (var contributor in contributors)
         {
             foreach (var target in contributors.Where(x => group.After.GetValueOrDefault(contributor.MethodId)?.Contains(ClassName(x.Shader)) == true))
             {
-                if (fromOutside)
-                    first[target.MethodId].Add(contributor.MethodId);
-                else
-                    first[contributor.MethodId].Add(target.MethodId);
+                if (!listed.Contains(contributor) || !listed.Contains(target))
+                    RunsAfter(contributor, target);
             }
         }
 
@@ -301,7 +401,7 @@ public partial class ShaderMixer
                 {
                     for (var b = a + 1; b < contributors.Count; b++)
                     {
-                        if (accesses[a].ConflictWith(accesses[b], context) is { } conflict && !IsOrdered(group, contributors, contributors[a].Shader, contributors[b].Shader))
+                        if (accesses[a].ConflictWith(accesses[b], context) is { } conflict && !IsOrdered(group, phase.Key, contributors, contributors[a].Shader, contributors[b].Shader))
                         {
                             var (first, second) = IsReachedFromOutside(group.ExtensionPoint, phase.Key) ? (contributors[b], contributors[a]) : (contributors[a], contributors[b]);
                             conflicts.Add(new(group, phase.Key, first.Shader, second.Shader, conflict));
@@ -317,8 +417,11 @@ public partial class ShaderMixer
     /// <summary>
     /// <c>[After]</c> orders a pair, also through a third contributor, and so does inheritance: a class comes after its parents.
     /// </summary>
-    private static bool IsOrdered(MethodGroup group, List<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> contributors, ShaderInfo a, ShaderInfo b)
+    private static bool IsOrdered(MethodGroup group, string phase, List<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> contributors, ShaderInfo a, ShaderInfo b)
     {
+        if (group.OrderLines.GetValueOrDefault(phase) is { } line && line.Exists(x => IsClass(ClassName(a), x)) && line.Exists(x => IsClass(ClassName(b), x)))
+            return true;
+
         return IsOwnParent(a, b) || IsOwnParent(b, a) || RunsAfter(a, b, []) || RunsAfter(b, a, []);
 
         bool RunsAfter(ShaderInfo later, ShaderInfo earlier, HashSet<string> visited)
@@ -465,7 +568,9 @@ public partial class ShaderMixer
 
         var classes = contributors.Select(x => ClassName(x.Shader)).ToList();
         var sources = new List<string>();
-        if (contributors.Any(x => group.After.GetValueOrDefault(x.MethodId)?.Any(classes.Contains) == true))
+        if (group.OrderLines.ContainsKey(phase))
+            sources.Add("order line");
+        else if (contributors.Any(x => group.After.GetValueOrDefault(x.MethodId)?.Any(classes.Contains) == true))
             sources.Add("after");
         if (group.DecidedByBuilder.Contains(phase))
             sources.Add("builder");
@@ -506,6 +611,6 @@ public partial class ShaderMixer
         if (FindDropped(group, globalContext) is var (by, dropped))
             builder.AppendLine($"    dropped by {by.ShaderName}: {string.Join(", ", dropped.Select(x => x.ShaderName))}");
         foreach (var replaced in group.Replaced.Values.GroupBy(x => x.By))
-            builder.AppendLine($"    replaced by {replaced.Key.ShaderName}: {string.Join(", ", replaced.Select(x => x.Shader.ShaderName))}");
+            builder.AppendLine($"    {(replaced.Key != null ? $"replaced by {replaced.Key.ShaderName}" : "not bound by the effect")}: {string.Join(", ", replaced.Select(x => x.Shader.ShaderName))}");
     }
 }
