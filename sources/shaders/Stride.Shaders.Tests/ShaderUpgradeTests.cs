@@ -571,7 +571,7 @@ public class ShaderUpgradeTests
         var dependencies = new Dictionary<string, string> { ["Library.sdsl"] = "module Library\n{\n    void F() { }\n}\n" };
         AddKind("module Owner { }", "module Other { import Library; override void F() { } }", dependencies, notes);
 
-        Assert.Contains(notes, x => x.Contains("error SDSL0246 until the author of Library adds", StringComparison.Ordinal));
+        Assert.Contains(notes, x => x.Contains("error SDSL0246. Write patch Library.F instead of override, or ask the author of Library to add", StringComparison.Ordinal));
     }
 
     // The file-scoped namespace and its usings were added by hand after that commit

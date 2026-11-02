@@ -328,7 +328,7 @@ public static partial class ShaderUpgrader
                         continue;
                     if (owner.IsDependency)
                     {
-                        notes.Add($"{shaderClass.Path}: {shaderClass.Name} overrides {method.Name} of {owner.Name}, in a library ({owner.Path}), and it has no kind: error SDSL0246 until the author of {owner.Name} adds [Replace], [Pipeline] or [Around]");
+                        notes.Add($"{shaderClass.Path}: {shaderClass.Name} overrides {method.Name} of {owner.Name}, in a library ({owner.Path}), and it has no kind: error SDSL0246. Write patch {owner.Name}.{method.Name} instead of override, or ask the author of {owner.Name} to add [Replace], [Pipeline] or [Around]");
                         continue;
                     }
                     if (!done.Add((owner.Name, method.Name, method.Signature)))

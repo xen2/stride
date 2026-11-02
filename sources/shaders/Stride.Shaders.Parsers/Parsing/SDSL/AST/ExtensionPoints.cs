@@ -57,6 +57,9 @@ internal static class ExtensionPoints
             return;
         }
 
+        if (extend.IsPatch && extend.Phase != null)
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, keyword, shortName, method.Name.Name, "it is not an extension point, so it has no phases")));
+
         var type = (FunctionType)target.Type;
         method.IsStaged = target.Id.IsStage;
         method.ReturnTypeName = new TypeName(type.ReturnType.ToString(), info);
@@ -153,7 +156,12 @@ internal static class ExtensionPoints
 
         if (point != null)
             builder.Insert(new OpExtensionPointSDSL(point.Kind, point.Owner, string.Join(',', point.Phases), string.Join(',', point.ParameterNames)));
-        var form = method.Extend is { IsPatch: false } ? MethodExtensionPoint.ExtendForm : "";
+        var form = method.Extend switch
+        {
+            { IsPatch: true } => MethodExtensionPoint.PatchForm,
+            not null => MethodExtensionPoint.ExtendForm,
+            _ => "",
+        };
         if (phase != null || after.Count > 0 || replaces.Count > 0 || form.Length > 0)
             builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', after), string.Join(',', replaces), addedPhase, form));
         // The place of an added phase is only known at link
@@ -255,9 +263,10 @@ internal static class ExtensionPoints
     /// </summary>
     private static void ReadAfter(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, MethodExtensionPoint? point, List<string> after)
     {
-        if (!method.IsOverride || point == null)
+        // A patch has no point, and two patches of a method need an order
+        if (!method.IsOverride || (point == null && method.Extend is not { IsPatch: true }))
             table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "[After] goes on an override of an extension point")));
-        else if (point.Kind == ExtensionPointKindSDSL.Replace)
+        else if (point?.Kind == ExtensionPointKindSDSL.Replace)
             table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "one override of a [Replace] point runs, so it has no order")));
         else if (attribute.Parameters.Count == 0)
             table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "[After] takes class names")));
