@@ -43,6 +43,9 @@ internal sealed class ShaderUpgradeClass
     /// <summary>Signature = the parameter types, comma-separated, without spaces.</summary>
     public List<(string Name, bool IsModule, bool IsOverride, bool IsAbstract, string Signature, string Body)> Methods { get; } = [];
 
+    /// <summary>The methods whose first definition here declares a kind: name and signature.</summary>
+    public HashSet<(string Name, string Signature)> DeclaredKinds { get; } = [];
+
     /// <summary>Classes named before a <c>.</c> in the code (static references), with the text written for them.</summary>
     public Dictionary<string, string> StaticReferences { get; } = [];
 
@@ -356,6 +359,8 @@ internal sealed class ShaderUpgradeProject
                         break;
                     case ShaderMethod method:
                         var signature = string.Join(",", method.Parameters.Select(x => Regex.Replace(x.TypeName.ToString(), @"\s+", "")));
+                        if (method.Kinds.Count > 0)
+                            shaderClass.DeclaredKinds.Add((method.Name.Name, signature));
                         shaderClass.Methods.Add((method.Name.Name, method.IsStaged || declaration.IsModule, method.IsOverride, method.IsAbstract, signature, method.Body?.Info.Text.ToString() ?? ""));
                         break;
                 }

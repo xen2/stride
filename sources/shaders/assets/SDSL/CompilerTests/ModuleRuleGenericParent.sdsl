@@ -3,7 +3,7 @@ namespace Stride.Shaders.Tests;
 
 shader ModuleRuleGenericParent<int N>
 {
-    module float Factor()
+    module pipeline float Factor()
     {
         return 1.0;
     }

@@ -9,7 +9,7 @@ shader ModuleContributionOnceBase
 {
     stream float4 ColorTarget : SV_Target0;
 
-    module void Contribute()
+    module pipeline void Contribute()
     {
     }
 

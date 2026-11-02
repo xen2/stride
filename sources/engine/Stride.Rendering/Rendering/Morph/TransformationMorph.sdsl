@@ -38,6 +38,7 @@ shader TransformationMorph
 
     module stream uint VertexID : SV_VertexID;
 
+    [Phase(Morph)]
     override module void PreTransformPosition()
     {
         uint vertex = streams.VertexID;

@@ -4,7 +4,7 @@ namespace Stride.Shaders.Tests;
 
 module StaticReferenceModuleOverriddenHelper
 {
-    float Value()
+    replace float Value()
     {
         return 1.0;
     }

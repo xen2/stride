@@ -9,7 +9,7 @@ shader ModuleHelperBase
 {
     stream float4 ColorTarget : SV_Target0;
 
-    module float GetFactor()
+    module replace float GetFactor()
     {
         return 1.0;
     }
