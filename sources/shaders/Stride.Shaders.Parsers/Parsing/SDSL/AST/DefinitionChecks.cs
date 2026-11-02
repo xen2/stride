@@ -15,7 +15,7 @@ namespace Stride.Shaders.Parsing.SDSL.AST;
 internal static class DefinitionChecks
 {
     /// <summary>
-    /// An <c>override</c> needs an inherited method with the same name (SDSL0200, warning). One with the same name but another
+    /// An <c>override</c> needs an inherited method with the same name (SDSL0200). One with the same name but another
     /// signature is error SDSL0175 / SDSL0176 (<c>ShaderMethod.CheckOverriddenMethod</c>). It must also be of the same kind, module
     /// or instance, unless the class is root-only (SDSL0206 / SDSL0207).
     /// </summary>
@@ -28,16 +28,16 @@ internal static class DefinitionChecks
         var shaderName = table.CurrentShader!.ShortName;
         var sameSignature = inherited.Where(x => x.Symbol.Type is FunctionType inheritedType && inheritedType == type).ToList();
         if (inherited.Count == 0)
-            table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0200, shaderName, name.Name)));
+            table.AddError(new(name.Info, string.Format(SDSLErrorMessages.SDSL0200, shaderName, name.Name)));
         else if (sameSignature.Count > 0)
         {
             // The method this override is chained to: the last one in the linearization
             var parent = sameSignature[^1];
             var parentIsModule = (parent.Flags & FunctionFlagsMask.Stage) != 0;
             if (ChecksModuleRules(table) && parentIsModule && !isModule)
-                table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0206, shaderName, name.Name, parent.Owner)));
+                table.AddError(new(name.Info, string.Format(SDSLErrorMessages.SDSL0206, shaderName, name.Name, parent.Owner)));
             else if (ChecksModuleRules(table) && !parentIsModule && isModule)
-                table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0207, shaderName, name.Name, parent.Owner)));
+                table.AddError(new(name.Info, string.Format(SDSLErrorMessages.SDSL0207, shaderName, name.Name, parent.Owner)));
             // Implementing an abstract method is not a contribution. A root-only shader can override a module method without 'module'
             else if (!isPatch && parentIsModule && parent.Symbol.ExtensionPoint == null && (sameSignature[0].Flags & FunctionFlagsMask.Abstract) == 0)
                 table.AddError(new(name.Info, string.Format(SDSLErrorMessages.SDSL0246, shaderName, name.Name, sameSignature[0].Owner)));
@@ -57,9 +57,9 @@ internal static class DefinitionChecks
             .Where(m => m.Symbol.Id.Name == call.Name.Name && m.Symbol.Type is FunctionType inheritedType && inheritedType == type)
             .ToList();
         if (inherited.Count == 0)
-            table.AddWarning(new(call.Info, string.Format(SDSLErrorMessages.SDSL0201, table.CurrentShader.ShortName, call.Name.Name)));
+            table.AddError(new(call.Info, string.Format(SDSLErrorMessages.SDSL0201, table.CurrentShader.ShortName, call.Name.Name)));
         else if (ChecksModuleRules(table) && table.CurrentMethod is { IsStaged: false } caller && inherited.All(x => (x.Flags & FunctionFlagsMask.Stage) != 0))
-            table.AddWarning(new(call.Info, string.Format(SDSLErrorMessages.SDSL0208, table.CurrentShader.ShortName, call.Name.Name, caller.Name.Name)));
+            table.AddError(new(call.Info, string.Format(SDSLErrorMessages.SDSL0208, table.CurrentShader.ShortName, call.Name.Name, caller.Name.Name)));
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ internal static class DefinitionChecks
             return;
         if (identifier.Name == "streams" && table.CurrentShaderFlags.HasFlag(ShaderFlagsMask.Pure))
         {
-            table.AddWarning(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0209, table.CurrentShader!.ShortName, $"reads streams in {method.Name.Name}()")));
+            table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0209, table.CurrentShader!.ShortName, $"reads streams in {method.Name.Name}()")));
             return;
         }
         if (symbol == null || !method.IsStaged || !ChecksModuleRules(table)
@@ -87,7 +87,7 @@ internal static class DefinitionChecks
             || !TryGetMemberFlags(owner, symbol, out var flags)
             || (flags & (VariableFlagsMask.Stage | VariableFlagsMask.Stream)) != 0)
             return;
-        table.AddWarning(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0204, table.CurrentShader!.ShortName, method.Name.Name, identifier.Name, owner.ShortName)));
+        table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0204, table.CurrentShader!.ShortName, method.Name.Name, identifier.Name, owner.ShortName)));
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ internal static class DefinitionChecks
         // Through the class itself: implicit this, `this.` or `base.` (a static reference or a composition has another base type)
         var throughThis = call.MemberCallBaseType is null or ShaderMixinType;
         if (throughThis && method.IsStaged && !function.Id.IsStage && ChecksModuleRules(table))
-            table.AddWarning(new(call.Info, string.Format(SDSLErrorMessages.SDSL0205, table.CurrentShader!.ShortName, method.Name.Name, call.Name.Name, owner.ShortName)));
+            table.AddError(new(call.Info, string.Format(SDSLErrorMessages.SDSL0205, table.CurrentShader!.ShortName, method.Name.Name, call.Name.Name, owner.ShortName)));
     }
 
     /// <summary>
@@ -119,7 +119,7 @@ internal static class DefinitionChecks
     public static void CheckStaticReference(SymbolTable table, TextLocation location, ShaderClassInstantiation reference)
     {
         if (table.CurrentShaderFlags.HasFlag(ShaderFlagsMask.Pure) && !reference.IsPure)
-            table.AddWarning(new(location, string.Format(SDSLErrorMessages.SDSL0210, table.CurrentShader!.ShortName, ShaderNames.ShortNameWithGenerics(reference.ClassName))));
+            table.AddError(new(location, string.Format(SDSLErrorMessages.SDSL0210, table.CurrentShader!.ShortName, ShaderNames.ShortNameWithGenerics(reference.ClassName))));
     }
 
     /// <summary>
@@ -138,7 +138,7 @@ internal static class DefinitionChecks
     public static void CheckPixelShaderOnly(SymbolTable table, TextLocation location, string what)
     {
         if (table.CurrentShaderFlags.HasFlag(ShaderFlagsMask.Pure) && table.CurrentMethod is { } method)
-            table.AddWarning(new(location, string.Format(SDSLErrorMessages.SDSL0213, table.CurrentShader!.ShortName, what, method.Name.Name)));
+            table.AddError(new(location, string.Format(SDSLErrorMessages.SDSL0213, table.CurrentShader!.ShortName, what, method.Name.Name)));
     }
 
     /// <summary>
@@ -149,7 +149,7 @@ internal static class DefinitionChecks
         foreach (var parent in directParents)
         {
             if (parent.IsModule && !parent.IsPure)
-                table.AddWarning(new(shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0210, shaderClass.Name.Name, ShaderNames.ShortNameWithGenerics(parent.ClassName))));
+                table.AddError(new(shaderClass.Name.Info, string.Format(SDSLErrorMessages.SDSL0210, shaderClass.Name.Name, ShaderNames.ShortNameWithGenerics(parent.ClassName))));
         }
         foreach (var element in shaderClass.Elements)
         {
@@ -165,7 +165,7 @@ internal static class DefinitionChecks
                 _ => ((TextLocation, string)?)null,
             };
             if (state is var (location, text))
-                table.AddWarning(new(location, string.Format(SDSLErrorMessages.SDSL0209, shaderClass.Name.Name, text)));
+                table.AddError(new(location, string.Format(SDSLErrorMessages.SDSL0209, shaderClass.Name.Name, text)));
         }
     }
 
@@ -182,7 +182,7 @@ internal static class DefinitionChecks
             if (!known.Contains(attribute.Name.Name) && ExtensionPoints.IsAttribute(attribute.Name.Name))
                 table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, declaration, "it goes on a method")));
             else if (!known.Contains(attribute.Name.Name) && known.Any(x => IsMisspelling(attribute.Name.Name, x)))
-                table.AddWarning(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0217, attribute.Name.Name, declaration, string.Join(" and ", known.Select(x => $"[{x}]")))));
+                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0217, attribute.Name.Name, declaration, string.Join(" and ", known.Select(x => $"[{x}]")))));
         }
     }
 
@@ -241,7 +241,7 @@ internal static class DefinitionChecks
             return;
         var parameters = Spirv.Building.SpirvBuilder.GetGenericParameterNames(buffer.Context);
         if (given > parameters.Count)
-            table.AddWarning(new(parent.Info, string.Format(SDSLErrorMessages.SDSL0202, parent.Name, parameters.Count, string.Join(", ", parameters), given)));
+            table.AddError(new(parent.Info, string.Format(SDSLErrorMessages.SDSL0202, parent.Name, parameters.Count, string.Join(", ", parameters), given)));
     }
 
     /// <summary>
@@ -253,6 +253,6 @@ internal static class DefinitionChecks
         while (baseType is ArrayType arrayType)
             baseType = arrayType.BaseType;
         if (baseType is not null and not VectorType { BaseType.Type: Scalar.Float, Size: 3 or 4 })
-            table.AddWarning(new(location, string.Format(SDSLErrorMessages.SDSL0203, memberName, type is PointerType p ? p.BaseType : type)));
+            table.AddError(new(location, string.Format(SDSLErrorMessages.SDSL0203, memberName, type is PointerType p ? p.BaseType : type)));
     }
 }

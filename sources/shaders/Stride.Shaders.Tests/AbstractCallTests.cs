@@ -23,7 +23,7 @@ public class AbstractCallTests : IDisposable
     private const string Base = """
         namespace Stride.Shaders.Tests;
 
-        shader AbstractCallBase
+        [Root] shader AbstractCallBase
         {
             stream float4 ColorTarget : SV_Target0;
 

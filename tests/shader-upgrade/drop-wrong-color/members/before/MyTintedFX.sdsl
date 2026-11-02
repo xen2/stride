@@ -1,0 +1,23 @@
+// [Color] on a member of another type than float3 or float4 never did anything
+shader MyTintedFX : ComputeColor
+{
+    [Color]
+    float4 Kept;
+
+    [Color] float3 KeptArray[2];
+
+    // [Color] in a comment stays
+    [Color]
+    compose ComputeColor Layer;
+
+    [Color] float Factor;
+
+    [Color]
+    [Default(1)]
+    module float2 Offset;
+
+    override float4 Compute()
+    {
+        return Kept + Layer.Compute() + Factor + float4(KeptArray[0], Offset.x);
+    }
+};

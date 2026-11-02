@@ -21,6 +21,8 @@ public record struct CompileOptions()
     public bool RegisterInCache { get; init; } = true;
     /// <summary>Original source code before preprocessing, used for OpSource debug info. Falls back to preprocessed code if null.</summary>
     public string? OriginalCode { get; init; }
+    /// <summary>The names the conditions of the preprocessor read that were no macro at that point (SDSL0147).</summary>
+    public IReadOnlyList<UndefinedConditionName>? UndefinedConditionNames { get; init; }
 }
 
 public record struct SDSLC(IExternalShaderLoader ShaderLoader)
@@ -50,6 +52,8 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
             .ToList();
         var classes = declarations.Select(x => x.Declaration).OfType<ShaderClass>().ToList();
         var fileName = Path.GetFileNameWithoutExtension(filename);
+        if (ReportCycleInFile(filename, declarations, log) | ReportGenericsInConditions(filename, classes, options.UndefinedConditionNames, log))
+            return false;
         // Every class of the file is validated against the file, whichever namespace the class is in
         var storageName = filename != null ? ShaderFileDeclarations.StorageName(options.OriginalCode ?? code, fileName!) : null;
         foreach (var (declaration, scope) in declarations)
@@ -164,6 +168,93 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
         }
 
         return lastBuffer != null;
+    }
+
+    /// <summary>
+    /// Puts each class of a file after the classes of the file it inherits or imports, or reports the cycle among them (SDSL0146):
+    /// the loader only sees the classes it was asked for by name, not the others of a file.
+    /// </summary>
+    private static bool ReportCycleInFile(string? filename, List<(ShaderDeclaration Declaration, ShaderNameScope Scope)> declarations, ILogger log)
+    {
+        var classes = new Dictionary<string, (ShaderClass Class, ShaderNameScope Scope)>();
+        foreach (var (declaration, scope) in declarations)
+        {
+            if (declaration is ShaderClass shader)
+                classes.TryAdd(ShaderNames.Combine(scope.Namespace, shader.Name.Name), (shader, scope));
+        }
+
+        var ordered = new List<string>();
+        var visited = new HashSet<string>();
+        var path = new List<string>();
+        foreach (var name in classes.Keys)
+        {
+            if (FindCycle(name) is { } cycle)
+            {
+                log.Error(Format(filename, new(classes[cycle[0]].Class.Name.Info, string.Format(SDSLErrorMessages.SDSL0146, string.Join(" -> ", cycle)))));
+                return true;
+            }
+        }
+
+        // Two classes of one name are reported when they compile
+        if (ordered.Count == declarations.Count(x => x.Declaration is ShaderClass))
+        {
+            var next = 0;
+            for (var i = 0; i < declarations.Count; i++)
+            {
+                if (declarations[i].Declaration is ShaderClass)
+                    declarations[i] = classes[ordered[next++]];
+            }
+        }
+        return false;
+
+        List<string>? FindCycle(string name)
+        {
+            var index = path.IndexOf(name);
+            if (index >= 0)
+                return [.. path.Skip(index), name];
+            if (!visited.Add(name))
+                return null;
+
+            path.Add(name);
+            var (shader, scope) = classes[name];
+            foreach (var parent in shader.Mixins.Select(x => x.Name).Concat(shader.Elements.OfType<ShaderImport>().Select(x => x.Module.Name)))
+            {
+                // A name without a namespace can be a class of another file: only the class of its own namespace is known here
+                var fullName = parent.Contains('.') ? parent : ShaderNames.Combine(scope.Namespace, parent);
+                if (classes.ContainsKey(fullName) && FindCycle(fullName) is { } cycle)
+                    return cycle;
+            }
+            path.RemoveAt(path.Count - 1);
+            ordered.Add(name);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// A condition of the preprocessor that reads a generic parameter of its class (SDSL0147). Conditions run before generics get their value.
+    /// </summary>
+    private static bool ReportGenericsInConditions(string? filename, List<ShaderClass> classes, IReadOnlyList<UndefinedConditionName>? names, ILogger log)
+    {
+        if (names == null || names.Count == 0)
+            return false;
+
+        var found = false;
+        foreach (var shader in classes)
+        {
+            if (shader.Generics == null)
+                continue;
+
+            foreach (var name in names)
+            {
+                if (name.Line >= shader.Info.Line && name.Line <= shader.Info.EndLine && shader.Generics.Parameters.Any(x => x.Name.Name == name.Name))
+                {
+                    var location = filename != null ? $"{filename}({name.Line},{name.Column}): " : "";
+                    log.Error(location + string.Format(SDSLErrorMessages.SDSL0147, name.Directive, name.Name, shader.Name.Name));
+                    found = true;
+                }
+            }
+        }
+        return found;
     }
 
     /// <summary>
