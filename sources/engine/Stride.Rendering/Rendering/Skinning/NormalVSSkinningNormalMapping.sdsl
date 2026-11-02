@@ -10,6 +10,7 @@ module NormalVSSkinningNormalMapping
 {
     import NormalFromNormalMapping;
 
+    [Drops(Mixins = { NormalFromNormalMapping, NormalFromNormalMappingInstanced })]
     override float3x3 GetTangentWorldTransform()
     {
         // TangentMatrix is already in world space, so return an identity matrix here

@@ -1274,7 +1274,9 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                         if (!baseMethodFound)
                             throw new InvalidOperationException($"Can't find a base method for {methodGroupEntry.Name}");
 
-                        globalContext.BaseCallTargets.Add(selectedMethod.MethodId);
+                        // A contributor out of the chain never runs, so it reaches nothing
+                        if (!methodGroupEntry.Replaced.ContainsKey(currentFunction))
+                            globalContext.BaseCallTargets.Add(selectedMethod.MethodId);
                     }
 
                     // Checked once every override is known (CheckAbstractCalls): the caller may be replaced and never run

@@ -36,7 +36,7 @@ module TransformationSkinning
     }
 
     [Phase(World)]
-    [MixinOrder(After = { TransformationWAndVP, TransformationWAndVPInstanced })]
+    [Drops(Mixins = { TransformationWAndVP, TransformationWAndVPInstanced })]
     override void PreTransformPosition()
     {
         base.PreTransformPosition();

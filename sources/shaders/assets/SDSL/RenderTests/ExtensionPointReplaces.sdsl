@@ -1,0 +1,48 @@
+// PSMain(ExpectedResult=#02020202)
+
+namespace Stride.Shaders.Tests;
+
+// [Replaces] takes a contributor out of the chain, also for the entry point: ExtensionPointReplaced is the last one in the mix and
+// would run last, and give 6.
+module ExtensionPointReplacesOwner
+{
+    stream float4 Position : POSITION;
+    stream float4 ShadingPosition : SV_Position;
+    stream float4 ColorTarget : SV_Target0;
+
+    void VSMain() { streams.ShadingPosition = streams.Position; }
+
+    [Phases(Default, A)]
+    pipeline void PSMain() { streams.ColorTarget = 1 / 255.0; }
+}
+
+module ExtensionPointReplaced
+{
+    import ExtensionPointReplacesOwner;
+
+    [Phase(A)]
+    override void PSMain()
+    {
+        base.PSMain();
+        streams.ColorTarget = streams.ColorTarget + 4 / 255.0;
+    }
+}
+
+module ExtensionPointReplacer
+{
+    import ExtensionPointReplacesOwner;
+
+    [Phase(A)]
+    [Drops(Mixins = { ExtensionPointReplaced })]
+    override void PSMain()
+    {
+        base.PSMain();
+        streams.ColorTarget = streams.ColorTarget * 2;
+    }
+}
+
+shader ExtensionPointReplaces
+{
+    import ExtensionPointReplacer;
+    import ExtensionPointReplaced;
+}

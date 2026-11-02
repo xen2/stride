@@ -87,6 +87,12 @@ public partial class ShaderMixer
         /// <summary>The full names of the classes a contributor runs before in its phase, by method: <c>[MixinOrder(Before = ...)]</c>.</summary>
         public Dictionary<int, string[]> Before { get; } = new();
 
+        /// <summary>What a contributor drops, by method: full names of classes, and phases with their prefix.</summary>
+        public Dictionary<int, string[]> Drops { get; } = new();
+
+        /// <summary>The contributors taken out of the chain by <c>[Drops]</c>, by method, and the class that did it.</summary>
+        public Dictionary<int, (ShaderInfo Shader, ShaderInfo By)> Replaced { get; } = new();
+
         /// <summary>The line of each contributor in its file, by method, for messages.</summary>
         public Dictionary<int, int> Lines { get; } = new();
 

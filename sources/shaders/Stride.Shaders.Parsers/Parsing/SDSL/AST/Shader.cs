@@ -709,7 +709,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         if (FindAttribute("Replaces") is { Parameters: [StringLiteral text] })
             table.AddError(new(text.Info, string.Format(SDSLErrorMessages.SDSL0255, "Replaces", Name.Name, text.Value)));
         else if (FindAttribute("Replaces") is { } replaces && ShaderReplacement.Target(this) == null)
-            table.AddError(new(replaces.Info, string.Format(SDSLErrorMessages.SDSL0135, "Replaces", Name.Name, "on a class, [Replaces] takes the full name of one class, and replaces that whole class")));
+            table.AddError(new(replaces.Info, string.Format(SDSLErrorMessages.SDSL0135, "Replaces", Name.Name, "on a class, [Replaces] takes the full name of one class, and replaces that whole class. To drop a contributor from a chain, put [Drops(Mixins = { Name })] on an override")));
         // Structs (plain and partial views) first, in the order they contain each other
         if (!PartialStructs.DeclareStructs(table, context, this))
             return;

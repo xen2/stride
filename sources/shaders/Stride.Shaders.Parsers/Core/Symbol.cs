@@ -16,6 +16,9 @@ public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Ow
     /// <summary>The implicit phase after every declared phase, in the order of the mix: where a contributor without a phase is.</summary>
     public const string ImplicitPhase = "External";
 
+    /// <summary>What marks a phase in the names of <c>[Drops]</c> and <c>[Unbind]</c>, which are otherwise full names of classes.</summary>
+    public const char ReplacedPhasePrefix = '@';
+
     /// <summary>The phase of the default body of a pipeline: <see cref="DefaultPhase"/>, else the first one.</summary>
     public int DefaultPhaseIndex => Math.Max(Array.IndexOf(Phases, DefaultPhase), 0);
 

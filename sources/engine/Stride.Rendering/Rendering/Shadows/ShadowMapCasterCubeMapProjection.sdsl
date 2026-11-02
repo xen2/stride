@@ -9,11 +9,14 @@ namespace Stride.Rendering.Shadows
         import PositionStream4;
         import Texturing;
 
+        [Phase(Project)]
+        [Drops(Phases = { Project })]
         module override void PostTransformPosition()
         {
             streams.ShadingPosition = ComputeShadingPosition(streams.PositionWS);
         }
 
+		[Drops(Mixins = { TransformationWAndVP })]
 		module override float4 ComputeShadingPosition(float4 world)
 		{
 			return mul(world, Transformation.ViewProjection);

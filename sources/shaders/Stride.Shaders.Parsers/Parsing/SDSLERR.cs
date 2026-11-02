@@ -84,6 +84,7 @@ public static class SDSLErrorMessages
     public const string SDSL0161 = "SDSL0161: Argument {0} of the call to {1} has type {2}, which can't be converted to {3}.";
     public const string SDSL0162 = "SDSL0162: No overload of {0} can take these arguments:{1}";
     public const string SDSL0250 = "SDSL0250: {0} on {1}: {2}.";
+    public const string SDSL0254 = "SDSL0254: [{0}] on {1}: {2}.";
     public const string SDSL0255 = "SDSL0255: [{0}] on {1}: \"{2}\" is a string. A name in quotes is kept for weak names, which are not supported yet: write the name without quotes.";
     public const string SDSL0163 = "SDSL0163: The call {0} is ambiguous: these overloads match equally well:{1}\nCast the arguments to the parameter types of the one to call.";
     public const string SDSL0170 = "SDSL0170: [StreamOutput] on {0} is not supported: Stride shaders have no geometry shader stream output. Remove the attribute; to keep generated vertices, write them to a RWStructuredBuffer from a compute shader instead.";

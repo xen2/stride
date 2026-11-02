@@ -228,6 +228,10 @@
         },
         {
           "kind": "LiteralString",
+          "name": "drops"
+        },
+        {
+          "kind": "LiteralString",
           "name": "mixinOrder"
         },
         {

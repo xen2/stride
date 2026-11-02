@@ -12,6 +12,7 @@ shader NormalFromMeshInstanced
     import TransformationInstancing;
 
     [Phase(Generate)]
+    [Drops(Mixins = { NormalFromMesh })]
     override module void GenerateNormal_VS()
     {
         // Perform normal generation at the end in case meshNormal is modified
