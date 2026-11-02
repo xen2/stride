@@ -411,6 +411,14 @@ public class ShaderUpgradeTests
             $"{EngineShaderClassesFile} doesn't match the engine shaders: run the explicit test {nameof(UpdateEngineShaderClasses)}");
     }
 
+    // A shader listed as removed isn't in today's engine: its message would be wrong
+    [Fact]
+    public void RemovedEngineShadersAreGone()
+    {
+        var engine = EngineShaderClasses.Write(ReadShaders(EngineRoots));
+        Assert.Empty(EngineShaderClasses.Removed.Where(x => engine.Contains($"\t{x}\t", StringComparison.Ordinal)));
+    }
+
     static string FixturesDirectory => Path.Combine(RepositoryRoot, "tests", "shader-upgrade");
 
     // tests/shader-upgrade/<step>/<case>: user-style shaders in the old syntax (before/) and their upgrade (after/), with the

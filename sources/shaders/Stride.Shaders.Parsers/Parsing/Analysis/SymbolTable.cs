@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Stride.Shaders.Core;
 using Stride.Shaders.Parsing.SDSL.AST;
+using Stride.Shaders.Parsing.Upgrade;
 using Stride.Shaders.Spirv.Building;
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
@@ -97,12 +98,12 @@ public partial class SymbolTable : ISymbolProvider
     }
 
     /// <summary>
-    /// The end of the message of a class name that isn't in scope: the namespaces where a class of this name exists.
+    /// The end of the message of a class name that isn't in scope: the namespaces where a class of this name exists, or that the engine removed it.
     /// </summary>
     public string DidYouMean(string name)
     {
         var found = ShaderLoader?.FindFullNames(ShaderNames.ShortName(name)) ?? [];
-        return found.Count == 0 ? "" : $" Did you mean {string.Join(" or ", found.Select(x => ShaderNames.Namespace(x) is { } @namespace ? $"`using {@namespace};`" : x))}?";
+        return found.Count == 0 ? EngineShaderClasses.RemovedHint(name) : $" Did you mean {string.Join(" or ", found.Select(x => ShaderNames.Namespace(x) is { } @namespace ? $"`using {@namespace};`" : x))}?";
     }
 
     public SymbolTable(SpirvContext context, IExternalShaderLoader shaderLoader)
