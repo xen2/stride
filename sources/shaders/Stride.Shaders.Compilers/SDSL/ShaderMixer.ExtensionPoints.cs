@@ -44,6 +44,8 @@ public partial class ShaderMixer
                 methodGroup.AddedPhases[functionId] = (contribution.Phase, after, before, baseCall);
             if (contribution.Form == MethodExtensionPoint.ExtendForm)
                 methodGroup.Extends.Add(functionId);
+            else if (contribution.Form == MethodExtensionPoint.PatchForm)
+                methodGroup.Patches.Add(functionId);
         }
     }
 
@@ -60,7 +62,10 @@ public partial class ShaderMixer
         foreach (var group in mixinNode.MethodGroups.Values.Distinct())
         {
             if (group.ExtensionPoint == null)
+            {
+                OrderPatches(globalContext, mixinNode, group);
                 continue;
+            }
 
             // The linkage rules of an effect are about the effect: its module methods
             AddPhases(globalContext, group, mixinNode.IsRoot);
@@ -115,10 +120,45 @@ public partial class ShaderMixer
         foreach (var rule in globalContext.Linkage)
         {
             var isFound = !mixinNode.Shaders.Any(x => IsClass(ClassName(x), rule.Owner))
-                || mixinNode.MethodGroups.Values.Any(x => x.Name == rule.Method && x.ExtensionPoint is { } point && IsClass(ShaderNames.WithoutGenerics(point.Owner), rule.Owner));
+                || mixinNode.MethodGroups.Values.Any(x => x.Name == rule.Method && (x.ExtensionPoint is { } point
+                    ? IsClass(ShaderNames.WithoutGenerics(point.Owner), rule.Owner)
+                    : rule.Kind == ShaderLinkageKind.Order && rule.Phase == MethodExtensionPoint.ImplicitPhase && IsClass(ClassName(x.Methods[0].Shader), rule.Owner)));
             if (!isFound)
                 throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0154, ShaderNames.ShortName(rule.Owner), rule.Method));
         }
+    }
+
+    /// <summary>
+    /// A method that is not an extension point has no phases, and only its patches have to state their order (SDSL0148), with
+    /// <c>after</c> or a linkage rule of the effect in the implicit phase <c>External</c>. Its plain overrides follow the order of the mix.
+    /// </summary>
+    private static void OrderPatches(MixinGlobalContext globalContext, MixinNode mixinNode, MethodGroup group)
+    {
+        var contributors = group.Methods.Skip(1).ToList();
+        var patches = contributors.Where(x => group.Patches.Contains(x.MethodId)).ToList();
+        if (patches.Count < 2)
+            return;
+
+        var owner = group.Methods[0].Shader;
+        if (mixinNode.IsRoot)
+        {
+            foreach (var rule in globalContext.Linkage.Where(x => x.Kind == ShaderLinkageKind.Order && x.Method == group.Name && x.Phase == MethodExtensionPoint.ImplicitPhase && IsClass(ClassName(owner), x.Owner)))
+                group.OrderRules[MethodExtensionPoint.ImplicitPhase] = rule.Names;
+        }
+
+        for (var a = 0; a < patches.Count; a++)
+        {
+            for (var b = a + 1; b < patches.Count; b++)
+            {
+                if (!IsOrdered(group, MethodExtensionPoint.ImplicitPhase, contributors, patches[a].Shader, patches[b].Shader))
+                    throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0148, ShaderNames.WithoutGenerics(patches[a].Shader.ShaderName), ShaderNames.WithoutGenerics(patches[b].Shader.ShaderName), ShaderNames.WithoutGenerics(owner.ShaderName), group.Name));
+            }
+        }
+
+        var sorted = FollowAfter(group, null, MethodExtensionPoint.ImplicitPhase, contributors).ToList();
+        group.Methods.RemoveRange(1, sorted.Count);
+        group.Methods.AddRange(sorted);
+        SortSymbols(globalContext.Table.CurrentFrame, group, sorted.Select(x => x.MethodId).ToList());
     }
 
     private static string ClassName(ShaderInfo shader) => ShaderNames.WithoutGenerics(shader.FullName);
@@ -307,13 +347,13 @@ public partial class ShaderMixer
     /// The contributors of one phase in chain order: the order of the mix, moved only as far as <c>[After]</c> asks. A phase reached
     /// from the outside (<c>around</c>, or a pipeline step before the default body) runs from the end of the chain.
     /// </summary>
-    private static IEnumerable<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> FollowAfter(MethodGroup group, MethodExtensionPoint point, string? phase, List<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> contributors)
+    private static IEnumerable<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> FollowAfter(MethodGroup group, MethodExtensionPoint? point, string? phase, List<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> contributors)
     {
         var orderRule = phase != null ? group.OrderRules.GetValueOrDefault(phase) : null;
         if (orderRule == null && !contributors.Any(x => group.After.ContainsKey(x.MethodId)))
             return contributors;
 
-        var fromOutside = IsReachedFromOutside(point, phase);
+        var fromOutside = point != null && IsReachedFromOutside(point, phase);
         var first = contributors.ToDictionary(x => x.MethodId, _ => new List<int>());
         void RunsAfter((ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags) later, (ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags) earlier)
         {
