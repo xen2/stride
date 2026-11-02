@@ -85,6 +85,11 @@ public static class SDSLErrorMessages
     public const string SDSL0162 = "SDSL0162: No overload of {0} can take these arguments:{1}";
     public const string SDSL0163 = "SDSL0163: The call {0} is ambiguous: these overloads match equally well:{1}\nCast the arguments to the parameter types of the one to call.";
     public const string SDSL0170 = "SDSL0170: [StreamOutput] on {0} is not supported: Stride shaders have no geometry shader stream output. Remove the attribute; to keep generated vertices, write them to a RWStructuredBuffer from a compute shader instead.";
+    public const string SDSL0135 = "SDSL0135: [{0}] on {1}: {2}.";
+    public const string SDSL0139 = "SDSL0139: [Collect] on {0}: collect is reserved for a later version. Use [Pipeline] or [Around].";
+    public const string SDSL0140 = "SDSL0140: {0} is in phase {1} of {2} and {3}. A step before the phase of the default body ({4}) calls base last, a step after it calls base first.";
+    public const string SDSL0141 = "SDSL0141: [Phase({0})] on {1}: {2}.";
+    public const string SDSL0142 = "SDSL0142: [{0}] on {2}: a kind goes on the first definition of {1}, not on an override.";
     public const string SDSL0171 = "SDSL0171: Attribute [{0}] on method {1} is not supported. Remove it.";
     public const string SDSL0172 = "SDSL0172: Stream {0} has an initial value ({1}), but a stream has none. Remove it, and assign the value in the stage that writes the stream first (streams.{0} = {1};).";
     public const string SDSL0173 = "SDSL0173: The initial value of member {0} ({1}) is not a constant. A member's initial value is its default value, set by the application, so it must be a constant. To compute it from other members, declare it static (static {2} {0} = {1};), or compute it where it is used.";
@@ -128,6 +133,7 @@ public static class SDSLErrorMessages
     public const string SDSL0243 = "SDSL0243: && within ||: {0} computes {1} first. Add parentheses around it to make it clear.";
     public const string SDSL0244 = "SDSL0244: {0} has lower precedence than {1}: {2} computes {3} first. Add parentheses to make it clear.";
     public const string SDSL0245 = "SDSL0245: {0}.sdsl declares {1} and no class named {0}. A class is found by its file name: rename the file or the class.";
+    public const string SDSL0216 = "SDSL0216: {0}.{1} doesn't call base, so {2} never run in this effect. Call base to keep them.";
 
     // Partial structs
 

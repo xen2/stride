@@ -130720,6 +130720,242 @@ public ref partial struct OpFunctionMetadataSDSL : IMemoryInstruction
     public static implicit operator OpFunctionMetadataSDSL(OpDataIndex odi) => new(odi);
 }
 
+public ref partial struct OpExtensionPointSDSL : IMemoryInstruction
+{
+    private ref OpData opData;
+    public ref OpData OpData => ref opData;
+
+    public MemoryOwner<int> InstructionMemory
+    {
+        get
+        {
+            if (!Unsafe.IsNullRef(ref OpData))
+                return OpData.Memory;
+            else
+                return field;
+        }
+
+        private set
+        {
+            if (!Unsafe.IsNullRef(ref OpData))
+            {
+                OpData.Memory.Dispose();
+                OpData.Memory = value;
+            }
+            else
+                field = value;
+        }
+    }
+
+    public OpExtensionPointSDSL()
+    {
+        InstructionMemory = MemoryOwner<int>.Allocate(1);
+        InstructionMemory.Span[0] = (int)Op.OpExtensionPointSDSL | (1 << 16);
+    }
+
+    public OpExtensionPointSDSL(OpDataIndex index)
+    {
+        InitializeProperties(ref index.Data);
+        opData = ref index.Data;
+    }
+
+    public OpExtensionPointSDSL(ref OpData data)
+    {
+        InitializeProperties(ref data);
+        opData = ref data;
+    }
+
+    public ExtensionPointKindSDSL Kind
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public string Owner
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public string Phases
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public OpExtensionPointSDSL(ExtensionPointKindSDSL kind, string owner, string phases)
+    {
+        Kind = kind;
+        Owner = owner;
+        Phases = phases;
+        UpdateInstructionMemory();
+        opData = ref Unsafe.NullRef<OpData>();
+    }
+
+    public void Attach(OpDataIndex index)
+    {
+        opData = ref index.Data;
+    }
+
+    public void UpdateInstructionMemory()
+    {
+        InstructionMemory ??= MemoryOwner<int>.Empty;
+        Span<int> instruction = [(int)Op.OpExtensionPointSDSL, (int)Kind, ..Owner.AsDisposableLiteralValue().Words, ..Phases.AsDisposableLiteralValue().Words];
+        instruction[0] |= instruction.Length << 16;
+        if (instruction.Length == InstructionMemory.Length)
+            instruction.CopyTo(InstructionMemory.Span);
+        else
+        {
+            var tmp = MemoryOwner<int>.Allocate(instruction.Length);
+            instruction.CopyTo(tmp.Span);
+            InstructionMemory?.Dispose();
+            InstructionMemory = tmp;
+        }
+    }
+
+    private void InitializeProperties(ref OpData data)
+    {
+        foreach (var o in data)
+        {
+            switch (o.Name)
+            {
+                case "kind":
+                    Kind = o.ToEnum<ExtensionPointKindSDSL>();
+                    break;
+                case "owner":
+                    Owner = o.ToLiteral<string>();
+                    break;
+                case "phases":
+                    Phases = o.ToLiteral<string>();
+                    break;
+                // We ignore unrecognized operands
+                default:
+                    break;
+            }
+        }
+    }
+
+    public static implicit operator OpExtensionPointSDSL(OpDataIndex odi) => new(odi);
+}
+
+public ref partial struct OpContributionSDSL : IMemoryInstruction
+{
+    private ref OpData opData;
+    public ref OpData OpData => ref opData;
+
+    public MemoryOwner<int> InstructionMemory
+    {
+        get
+        {
+            if (!Unsafe.IsNullRef(ref OpData))
+                return OpData.Memory;
+            else
+                return field;
+        }
+
+        private set
+        {
+            if (!Unsafe.IsNullRef(ref OpData))
+            {
+                OpData.Memory.Dispose();
+                OpData.Memory = value;
+            }
+            else
+                field = value;
+        }
+    }
+
+    public OpContributionSDSL()
+    {
+        InstructionMemory = MemoryOwner<int>.Allocate(1);
+        InstructionMemory.Span[0] = (int)Op.OpContributionSDSL | (1 << 16);
+    }
+
+    public OpContributionSDSL(OpDataIndex index)
+    {
+        InitializeProperties(ref index.Data);
+        opData = ref index.Data;
+    }
+
+    public OpContributionSDSL(ref OpData data)
+    {
+        InitializeProperties(ref data);
+        opData = ref data;
+    }
+
+    public string Phase
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public OpContributionSDSL(string phase)
+    {
+        Phase = phase;
+        UpdateInstructionMemory();
+        opData = ref Unsafe.NullRef<OpData>();
+    }
+
+    public void Attach(OpDataIndex index)
+    {
+        opData = ref index.Data;
+    }
+
+    public void UpdateInstructionMemory()
+    {
+        InstructionMemory ??= MemoryOwner<int>.Empty;
+        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words];
+        instruction[0] |= instruction.Length << 16;
+        if (instruction.Length == InstructionMemory.Length)
+            instruction.CopyTo(InstructionMemory.Span);
+        else
+        {
+            var tmp = MemoryOwner<int>.Allocate(instruction.Length);
+            instruction.CopyTo(tmp.Span);
+            InstructionMemory?.Dispose();
+            InstructionMemory = tmp;
+        }
+    }
+
+    private void InitializeProperties(ref OpData data)
+    {
+        foreach (var o in data)
+        {
+            switch (o.Name)
+            {
+                case "phase":
+                    Phase = o.ToLiteral<string>();
+                    break;
+                // We ignore unrecognized operands
+                default:
+                    break;
+            }
+        }
+    }
+
+    public static implicit operator OpContributionSDSL(OpDataIndex odi) => new(odi);
+}
+
 public ref partial struct OpBaseSDSL : IMemoryInstruction
 {
     private ref OpData opData;

@@ -492,8 +492,10 @@ public class ShaderDefinitionCheckTests : IDisposable
     }
 
     // SDSL0247: a module goes to the root, so a call through the slot finds a method by name there
-    [Fact]
-    public void AModuleInACompositionIsAnError()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AModuleInACompositionIsAnError(bool isAssetBuild)
     {
         WriteRootClasses();
         Write("CheckSlotModule", """
@@ -519,7 +521,7 @@ public class ShaderDefinitionCheckTests : IDisposable
         };
 
         var log = new LoggerResult();
-        var ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL"))
+        var ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")) { IsAssetBuild = isAssetBuild }
             .MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
 
         Assert.False(ok);

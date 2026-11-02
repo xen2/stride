@@ -106,6 +106,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         if (!CheckAbstractCalls(globalContext, log))
             return false;
 
+        ReportDroppedContributors(rootMixin, globalContext, log);
+
         // Note: done first, so that the code analysis only has to know about OpSwitch
         if (!LowerSwitchIds(context, temp, log))
             return false;
@@ -865,6 +867,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         // Build ShaderInfo
         var shaderInfo = new ShaderInfo(mixinNode.Shaders.Count, ShaderNames.ShortNameWithGenerics(shaderClass.ClassName), shaderStart, buffer.Count) { FullName = shaderClass.ClassName };
         shaderInfo.Symbol = shaderClass.Symbol;
+        shaderInfo.Source = shaderClass;
         foreach (var structType in structTypes)
             shaderInfo.StructTypes.Add(structType.Key, structType.Value);
         shaderInfo.CompositionPath = mixinNode.CompositionPath;
@@ -959,6 +962,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                         methodGroup = new MethodGroup(functionName, functionType, currentShader);
 
                     methodGroup.Methods.Add((Shader: currentShader, MethodId: function.ResultId, Flags: functionInfo.Flags));
+                    ReadExtensionPoint(temp, index, function.ResultId, methodGroup);
 
                     methodMixinGroup.MethodGroups[function.ResultId] = methodGroup;
 
@@ -988,6 +992,10 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                 }
             }
         }
+
+        // Extension points are per effect: module methods, all in the root node
+        if (mixinNode.IsRoot)
+            SortContributions(globalContext, mixinNode);
     }
 
     private static void ExpandForeach(MixinGlobalContext globalContext, SpirvContext context, SpirvBuffer buffer, MixinNode mixinNode, int index, OpForeachSDSL @foreach)
@@ -1235,7 +1243,15 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                         // Is it a base call? if yes, find the direct parent
                         // Let's find the method in same group just before ours
                         bool baseMethodFound = false;
-                        for (int j = methodGroupEntry.Methods.Count - 1; j >= 0; --j)
+                        // A chain sorted by phases is not in mixin order: a contributor reaches the one before it in the chain.
+                        // Other code (a helper calling base) reaches inward from its class's place in the mix, as below.
+                        var chainIndex = methodGroupEntry.ExtensionPoint != null ? methodGroupEntry.Methods.FindIndex(x => x.Shader.ShaderIndex == currentShader.ShaderIndex) : -1;
+                        if (chainIndex > 0)
+                        {
+                            selectedMethod = methodGroupEntry.Methods[chainIndex - 1];
+                            baseMethodFound = true;
+                        }
+                        for (int j = methodGroupEntry.Methods.Count - 1; j >= 0 && !baseMethodFound; --j)
                         {
                             if (methodGroupEntry.Methods[j].Shader.ShaderIndex < currentShader.ShaderIndex)
                             {
@@ -1492,6 +1508,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                 || i.Op == Op.OpImportFunctionSDSL
                 || i.Op == Op.OpImportVariableSDSL
                 || i.Op == Op.OpFunctionMetadataSDSL
+                || i.Op == Op.OpExtensionPointSDSL
+                || i.Op == Op.OpContributionSDSL
                 || i.Op == Op.OpSourceHashSDSL
                 || i.Op == Op.OpDiagnosticSDSL)
                 return true;

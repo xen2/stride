@@ -92,6 +92,8 @@ public partial class ShaderMixer
                     return owner;
                 });
                 builder.AppendLine($"  {(isStage ? "module " : "")}method {signature} = {string.Join(" > ", chain)}");
+                if (group.ExtensionPoint != null)
+                    ExplainExtensionPoint(builder, group, globalContext);
             }
         }
         ExplainPartialStructs(builder, globalContext);
