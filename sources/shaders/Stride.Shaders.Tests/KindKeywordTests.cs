@@ -213,4 +213,15 @@ public class KindKeywordTests : IDisposable
         Assert.False(ok, log);
         Assert.Contains("SDSL0135: [Phases] on Wrong.F: the phases are on the first definition.", log);
     }
+
+    [Fact]
+    public void PhasesOnAClassIsAnError()
+    {
+        Write("Wrong", "[Phases(A)] shader Wrong { }");
+
+        var (ok, log) = Mix("Wrong");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0135: [Phases] on Wrong: it goes on a method.", log);
+    }
 }

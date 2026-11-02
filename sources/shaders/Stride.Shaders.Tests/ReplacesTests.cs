@@ -154,7 +154,7 @@ public class ReplacesTests : IDisposable
     [Fact]
     public void AModuleIsReplacedForTheClassesThatCallIt()
     {
-        Write("M", "namespace Lib; module M { float4 Get() { return 1; } };");
+        Write("M", "namespace Lib; module M { pipeline float4 Get() { return 1; } };");
         Write("R", """namespace Game; [Replaces(Lib.M)] module R : Lib.M { override float4 Get() { return base.Get() * 2; } };""");
         Write("Root", "using Stride.Rendering; namespace Lib; shader Root : SpriteBase { module override float4 Shading() { return M.Get(); } };");
         replacers["Lib.M"] = "Game.R";

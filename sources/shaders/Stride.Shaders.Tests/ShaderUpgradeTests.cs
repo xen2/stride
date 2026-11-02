@@ -628,7 +628,8 @@ public class ShaderUpgradeTests
             var text = upgraded[path].ReplaceLineEndings("\n");
             foreach (var (upgradedText, todayText) in ManualEdits.GetValueOrDefault(path) ?? [])
                 text = text.Replace(upgradedText, todayText);
-            text = WithoutEngineNamespaceLines(text);
+            // The kinds the upgrade writes are not the ones the engine chose by hand
+            text = WithoutEngineNamespaceLines(WithoutKinds(text));
             // [Root], [Pure] and the kinds and phases of extension points are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
             var expected = WithoutEngineNamespaceLines(WithoutKinds(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|(Phases|Phase)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline)));
             if (text != expected)
@@ -639,6 +640,90 @@ public class ShaderUpgradeTests
 
     static string WithoutKinds(string text)
         => System.Text.RegularExpressions.Regex.Replace(text, @"^([ \t]*(?:module[ \t]+)?)(?:pipeline|replace|around)[ \t]+", "$1", System.Text.RegularExpressions.RegexOptions.Multiline);
+
+    static string AddKind(string owner, string overrider, IReadOnlyDictionary<string, string>? dependencies = null, List<string>? notes = null)
+    {
+        var result = ShaderUpgrader.Upgrade(new Dictionary<string, string> { ["Owner.sdsl"] = owner, ["Overrider.sdsl"] = overrider }, engine: null, lastStep: "add-kinds", dependencies: dependencies);
+        notes?.AddRange(result.Notes);
+        return result.Files["Owner.sdsl"].ReplaceLineEndings("\n");
+    }
+
+    [Theory]
+    [InlineData("override void F() { }", "replace")]
+    [InlineData("override void F() { base.F(); }", "pipeline")]
+    // base from another method reaches the same chain
+    [InlineData("override void F() { } void Helper() { base.F(); }", "pipeline")]
+    public void TheKindComesFromTheOverrides(string member, string kind)
+    {
+        var owner = "module Owner\n{\n    void F() { }\n}\n";
+
+        Assert.Equal($"module Owner\n{{\n    {kind} void F() {{ }}\n}}\n", AddKind(owner, $"module Other {{ import Owner; {member} }}"));
+    }
+
+    // The upgrader decides with all the overrides: one that calls base is enough, whatever the others do
+    [Fact]
+    public void TheKindSeesEveryOverride()
+    {
+        var files = new Dictionary<string, string>
+        {
+            ["Owner.sdsl"] = "module Owner\n{\n    void F() { }\n}\n",
+            ["A.sdsl"] = "module A { import Owner; override void F() { } }",
+            ["B.sdsl"] = "module B { import A; override void F() { base.F(); } }",
+            ["C.sdsl"] = "module C { import Owner; override void F() { } }",
+        };
+
+        Assert.Contains("pipeline void F()", ShaderUpgrader.Upgrade(files, engine: null, lastStep: "add-kinds").Files["Owner.sdsl"].ReplaceLineEndings("\n"));
+    }
+
+    [Fact]
+    public void AKindGoesOnAModuleMethodOfAShader()
+    {
+        var owner = "shader Owner\n{\n    module void F() { }\n    void G() { }\n}\n";
+        var result = AddKind(owner, "shader Other : Owner { module override void F() { } override void G() { } }");
+
+        Assert.Equal("shader Owner\n{\n    module replace void F() { }\n    void G() { }\n}\n", result);
+    }
+
+    [Theory]
+    // Already declared
+    [InlineData("module Owner\n{\n    around float F() { return 1; }\n}\n", "override float F() { return 2; }")]
+    // Implementing an abstract method is not a contribution
+    [InlineData("module Owner\n{\n    abstract void F();\n}\n", "override void F() { }")]
+    // No override
+    [InlineData("module Owner\n{\n    void F() { }\n}\n", "void G() { }")]
+    public void NoKindIsNeeded(string owner, string member)
+    {
+        Assert.Equal(owner, AddKind(owner, $"module Other {{ import Owner; {member} }}"));
+    }
+
+    // VL's ShaderUtils.r2d: only the overload that has overrides
+    [Fact]
+    public void AKindGoesOnTheOverloadThatIsOverridden()
+    {
+        var owner = "module Owner\n{\n    float2 F(float2 a, float2 b, float c) { return a; }\n\n    float2 F(float2 a, inout float c) { return a; }\n}\n";
+        var result = AddKind(owner, "module Other { import Owner; override float2 F(float2 x, inout float y) { return x; } }");
+
+        Assert.Equal("module Owner\n{\n    float2 F(float2 a, float2 b, float c) { return a; }\n\n    replace float2 F(float2 a, inout float c) { return a; }\n}\n", result);
+    }
+
+    [Fact]
+    public void AddingAKindAgainChangesNothing()
+    {
+        var once = AddKind("module Owner\n{\n    void F() { }\n}\n", "module Other { import Owner; override void F() { } }");
+
+        Assert.Equal(once, AddKind(once, "module Other { import Owner; override void F() { } }"));
+    }
+
+    // The sources of a library are read, never changed
+    [Fact]
+    public void AMethodOfADependencyGetsANote()
+    {
+        var notes = new List<string>();
+        var dependencies = new Dictionary<string, string> { ["Library.sdsl"] = "module Library\n{\n    void F() { }\n}\n" };
+        AddKind("module Owner { }", "module Other { import Library; override void F() { } }", dependencies, notes);
+
+        Assert.Contains(notes, x => x.Contains("error SDSL0246 until the author of Library writes", StringComparison.Ordinal));
+    }
 
     // The file-scoped namespace and its usings were added by hand after that commit
     static string WithoutEngineNamespaceLines(string text)

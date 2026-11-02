@@ -106,21 +106,37 @@ public partial class ExtensionPointTests : IDisposable
             Block(explanation, "Run"));
     }
 
-    // Decision 19: code without a phase keeps its exact place, also inside the chain
+    // Without a phase: outside every declared phase, in the order of the mix
     [Fact]
-    public void AnOverrideWithoutPhaseKeepsItsExactPlace()
+    public void AnOverrideWithoutPhaseIsOutermost()
     {
         WriteOwner();
+        WriteModule("Patch2", "override void Run() { base.Run(); }");
         WriteModule("StepB", "[Phase(B)] override void Run() { base.Run(); }");
-        WriteModule("Patch", "override void Run() { base.Run(); }");
+        WriteModule("Patch1", "override void Run() { base.Run(); }");
         WriteModule("StepA", "[Phase(A)] override void Run() { base.Run(); }");
 
-        var (ok, log, explanation) = Mix("Test.StepB", "Test.Patch", "Test.StepA");
+        var (ok, log, explanation) = Mix("Test.Patch2", "Test.StepB", "Test.Patch1", "Test.StepA");
 
         Assert.True(ok, log);
         var block = Block(explanation, "Run");
-        Assert.Equal("module method Run() -> void = Owner > StepA > Patch > StepB", block[0]);
-        Assert.Contains("External: Patch", block);
+        Assert.Equal("module method Run() -> void = Owner > StepA > StepB > Patch2 > Patch1", block[0]);
+        Assert.Contains("External: Patch2 > Patch1", block);
+    }
+
+    // The price of the rule: mixed first or last, a replacement without a phase is outermost, and it says what it drops
+    [Fact]
+    public void AReplacementWithoutPhaseDropsThePhasesMixedAfterIt()
+    {
+        WriteOwner();
+        WriteModule("Replacement", "override void Run() { streams.Steps = 2; }");
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix("Test.Replacement", "Test.Step");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Run() -> void = Owner > Step > Replacement", Block(explanation, "Run")[0]);
+        Assert.Contains("SDSL0216: Replacement.Run doesn't call base, so Step never run", log);
     }
 
     [Fact]
@@ -186,7 +202,7 @@ public partial class ExtensionPointTests : IDisposable
     [InlineData("[Phase(A)] void F() { }", "SDSL0141")]
     [InlineData("[Phase(Missing)] override void Run() { base.Run(); }", "SDSL0141")]
     [InlineData("[Phase(A)] override float Pick() { return 2; }", "SDSL0141")]
-    [InlineData("[Phase(A)] override float Plain() { return 2; }", "SDSL0141")]
+    [InlineData("[Phase(A)] override float Plain() { return 2; }", "SDSL0246")]
     [InlineData("[Phases(A)] override pipeline void Run() { base.Run(); }", "SDSL0142")]
     [InlineData("[Phase(Early)] override void Run() { base.Run(); streams.Steps = 2; }", "SDSL0140")]
     [InlineData("[Phase(A)] override void Run() { streams.Steps = 2; base.Run(); }", "SDSL0140")]
@@ -248,26 +264,28 @@ public partial class ExtensionPointTests : IDisposable
     [InlineData("replace", false)]
     [InlineData("around", false)]
     [InlineData("", true)]
-    public void OverridingAnUndeclaredModuleMethodWarns(string kind, bool warns)
+    public void OverridingAnUndeclaredModuleMethodIsAnError(string kind, bool isError)
     {
         Write("Base", $"module Base {{ {kind} void F() {{ }} }}");
         Write("Patch", "module Patch { import Base; override void F() { base.F(); } }");
 
         var (ok, log, _) = Mix("Test.Patch");
 
-        Assert.True(ok, log);
-        Assert.Equal(warns, log.Contains("SDSL0246"));
+        Assert.Equal(isError, !ok);
+        Assert.Equal(isError, log.Contains("SDSL0246"));
+        if (isError)
+            Assert.Contains("If Base is in a library or in the engine, its author has to write it", log);
     }
 
     [Fact]
-    public void ARootShaderOverridingAnUndeclaredModuleMethodWarns()
+    public void ARootShaderOverridingAnUndeclaredModuleMethodIsAnError()
     {
         Write("Base", "module Base { void F() { } }");
         Write("Patch", "[Root] shader Patch { import Base; override void F() { base.F(); } }");
 
         var (ok, log, _) = Mix("Test.Patch");
 
-        Assert.True(ok, log);
+        Assert.False(ok, log);
         Assert.Contains("SDSL0246", log);
     }
 
@@ -374,6 +392,33 @@ public partial class ExtensionPointTests : IDisposable
 
         Assert.False(ok, log);
         Assert.Contains("SDSL0171", log);
+    }
+
+    // They go on a method, and a class that writes them expects them to do something
+    [Theory]
+    [InlineData("[Phases(A, B)] shader Wrong { }")]
+    [InlineData("[Phase(A)] shader Wrong { }")]
+    [InlineData("shader Wrong { [Phases(A)] cbuffer PerDraw { float A; } }")]
+    public void AKindOrAPhaseOnAClassIsAnError(string code)
+    {
+        Write("Wrong", code);
+
+        var (ok, log, _) = Mix("Test.Wrong");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0135", log);
+        Assert.Contains("it goes on a method", log);
+    }
+
+    // Libraries read attributes of their own
+    [Fact]
+    public void AnUnknownAttributeOnAClassStaysAllowed()
+    {
+        Write("Other", "[SomethingElse] shader Other { }");
+
+        var (ok, log, _) = Mix("Test.Other");
+
+        Assert.True(ok, log);
     }
 
     // No capture mixes these two: VL.ImGui and StrideTerrainEditor do

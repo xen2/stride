@@ -31,6 +31,8 @@ public static class ShaderUpgrader
         "module-helpers",
         // 4.5: classes with no instance part that other classes import are `module X`, imported with `import X;`
         "module-units",
+        // 4.5: an override of a module method needs a kind on its first definition (SDSL0246)
+        "add-kinds",
         // 4.5: engine shaders are in namespaces: a class out of scope needs a `using`
         "add-usings",
         // 4.5: the key of a member of a namespaced class has the full name of the class
@@ -84,6 +86,9 @@ public static class ShaderUpgrader
                     break;
                 case "module-units":
                     Apply(texts, project => ConvertModules(project, texts, notes), engine, notes, dependencyTexts);
+                    break;
+                case "add-kinds":
+                    Apply(texts, project => AddKinds(project, texts, notes), engine, notes, dependencyTexts);
                     break;
                 // The engine's own sources were written in their namespaces
                 case "add-usings":
@@ -254,6 +259,90 @@ public static class ShaderUpgrader
             }
         }
         return sources;
+    }
+
+    /// <summary>
+    /// The first definition of a module method that has overrides gets a kind, when it is in the sources being upgraded:
+    /// <c>pipeline</c> if an override reaches it with <c>base</c>, else <c>replace</c>. Without phases, the two link the same way, so
+    /// a class of another project that this upgrade doesn't see changes nothing. A method of a dependency stays as it is: its author has to do it.
+    /// </summary>
+    private static Dictionary<string, ShaderSourceText> AddKinds(ShaderUpgradeProject project, Dictionary<string, string> texts, List<string> notes)
+    {
+        var sources = new Dictionary<string, ShaderSourceText>();
+        var done = new HashSet<(string, string, string)>();
+        foreach (var shaderClass in project.ProjectClasses)
+        {
+            foreach (var method in shaderClass.Methods.Where(x => x.IsOverride))
+            {
+                foreach (var owner in project.Ancestors(shaderClass.Name).Select(x => project.Classes.GetValueOrDefault(x)).OfType<ShaderUpgradeClass>())
+                {
+                    var isDefinition = owner.Methods.Any(x => x.Name == method.Name && x.Signature == method.Signature && !x.IsOverride && x.IsModule && !x.IsAbstract);
+                    if (!isDefinition || owner.DeclaredKinds.Contains((method.Name, method.Signature)))
+                        continue;
+                    if (owner.IsDependency)
+                    {
+                        notes.Add($"{shaderClass.Path}: {shaderClass.Name} overrides {method.Name} of {owner.Name}, in a library ({owner.Path}), and it has no kind: error SDSL0246 until the author of {owner.Name} writes replace, pipeline or around on it");
+                        continue;
+                    }
+                    if (!done.Add((owner.Name, method.Name, method.Signature)))
+                        continue;
+
+                    var callsBase = new Regex($@"\bbase\s*\.\s*{Regex.Escape(method.Name)}\s*\(");
+                    var overriders = project.Classes.Values.Where(x => project.Ancestors(x.Name).Contains(owner.Name) && x.Methods.Any(y => y.IsOverride && y.Name == method.Name && y.Signature == method.Signature));
+                    var kind = overriders.Any(x => x.Methods.Any(y => callsBase.IsMatch(y.Body))) ? "pipeline" : "replace";
+
+                    var source = Source(sources, texts, owner.Path!);
+                    foreach (var classText in source.FindClass(owner.Name))
+                    {
+                        foreach (var declaration in MethodDeclarations(source, classText, method.Name, kind))
+                        {
+                            if (DeclaredSignature(source.Text, declaration) == method.Signature)
+                                source.Insert(ReturnType(source.Text, declaration), $"{kind} ");
+                        }
+                    }
+                }
+            }
+        }
+        return sources;
+    }
+
+    // After the modifiers of the declaration at start
+    private static int ReturnType(string text, int start)
+    {
+        var modifiers = Regex.Match(text[start..], @"\A(?:(?:module|static)\s+)*");
+        return start + modifiers.Length;
+    }
+
+    /// <summary>
+    /// The signature of the declaration at <paramref name="start"/>, as in <see cref="ShaderUpgradeClass.Methods"/>: the parameter types,
+    /// comma-separated, without spaces.
+    /// </summary>
+    private static string DeclaredSignature(string text, int start)
+    {
+        var open = text.IndexOf('(', start);
+        var types = new List<string>();
+        var depth = 0;
+        var item = open + 1;
+        for (var i = open + 1; i < text.Length; i++)
+        {
+            if (text[i] == '<')
+                depth++;
+            else if (text[i] == '>')
+                depth--;
+            if ((text[i] != ',' || depth != 0) && text[i] != ')')
+                continue;
+
+            // No modifier, no name, no default value
+            var parameter = text[item..i].Split('=')[0];
+            parameter = Regex.Replace(parameter, @"(?<![\w.])(?:inout|in|out|const|point|lineadj|line|triangleadj|triangle)\s+", "");
+            parameter = Regex.Replace(parameter, @"\s+[A-Za-z_]\w*\s*(?:\[[^\]]*\]\s*)*(?::\s*\w+\s*)?$", "");
+            if (!string.IsNullOrWhiteSpace(parameter))
+                types.Add(Regex.Replace(parameter, @"\s+", ""));
+            item = i + 1;
+            if (text[i] == ')')
+                break;
+        }
+        return string.Join(",", types);
     }
 
     /// <summary>

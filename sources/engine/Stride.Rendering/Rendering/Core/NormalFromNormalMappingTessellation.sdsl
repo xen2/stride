@@ -10,6 +10,7 @@ shader NormalFromNormalMappingTessellation
 {
     import NormalFromNormalMapping;
 
+    [Phase(Generate)]
     override module void GenerateNormal_VS()
     {
         // Perform normal generation at the end in case meshNormal is modified

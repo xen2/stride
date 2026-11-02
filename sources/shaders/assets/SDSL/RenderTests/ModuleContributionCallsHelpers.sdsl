@@ -25,7 +25,7 @@ shader ModuleContributionCallsHelpersBase
 {
     stream float4 ColorTarget : SV_Target0;
 
-    module void TransformPosition()
+    module pipeline void TransformPosition()
     {
     }
 };

@@ -4,22 +4,22 @@ namespace Stride.Shaders.Tests;
 
 shader CompositionBase
 {
-	module float BaseStageMethod1()
+	module pipeline float BaseStageMethod1()
 	{
 		return 1.0;
 	}
 
-	module float BaseStageMethod2()
+	module pipeline float BaseStageMethod2()
 	{
 		return 1.0;
 	}
 
-	module float BaseStageMethod3()
+	module pipeline float BaseStageMethod3()
 	{
 		return 1.0;
 	}
 
-	module float BaseStageMethod4()
+	module pipeline float BaseStageMethod4()
 	{
 		return 2.0;
 	}

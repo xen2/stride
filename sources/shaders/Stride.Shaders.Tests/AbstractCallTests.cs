@@ -29,7 +29,7 @@ public class AbstractCallTests : IDisposable
 
             abstract float4 Filter(float4 color);
 
-            module float4 Shading()
+            module pipeline float4 Shading()
             {
                 return Filter(float4(1.0, 1.0, 1.0, 1.0));
             }

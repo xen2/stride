@@ -408,7 +408,7 @@ public class ShaderDefinitionCheckTests : IDisposable
             shader CheckParent
             {
                 float Radius;
-                module float4 Knob() { return 0; }
+                module replace float4 Knob() { return 0; }
                 float4 Value() { return Radius; }
             }
             """);

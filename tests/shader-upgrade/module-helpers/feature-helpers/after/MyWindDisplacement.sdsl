@@ -18,7 +18,7 @@ shader MyWindDisplacement : IMaterialSurface
         return float3(sin(Time + position.x), 0, 0) * WindStrength * Gust();
     }
 
-    module float Gust()
+    module replace float Gust()
     {
         return 1.0;
     }
