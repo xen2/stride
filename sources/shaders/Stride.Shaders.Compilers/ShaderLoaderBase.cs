@@ -29,6 +29,7 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
     /// Ensures only one thread compiles a given shader at a time. Other threads wait for the result.
     /// </summary>
     private readonly ConcurrentDictionary<(string Name, int MacrosHash), Lazy<(ShaderBuffers Buffer, ObjectId Hash)>> compilingShaders = new();
+    private readonly ShaderCompileCycles compileCycles = new();
 
     /// <summary>
     /// Optional logger for compilation errors. If not set, errors are thrown as exceptions.
@@ -136,28 +137,37 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
 
         var lazy = compilingShaders.GetOrAdd(key, _ => new Lazy<(ShaderBuffers, ObjectId)>(() =>
         {
-            // Double-check cache (another thread may have finished between our check and this factory)
-            if (Cache.TryLoadFromCache(name, null, macrosArray, out var buf, out var h) && ValidateCachedHashes(buf))
+            compileCycles.CompileStarted(key);
+            try
+            {
+                // Double-check cache (another thread may have finished between our check and this factory)
+                if (Cache.TryLoadFromCache(name, null, macrosArray, out var buf, out var h) && ValidateCachedHashes(buf))
+                    return (buf, h);
+
+                if (!ExternalFileExists(name))
+                    throw new InvalidOperationException(NotFoundMessage(name));
+
+                if (!LoadExternalFileContent(name, out var filename, out var code, out h))
+                    throw new InvalidOperationException($"Shader {name} could not be loaded");
+
+                if (!LoadFromCode(filename, code, h, macrosArray, out buf))
+                    throw new InvalidOperationException($"Shader {name} could not be compiled");
+
+                // A file can hold several classes
+                if (Cache.TryLoadFromCache(name, null, macrosArray, out var declared, out var declaredHash))
+                    return (declared, declaredHash);
+
                 return (buf, h);
-
-            if (!ExternalFileExists(name))
-                throw new InvalidOperationException(NotFoundMessage(name));
-
-            if (!LoadExternalFileContent(name, out var filename, out var code, out h))
-                throw new InvalidOperationException($"Shader {name} could not be loaded");
-
-            if (!LoadFromCode(filename, code, h, macrosArray, out buf))
-                throw new InvalidOperationException($"Shader {name} could not be compiled");
-
-            // A file can hold several classes
-            if (Cache.TryLoadFromCache(name, null, macrosArray, out var declared, out var declaredHash))
-                return (declared, declaredHash);
-
-            return (buf, h);
+            }
+            finally
+            {
+                compileCycles.CompileFinished(key);
+            }
         }, LazyThreadSafetyMode.ExecutionAndPublication));
 
         try
         {
+            compileCycles.BeforeLoad(key);
             var result = lazy.Value;
             buffer = result.Buffer;
             hash = result.Hash;
@@ -167,6 +177,7 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
         }
         finally
         {
+            compileCycles.AfterLoad();
             compilingShaders.TryRemove(key, out _);
         }
     }
@@ -241,7 +252,8 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
         for (int i = 0; i < macros.Length; ++i)
             defines[i] = (macros[i].Name, macros[i].Definition);
 
-        var text = MonoGamePreProcessor.Run(code, filename, defines);
+        var undefinedConditionNames = new List<UndefinedConditionName>();
+        var text = MonoGamePreProcessor.Run(code, filename, undefinedConditionNames, defines);
         var sdslc = new SDSLC
         {
             ShaderLoader = this,
@@ -249,7 +261,7 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
 
         // Use provided logger, or a temporary one that throws on errors
         var log = Log ?? new LoggerResult();
-        if (!sdslc.Compile(filename, text, hash, macros, log, out buffer, new() { RegisterInCache = registerInCache, OriginalCode = code }))
+        if (!sdslc.Compile(filename, text, hash, macros, log, out buffer, new() { RegisterInCache = registerInCache, OriginalCode = code, UndefinedConditionNames = undefinedConditionNames }))
         {
             if (log is LoggerResult loggerResult && loggerResult.HasErrors)
                 throw new InvalidOperationException(string.Join(Environment.NewLine, loggerResult.Messages.Where(m => m.Type >= LogMessageType.Error).Select(m => m.ToString())));

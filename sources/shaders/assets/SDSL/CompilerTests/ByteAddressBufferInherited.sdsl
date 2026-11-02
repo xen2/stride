@@ -1,7 +1,7 @@
 // Byte address buffers declared in a base shader, used by the inheriting shader.
 namespace Stride.Shaders.Tests;
 
-shader ByteAddressBufferInherited : ByteAddressBufferBase
+[Root] shader ByteAddressBufferInherited : ByteAddressBufferBase
 {
     [numthreads(1, 1, 1)]
     module void CSMain()
