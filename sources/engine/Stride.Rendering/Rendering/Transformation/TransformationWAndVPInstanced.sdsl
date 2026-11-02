@@ -11,6 +11,7 @@ shader TransformationWAndVPInstanced : TransformationWAndVP, PositionHStream4
     import TransformationInstancing;
     import PositionStream4;
 
+    [Phase(World)]
     module override void PreTransformPosition()
     {
         streams.PositionWS = mul(streams.Position, GetInstanceWorld(streams.InstanceID));

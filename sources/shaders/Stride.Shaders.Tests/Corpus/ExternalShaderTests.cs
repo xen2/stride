@@ -160,7 +160,7 @@ public class ExternalShaderTests
     /// <summary>
     /// Every class: compiled alone, then mixed alone at the root. Writes <c>results.tsv</c> (library, file, class, step, result,
     /// error codes, warning codes, messages). <c>progress.txt</c> gets each step before it runs, so a process crash names its shader.
-    /// STRIDE_EXTERNAL_SHADERS_ONLY / _SKIP = class names (comma-separated); STRIDE_EXTERNAL_SHADERS_DUMP=1 writes the mixed SPIR-V.
+    /// STRIDE_EXTERNAL_SHADERS_ONLY / _SKIP = class names (comma-separated); STRIDE_EXTERNAL_SHADERS_DUMP=1 writes the mixed SPIR-V and the explain dump.
     /// </summary>
     [Fact(Explicit = true)]
     public void CompileExternalShaders()
@@ -276,7 +276,22 @@ public class ExternalShaderTests
                     Node("SetItemRWBufferFloat", ["ObjectBuffer_fx2", "PerUpdate"],
                         ("Value", Node("GetVarFloat", ["Var_1"])),
                         ("Index", Node("GetLinearDispatchThreadId"))))))))),
+        // VLEffectMain: the engine's forward shading first, then the material extension, which lists NormalBase before TransformationBase
+        ("MaterialExtensionInForwardShading", () => ForwardShadingWithExtension("VertexDisplacement_ShaderFX")),
+        ("MaterialExtensionInForwardShadingSkinned", () => ForwardShadingWithExtension("VertexDisplacement_ShaderFX", "Stride.Rendering.TransformationSkinning", "Stride.Rendering.NormalMeshSkinning")),
     ];
+
+    // What StrideEffectBase mixes, in its order, for a model without a material
+    static ShaderMixinSource ForwardShadingWithExtension(string extension, params string[] skinning)
+    {
+        var node = new ShaderMixinSource();
+        node.Macros.Add(new("SkinningMaxBones", "56"));
+        foreach (var name in (string[])[.. Engine("ShaderBase", "ShadingBase", "TransformationBase", "NormalStream", "TransformationWAndVP", "NormalFromMesh"), .. skinning, "Stride.Rendering.NormalBase", extension])
+            node.Mixins.Add(new ShaderClassSource(name));
+        return node;
+
+        static IEnumerable<string> Engine(params string[] names) => names.Select(x => $"Stride.Rendering.{x}");
+    }
 
     /// <summary>
     /// The trees above (skipped when their classes are not in the clones). Writes <c>trees.tsv</c> and each tree's reflection
@@ -295,9 +310,11 @@ public class ExternalShaderTests
         var lines = new List<string> { Line("tree", "step", "result", "errors", "warnings", "message") };
         var progress = Path.Combine(run.Output, "progress.txt");
         File.WriteAllText(progress, "");
+        // In a folder of its own: a tree can have the name of a class
+        var dumpFolder = Environment.GetEnvironmentVariable("STRIDE_EXTERNAL_SHADERS_DUMP") == "1" ? Directory.CreateDirectory(Path.Combine(run.Output, "trees")).FullName : null;
         foreach (var (name, tree) in Trees)
         {
-            var (step, outcome) = Compile(run.Loader, name, tree(), progress, null, reflection => File.WriteAllText(Path.Combine(run.Output, $"{name}.reflection.txt"), ReflectionText(reflection)));
+            var (step, outcome) = Compile(run.Loader, name, tree(), progress, dumpFolder, reflection => File.WriteAllText(Path.Combine(run.Output, $"{name}.reflection.txt"), ReflectionText(reflection)));
             lines.Add(Line([name, step, .. outcome]));
         }
         File.WriteAllLines(Path.Combine(run.Output, "trees.tsv"), lines);
@@ -314,11 +331,15 @@ public class ExternalShaderTests
             File.AppendAllText(progress, $"mix {name}{Environment.NewLine}");
             mixin.Name = name;
             WithPlatformMacros(mixin);
-            if (!new ShaderMixer(loader).MergeSDSL(mixin, EffectCompiler.GetMixerOptions(GraphicsPlatform.Direct3D11), log, out var bytecode, out var reflection, out _, out _))
+            var mixer = new ShaderMixer(loader) { CollectExplanation = dumpFolder != null };
+            if (!mixer.MergeSDSL(mixin, EffectCompiler.GetMixerOptions(GraphicsPlatform.Direct3D11), log, out var bytecode, out var reflection, out _, out _))
                 return (step, Outcome(false, log));
             onReflection?.Invoke(reflection);
             if (dumpFolder != null)
+            {
                 File.WriteAllBytes(Path.Combine(dumpFolder, $"{name}.spv"), bytecode.ToArray());
+                File.WriteAllText(Path.Combine(dumpFolder, $"{name}.explain.txt"), mixer.Explanation);
+            }
 
             // spirv-opt assumes valid input: an invalid module can crash the process
             step = "validate";
