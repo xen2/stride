@@ -144,7 +144,7 @@ public record struct MethodParser : IParser<ShaderMethod>
         var position = scanner.Position;
 
         var hasAttributes = ShaderAttributeListParser.AttributeList(ref scanner, result, out var attributes) && Parsers.Spaces0(ref scanner, result, out _);
-        var hasModifiers = Parsers.MethodModifiers(ref scanner, result, out var isStaged, out var isStatic, out var isClone, out var isOverride, out var isAbstract, advance: true) && Parsers.Spaces0(ref scanner, result, out _);
+        var hasModifiers = Parsers.MethodModifiers(ref scanner, result, out var isStaged, out var isStatic, out var isClone, out var isOverride, out var isAbstract, out var kinds, advance: true) && Parsers.Spaces0(ref scanner, result, out _);
 
         if (isAbstract)
         {
@@ -171,7 +171,9 @@ public record struct MethodParser : IParser<ShaderMethod>
                     }
                     else
                     {
-                        parsed = new(typename, methodName, scanner[position..scanner.Position], isAbstract: true);
+                        parsed = new(typename, methodName, scanner[position..scanner.Position], isAbstract: true) { Kinds = kinds };
+                        if (hasAttributes)
+                            parsed.Attributes = attributes!.Attributes;
                         if (parameters is not null)
                             parsed.Parameters = parameters;
                         return true;
@@ -190,6 +192,7 @@ public record struct MethodParser : IParser<ShaderMethod>
                 parsed.IsClone = isClone;
                 parsed.IsOverride = isOverride;
                 parsed.IsStatic = isStatic;
+                parsed.Kinds = kinds;
                 parsed.Info = scanner[position..scanner.Position];
                 return true;
             }

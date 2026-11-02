@@ -13,16 +13,7 @@ public static class ShaderReplacement
     /// The full name of the class this class replaces, or null.
     /// </summary>
     public static string? Target(ShaderClass shaderClass)
-        => shaderClass.FindAttribute("Replaces") is { Parameters: [var target] } ? DottedName(target) : null;
-
-    // A full name: an identifier, or identifiers with dots between them
-    private static string? DottedName(Expression parameter) => parameter switch
-    {
-        Identifier identifier => identifier.Name,
-        AccessorChainExpression { Source: Identifier source } chain when chain.Accessors.TrueForAll(x => x is Identifier)
-            => string.Join('.', chain.Accessors.Select(x => ((Identifier)x).Name).Prepend(source.Name)),
-        _ => null,
-    };
+        => shaderClass.FindAttribute("Replaces") is { Parameters: [var target] } ? ExtensionPoints.DottedName(target)?.Name : null;
 
     /// <summary>
     /// The classes of a file, with their namespace.

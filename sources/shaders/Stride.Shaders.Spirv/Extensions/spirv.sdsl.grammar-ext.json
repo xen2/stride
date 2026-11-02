@@ -191,6 +191,36 @@
       ]
     },
     {
+      "opname": "OpExtensionPointSDSL",
+      "opcode": 8034,
+      "class": "Miscellaneous",
+      "operands": [
+        {
+          "kind": "ExtensionPointKindSDSL",
+          "name": "kind"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "owner"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "phases"
+        }
+      ]
+    },
+    {
+      "opname": "OpContributionSDSL",
+      "opcode": 8035,
+      "class": "Miscellaneous",
+      "operands": [
+        {
+          "kind": "LiteralString",
+          "name": "phase"
+        }
+      ]
+    },
+    {
       "opname": "OpBaseSDSL",
       "opcode": 8015,
       "class": "Miscellaneous",
@@ -677,6 +707,24 @@
             "version": "1.0"
           }
         ]
+    },
+    {
+      "category": "ValueEnum",
+      "kind": "ExtensionPointKindSDSL",
+      "enumerants": [
+        {
+          "enumerant": "Replace",
+          "value": 0
+        },
+        {
+          "enumerant": "Pipeline",
+          "value": 1
+        },
+        {
+          "enumerant": "Around",
+          "value": 2
+        }
+      ]
     },
     {
       "category": "ValueEnum",

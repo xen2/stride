@@ -1,0 +1,67 @@
+// PSMain(ExpectedResult=#04040404)
+
+namespace Stride.Shaders.Tests;
+
+// The chain of Run follows its phases, not the order of the imports, and base goes to the previous step of the chain.
+// Today's order would run StepB before StepA and give 3.
+module ExtensionPointOwner
+{
+    stream float4 Position : POSITION;
+    stream float4 ShadingPosition : SV_Position;
+    stream float4 ColorTarget : SV_Target0;
+    stream float Steps;
+
+    [Phases(Early, Default, A, B)]
+    pipeline void Run() { streams.Steps = streams.Steps - 2; }
+
+    void VSMain() { streams.ShadingPosition = streams.Position; }
+
+    void PSMain()
+    {
+        Run();
+        streams.ColorTarget = streams.Steps / 255.0;
+    }
+}
+
+module ExtensionPointStepB
+{
+    import ExtensionPointOwner;
+
+    [Phase(B)]
+    override void Run()
+    {
+        base.Run();
+        streams.Steps = streams.Steps * 2;
+    }
+}
+
+module ExtensionPointStepA
+{
+    import ExtensionPointOwner;
+
+    [Phase(A)]
+    override void Run()
+    {
+        base.Run();
+        streams.Steps = streams.Steps + 1;
+    }
+}
+
+module ExtensionPointStepEarly
+{
+    import ExtensionPointOwner;
+
+    [Phase(Early)]
+    override void Run()
+    {
+        streams.Steps = 3;
+        base.Run();
+    }
+}
+
+shader ExtensionPointPhases
+{
+    import ExtensionPointStepB;
+    import ExtensionPointStepA;
+    import ExtensionPointStepEarly;
+}

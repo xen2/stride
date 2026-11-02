@@ -75,6 +75,12 @@ public partial class ShaderMixer
         public ShaderInfo Shader { get; } = shader;
         public List<(ShaderInfo Shader, int MethodId, Spirv.Specification.FunctionFlagsMask Flags)> Methods { get; } = new();
 
+        /// <summary>Set when the first definition declares a kind; see <see cref="SortContributions"/>.</summary>
+        public MethodExtensionPoint? ExtensionPoint { get; set; }
+
+        /// <summary>The phase of each contributor that names one, by method.</summary>
+        public Dictionary<int, string> Phases { get; } = new();
+
         public override string ToString() => $"{Name} (shader: {Shader}, function Id: {string.Join(", ", Methods.Select(x => $"{x.Shader.ShaderName} {x.MethodId}"))})";
     }
 }

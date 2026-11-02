@@ -94,7 +94,7 @@ public static class Parsers
     }
 
 
-    public static bool MethodModifiers<TScanner>(ref TScanner scanner, ParseResult result, out bool isStaged, out bool isStatic, out bool isClone, out bool isOverride, out bool isAbstract, bool advance = true)
+    public static bool MethodModifiers<TScanner>(ref TScanner scanner, ParseResult result, out bool isStaged, out bool isStatic, out bool isClone, out bool isOverride, out bool isAbstract, out List<Identifier> kinds, bool advance = true)
         where TScanner : struct, IScanner
     {
         var position = scanner.Position;
@@ -103,46 +103,79 @@ public static class Parsers
         isOverride = false;
         isAbstract = false;
         isClone = false;
+        kinds = [];
         bool matched = false;
-        var keywordStart = scanner.Position;
-        // legacy
-        while (
-            Tokens.AnyOf(
-                [
-                    "module",
-                    "stage",
-                    "override",
-                    "clone",
-                    "abstract",
-                    "static"
-                ],
-                ref scanner,
-                out string? match,
-                advance: true)
-            && Spaces1(ref scanner, result, out _))
+        while (true)
         {
-            matched = true;
-            var matchStart = keywordStart;
-            keywordStart = scanner.Position;
-            if (match is "module" or "stage")
+            var keywordStart = scanner.Position;
+            if (Tokens.AnyOf(MethodModifierWords, ref scanner, out string? match, advance: true) && Spaces1(ref scanner, result, out _))
             {
-                if (match == "stage")
-                    StageIsNowModule(ref scanner, result, matchStart);
-                isStaged = true;
+                matched = true;
+                if (match is "module" or "stage")
+                {
+                    if (match == "stage")
+                        StageIsNowModule(ref scanner, result, keywordStart);
+                    isStaged = true;
+                }
+                else if (match == "override")
+                    isOverride = true;
+                else if (match == "clone")
+                    isClone = true;
+                else if (match == "abstract")
+                    isAbstract = true;
+                else if (match == "static")
+                    isStatic = true;
+                continue;
             }
-            else if (match == "override")
-                isOverride = true;
-            else if (match == "clone")
-                isClone = true;
-            else if (match == "abstract")
-                isAbstract = true;
-            else if (match == "static")
-                isStatic = true;
-            else break;
+
+            scanner.Position = keywordStart;
+            if (!MethodKind(ref scanner, result, kinds))
+                break;
+            matched = true;
         }
         if (!advance)
             scanner.Position = position;
         return matched;
+    }
+
+    private static readonly string[] MethodModifierWords = ["module", "stage", "override", "clone", "abstract", "static"];
+    private static readonly string[] MethodKindWords = ["pipeline", "replace", "around", "collect"];
+
+    /// <summary>
+    /// <c>pipeline</c>, <c>replace</c>, <c>around</c> or <c>collect</c> before a method's return type and name. Anywhere else they are names.
+    /// </summary>
+    private static bool MethodKind<TScanner>(ref TScanner scanner, ParseResult result, List<Identifier> kinds)
+        where TScanner : struct, IScanner
+    {
+        var start = scanner.Position;
+        if (Tokens.AnyOf(MethodKindWords, ref scanner, out string? word, advance: true) && Spaces1(ref scanner, result, out _) && IsMethodHeader(ref scanner, result))
+        {
+            kinds.Add(new Identifier(word!, scanner[start..(start + word!.Length)]));
+            return true;
+        }
+        scanner.Position = start;
+        return false;
+    }
+
+    // Other modifiers and kinds can come before the return type
+    private static bool IsMethodHeader<TScanner>(ref TScanner scanner, ParseResult result)
+        where TScanner : struct, IScanner
+    {
+        var start = scanner.Position;
+        var errors = result.Errors.Count;
+        var isHeader = LiteralsParser.TypeName(ref scanner, result, out _)
+            && Spaces1(ref scanner, result, out _)
+            && LiteralsParser.Identifier(ref scanner, result, out _)
+            && FollowedBy(ref scanner, Tokens.Char('('), withSpaces: true);
+        if (!isHeader)
+        {
+            scanner.Position = start;
+            if ((Tokens.AnyOf(MethodModifierWords, ref scanner, out _, advance: true) || Tokens.AnyOf(MethodKindWords, ref scanner, out _, advance: true)) && Spaces1(ref scanner, result, out _))
+                isHeader = IsMethodHeader(ref scanner, result);
+        }
+        result.Errors.RemoveRange(errors, result.Errors.Count - errors);
+        scanner.Position = start;
+        return isHeader;
     }
 
     public static bool VariableModifiers<TScanner>(ref TScanner scanner, ParseResult result, out bool isStaged, out bool isCompose, out StreamKind streamKind, out InterpolationModifier interpolation, out TypeModifier typeModifier, out StorageClass storageClass, bool advance = true)
