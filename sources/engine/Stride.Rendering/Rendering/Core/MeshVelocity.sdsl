@@ -20,6 +20,7 @@ shader MeshVelocity
     // The previous position in screen space
     module stream float4 PreviousPosition;
 
+    [Phase(Screen)]
     module override void VSMain()
     {
         base.VSMain();
@@ -28,6 +29,7 @@ shader MeshVelocity
         streams.PreviousPosition = mul(streams.Position, PreviousWorldViewProjection);
     }
     
+    [Phase(Input)]
     module override void PSMain()
     {
         // Calculate screen space velocity

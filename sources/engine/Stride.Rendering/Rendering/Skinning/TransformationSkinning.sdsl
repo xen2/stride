@@ -35,6 +35,7 @@ module TransformationSkinning
         return BlendMatrixArray[index];
     }
 
+    [Phase(World)]
     override void PreTransformPosition()
     {
         base.PreTransformPosition();

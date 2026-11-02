@@ -294,7 +294,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
             module CheckModule
             {
-                float4 Helper() { return 1; }
+                pipeline float4 Helper() { return 1; }
             }
             """);
         Write("CheckImporter", """
@@ -328,7 +328,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
             shader CheckCompanion
             {
-                module float4 Knob() { return 0; }
+                module pipeline float4 Knob() { return 0; }
             }
             """);
         Write("CheckCompanionOverride", """

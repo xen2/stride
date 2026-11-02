@@ -16,6 +16,7 @@ namespace Stride.Rendering.Images
         module float IsOnlyChannelRed;
 
         // Shading of the sprite
+        [Phase(Post)]
         module override float4 Shading()
         {
             float4 color = base.Shading();

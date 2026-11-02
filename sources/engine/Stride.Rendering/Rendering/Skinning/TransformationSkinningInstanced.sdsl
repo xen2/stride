@@ -8,6 +8,7 @@ shader TransformationSkinningInstanced
     import TransformationSkinning;
     import TransformationInstancing;
 
+    [Phase(World)]
     override module void PreTransformPosition()
     {
         base.PreTransformPosition();

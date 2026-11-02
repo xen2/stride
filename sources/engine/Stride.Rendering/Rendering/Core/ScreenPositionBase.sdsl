@@ -14,12 +14,14 @@ module ScreenPositionBase
     // The position in screen space
     stream float4 ScreenPosition;
 
+    [Phase(Screen)]
     override void VSMain()
     {
         base.VSMain();
         streams.ScreenPosition = streams.ShadingPosition;
     }
 
+    [Phase(Input)]
     override void PSMain()
     {
         streams.ScreenPosition /= streams.ScreenPosition.w;

@@ -12,6 +12,7 @@ shader PositionVertexTransform
     import Transformation;
     import PositionStream;
 
+    [Phase(Attributes)]
     module override void VSMain()
     {
         base.VSMain();

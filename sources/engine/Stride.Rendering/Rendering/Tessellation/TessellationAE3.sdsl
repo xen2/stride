@@ -23,6 +23,7 @@ shader TessellationAE3<MemberName TStream> : TessellationBase, MaterialDomainStr
         streams.DomVertValue3    = input[DominantVertex].TStream;
     }
 
+    [Phase(Fixup)]
     module override void InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords)
     {
         base.InterpolateBarycentric(input, constants, f3BarycentricCoords);

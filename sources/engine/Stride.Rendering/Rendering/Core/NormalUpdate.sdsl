@@ -10,12 +10,13 @@ module NormalUpdate
 {
     import NormalStream;
 
-    void GenerateNormal_VS()
+    [Phases(Generate, Adjust)]
+    pipeline void GenerateNormal_VS()
     {
         streams.normalWS = 0.0f;
     }
 
-    void GenerateNormal_PS()
+    pipeline void GenerateNormal_PS()
     {
     }
 	
@@ -38,13 +39,13 @@ module NormalUpdate
         streams.tangentToWorld =  mul(tangentMatrix, tangentWorldTransform);
     }
 
-    float3x3 GetTangentWorldTransform()
+    replace float3x3 GetTangentWorldTransform()
     {
         return float3x3(1,0,0, 0,1,0, 0,0,1);
     }
 	
     // This method is called by the MaterialSurfaceLightingAndShading to calculate the effective normal
-    void UpdateNormalFromTangentSpace(float3 normalInTangentSpace)
+    replace void UpdateNormalFromTangentSpace(float3 normalInTangentSpace)
     {
         streams.normalWS = normalize(mul(normalInTangentSpace, streams.tangentToWorld));
     }

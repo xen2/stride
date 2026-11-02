@@ -10,8 +10,10 @@ module ShaderBase
     import ShaderBaseStream;
 
     // Declare Vertex shader main method
-    void VSMain() {}
+    [Phases(Input, Default, Deform, Transform, Attributes, Screen)]
+    pipeline void VSMain() {}
 
     // Declare Pixel shader main method
-    void PSMain() {}
+    [Phases(Input, Default, Shade, Output)]
+    pipeline void PSMain() {}
 };

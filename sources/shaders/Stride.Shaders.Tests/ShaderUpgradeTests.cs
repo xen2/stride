@@ -629,13 +629,16 @@ public class ShaderUpgradeTests
             foreach (var (upgradedText, todayText) in ManualEdits.GetValueOrDefault(path) ?? [])
                 text = text.Replace(upgradedText, todayText);
             text = WithoutEngineNamespaceLines(text);
-            // [Root] and [Pure] are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
-            var expected = WithoutEngineNamespaceLines(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline));
+            // [Root], [Pure] and the kinds and phases of extension points are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
+            var expected = WithoutEngineNamespaceLines(WithoutKinds(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|(Phases|Phase)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline)));
             if (text != expected)
                 differences.Add(path);
         }
         Assert.True(differences.Count == 0, $"Upgraded from {EngineBeforeModules}, differs from today: {string.Join(", ", differences)}");
     }
+
+    static string WithoutKinds(string text)
+        => System.Text.RegularExpressions.Regex.Replace(text, @"^([ \t]*(?:module[ \t]+)?)(?:pipeline|replace|around)[ \t]+", "$1", System.Text.RegularExpressions.RegexOptions.Multiline);
 
     // The file-scoped namespace and its usings were added by hand after that commit
     static string WithoutEngineNamespaceLines(string text)

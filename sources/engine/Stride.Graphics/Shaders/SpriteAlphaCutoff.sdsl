@@ -27,6 +27,7 @@ shader SpriteAlphaCutoff<bool TSRgb>
     }
 
     // Shading of the sprite
+    [Phase(Post)]
     module override float4 Shading()
     {
         // Because we use float input values we should allow certain threshold - lets fix it at 0.1

@@ -12,6 +12,7 @@ shader ColorTransformGroupShader
 
     compose ColorTransformShader Transforms[];
 
+    [Phase(Post)]
     override module float4 Shading()
     {
         float4 color = base.Shading();
