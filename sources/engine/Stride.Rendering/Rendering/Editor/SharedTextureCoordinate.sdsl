@@ -8,6 +8,7 @@ shader SharedTextureCoordinate
     import ShaderBase;
     import Texturing;
 
+    [Phase(Input)]
     override module void PSMain()
     {
         // Remap all texture coords to TEXCOORD0
@@ -24,6 +25,7 @@ shader SharedTextureCoordinate
         base.PSMain();
     }
 
+    [Phase(Screen)]
     override module void VSMain()
     {
         base.VSMain();

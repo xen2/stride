@@ -29,15 +29,18 @@ internal static class DefinitionChecks
         var sameSignature = inherited.Where(x => x.Symbol.Type is FunctionType inheritedType && inheritedType == type).ToList();
         if (inherited.Count == 0)
             table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0200, shaderName, name.Name)));
-        else if (sameSignature.Count > 0 && ChecksModuleRules(table))
+        else if (sameSignature.Count > 0)
         {
             // The method this override is chained to: the last one in the linearization
             var parent = sameSignature[^1];
             var parentIsModule = (parent.Flags & FunctionFlagsMask.Stage) != 0;
-            if (parentIsModule && !isModule)
+            if (ChecksModuleRules(table) && parentIsModule && !isModule)
                 table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0206, shaderName, name.Name, parent.Owner)));
-            else if (!parentIsModule && isModule)
+            else if (ChecksModuleRules(table) && !parentIsModule && isModule)
                 table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0207, shaderName, name.Name, parent.Owner)));
+            // Implementing an abstract method is not a contribution. A root-only shader can override a module method without 'module'
+            else if (parentIsModule && parent.Symbol.ExtensionPoint == null && (sameSignature[0].Flags & FunctionFlagsMask.Abstract) == 0)
+                table.AddWarning(new(name.Info, string.Format(SDSLErrorMessages.SDSL0246, shaderName, name.Name, sameSignature[0].Owner)));
         }
     }
 

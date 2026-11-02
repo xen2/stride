@@ -11,6 +11,7 @@ module NormalFromMesh
     import NormalBase;
     import Transformation;
 
+    [Phase(Generate)]
     override void GenerateNormal_VS()
     {
         // Perform normal generation at the end in case meshNormal is modified

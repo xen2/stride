@@ -294,6 +294,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
             module CheckModule
             {
+                [Pipeline]
                 float4 Helper() { return 1; }
             }
             """);
@@ -328,6 +329,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
             shader CheckCompanion
             {
+                [Pipeline]
                 module float4 Knob() { return 0; }
             }
             """);

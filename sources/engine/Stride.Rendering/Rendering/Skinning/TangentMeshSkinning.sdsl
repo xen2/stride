@@ -12,6 +12,7 @@ shader TangentMeshSkinning
     import TransformationSkinning;
     import NormalStream;
 
+    [Phase(World)]
     override void PreTransformPosition()
     {
         base.PreTransformPosition();

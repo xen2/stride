@@ -11,12 +11,14 @@ shader TransformationWAndVP : PositionHStream4
     import TransformationBase;
     import PositionStream4;
 
+    [Phase(World)]
     module override void PreTransformPosition()
     {
         base.PreTransformPosition();
         streams.PositionWS = mul(streams.Position, Transformation.World);
     }
 
+    [Phase(Project)]
     module override void PostTransformPosition()
     {
         base.PostTransformPosition();

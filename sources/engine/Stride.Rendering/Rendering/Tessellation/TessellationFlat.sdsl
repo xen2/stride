@@ -39,6 +39,7 @@ shader TessellationFlat : TessellationBase
         return all(planeTests != 6.0f) ? 0.0 : 1.0;
     }
 
+    [Phase(Interpolate)]
     module override void InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords)
     {
         //streams = input[0] * fU + input[1] * fV + input[2] * fW;
