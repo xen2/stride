@@ -46,6 +46,8 @@ public partial class ShaderMixer
                 methodGroup.After[functionId] = Names(contribution.After);
             if (contribution.Before.Length > 0)
                 methodGroup.Before[functionId] = Names(contribution.Before);
+            if (contribution.Drops.Length > 0)
+                methodGroup.Drops[functionId] = Names(contribution.Drops);
             methodGroup.Lines[functionId] = contribution.Line;
             // Only the first definition writes it
             methodGroup.MixinOrder.AddRange(Names(contribution.MixinOrder));
@@ -62,10 +64,12 @@ public partial class ShaderMixer
         {
             if (group.ExtensionPoint == null)
                 continue;
-            if (group.Phases.Count == 0 && group.After.Count == 0 && group.Before.Count == 0 && group.MixinOrder.Count == 0)
+            if (group.Phases.Count == 0 && group.After.Count == 0 && group.Before.Count == 0 && group.Drops.Count == 0 && group.MixinOrder.Count == 0)
                 continue;
 
-            // The running order inside each phase, then the chain
+            // 1. What [Drops] takes out
+            RemoveReplaced(globalContext.Table.CurrentFrame, group);
+            // 2. The running order inside each phase, then the chain
             OrderPhases(globalContext.Table.CurrentFrame, group);
         }
     }
@@ -79,6 +83,54 @@ public partial class ShaderMixer
     // Where a contributor is written: its class has the name of its file
     private static string ContributorSource(MethodGroup group, int method)
         => $"{ShaderNames.ShortName(ShaderNames.WithoutGenerics(ShaderOf(group, method).ShaderName))}.sdsl, line {group.Lines.GetValueOrDefault(method)}";
+
+    /// <summary>
+    /// Takes out of the chain what <c>[Drops]</c> names, a class or a whole phase. Only this chain: the class still contributes
+    /// to other methods. The first definition is not a contributor, and a contributor doesn't drop itself.
+    /// </summary>
+    private static void RemoveReplaced(SymbolFrame frame, MethodGroup group)
+    {
+        bool IsNamed(IEnumerable<string> names, (ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags) target)
+            => names.Contains(ClassName(target.Shader)) || (group.Phases.TryGetValue(target.MethodId, out var phase) && names.Contains($"{MethodExtensionPoint.ReplacedPhasePrefix}{phase}"));
+
+        var replacedBy = new Dictionary<ShaderInfo, List<ShaderInfo>>();
+        foreach (var (method, targets) in group.Drops)
+        {
+            var by = ShaderOf(group, method);
+            foreach (var target in group.Methods.Skip(1).Where(x => x.MethodId != method && IsNamed(targets, x)))
+            {
+                group.Replaced.TryAdd(target.MethodId, (target.Shader, by));
+                if (!replacedBy.TryGetValue(by, out var replaced))
+                    replacedBy[by] = replaced = [];
+                replaced.Add(target.Shader);
+            }
+        }
+        if (group.Replaced.Count == 0)
+            return;
+
+        foreach (var by in replacedBy.Keys)
+        {
+            if (FindCircle(by, by, []) is { } circle)
+                throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0138, PointName(group), $"{string.Join(" and ", circle.Select(x => x.ShaderName))} drop each other"));
+        }
+
+        group.Methods.RemoveAll(x => group.Replaced.ContainsKey(x.MethodId));
+        // Entry points are found in the symbol table
+        if (frame.TryGetValue(group.Name, out var symbol) && symbol.Type is FunctionGroupType)
+            frame[group.Name] = symbol with { GroupMembers = symbol.GroupMembers.RemoveAll(x => group.Replaced.ContainsKey(x.IdRef)) };
+
+        List<ShaderInfo>? FindCircle(ShaderInfo from, ShaderInfo to, HashSet<ShaderInfo> visited)
+        {
+            foreach (var next in replacedBy.GetValueOrDefault(from) ?? [])
+            {
+                if (next == to)
+                    return [from];
+                if (visited.Add(next) && FindCircle(next, to, visited) is { } path)
+                    return [from, .. path];
+            }
+            return null;
+        }
+    }
 
     /// <summary>
     /// The pairs that order contributors: <c>[MixinOrder(After = A, Before = B)]</c> of each contributor, and the list
@@ -692,5 +744,7 @@ public partial class ShaderMixer
 
         if (FindDropped(group, globalContext) is var (by, dropped))
             builder.AppendLine($"    dropped by {by.ShaderName}: {string.Join(", ", dropped.Select(x => x.ShaderName))}");
+        foreach (var replaced in group.Replaced.Values.GroupBy(x => x.By))
+            builder.AppendLine($"    replaced by {replaced.Key.ShaderName}: {string.Join(", ", replaced.Select(x => x.Shader.ShaderName))}");
     }
 }

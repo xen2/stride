@@ -130931,6 +130931,17 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
         }
     }
 
+    public string Drops
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
     public string MixinOrder
     {
         get;
@@ -130953,11 +130964,12 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
         }
     }
 
-    public OpContributionSDSL(string phase, string after, string before, string mixinOrder, int line)
+    public OpContributionSDSL(string phase, string after, string before, string drops, string mixinOrder, int line)
     {
         Phase = phase;
         After = after;
         Before = before;
+        Drops = drops;
         MixinOrder = mixinOrder;
         Line = line;
         UpdateInstructionMemory();
@@ -130972,7 +130984,7 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
     public void UpdateInstructionMemory()
     {
         InstructionMemory ??= MemoryOwner<int>.Empty;
-        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words, ..After.AsDisposableLiteralValue().Words, ..Before.AsDisposableLiteralValue().Words, ..MixinOrder.AsDisposableLiteralValue().Words, ..Line.AsDisposableLiteralValue().Words];
+        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words, ..After.AsDisposableLiteralValue().Words, ..Before.AsDisposableLiteralValue().Words, ..Drops.AsDisposableLiteralValue().Words, ..MixinOrder.AsDisposableLiteralValue().Words, ..Line.AsDisposableLiteralValue().Words];
         instruction[0] |= instruction.Length << 16;
         if (instruction.Length == InstructionMemory.Length)
             instruction.CopyTo(InstructionMemory.Span);
@@ -130999,6 +131011,9 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
                     break;
                 case "before":
                     Before = o.ToLiteral<string>();
+                    break;
+                case "drops":
+                    Drops = o.ToLiteral<string>();
                     break;
                 case "mixinOrder":
                     MixinOrder = o.ToLiteral<string>();

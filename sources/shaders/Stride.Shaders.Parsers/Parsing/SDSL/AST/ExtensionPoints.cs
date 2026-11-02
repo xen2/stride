@@ -11,7 +11,7 @@ namespace Stride.Shaders.Parsing.SDSL.AST;
 
 /// <summary>
 /// Extension points: <c>replace</c>, <c>[Phases(A, B)] pipeline</c> or <c>[Phases(A, B)] around</c> on the first definition of a module method,
-/// with <c>[MixinOrder(X, Y)]</c>, and <c>[Phase(A)]</c> and <c>[MixinOrder(After = X)]</c> on an override.
+/// with <c>[MixinOrder(X, Y)]</c>, and <c>[Phase(A)]</c>, <c>[MixinOrder(After = X)]</c> and <c>[Drops(...)]</c> on an override.
 /// The class records them next to <see cref="OpFunctionMetadataSDSL"/>, and the mixer orders the override chain with them.
 /// </summary>
 internal static class ExtensionPoints
@@ -19,16 +19,19 @@ internal static class ExtensionPoints
     private const string PhasesAttribute = "Phases";
     private const string PhaseAttribute = "Phase";
     private const string MixinOrderAttribute = "MixinOrder";
+    private const string DropsAttribute = "Drops";
 
-    public static bool IsAttribute(string name) => name is PhasesAttribute or PhaseAttribute or MixinOrderAttribute;
+    public static bool IsAttribute(string name) => name is PhasesAttribute or PhaseAttribute or MixinOrderAttribute or DropsAttribute;
 
     /// <summary>
-    /// What a method states about its place in a chain, as the mixer reads it: classes by full name.
+    /// What a method states about its place in a chain, as the mixer reads it: classes by full name, and phases with their prefix in
+    /// <see cref="Drops"/>.
     /// </summary>
     private sealed class Contribution
     {
         public List<string> After { get; } = [];
         public List<string> Before { get; } = [];
+        public List<string> Drops { get; } = [];
         public List<string> MixinOrder { get; } = [];
     }
 
@@ -70,12 +73,17 @@ internal static class ExtensionPoints
                 phase = ReadPhase(table, attribute, method, methodName, inherited) ?? phase;
             else if (name == MixinOrderAttribute)
                 ReadMixinOrder(table, attribute, method, methodName, point, contribution);
+            else if (name == DropsAttribute)
+                ReadKeyedNames(table, attribute, method, methodName, point, contribution.Drops);
         }
 
         if (point != null)
             builder.Insert(new OpExtensionPointSDSL(point.Kind, point.Owner, string.Join(',', point.Phases)));
-        if (phase != null || contribution is { After.Count: > 0 } or { Before.Count: > 0 } or { MixinOrder.Count: > 0 })
-            builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', contribution.After), string.Join(',', contribution.Before), string.Join(',', contribution.MixinOrder), method.Name.Info.Line));
+        if (phase != null || contribution is { After.Count: > 0 } or { Before.Count: > 0 } or { Drops.Count: > 0 } or { MixinOrder.Count: > 0 })
+        {
+            builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', contribution.After), string.Join(',', contribution.Before), string.Join(',', contribution.Drops),
+                string.Join(',', contribution.MixinOrder), method.Name.Info.Line));
+        }
         if (phase != null && point != null)
             CheckBasePosition(table, method, methodName, point, phase);
     }
@@ -225,6 +233,64 @@ internal static class ExtensionPoints
                 into.Add(fullName);
             else
                 table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0110, identifier.Name) + table.DidYouMean(identifier.Name)));
+        }
+    }
+
+    /// <summary>
+    /// <c>[Drops]</c> on an override: what doesn't run in this chain when this contributor is in the effect. <c>Mixins</c> takes classes and
+    /// <c>Phases</c> phases of the point. A class that isn't in the effect is ignored at link, but it has to exist.
+    /// </summary>
+    private static void ReadKeyedNames(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, MethodExtensionPoint? point, List<string> names)
+    {
+        var name = attribute.Name.Name;
+        if (!method.IsOverride || point == null)
+        {
+            table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, name, methodName, "[Drops] goes on an override of an extension point. To replace a whole class, put [Replaces(Full.Name)] on the class")));
+            return;
+        }
+
+        var keys = $"[{name}] takes Mixins = {{ ... }} for classes and Phases = {{ ... }} for phases";
+        if (attribute.Parameters.Count == 0)
+            table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0254, name, methodName, keys)));
+        foreach (var parameter in attribute.Parameters)
+        {
+            if (parameter is not AssignExpression { Target: Identifier { Name: "Mixins" or "Phases" } key, Value: var value })
+            {
+                table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0254, name, methodName, keys)));
+                continue;
+            }
+
+            foreach (var item in Names(value))
+            {
+                if (item is StringLiteral text)
+                {
+                    table.AddError(new(text.Info, string.Format(SDSLErrorMessages.SDSL0255, name, methodName, text.Value)));
+                    continue;
+                }
+                if (DottedName(item) is not { } identifier)
+                {
+                    table.AddError(new(item.Info, string.Format(SDSLErrorMessages.SDSL0254, name, methodName, $"'{item}' is not a name")));
+                    continue;
+                }
+
+                var isPhase = point!.Phases.Contains(identifier.Name);
+                var fullName = isPhase && key.Name == "Phases" ? null : table.ResolveClassName(identifier.Name, identifier.Info);
+                if (key.Name == "Phases")
+                {
+                    if (isPhase)
+                        names.Add($"{MethodExtensionPoint.ReplacedPhasePrefix}{identifier.Name}");
+                    else if (fullName != null)
+                        table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0254, name, methodName, $"{identifier.Name} is a class: write Mixins = {{ {identifier.Name} }}")));
+                    else
+                        table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0254, name, methodName, $"{ShaderNames.ShortName(point.Owner)}.{method.Name.Name} has no phase {identifier.Name}. It declares {string.Join(", ", point.Phases)}")));
+                }
+                else if (fullName != null)
+                    names.Add(fullName);
+                else if (isPhase)
+                    table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0254, name, methodName, $"{identifier.Name} is a phase of {ShaderNames.ShortName(point.Owner)}.{method.Name.Name}: write Phases = {{ {identifier.Name} }}")));
+                else
+                    table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0110, identifier.Name) + table.DidYouMean(identifier.Name)));
+            }
         }
     }
 

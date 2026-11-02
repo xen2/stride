@@ -10,6 +10,8 @@ shader BackgroundCubemapShader
     module TextureCube Cubemap;
 
     // Shading of the sprite
+    [Phase(Post)]
+    [Drops(Mixins = { BackgroundShader })]
     module override float4 Shading()
     { 
 		var directionVector = float3(1, 1-2*streams.TexCoord.y, 1-2*streams.TexCoord.x);

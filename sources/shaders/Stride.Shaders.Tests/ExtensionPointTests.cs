@@ -630,6 +630,28 @@ public partial class ExtensionPointTests : IDisposable
         Assert.True(ok, log);
     }
 
+    [Theory]
+    [InlineData("[Drops(Mixins = { Step })] void F() { }", "SDSL0135")]
+    [InlineData("[Drops(Mixins = { Step })] override float Plain() { return 2; }", "SDSL0246")]
+    [InlineData("[Drops] override void Run() { base.Run(); }", "SDSL0254")]
+    [InlineData("[Drops(Step)] override void Run() { base.Run(); }", "SDSL0254: [Drops] on Wrong.Run: [Drops] takes Mixins = { ... } for classes and Phases = { ... } for phases.")]
+    [InlineData("[Drops(Mixins = { A })] override void Run() { base.Run(); }", "SDSL0254: [Drops] on Wrong.Run: A is a phase of Owner.Run: write Phases = { A }.")]
+    [InlineData("[Drops(Phases = { Step })] override void Run() { base.Run(); }", "SDSL0254: [Drops] on Wrong.Run: Step is a class: write Mixins = { Step }.")]
+    [InlineData("[Drops(Phases = { Missing })] override void Run() { base.Run(); }", "SDSL0254: [Drops] on Wrong.Run: Owner.Run has no phase Missing.")]
+    [InlineData("[Drops(Mixins = { \"Test.Step\" })] override void Run() { base.Run(); }", "SDSL0255: [Drops] on Wrong.Run: \"Test.Step\" is a string.")]
+    [InlineData("[Drops(Mixins = { NoSuchClass })] override void Run() { base.Run(); }", "SDSL0110")]
+    public void AWrongDropsIsAnError(string member, string code)
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Wrong", member);
+
+        var (ok, log, _) = Mix("Test.Wrong");
+
+        Assert.False(ok, log);
+        Assert.Contains(code, log);
+    }
+
     [Fact]
     public void AStringInReplacesOnAClassIsAnError()
     {
@@ -641,6 +663,128 @@ public partial class ExtensionPointTests : IDisposable
 
         Assert.False(ok, log);
         Assert.Contains("SDSL0255: [Replaces] on Wrong: \"Test.Step\" is a string.", log);
+    }
+
+    [Fact]
+    public void ReplacesTakesAClassOutOfThisChainOnly()
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); } override float Wrap() { return base.Wrap(); }");
+        WriteModule("Other", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Replacement", "[Phase(B)] [Drops(Mixins = { Step })] override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.Step", "Test.Other", "Test.Replacement");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Equal("module method Run() -> void = Owner > Other > Replacement", block[0]);
+        Assert.Contains("replaced by Replacement: Step", block);
+        Assert.Equal("module method Wrap() -> float = Owner > Step", Block(explanation, "Wrap")[0]);
+    }
+
+    [Fact]
+    public void ReplacesTakesAPhaseOutOfTheChain()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Later", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("Replacement", "[Phase(A)] [Drops(Phases = { A })] override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.First", "Test.Second", "Test.Later", "Test.Replacement");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Equal("module method Run() -> void = Owner > Replacement > Later", block[0]);
+        Assert.Contains("replaced by Replacement: First, Second", block);
+    }
+
+    // What the design calls a replacement without a report: it is stated, so nothing is dropped
+    [Fact]
+    public void AStatedReplacementIsNotADrop()
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Replacement", "[Phase(A)] [Drops(Mixins = { Step })] override void Run() { streams.Steps = 2; }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.Step", "Test.Replacement");
+
+        Assert.True(ok, log);
+        Assert.DoesNotContain("SDSL0216", log);
+    }
+
+    // Step isn't reached: the base call that would reach it is in the class that was taken out
+    [Fact]
+    public void AReplacedContributorReachesNothing()
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Middle", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Replacement", "[Phase(A)] [Drops(Mixins = { Middle })] override void Run() { streams.Steps = 2; }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.Step", "Test.Middle", "Test.Replacement");
+
+        Assert.True(ok, log);
+        Assert.Contains("SDSL0216: Replacement.Run doesn't call base, so Step never run", log);
+    }
+
+    [Fact]
+    public void ReplacingAClassThatIsNotInTheEffectIsIgnored()
+    {
+        WriteOwner();
+        WriteModule("Absent", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Replacement", "[Phase(A)] [Drops(Mixins = { Absent })] override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix("Test.Replacement");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Run() -> void = Owner > Replacement", Block(explanation, "Run")[0]);
+    }
+
+    [Fact]
+    public void ReplacingEachOtherIsAnError()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] [Drops(Mixins = { Second })] override void Run() { base.Run(); }");
+        WriteModule("Second", "[Phase(A)] [Drops(Mixins = { First })] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix("Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138", log);
+    }
+
+    // None of the three would run
+    [Fact]
+    public void ReplacingInACircleIsAnError()
+    {
+        WriteOwner();
+        WriteModule("First", "[Drops(Mixins = { Third })] override float Pick() { return 2; }");
+        WriteModule("Second", "[Drops(Mixins = { First })] override float Pick() { return 3; }");
+        WriteModule("Third", "[Drops(Mixins = { Second })] override float Pick() { return 4; }");
+
+        var (ok, log, _) = Mix("Test.First", "Test.Second", "Test.Third");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138", log);
+        Assert.Contains("drop each other", log);
+    }
+
+    // The one a replace point keeps: the stated replacement, wherever the mix puts it
+    [Fact]
+    public void ReplacesPicksTheWinnerOfAReplacePoint()
+    {
+        WriteOwner();
+        WriteModule("Winner", "[Drops(Mixins = { Other })] override float Pick() { return 2; }");
+        WriteModule("Other", "override float Pick() { return 3; }");
+
+        var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.Winner", "Test.Other");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Pick");
+        Assert.Equal("module method Pick() -> float = Owner > Winner", block[0]);
+        Assert.Contains("replace: Winner", block);
+        Assert.Contains("replaced by Winner: Other", block);
     }
 
     [Fact]
@@ -811,6 +955,7 @@ public partial class ExtensionPointTests : IDisposable
     [InlineData("[Phases(A, B)] shader Wrong { }")]
     [InlineData("[Phase(A)] shader Wrong { }")]
     [InlineData("[MixinOrder(After = Other)] shader Wrong { }")]
+    [InlineData("[Drops(Mixins = { Other })] shader Wrong { }")]
     [InlineData("shader Wrong { [Phases(A)] cbuffer PerDraw { float A; } }")]
     public void AKindOrAPhaseOnAClassIsAnError(string code)
     {

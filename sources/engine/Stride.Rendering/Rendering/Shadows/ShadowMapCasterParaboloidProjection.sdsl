@@ -21,11 +21,14 @@ namespace Stride.Rendering.Shadows
         // Used to write the distance from an object to the light to the depth buffer
         module stream float PixelDepth : SV_DEPTH;
          
+        [Phase(Project)]
+        [Drops(Phases = { Project })]
         module override void PostTransformPosition()
         {
             streams.ShadingPosition = ComputeParaboloidProjection(streams.PositionWS, streams.DepthVS);
         }
 
+        [Drops(Mixins = { TransformationWAndVP })]
         module override float4 ComputeShadingPosition(float4 world)
         {
             float dummy;
