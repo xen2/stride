@@ -7,7 +7,6 @@ ApplyAmbientOcclusionShader	0	shader	-	-	ImageEffectShader		Stride.Rendering.Ima
 BRDFMicrofacet	0	module	-	-	Math		Stride.Rendering.BRDF.BRDFMicrofacet	
 BackgroundCubemapShader	0	shader	-	-	BackgroundShader		Stride.Rendering.BackgroundCubemapShader	Cubemap
 BackgroundShader	0	module	-	-	SpriteBase		Stride.Rendering.BackgroundShader	Intensity
-BackgroundVelocity	0	shader	-	-	ShaderBase,VelocityStream,PositionStream4,ScreenPositionBase		Stride.Rendering.BackgroundVelocity	DeltaMatrix
 BakeLightProbeShader	0	shader	-	-	PositionStream4,Texturing		Stride.Rendering.LightProbes.BakeLightProbeShader	MatrixTransform
 BlendUtils	0	module	-	-			Stride.Rendering.BlendUtils	
 BloomAfterimageCombineShader	0	shader	-	-	ImageEffectShader		Stride.Rendering.Images.BloomAfterimageCombineShader	
@@ -84,7 +83,6 @@ ComputeColorParameter	0	shader	-	-	ComputeColor		Stride.Rendering.ComputeColorPa
 ComputeColorPinLight	0	shader	-	-	ComputeColor		Stride.Rendering.ComputeColorPinLight	
 ComputeColorSaturate	0	shader	-	-	ComputeColor		Stride.Rendering.ComputeColorSaturate	
 ComputeColorSaturation	0	shader	-	-	ComputeColor		Stride.Rendering.ComputeColorSaturation	
-ComputeColorScaler	1	shader	-	-	ComputeColor		Stride.Rendering.ComputeColorScaler	
 ComputeColorScreen	0	shader	-	-	ComputeColor		Stride.Rendering.ComputeColorScreen	
 ComputeColorSoftLight	0	shader	-	-	ComputeColor		Stride.Rendering.ComputeColorSoftLight	
 ComputeColorStream	0	shader	-	-	ComputeColor,ColorBase		Stride.Rendering.ComputeColorStream	
@@ -137,9 +135,7 @@ FXAAShader	0	shader	-	-	ImageEffectShader		Stride.Rendering.FXAAShader
 FilmGrainShader	0	shader	-	-	ColorTransformShader,Texturing		Stride.Rendering.Images.FilmGrainShader	Amount,GrainSize,LuminanceFactor,Time
 FlareArtifactShader	1	shader	-	-	ImageEffectShader		Stride.Rendering.Images.FlareArtifactShader	AberrationStrength,Amount,ColorAberrations,ZoomOffsetsDistortions
 FlareReplicate	0	shader	-	-	ImageEffectShader		Stride.Rendering.Images.FlareReplicate	Amount,HaloFactor
-FlattenLayers	0	shader	-	-	ShaderBase,PositionStream4		Stride.Rendering.FlattenLayers	
 FogEffect	0	shader	-	-	ImageEffectShader		Stride.Rendering.Images.FogEffect	Density,DepthTexture,FogColor,FogStart,skipBG,zFar,zNear
-GBuffer	0	shader	-	-	MaterialPixelStream,ShaderBase		Stride.Rendering.Deferred.GBuffer	
 GBufferOutputNormals	0	shader	-	-	ComputeColor,MaterialPixelShadingStream,NormalPack		Stride.Rendering.Materials.Shaders.GBufferOutputNormals	
 GBufferOutputSpecularColorRoughness	0	shader	-	-	ComputeColor,MaterialPixelShadingStream,Utilities		Stride.Rendering.Materials.Shaders.GBufferOutputSpecularColorRoughness	
 GBufferOutputSubsurfaceScatteringMaterialIndex	0	shader	-	-	ComputeColor		Stride.Rendering.Materials.GBufferOutputSubsurfaceScatteringMaterialIndex	MaterialIndex
@@ -292,8 +288,6 @@ MipDownsampleTestShader	0	shader	-	-	ComputeShaderBase		Stride.Graphics.Tests.Mi
 ModelComponentPickingShader	0	shader	-	-	ShaderBase		Stride.Rendering.Utils.ModelComponentPickingShader	MaterialId,MeshId,ModelComponentId
 MorphSkinning	0	shader	-	-	ComputeShaderBase,MorphTargetUtil		Stride.Rendering.MorphSkinning	ActiveCount,BlendIndicesOffset,BlendWeightsOffset,BoneBinds,BoneCount,BoneNodes,Index16,InputVertices,InstanceCount,InstanceRecords,MorphFlags,NormalOffset,OutputNormalOffset,OutputStride,OutputTangentOffset,OutputVertexStride,OutputVertices,PackedEntries,PoseRows,PositionOffset,RecordBase,SkinningFlags,TangentOffset,TangentW,TargetCount,VertexCount,VertexOffsets,VertexStride,WeightBase,Weights
 MorphTargetUtil	0	module	-	-	NormalUtil,Utilities		Stride.Rendering.MorphTargetUtil	
-MultiTexturesSpriteShader	0	shader	-	-	SpriteBase		MultiTexturesSpriteShader	
-MultipleRenderTargetsEffectShader	0	shader	-	-	ShadingBase		Stride.Graphics.Tests.MultipleRenderTargetsEffectShader	
 NormalBase	0	module	-	-	NormalUpdate,ShaderBase		Stride.Rendering.NormalBase	
 NormalFromMesh	0	module	-	-	NormalBase,Transformation		Stride.Rendering.NormalFromMesh	
 NormalFromMeshInstanced	0	shader	-	-	NormalFromMesh,TransformationInstancing		Stride.Rendering.NormalFromMeshInstanced	
@@ -342,11 +336,9 @@ SSLRRayTracePass	0	shader	-	-	ImageEffectShader,SSLRCommon,NormalPack,Math		Stri
 SSLRResolvePass	2	shader	-	-	ImageEffectShader,SSLRCommon,NormalPack,Math,BRDFMicrofacet		Stride.Rendering.Images.SSLRResolvePass	
 SSLRTemporalPass	0	shader	-	-	ImageEffectShader,Texturing		Stride.Rendering.Images.SSLRTemporalPass	IVP,TemporalResponse,TemporalScale,prevVP
 ScreenPositionBase	0	module	-	-	ShaderBase		Stride.Rendering.ScreenPositionBase	
-SelectedSpriteShader	0	shader	-	-	SpriteBase		Stride.Rendering.SelectedSpriteShader	Blend
 ShaderBase	0	module	-	root	ShaderBaseStream		Stride.Rendering.ShaderBase	
 ShaderBaseStream	0	module	-	-			Stride.Rendering.ShaderBaseStream	
 ShadingBase	0	shader	-	root	ShaderBase		Stride.Rendering.ShadingBase	
-ShadingColor	0	shader	-	-	ShaderBase		Stride.Rendering.ShadingColor	
 ShadowGroup	0	shader	-	-	ShadowStream		Stride.Rendering.Shadows.ShadowGroup	
 ShadowMapCasterAlphaDiscard	0	shader	-	-	ShadingBase,MaterialPixelStream,MaterialPixelShadingStream,Transformation,PositionStream,NormalUpdate		Stride.Rendering.Shadows.ShadowMapCasterAlphaDiscard	
 ShadowMapCasterAlphaDithered	0	shader	-	-	ShadingBase,MaterialPixelStream,MaterialPixelShadingStream,Transformation,PositionStream,NormalUpdate		Stride.Rendering.Shadows.ShadowMapCasterAlphaDithered	
@@ -391,7 +383,6 @@ SpritePicking	0	shader	-	-	SpriteBase		Stride.Rendering.SpritePicking
 SpriteSignedDistanceFieldFontShader	0	shader	-	-	SpriteBase,SignedDistanceFieldFont		Stride.Rendering.SpriteSignedDistanceFieldFontShader	
 SpriteSuperSampler	0	shader	-	-	SpriteBase		Stride.Rendering.SpriteSuperSampler	
 SubsurfaceScatteringBlurShader	6	shader	-	-	ImageEffectShader,Camera,Math		Stride.Rendering.SubsurfaceScattering.SubsurfaceScatteringBlurShader	IterationNumber,KernelBuffer,ProjectionSizeOnUnitPlaneInClipSpace,ScatteringWidths,ViewProjectionMatrix
-SwapUV	1	shader	-	-	ShaderBase,Texturing		Stride.Rendering.SwapUV	
 TangentMeshSkinning	0	shader	-	root	TransformationSkinning,NormalStream		Stride.Rendering.TangentMeshSkinning	
 TemporalAntiAliasShader	0	shader	-	-	ImageEffectShader		Stride.Rendering.TemporalAntiAliasShader	u_BlendWeightMax,u_BlendWeightMin,u_HistoryBlurAmp,u_LumaContrastFactor,u_VelocityDecay,u_Weight1,u_Weight2,u_WeightCenter,u_WeightLow1,u_WeightLow2,u_WeightLowCenter
 TessellationAE2	1	shader	-	-	TessellationBase,MaterialDomainStream		Stride.Rendering.TessellationAE2	
@@ -424,14 +415,11 @@ ToneMapU2FilmicOperatorShader	0	shader	-	-	ToneMapOperatorShader		Stride.Renderi
 Transformation	0	module	-	-			Stride.Rendering.Transformation	Eye,EyeMS,ProjScreenRay,Projection,ProjectionInverse,View,ViewInverse,ViewProjection,World,WorldInverse,WorldInverseTranspose,WorldScale,WorldView,WorldViewInverse,WorldViewProjection
 TransformationBase	0	module	-	-	ShaderBase		Stride.Rendering.TransformationBase	
 TransformationInstancing	0	module	-	-	TransformationBase,Transformation		Stride.Rendering.TransformationInstancing	InstanceWorld,InstanceWorldInverse
-TransformationMatrix	1	shader	-	-	PositionHStream4,TransformationBase,PositionStream4		Stride.Rendering.TransformationMatrix	
 TransformationMorph	0	shader	-	-	TransformationBase,PositionStream4,NormalStream,MorphTargetUtil		Stride.Rendering.TransformationMorph	MorphEntries,MorphTargetCount,MorphVertexOffsets,MorphWeights
 TransformationSkinning	0	module	-	-	TransformationBase,PositionStream4,Transformation		Stride.Rendering.TransformationSkinning	BlendMatrixArray
 TransformationSkinningInstanced	0	shader	-	-	TransformationSkinning,TransformationInstancing		Stride.Rendering.TransformationSkinningInstanced	
 TransformationWAndVP	0	shader	-	-	PositionHStream4,TransformationBase,PositionStream4		Stride.Rendering.TransformationWAndVP	
 TransformationWAndVPInstanced	0	shader	-	-	TransformationWAndVP,PositionHStream4,TransformationInstancing,PositionStream4		Stride.Rendering.TransformationWAndVPInstanced	
-TransformationWVP	0	shader	-	-	TransformationMatrix		Stride.Rendering.TransformationWVP	
-TransformationZero	0	shader	-	-	TransformationBase,PositionStream4		Stride.Rendering.TransformationZero	
 TripleRhombiCombineShader	0	shader	-	-	ImageEffectShader		Stride.Rendering.Images.TripleRhombiCombineShader	RhombiTapOffsets
 UIEffectShader	1	shader	-	-	ShaderBase,Texturing		Stride.Rendering.UIEffectShader	
 UnorderedAccessOnlyTextureShader	0	shader	-	-	ComputeShaderBase		Stride.Graphics.Tests.UnorderedAccessOnlyTextureShader	Output
@@ -510,7 +498,6 @@ VoxelizeToFragments	0	shader	-	-	MaterialPixelStream,MaterialPixelShadingStream,
 AdditiveLightEffect	0	effect	-	-			Stride.Rendering.Images.AdditiveLightEffect	
 AmbientOcclusionBlurEffect	0	effect	-	-			Stride.Rendering.Images.AmbientOcclusionBlurEffect	
 AmbientOcclusionRawAOEffect	0	effect	-	-			Stride.Rendering.Images.AmbientOcclusionRawAOEffect	
-BackgroundVelocityEffect	0	effect	-	-			Stride.Rendering.BackgroundVelocityEffect	
 BufferToTextureColumnsEffect	0	effect	-	-			Stride.Rendering.Voxels.BufferToTextureColumnsEffect	
 BufferToTextureEffect	0	effect	-	-			Stride.Rendering.Voxels.BufferToTextureEffect	
 CoCMapBlurEffect	0	effect	-	-			Stride.Rendering.Images.CoCMapBlurEffect	
@@ -542,8 +529,6 @@ MSAADepthResolverEffect	0	effect	-	-			Stride.Rendering.Compositing.MSAADepthRes
 MSAAResolverEffect	0	effect	-	-			Stride.Rendering.Compositing.MSAAResolverEffect	
 McIntoshOptimizedEffect	0	effect	-	-			Stride.Rendering.Images.McIntoshOptimizedEffect	
 ModelComponentPickingEffect	0	effect	-	-			Stride.Rendering.Utils.ModelComponentPickingEffect	
-MultiTexturesSpriteEffect	0	effect	-	-			Test.MultiTexturesSpriteEffect	
-MultipleRenderTargetsEffect	0	effect	-	-			Stride.Graphics.Tests.MultipleRenderTargetsEffect	
 ParticleBaseEffect	0	effect	-	-			Stride.Rendering.ParticleBaseEffect	
 ParticleEffect	0	effect	-	-			Stride.Rendering.ParticleEffect	
 Picking	0	effect	-	-			Stride.Rendering.Picking	
@@ -554,7 +539,6 @@ RadiancePrefilteringGGXNoComputeEffect	0	effect	-	-			Stride.Rendering.Images.Ra
 SSLRBlurPassEffectH	0	effect	-	-			Stride.Rendering.Images.SSLRBlurPassEffectH	
 SSLRBlurPassEffectV	0	effect	-	-			Stride.Rendering.Images.SSLRBlurPassEffectV	
 SSLRResolvePassEffect	0	effect	-	-			Stride.Rendering.Images.SSLRResolvePassEffect	
-SelectedSprite	0	effect	-	-			Stride.Rendering.SelectedSprite	
 ShadowMapCaster	0	effect	-	-			Stride.Rendering.Shadows.ShadowMapCaster	
 ShadowMapCasterCubeMap	0	effect	-	-			Stride.Rendering.Shadows.ShadowMapCasterCubeMap	
 ShadowMapCasterParaboloid	0	effect	-	-			Stride.Rendering.Shadows.ShadowMapCasterParaboloid	

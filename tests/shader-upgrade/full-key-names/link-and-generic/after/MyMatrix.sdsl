@@ -1,0 +1,14 @@
+namespace Game.Effects;
+
+shader MyMatrix<MemberName TMatrix> : PositionHStream4
+{
+    import TransformationBase;
+    import PositionStream4;
+
+    module override void PostTransformPosition()
+    {
+        base.PostTransformPosition();
+        streams.ShadingPosition = mul(streams.Position, TMatrix);
+        streams.PositionH = streams.ShadingPosition;
+    }
+};

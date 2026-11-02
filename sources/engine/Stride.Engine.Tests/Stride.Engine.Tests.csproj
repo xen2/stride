@@ -55,9 +55,6 @@
     <None Include="Build\TestStorage.cs" />
     <Compile Include="AnimationChannelTest.cs" />
     <Compile Include="EntitySerializerTest.cs" />
-    <None Include="effects_test.xml">
-      <SubType>Designer</SubType>
-    </None>
     <None Include="GameAssets\01-Default.sdmat" />
     <None Include="GameAssets\BallSprite1.sdsheet" />
     <None Include="GameAssets\BallSprite2.sdsheet" />
