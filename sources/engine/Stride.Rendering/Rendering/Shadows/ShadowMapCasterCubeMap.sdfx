@@ -13,14 +13,18 @@ namespace Stride.Rendering.Shadows
         if(MaterialKeys.UseDitheredShadows)
         {
             mixin ShadowMapCasterAlphaDithered;
+            unbind ShaderBase.PSMain.Input;
         }
         else if(MaterialKeys.UsePixelShaderWithDepthPass)
         {
             mixin ShadowMapCasterAlphaDiscard;
+            unbind ShaderBase.PSMain.Input;
         }
         else
         {
             mixin ShadowMapCasterNoPixelShader;
+            unbind ShaderBase.PSMain.Shade;
+            unbind ShaderBase.PSMain.Input;
         }
 
         mixin ShadowMapCasterCubeMapProjection;

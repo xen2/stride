@@ -55,12 +55,15 @@ public class ExtensionPointTests : IDisposable
 
     private void WriteModule(string name, string body) => Write(name, $"module {name} {{ import Owner; {body} }}");
 
-    private (bool Ok, string Log, string Explanation) Mix(bool isAssetBuild, params string[] classes)
+    private (bool Ok, string Log, string Explanation) Mix(bool isAssetBuild, params string[] classes) => Mix(isAssetBuild, _ => { }, classes);
+
+    private (bool Ok, string Log, string Explanation) Mix(bool isAssetBuild, Action<ShaderMixinSource> linkage, params string[] classes)
     {
         Write("Entry", Entry);
         var source = new ShaderMixinSource { Mixins = { new ShaderClassSource("Test.Entry") } };
         foreach (var name in classes)
             source.Mixins.Add(new ShaderClassSource(name));
+        linkage(source);
 
         var log = new LoggerResult();
         var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL") { WarningsAsErrors = false }) { CollectExplanation = true, IsAssetBuild = isAssetBuild };
@@ -635,6 +638,22 @@ public class ExtensionPointTests : IDisposable
         Assert.Contains("SDSL0138", log);
     }
 
+    // None of the three would run
+    [Fact]
+    public void ReplacingInACircleIsAnError()
+    {
+        WriteOwner();
+        WriteModule("First", "[Replaces(Third)] override float Pick() { return 2; }");
+        WriteModule("Second", "[Replaces(First)] override float Pick() { return 3; }");
+        WriteModule("Third", "[Replaces(Second)] override float Pick() { return 4; }");
+
+        var (ok, log, _) = Mix("Test.First", "Test.Second", "Test.Third");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138", log);
+        Assert.Contains("replace each other", log);
+    }
+
     // The one a [Replace] point keeps: the stated replacement, wherever the mix puts it
     [Fact]
     public void ReplacesPicksTheWinnerOfAReplacePoint()
@@ -866,6 +885,315 @@ public class ExtensionPointTests : IDisposable
 
         Assert.True(ok, log);
         Assert.Equal(["module method Pick() -> float = Owner > Winner", "replace: Winner"], Block(explanation, "Pick"));
+    }
+
+    [Fact]
+    public void AnOrderRuleOrdersAPhaseAndWinsOverAfter()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] [After(Second)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 3; }");
+
+        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "A", "Test.First", "Test.Second"), "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Contains("A: First > Second   order: order rule", Block(explanation, "Run"));
+    }
+
+    [Fact]
+    public void AnOrderRuleSettlesAConflict()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 3; }");
+
+        var (noRule, noRuleLog, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+        Assert.False(noRule, noRuleLog);
+        Assert.Contains("this linkage rule to the effect: order Owner.Run.A: First, Second;", noRuleLog);
+
+        // The last layer wins, and a name as written counts
+        var (ok, log, explanation) = Mix(true, x =>
+        {
+            x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "A", "Test.First", "Test.Second");
+            x.AddLinkageRule(ShaderLinkageKind.Order, "Owner", "Run", "A", "Second", "First");
+        }, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Contains("A: Second > First   order: order rule", Block(explanation, "Run"));
+    }
+
+    [Fact]
+    public void AnOrderRuleOfAPhaseReachedFromTheOutsideIsTheRunningOrder()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(Early)] override void Run() { streams.Steps = 2; base.Run(); }");
+        WriteModule("Second", "[Phase(Early)] override void Run() { streams.Steps = 3; base.Run(); }");
+
+        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "Early", "Test.First", "Test.Second"), "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Run() -> void = Owner > Second > First", Block(explanation, "Run")[0]);
+    }
+
+    [Fact]
+    public void BindGivesAPhaseToAClassThatHasNone()
+    {
+        WriteOwner();
+        WriteModule("Later", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("Patch", "override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Bind, "Test.Owner", "Run", "A", "Test.Patch"), "Test.Later", "Test.Patch");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Equal("module method Run() -> void = Owner > Patch > Later", block[0]);
+        Assert.Contains("A: Patch", block);
+    }
+
+    [Fact]
+    public void UnbindTakesAPhaseOrAClassOutOfTheChainWithoutADrop()
+    {
+        WriteOwner();
+        WriteModule("InPhase", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Patch", "override void Run() { base.Run(); }");
+        WriteModule("Replacement", "override void Run() { streams.Steps = 2; }");
+
+        var (ok, log, explanation) = Mix(true, x =>
+        {
+            x.AddLinkageRule(ShaderLinkageKind.Unbind, "Test.Owner", "Run", "A");
+            x.AddLinkageRule(ShaderLinkageKind.Unbind, "Test.Owner", "Run", null, "Test.Patch");
+        }, "Test.InPhase", "Test.Patch", "Test.Replacement");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Equal("module method Run() -> void = Owner > Replacement", block[0]);
+        Assert.Contains("not bound by the effect: InPhase, Patch", block);
+        Assert.DoesNotContain("SDSL0216", log);
+    }
+
+    [Theory]
+    [InlineData(ShaderLinkageKind.Order)]
+    [InlineData(ShaderLinkageKind.Bind)]
+    [InlineData(ShaderLinkageKind.Unbind)]
+    public void ALinkageRuleWithAPhaseThatDoesNotExistIsAnError(ShaderLinkageKind kind)
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = MixCatching(x => x.AddLinkageRule(kind, "Test.Owner", "Run", "Missing", "Test.Step"), "Test.Step");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0141", log);
+    }
+
+    private (bool Ok, string Log, string Explanation) MixCatching(Action<ShaderMixinSource> linkage, params string[] classes) => Mix(false, linkage, classes);
+
+    [Fact]
+    public void ALinkageRuleAboutAPointThatIsNotInTheEffectIsIgnored()
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Other", "");
+
+        var (ok, log, _) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Unbind, "Test.Other", "Run", "A"), "Test.Step");
+
+        Assert.True(ok, log);
+    }
+
+    // A name the project couldn't resolve stays as written, and the class can be in a namespace
+    [Fact]
+    public void ALinkageRuleCanNameAClassByTheEndOfItsFullName()
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Other", "");
+
+        var (ok, log, _) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Unbind, "Other", "Run", "A"), "Test.Step");
+
+        Assert.True(ok, log);
+    }
+
+    public static TheoryData<bool, ShaderLinkageKind, string, string?, string[], string> MisspelledClasses => new()
+    {
+        { true, ShaderLinkageKind.Unbind, "Test.Ownr", "A", [], "Test.Ownr" },
+        { false, ShaderLinkageKind.Unbind, "Test.Ownr", "A", [], "Test.Ownr" },
+        { true, ShaderLinkageKind.Unbind, "Test.Owner", null, ["Test.Stepp"], "Test.Stepp" },
+        { false, ShaderLinkageKind.Order, "Test.Owner", "A", ["Test.Step", "Test.Stepp"], "Test.Stepp" },
+        { true, ShaderLinkageKind.Bind, "Test.Owner", "A", ["Test.Stepp"], "Test.Stepp" },
+        { false, ShaderLinkageKind.Phase, "Test.Ownr", "Wind", ["A", ""], "Test.Ownr" },
+    };
+
+    [Theory]
+    [MemberData(nameof(MisspelledClasses))]
+    public void AClassThatExistsNowhereInALinkageRuleIsAnError(bool isAssetBuild, ShaderLinkageKind kind, string owner, string? phase, string[] names, string misspelled)
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix(isAssetBuild, x => x.AddLinkageRule(kind, owner, "Run", phase!, names), "Test.Step");
+
+        Assert.False(ok, log);
+        Assert.Contains($"SDSL0158: a linkage rule of the effect names the class {misspelled}, which doesn't exist.", log);
+    }
+
+    // Before the order is looked at: what would be missing from it is a misspelled name, not an order
+    [Fact]
+    public void AMisspelledClassIsReportedBeforeTheConflictItLeaves()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 1; }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+
+        var (ok, log, _) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "A", "Test.First", "Test.Secnd"), "Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0158", log);
+        Assert.DoesNotContain("SDSL0137", log);
+    }
+
+    [Fact]
+    public void AClassInAnotherNamespaceIsSuggested()
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Unbind, "Wrong.Owner", "Run", "A"), "Test.Step");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0158", log);
+        Assert.Contains("Did you mean `using Test;`?", log);
+    }
+
+    [Fact]
+    public void APhaseRuleAddsAPhase()
+    {
+        WriteOwner();
+        WriteModule("InB", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("InA", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Patch", "override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix(true, x =>
+        {
+            x.AddLinkageRule(ShaderLinkageKind.Phase, "Test.Owner", "Run", "Wind", "A", "B");
+            x.AddLinkageRule(ShaderLinkageKind.Bind, "Test.Owner", "Run", "Wind", "Test.Patch");
+        }, "Test.InB", "Test.InA", "Test.Patch");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Equal("module method Run() -> void = Owner > InA > Patch > InB", block[0]);
+        Assert.Contains("Wind: Patch", block);
+    }
+
+    [Fact]
+    public void AnOverrideAddsAPhase()
+    {
+        WriteOwner();
+        WriteModule("InB", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("InA", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Wind", "[Phase(Wind, After = A, Before = B)] override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.InB", "Test.Wind", "Test.InA");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Run() -> void = Owner > InA > Wind > InB", Block(explanation, "Run")[0]);
+    }
+
+    // SDSL0137 says to write this rule
+    [Fact]
+    public void AnOrderRuleCanNameAPhaseAnOverrideAdds()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(Wind, After = A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Second", "[Phase(Wind, After = A)] override void Run() { base.Run(); streams.Steps = 3; }");
+
+        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "Wind", "Test.Second", "Test.First"), "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Contains("Wind: Second > First", explanation);
+    }
+
+    [Fact]
+    public void AddedPhasesCanNameEachOtherInAnyOrder()
+    {
+        WriteOwner();
+        WriteModule("Last", "[Phase(Y, After = X)] override void Run() { base.Run(); }");
+        WriteModule("Next", "[Phase(X, After = A)] override void Run() { base.Run(); }");
+
+        Assert.True(Mix(false, "Test.Last", "Test.Next").Ok);
+        Assert.True(Mix(false, x => x.AddLinkageRule(ShaderLinkageKind.Phase, "Test.Owner", "Run", "X", "A", ""), "Test.Last").Ok);
+    }
+
+    [Theory]
+    [InlineData("[Phase(Wind, After = Early)] override void Run() { base.Run(); streams.Steps = 2; }")]
+    [InlineData("[Phase(Wind, Before = Default)] override void Run() { base.Run(); streams.Steps = 2; }")]
+    [InlineData("[Phase(Wind, After = A)] override void Run() { streams.Steps = 2; base.Run(); }")]
+    [InlineData("[Phase(Wind, Before = B)] override void Run() { streams.Steps = 2; base.Run(); }")]
+    public void TheBaseCallOfAnAddedPhaseFitsItsPlace(string member)
+    {
+        WriteOwner();
+        WriteModule("Wrong", member);
+
+        var (ok, log, _) = Mix(false, "Test.Wrong");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0140", log);
+    }
+
+    // Its place depends on a phase that another class adds
+    [Fact]
+    public void TheBaseCallOfAnAddedPhaseIsCheckedAtLink()
+    {
+        WriteOwner();
+        WriteModule("Wrong", "[Phase(Y, After = X)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Other", "[Phase(X, After = Early)] override void Run() { streams.Steps = 3; base.Run(); }");
+
+        var (ok, log, _) = Mix(false, "Test.Wrong", "Test.Other");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0140: Wrong.Run is in phase Y", log);
+    }
+
+    [Theory]
+    [InlineData(ShaderLinkageKind.Order, "Runn")]
+    [InlineData(ShaderLinkageKind.Bind, "Runn")]
+    [InlineData(ShaderLinkageKind.Unbind, "Runn")]
+    [InlineData(ShaderLinkageKind.Order, "Plain")]
+    public void ALinkageRuleAboutAMethodItsClassDoesNotDeclareIsAnError(ShaderLinkageKind kind, string method)
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix(true, x => x.AddLinkageRule(kind, "Test.Owner", method, "A", "Test.Step"), "Test.Step");
+
+        Assert.False(ok, log);
+        Assert.Contains($"SDSL0154: a linkage rule of the effect names Owner.{method}", log);
+    }
+
+    [Fact]
+    public void APhaseAddedNextToAPhaseThatDoesNotExistIsAnError()
+    {
+        WriteOwner();
+        WriteModule("InB", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("Wind", "[Phase(Wind, After = Missing)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix(isAssetBuild: false, "Test.Wind", "Test.InB");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0218: phase Wind added by Wind to Owner.Run has no place: Owner.Run has no phase Missing", log);
+    }
+
+    [Theory]
+    [InlineData("[Phase(Wind, Other = A)] override void Run() { base.Run(); }", "SDSL0135")]
+    [InlineData("[Phase(Wind, After = A)] void F() { }", "SDSL0141")]
+    public void AWrongAddedPhaseIsAnError(string member, string code)
+    {
+        WriteOwner();
+        WriteModule("Wrong", member);
+
+        var (ok, log, _) = Mix("Test.Wrong");
+
+        Assert.False(ok, log);
+        Assert.Contains(code, log);
     }
 
     // A misspelled kind on a method is an unknown attribute, which is an error

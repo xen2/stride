@@ -87,8 +87,14 @@ public partial class ShaderMixer
         /// <summary>What a contributor replaces, by method: full names of classes, and phases with their prefix.</summary>
         public Dictionary<int, string[]> Replaces { get; } = new();
 
-        /// <summary>The contributors taken out of the chain by <c>[Replaces]</c>, by method, and the class that did it.</summary>
-        public Dictionary<int, (ShaderInfo Shader, ShaderInfo By)> Replaced { get; } = new();
+        /// <summary>The contributors taken out of the chain, by method, and the class that did it: <c>[Replaces]</c>, or null for an <c>unbind</c> of the effect.</summary>
+        public Dictionary<int, (ShaderInfo Shader, ShaderInfo? By)> Replaced { get; } = new();
+
+        /// <summary>The phases added by a contributor, by method: the phases after and before it, empty when not given, and where its body calls <c>base</c>.</summary>
+        public Dictionary<int, (string Phase, string After, string Before, string BaseCall)> AddedPhases { get; } = new();
+
+        /// <summary>The running order an <c>order</c> rule of the effect gives to a phase.</summary>
+        public Dictionary<string, List<string>> OrderRules { get; } = new();
 
         /// <summary>The phases where the order of the mix decided between contributors whose order matters.</summary>
         public HashSet<string> DecidedByBuilder { get; } = new();

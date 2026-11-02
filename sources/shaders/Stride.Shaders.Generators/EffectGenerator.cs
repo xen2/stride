@@ -33,12 +33,20 @@ public class EffectGenerator : IIncrementalGenerator
             .Distinct()
             .OrderBy(name => name, StringComparer.Ordinal)));
 
-        context.RegisterSourceOutput(shaderFiles.Combine(implicitUsings).Combine(existingTypes), (output, x) =>
+        var referencedLayers = context.CompilationProvider.Select((compilation, _) => ReferencedLayersOf(compilation));
+
+        context.RegisterSourceOutput(shaderFiles.Combine(implicitUsings).Combine(existingTypes).Combine(referencedLayers), (output, x) =>
         {
-            var existing = new HashSet<string>(x.Right.Split('\n'));
-            output.AddSource(GetSafeHintName(x.Left.Left.Path), Generate(x.Left.Left, existing.Contains, x.Left.Right).Text);
+            var existing = new HashSet<string>(x.Left.Right.Split('\n'));
+            output.AddSource(GetSafeHintName(x.Left.Left.Left.Path), Generate(x.Left.Left.Left, existing.Contains, x.Left.Left.Right, x.Right).Text);
         });
     }
+
+    private static string ReferencedLayersOf(Compilation compilation) => string.Join(",", compilation.SourceModule.ReferencedAssemblySymbols
+        .Where(assembly => assembly.GetAttributes().Any(x => x.AttributeClass?.Name == "AssemblyMetadataAttribute" && x.ConstructorArguments is [{ Value: EffectCodeWriter.LayerMetadataKey }, ..]))
+        .Select(assembly => assembly.Identity.Name)
+        .Distinct()
+        .OrderBy(name => name, StringComparer.Ordinal));
 
     // A constant, so that the compiler and this generator have one list. Empty for a project that doesn't reference Stride.Rendering.
     private static string ImplicitUsingsOf(Compilation compilation)
@@ -49,8 +57,9 @@ public class EffectGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="csharpTypeExists">Whether a C# name exists (see <see cref="EffectCodeWriter.CSharpTypeExists"/>).</param>
     /// <param name="implicitUsings">The implicit usings, separated by commas.</param>
+    /// <param name="referencedLayers">The referenced assemblies that hold a layer (see <see cref="EffectCodeWriter.ReferencedLayers"/>), separated by commas.</param>
     /// <returns>The code, the C# names it depends on, and the shaders and effects it writes.</returns>
-    public static (string Text, IEnumerable<string> Candidates, IEnumerable<string> Declared) Generate(AdditionalText file, Func<string, bool>? csharpTypeExists, string implicitUsings)
+    public static (string Text, IEnumerable<string> Candidates, IEnumerable<string> Declared) Generate(AdditionalText file, Func<string, bool>? csharpTypeExists, string implicitUsings, string referencedLayers = "")
     {
         var isSdfx = Path.GetExtension(file.Path).Equals(".sdfx", StringComparison.OrdinalIgnoreCase);
 
@@ -79,6 +88,7 @@ public class EffectGenerator : IIncrementalGenerator
             {
                 CSharpTypeExists = csharpTypeExists,
                 ImplicitUsings = implicitUsings.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                ReferencedLayers = referencedLayers.Split(',', StringSplitOptions.RemoveEmptyEntries),
             };
             effectCodeWriter.Run(parsed.AST);
             return (effectCodeWriter.Text, effectCodeWriter.CSharpTypeCandidates, effectCodeWriter.DeclaredClasses);

@@ -225,6 +225,10 @@
         {
           "kind": "LiteralString",
           "name": "replaces"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "addedPhase"
         }
       ]
     },
