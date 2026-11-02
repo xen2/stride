@@ -29,6 +29,11 @@ public record struct EffectStatementParsers : IParser<Statement>
             parsed = p2;
             return true;
         }
+        else if (new EffectShaderBlockParser().Match(ref scanner, result, out EffectShaderBlock? block2))
+        {
+            parsed = block2;
+            return true;
+        }
         else if (ControlsParser.Control(ref scanner, result, out var control, Statement))
         {
             parsed = control;
@@ -102,6 +107,98 @@ public record struct EffectStatementParsers : IParser<Statement>
 
 }
 
+
+/// <summary>
+/// <c>extend shader Shader { [Attribute] Method; [Attribute] Owner.Method; [Attribute] Method(float3, int); }</c>.
+/// </summary>
+public record struct EffectShaderBlockParser : IParser<EffectShaderBlock>
+{
+    private static bool DottedName<TScanner>(ref TScanner scanner, ParseResult result, out List<string> parts) where TScanner : struct, IScanner
+    {
+        parts = [];
+        do
+        {
+            if (!LiteralsParser.Identifier(ref scanner, result, out var part))
+                return false;
+            parts.Add(part.Name);
+        }
+        while (Tokens.Char('.', ref scanner, advance: true));
+        return true;
+    }
+
+    public readonly bool Match<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out EffectShaderBlock parsed, in ParseError? orError = null) where TScanner : struct, IScanner
+    {
+        var position = scanner.Position;
+        // The words and the spaces after them
+        if (!SDSL.Parsers.SequenceOf(ref scanner, ["extend", "shader"], advance: true)
+            || !DottedName(ref scanner, result, out var shader))
+        {
+            scanner.Position = position;
+            parsed = null;
+            return false;
+        }
+
+        var name = string.Join('.', shader);
+        if (SDSL.Parsers.FollowedBy(ref scanner, Tokens.Char('<'), withSpaces: true))
+            return SDSL.Parsers.Exit(ref scanner, result, out parsed, position, new(string.Format(SDSLErrorMessages.SDSL0256, name, "a block is about every generic version of a class: write the class without its generic values"), scanner[scanner.Position], scanner.Memory));
+        if (!SDSL.Parsers.FollowedBy(ref scanner, Tokens.Char('{'), withSpaces: true, advance: true))
+            return SDSL.Parsers.Exit(ref scanner, result, out parsed, position, new(SDSLErrorMessages.SDSL0001, scanner[scanner.Position], scanner.Memory));
+
+        var members = new List<EffectBlockMember>();
+        while (true)
+        {
+            SDSL.Parsers.Spaces0(ref scanner, result, out _);
+            if (Tokens.Char('}', ref scanner, advance: true))
+                break;
+            if (!Member(ref scanner, result, out var member))
+                return SDSL.Parsers.Exit(ref scanner, result, out parsed, position, new(string.Format(SDSLErrorMessages.SDSL0256, name, "a block holds methods with their attributes: [Attribute] Method; or [Attribute] Owner.Method;"), scanner[scanner.Position], scanner.Memory));
+            members.Add(member);
+        }
+        parsed = new EffectShaderBlock(name, members, scanner[position..scanner.Position]);
+        return true;
+    }
+
+    private static bool Member<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out EffectBlockMember member) where TScanner : struct, IScanner
+    {
+        member = null;
+        var position = scanner.Position;
+        var attributes = new List<AnyShaderAttribute>();
+        if (Tokens.Char('[', ref scanner) && ShaderAttributeListParser.AttributeList(ref scanner, result, out var list))
+            attributes.AddRange(list.Attributes.OfType<AnyShaderAttribute>());
+        if (!DottedName(ref scanner, result, out var path))
+            return false;
+
+        string? parameters = null;
+        if (SDSL.Parsers.FollowedBy(ref scanner, Tokens.Char('('), withSpaces: true, advance: true))
+        {
+            var types = new List<string>();
+            SDSL.Parsers.Spaces0(ref scanner, result, out _);
+            while (!Tokens.Char(')', ref scanner))
+            {
+                Tokens.AnyOf(["inout ", "in ", "out "], ref scanner, out _, advance: true);
+                SDSL.Parsers.Spaces0(ref scanner, result, out _);
+                if (!LiteralsParser.TypeName(ref scanner, result, out var type))
+                    return false;
+                types.Add(type.ToString());
+                // A name, as an extend writes it, says nothing more
+                if (SDSL.Parsers.Spaces1(ref scanner, result, out _))
+                    LiteralsParser.Identifier(ref scanner, result, out _);
+                SDSL.Parsers.Spaces0(ref scanner, result, out _);
+                if (!Tokens.Char(',', ref scanner, advance: true))
+                    break;
+                SDSL.Parsers.Spaces0(ref scanner, result, out _);
+            }
+            if (!Tokens.Char(')', ref scanner, advance: true))
+                return false;
+            parameters = string.Join(",", types);
+        }
+        if (!SDSL.Parsers.FollowedBy(ref scanner, Tokens.Char(';'), withSpaces: true, advance: true))
+            return false;
+
+        member = new EffectBlockMember(attributes, path.Count > 1 ? string.Join('.', path.Take(path.Count - 1)) : null, path[^1], parameters, scanner[position..scanner.Position]);
+        return true;
+    }
+}
 
 public record struct UsingParamsParser : IParser<UsingParams>
 {

@@ -39,7 +39,7 @@ namespace Stride.Shaders.Compiler
         public SortedSet<string> Sources { get; } = new(StringComparer.Ordinal);
 
         /// <summary>
-        /// SHA-256 of the effect name, profile and mixin tree. Two entries with the same hash compile to the same shader.
+        /// SHA-256 of the effect name, profile and mixin tree, without its linkage rules, which come from the same effect and parameters.
         /// </summary>
         public string Hash => hash ??= ComputeHash();
 
@@ -52,7 +52,7 @@ namespace Stride.Shaders.Compiler
         {
             using var stream = new MemoryStream();
             using (var writer = new Utf8JsonWriter(stream))
-                WriteEntry(writer, this, includeSources: false);
+                WriteEntry(writer, this, includeDetails: false);
             return Convert.ToHexString(SHA256.HashData(stream.ToArray())).ToLowerInvariant();
         }
 
@@ -71,7 +71,7 @@ namespace Stride.Shaders.Compiler
             using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
             writer.WriteStartArray();
             foreach (var entry in entries.OrderBy(x => x.Id, StringComparer.Ordinal))
-                WriteEntry(writer, entry, includeSources: true);
+                WriteEntry(writer, entry, includeDetails: true);
             writer.WriteEndArray();
         }
 
@@ -79,7 +79,7 @@ namespace Stride.Shaders.Compiler
         {
             using var stream = new MemoryStream();
             using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
-                WriteEntry(writer, entry, includeSources: true);
+                WriteEntry(writer, entry, includeDetails: true);
             return Encoding.UTF8.GetString(stream.ToArray());
         }
 
@@ -89,12 +89,12 @@ namespace Stride.Shaders.Compiler
             return ReadEntry(document.RootElement);
         }
 
-        private static void WriteEntry(Utf8JsonWriter writer, ShaderCorpusEntry entry, bool includeSources)
+        private static void WriteEntry(Utf8JsonWriter writer, ShaderCorpusEntry entry, bool includeDetails)
         {
             writer.WriteStartObject();
             writer.WriteString("effect", entry.EffectName);
             writer.WriteString("profile", entry.Profile.ToString());
-            if (includeSources && entry.Sources.Count > 0)
+            if (includeDetails && entry.Sources.Count > 0)
             {
                 writer.WriteStartArray("sources");
                 foreach (var source in entry.Sources)
@@ -103,6 +103,33 @@ namespace Stride.Shaders.Compiler
             }
             writer.WritePropertyName("mixin");
             WriteSource(writer, entry.Mixin);
+            if (includeDetails && entry.Mixin.Linkage.Count > 0)
+            {
+                writer.WriteStartArray("linkage");
+                foreach (var rule in entry.Mixin.Linkage)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("kind", rule.Kind.ToString());
+                    foreach (var (name, value) in new[] { ("shader", rule.Shader), ("owner", rule.Owner), ("method", rule.Method), ("parameters", rule.Parameters), ("phase", rule.Phase) })
+                    {
+                        if (value != null)
+                            writer.WriteString(name, value);
+                    }
+                    foreach (var (name, values) in new[] { ("names", rule.Names), ("after", rule.After), ("before", rule.Before), ("phases", rule.Phases), ("mixins", rule.Mixins) })
+                    {
+                        if (values.Count == 0)
+                            continue;
+                        writer.WriteStartArray(name);
+                        foreach (var value in values)
+                            writer.WriteStringValue(value);
+                        writer.WriteEndArray();
+                    }
+                    if (rule.Level != 0)
+                        writer.WriteNumber("level", rule.Level);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+            }
             writer.WriteEndObject();
         }
 
@@ -111,6 +138,29 @@ namespace Stride.Shaders.Compiler
             var mixin = (ShaderMixinSource)ReadSource(element.GetProperty("mixin"));
             var effectName = element.GetProperty("effect").GetString()!;
             mixin.Name = effectName;
+            if (element.TryGetProperty("linkage", out var linkage))
+            {
+                foreach (var rule in linkage.EnumerateArray())
+                {
+                    string? Text(string name) => rule.TryGetProperty(name, out var value) ? value.GetString() : null;
+                    List<string> Names(string name) => rule.TryGetProperty(name, out var value) ? value.EnumerateArray().Select(x => x.GetString()!).ToList() : [];
+                    mixin.Linkage.Add(new ShaderLinkageRule
+                    {
+                        Kind = Enum.Parse<ShaderLinkageKind>(Text("kind")!),
+                        Shader = Text("shader")!,
+                        Owner = Text("owner"),
+                        Method = Text("method")!,
+                        Parameters = Text("parameters"),
+                        Phase = Text("phase"),
+                        Names = Names("names"),
+                        After = Names("after"),
+                        Before = Names("before"),
+                        Phases = Names("phases"),
+                        Mixins = Names("mixins"),
+                        Level = rule.TryGetProperty("level", out var level) ? level.GetInt32() : 0,
+                    });
+                }
+            }
             var entry = new ShaderCorpusEntry(effectName, Enum.Parse<GraphicsProfile>(element.GetProperty("profile").GetString()!), mixin);
             if (element.TryGetProperty("sources", out var sources))
             {

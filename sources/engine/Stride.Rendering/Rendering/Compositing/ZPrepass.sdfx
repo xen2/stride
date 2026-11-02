@@ -6,7 +6,7 @@ using Stride.Rendering.Shadows;
 namespace Stride.Rendering.Compositing
 {
     // Spawn a sub-effect for the depth-only Z prepass (no color render target bound)
-    partial effect ZPrepass
+    effect ZPrepass
     {
         using params MaterialKeys;
 
@@ -14,14 +14,17 @@ namespace Stride.Rendering.Compositing
         if(MaterialKeys.UseDitheredShadows)
         {
             mixin ShadowMapCasterAlphaDithered;
+            extend shader ShaderBase { [Unbind(Phases = { Input })] PSMain; }
         }
         else if(MaterialKeys.UsePixelShaderWithDepthPass)
         {
             mixin ShadowMapCasterAlphaDiscard;
+            extend shader ShaderBase { [Unbind(Phases = { Input })] PSMain; }
         }
         else
         {
             mixin ShadowMapCasterNoPixelShader;
+            extend shader ShaderBase { [Unbind(Phases = { Shade, Input })] PSMain; }
         }
     };
 }

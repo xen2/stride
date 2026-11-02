@@ -12,15 +12,18 @@ public record struct EffectParser : IParser<ShaderEffect>
     {
         var position = scanner.Position;
 
-        var isPartial = Tokens.Literal("partial", ref scanner, advance: true) && SDSL.Parsers.Spaces1(ref scanner, result, out _);
-        if (!isPartial)
+        if (SDSL.Parsers.SequenceOf(ref scanner, ["partial", "effect"]))
+            return SDSL.Parsers.Exit(ref scanner, result, out parsed, position, new(SDSLErrorMessages.SDSL0311, scanner[scanner.Position], scanner.Memory));
+
+        var isLayer = Tokens.Literal("extend", ref scanner, advance: true) && SDSL.Parsers.Spaces1(ref scanner, result, out _);
+        if (!isLayer)
             scanner.Position = position;
 
         if (Tokens.Literal("effect", ref scanner, advance: true) && SDSL.Parsers.Spaces1(ref scanner, result, out _))
         {
             if (LiteralsParser.TypeName(ref scanner, result, out var effectName) && SDSL.Parsers.Spaces0(ref scanner, result, out _))
             {
-                parsed = new((TypeName)effectName, isPartial, new());
+                parsed = new((TypeName)effectName, isLayer, new());
                 if (EffectStatementParsers.EffectBlock(ref scanner, result, out var s) && SDSL.Parsers.Spaces0(ref scanner, result, out _))
                 {
                     // Optional semi-colon

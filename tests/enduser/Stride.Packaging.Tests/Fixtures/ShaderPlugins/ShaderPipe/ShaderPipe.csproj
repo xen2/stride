@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>ShaderPipe</RootNamespace>
+    <PackageId>ShaderPipe</PackageId>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Stride.Engine" Version="$(StrideEngineVersion)" />
+    <PackageReference Include="Stride.AssetCompiler" Version="$(StrideEngineVersion)" IncludeAssets="build;buildTransitive" />
+  </ItemGroup>
+</Project>

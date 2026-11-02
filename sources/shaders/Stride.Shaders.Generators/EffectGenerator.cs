@@ -33,12 +33,20 @@ public class EffectGenerator : IIncrementalGenerator
             .Distinct()
             .OrderBy(name => name, StringComparer.Ordinal)));
 
-        context.RegisterSourceOutput(shaderFiles.Combine(implicitUsings).Combine(existingTypes), (output, x) =>
+        var referencedLayers = context.CompilationProvider.Select((compilation, _) => ReferencedLayersOf(compilation));
+
+        context.RegisterSourceOutput(shaderFiles.Combine(implicitUsings).Combine(existingTypes).Combine(referencedLayers), (output, x) =>
         {
-            var existing = new HashSet<string>(x.Right.Split('\n'));
-            output.AddSource(GetSafeHintName(x.Left.Left.Path), Generate(x.Left.Left, existing.Contains, x.Left.Right).Text);
+            var existing = new HashSet<string>(x.Left.Right.Split('\n'));
+            output.AddSource(GetSafeHintName(x.Left.Left.Left.Path), Generate(x.Left.Left.Left, existing.Contains, x.Left.Left.Right, x.Right).Text);
         });
     }
+
+    private static string ReferencedLayersOf(Compilation compilation) => string.Join(",", compilation.SourceModule.ReferencedAssemblySymbols
+        .Where(assembly => assembly.GetAttributes().Any(x => x.AttributeClass?.Name == "AssemblyMetadataAttribute" && x.ConstructorArguments is [{ Value: EffectCodeWriter.LayerMetadataKey }, ..]))
+        .Select(assembly => assembly.Identity.Name)
+        .Distinct()
+        .OrderBy(name => name, StringComparer.Ordinal));
 
     // A constant, so that the compiler and this generator have one list. Empty for a project that doesn't reference Stride.Rendering.
     private static string ImplicitUsingsOf(Compilation compilation)
@@ -49,8 +57,9 @@ public class EffectGenerator : IIncrementalGenerator
     /// </summary>
     /// <param name="csharpTypeExists">Whether a C# name exists (see <see cref="EffectCodeWriter.CSharpTypeExists"/>).</param>
     /// <param name="implicitUsings">The implicit usings, separated by commas.</param>
+    /// <param name="referencedLayers">The referenced assemblies that hold a layer (see <see cref="EffectCodeWriter.ReferencedLayers"/>), separated by commas.</param>
     /// <returns>The code, the C# names it depends on, and the shaders and effects it writes.</returns>
-    public static (string Text, IEnumerable<string> Candidates, IEnumerable<string> Declared) Generate(AdditionalText file, Func<string, bool>? csharpTypeExists, string implicitUsings)
+    public static (string Text, IEnumerable<string> Candidates, IEnumerable<string> Declared) Generate(AdditionalText file, Func<string, bool>? csharpTypeExists, string implicitUsings, string referencedLayers = "")
     {
         var isSdfx = Path.GetExtension(file.Path).Equals(".sdfx", StringComparison.OrdinalIgnoreCase);
 
@@ -73,12 +82,14 @@ public class EffectGenerator : IIncrementalGenerator
             // .sdfx files must declare 'effect', not 'shader' — catch the mistake here
             // instead of silently emitting unbuildable C#.
             if (isSdfx && parsed.AST is Parsing.ShaderFile sdfxFile && HasShaderClassDeclaration(sdfxFile))
-                return ($"#error '{Path.GetFileName(file.Path)}' contains a 'shader' declaration. Use 'effect' (or 'partial effect') inside .sdfx files; 'shader' / 'partial shader' belongs in .sdsl.", [], []);
+                return ($"#error '{Path.GetFileName(file.Path)}' contains a 'shader' declaration. Use 'effect' (or 'extend effect') inside .sdfx files; 'shader' / 'partial shader' belongs in .sdsl.", [], []);
 
             var effectCodeWriter = new EffectCodeWriter
             {
+                FileName = Path.GetFileName(file.Path),
                 CSharpTypeExists = csharpTypeExists,
                 ImplicitUsings = implicitUsings.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                ReferencedLayers = referencedLayers.Split(',', StringSplitOptions.RemoveEmptyEntries),
             };
             effectCodeWriter.Run(parsed.AST);
             return (effectCodeWriter.Text, effectCodeWriter.CSharpTypeCandidates, effectCodeWriter.DeclaredClasses);
@@ -96,6 +107,13 @@ public class EffectGenerator : IIncrementalGenerator
     // A name ending in a dot is a namespace (see EffectCodeWriter.CSharpTypeExists)
     private static bool CSharpNameExists(Compilation compilation, string name)
     {
+        if (name.IndexOf('@') is var at and >= 0)
+        {
+            // Two references with this class are two effects of one name: SDSL0302 says so when they meet, not that there is none
+            var effect = name.Substring(at + 1);
+            return compilation.GetTypesByMetadataName(name.Substring(0, at)).Any(type => type.GetMembers("EffectName").OfType<IFieldSymbol>().Any(x => x.ConstantValue as string == effect));
+        }
+
         if (name.EndsWith("!", StringComparison.Ordinal))
             return compilation.GetTypeByMetadataName(name.TrimEnd('!')) is { } type
                 && type.DeclaringSyntaxReferences.Any(x => x.GetSyntax() is Microsoft.CodeAnalysis.CSharp.Syntax.TypeDeclarationSyntax declaration

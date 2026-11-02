@@ -1,0 +1,16 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace ShaderPipe
+{
+    /// <summary>A point that other packages extend.</summary>
+    module PipeOwner
+    {
+        stream float PipeValue;
+
+        [Phases(Scene)]
+        pipeline void ModifyValue()
+        {
+        }
+    };
+}

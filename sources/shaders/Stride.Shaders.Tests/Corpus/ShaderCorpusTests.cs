@@ -4,6 +4,9 @@
 using System.Diagnostics;
 using System.Text;
 using Stride.Shaders.Compiler;
+using Stride.Shaders.Parsing;
+using Stride.Shaders.Parsing.SDFX.AST;
+using Stride.Shaders.Parsing.SDSL.AST;
 
 namespace Stride.Shaders.Parsers.Tests.Corpus;
 
@@ -48,6 +51,59 @@ public partial class ShaderCorpusTests
         Assert.NotEmpty(entries);
         foreach (var entry in entries)
             Assert.Equal(entry.Hash, ShaderCorpusEntry.FromJson(ShaderCorpusEntry.ToJson(entry)).Hash);
+    }
+
+    // A tree holds the blocks it was captured with, so an effect file that loses a block still compiles here, and only a real build fails.
+    // A layer of any project also adds blocks, to its effect and to the child effects of that effect
+    [Fact]
+    public void StoredLinkageRulesAreTheOnesOfTheEffectFiles()
+    {
+        var effects = Directory.EnumerateFiles(Path.Combine(ShaderCorpus.RepositoryRoot, "sources"), "*.sdfx", SearchOption.AllDirectories)
+            .Select(x => (Folders: x.Split(Path.DirectorySeparatorChar), File: SDSLParser.Parse(File.ReadAllText(x)).AST as ShaderFile))
+            .Where(x => x.File != null && !x.Folders.Any(y => y is "bin" or "obj"))
+            .SelectMany(x => EffectsOf(x.File!).Select(y => (IsInTests: x.Folders.Any(z => z.Contains(".Tests", StringComparison.Ordinal)), Effect: y)))
+            .ToList();
+        // The editor effects have a copy in each editor (WPF and Avalonia): the copies say the same
+        var declared = effects.Where(x => !x.IsInTests && !x.Effect.IsLayer).GroupBy(x => x.Effect.Name.Name, x => WrittenRules(x.Effect).ToHashSet()).ToList();
+        foreach (var copies in declared)
+            Assert.True(copies.All(x => x.SetEquals(copies.First())), $"{copies.Key}: its .sdfx files don't have the same blocks");
+        var written = declared.ToDictionary(x => x.Key, x => x.First());
+        var fromLayers = effects.Where(x => x.Effect.IsLayer).SelectMany(x => WrittenRules(x.Effect)).ToHashSet();
+
+        var stored = ShaderCorpus.ReadEntries()
+            .Where(x => written.ContainsKey(ShaderNames.ShortName(x.EffectName)))
+            .GroupBy(x => ShaderNames.ShortName(x.EffectName))
+            .ToDictionary(x => x.Key, x => x.SelectMany(y => y.Mixin.Linkage).SelectMany(RuleText).ToHashSet());
+
+        Assert.NotEmpty(stored);
+        foreach (var (effect, rules) in stored)
+            Assert.True(rules.SetEquals(written[effect].Union(rules.Intersect(fromLayers))), $"{effect}: the corpus has [{string.Join("; ", rules.Order())}], its .sdfx file has [{string.Join("; ", written[effect].Order())}], and no layer has the others");
+
+        static IEnumerable<string> WrittenRules(ShaderEffect effect) => BlocksOf(effect.Block).SelectMany(x => x.ReadRules(name => name, "", [])).SelectMany(RuleText);
+
+        // One text per name, with short names: the generator resolves the names of a file with its usings, and an effect can put a
+        // name in the block of each branch
+        static IEnumerable<string> RuleText(ShaderLinkageRule rule)
+        {
+            var place = $"{rule.Kind} {ShaderNames.ShortName(rule.Shader)} {(rule.Owner != null ? $"{ShaderNames.ShortName(rule.Owner)}." : "")}{rule.Method}{(rule.Parameters != null ? $"({rule.Parameters})" : "")}";
+            var isClass = rule.Kind == ShaderLinkageKind.MixinOrder;
+            return rule.Names.Select(x => $"{place} {ShaderNames.ShortName(x)}")
+                .Concat(rule.After.Select(x => $"{place} after {(isClass ? ShaderNames.ShortName(x) : x)}"))
+                .Concat(rule.Before.Select(x => $"{place} before {(isClass ? ShaderNames.ShortName(x) : x)}"))
+                .Concat(rule.Phases.Select(x => $"{place} phase {x}"))
+                .Concat(rule.Mixins.Select(x => $"{place} mixin {ShaderNames.ShortName(x)}"))
+                .Concat(rule.Phase != null ? [$"{place} in {rule.Phase}"] : []);
+        }
+
+        static IEnumerable<ShaderEffect> EffectsOf(ShaderFile file) => file.RootDeclarations.Concat(file.Namespaces.SelectMany(x => x.Declarations)).OfType<ShaderEffect>();
+
+        static IEnumerable<EffectShaderBlock> BlocksOf(Statement? statement) => statement switch
+        {
+            EffectShaderBlock block => [block],
+            BlockStatement block => block.Statements.SelectMany(BlocksOf),
+            ConditionalFlow flow => BlocksOf(flow.If.Body).Concat(flow.ElseIfs.SelectMany(x => BlocksOf(x.Body))).Concat(BlocksOf(flow.Else?.Body)),
+            _ => [],
+        };
     }
 
     /// <summary>

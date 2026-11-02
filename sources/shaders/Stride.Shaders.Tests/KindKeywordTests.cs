@@ -211,7 +211,7 @@ public class KindKeywordTests : IDisposable
         var (ok, log) = Mix("Wrong");
 
         Assert.False(ok, log);
-        Assert.Contains("SDSL0135: [Phases] on Wrong.F: the phases are on the first definition.", log);
+        Assert.Contains("SDSL0135: [Phases] on Wrong.F: the phases are on the first definition. An override adds a phase with [Phase(Vendor.Name, After = Other)].", log);
     }
 
     [Fact]

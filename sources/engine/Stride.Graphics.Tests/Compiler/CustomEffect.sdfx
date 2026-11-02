@@ -8,7 +8,7 @@ namespace Stride.Graphics.Tests
         float SwitchEffectLevel;
     }
 
-    partial effect CustomSubEffect
+    effect CustomSubEffect
     {
         using params CustomEffectParameters;
 

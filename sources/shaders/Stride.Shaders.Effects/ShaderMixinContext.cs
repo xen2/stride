@@ -25,6 +25,8 @@ namespace Stride.Shaders
 
         private readonly ShaderMixinSource currentMixinSourceTree;
 
+        private int layerCount;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ShaderMixinContext" /> class.
         /// </summary>
@@ -80,6 +82,59 @@ namespace Stride.Shaders
                 return currentMixinSourceTree;
             }
         }
+
+        /// <summary>
+        /// Gets the level of the rules added now: 0 for the effect, then one more for each layer, in the order layers run.
+        /// </summary>
+        internal int LinkageLevel { get; private set; }
+
+        /// <summary>
+        /// Gives the rules of a layer the next level, and returns the level to come back to.
+        /// </summary>
+        internal int EnterLayer()
+        {
+            var level = LinkageLevel;
+            LinkageLevel = ++layerCount;
+            return level;
+        }
+
+        internal void LeaveLayer(int level) => LinkageLevel = level;
+
+        /// <summary>
+        /// Starts a block of the effect being built, <c>extend shader Shader { ... }</c>, to give attributes to the methods of a class.
+        /// </summary>
+        /// <param name="shader">The class, by full name, or by a name it ends with.</param>
+        /// <param name="source">Where the block is written, for messages.</param>
+        /// <returns>The block.</returns>
+        public ShaderBlock ExtendShader(string shader, string source = null) => new(shader, source, rule =>
+        {
+            rule.Level = LinkageLevel;
+            currentMixinSourceTree.Linkage.Add(rule);
+        });
+
+        /// <summary>
+        /// <c>extend shader Owner { [MixinOrder(A, B)] Method; }</c>: these classes run in this order, in their phase.
+        /// </summary>
+        /// <param name="owner">The class of the first definition of the method.</param>
+        /// <param name="method">The method, with the parameter types of an overload.</param>
+        /// <param name="classes">The classes, in their running order.</param>
+        public void MixinOrder(string owner, string method, params ReadOnlySpan<string> classes) => ExtendShader(owner).Method(method).MixinOrder(classes);
+
+        /// <summary>
+        /// <c>extend shader Owner { [Unbind(Phases = { P, Q })] Method; }</c>: these phases don't run in this effect.
+        /// </summary>
+        /// <param name="owner">The class of the first definition of the method.</param>
+        /// <param name="method">The method, with the parameter types of an overload.</param>
+        /// <param name="phases">The phases.</param>
+        public void UnbindPhases(string owner, string method, params ReadOnlySpan<string> phases) => ExtendShader(owner).Method(method).UnbindPhases(phases);
+
+        /// <summary>
+        /// <c>extend shader Owner { [Unbind(Mixins = { X, Y })] Method; }</c>: the contributions of these classes don't run in this effect.
+        /// </summary>
+        /// <param name="owner">The class of the first definition of the method.</param>
+        /// <param name="method">The method, with the parameter types of an overload.</param>
+        /// <param name="mixins">The classes.</param>
+        public void UnbindMixins(string owner, string method, params ReadOnlySpan<string> mixins) => ExtendShader(owner).Method(method).UnbindMixins(mixins);
 
         public void Discard()
         {

@@ -90,14 +90,23 @@ public partial class ShaderMixer
         /// <summary>What a contributor drops, by method: full names of classes, and phases with their prefix.</summary>
         public Dictionary<int, string[]> Drops { get; } = new();
 
-        /// <summary>The contributors taken out of the chain by <c>[Drops]</c>, by method, and the class that did it.</summary>
-        public Dictionary<int, (ShaderInfo Shader, ShaderInfo By)> Replaced { get; } = new();
+        /// <summary>The contributors taken out of the chain, by method, and the class that did it: <c>[Drops]</c>, or null for <c>[Unbind]</c>.</summary>
+        public Dictionary<int, (ShaderInfo Shader, ShaderInfo? By)> Replaced { get; } = new();
+
+        /// <summary>The phases added by a contributor, by method: the phases after and before it, empty when not given.</summary>
+        public Dictionary<int, (string Phase, string After, string Before)> AddedPhases { get; } = new();
+
+        /// <summary>Where the body of a contributor to a pipeline calls <c>base</c>, by method: first, last, only, none or other.</summary>
+        public Dictionary<int, string> BaseCalls { get; } = new();
 
         /// <summary>The line of each contributor in its file, by method, for messages.</summary>
         public Dictionary<int, int> Lines { get; } = new();
 
         /// <summary>The classes the first definition lists in their running order: <c>[MixinOrder(A, B)]</c>.</summary>
         public List<string> MixinOrder { get; } = new();
+
+        /// <summary>What the first definition takes out of the chain: full names of classes, and phases with their prefix.</summary>
+        public List<string> Unbind { get; } = new();
 
         /// <summary>The pairs that order contributors inside their phase, once merged: see <see cref="OrderPhases"/>.</summary>
         public List<OrderPair> Pairs { get; } = new();

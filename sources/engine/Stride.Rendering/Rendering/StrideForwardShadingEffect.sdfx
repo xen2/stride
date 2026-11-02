@@ -6,7 +6,7 @@ using Stride.Rendering.Materials;
 
 namespace Stride.Rendering
 {
-    partial effect StrideLighting
+    effect StrideLighting
     {
         using params LightingKeys;
 
