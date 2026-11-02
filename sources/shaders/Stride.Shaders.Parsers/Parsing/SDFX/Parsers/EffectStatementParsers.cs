@@ -29,6 +29,11 @@ public record struct EffectStatementParsers : IParser<Statement>
             parsed = p2;
             return true;
         }
+        else if (new EffectLinkageRuleParser().Match(ref scanner, result, out EffectLinkageRule? rule))
+        {
+            parsed = rule;
+            return true;
+        }
         else if (ControlsParser.Control(ref scanner, result, out var control, Statement))
         {
             parsed = control;
@@ -102,6 +107,94 @@ public record struct EffectStatementParsers : IParser<Statement>
 
 }
 
+
+/// <summary>
+/// The keywords are not reserved: a line that doesn't have the whole shape is read as any other statement (<c>order = 2;</c>).
+/// </summary>
+public record struct EffectLinkageRuleParser : IParser<EffectLinkageRule>
+{
+    public readonly bool Match<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out EffectLinkageRule parsed, in ParseError? orError = null) where TScanner : struct, IScanner
+    {
+        var position = scanner.Position;
+        if (Tokens.AnyOf(["order", "unbind", "bind", "phase"], ref scanner, out var keyword, advance: true)
+            && SDSL.Parsers.Spaces1(ref scanner, result, out _)
+            && DottedName(ref scanner, result, out var path))
+        {
+            var names = new List<string>();
+            SDSL.Parsers.Spaces0(ref scanner, result, out _);
+            var complete = keyword switch
+            {
+                "order" => path.Count >= 3 && SDSL.Parsers.FollowedBy(ref scanner, Tokens.Char(':'), withSpaces: true, advance: true) && NameList(ref scanner, result, names),
+                "bind" => path.Count >= 3 && SDSL.Parsers.FollowedBy(ref scanner, Tokens.Char('='), withSpaces: true, advance: true) && NameList(ref scanner, result, names) && names.Count == 1,
+                // unbind Owner.Method.Phase; or unbind Owner.Method = Class;
+                "unbind" => SDSL.Parsers.FollowedBy(ref scanner, Tokens.Char('='), withSpaces: true, advance: true)
+                    ? path.Count >= 2 && NameList(ref scanner, result, names) && names.Count == 1
+                    : path.Count >= 3,
+                _ => path.Count >= 3 && Neighbours(ref scanner, result, names),
+            };
+            if (complete && SDSL.Parsers.FollowedBy(ref scanner, Tokens.Char(';'), withSpaces: true, advance: true))
+            {
+                parsed = new EffectLinkageRule(keyword, path, names, scanner[position..scanner.Position]);
+                return true;
+            }
+        }
+        scanner.Position = position;
+        parsed = null;
+        return false;
+    }
+
+    private static bool DottedName<TScanner>(ref TScanner scanner, ParseResult result, out List<string> parts) where TScanner : struct, IScanner
+    {
+        parts = [];
+        do
+        {
+            if (!LiteralsParser.Identifier(ref scanner, result, out var part))
+                return false;
+            parts.Add(part.Name);
+        }
+        while (Tokens.Char('.', ref scanner, advance: true));
+        return true;
+    }
+
+    private static bool NameList<TScanner>(ref TScanner scanner, ParseResult result, List<string> names) where TScanner : struct, IScanner
+    {
+        do
+        {
+            SDSL.Parsers.Spaces0(ref scanner, result, out _);
+            if (!DottedName(ref scanner, result, out var name))
+                return false;
+            names.Add(string.Join('.', name));
+        }
+        while (SDSL.Parsers.FollowedBy(ref scanner, Tokens.Char(','), withSpaces: true, advance: true));
+        return true;
+    }
+
+    // after A before B: at least one, in this order
+    private static bool Neighbours<TScanner>(ref TScanner scanner, ParseResult result, List<string> names) where TScanner : struct, IScanner
+    {
+        var after = "";
+        var before = "";
+        var position = scanner.Position;
+        if (Tokens.Literal("after", ref scanner, advance: true) && SDSL.Parsers.Spaces1(ref scanner, result, out _) && LiteralsParser.Identifier(ref scanner, result, out var afterName))
+        {
+            after = afterName.Name;
+            SDSL.Parsers.Spaces0(ref scanner, result, out _);
+            position = scanner.Position;
+        }
+        else
+        {
+            scanner.Position = position;
+        }
+        if (Tokens.Literal("before", ref scanner, advance: true) && SDSL.Parsers.Spaces1(ref scanner, result, out _) && LiteralsParser.Identifier(ref scanner, result, out var beforeName))
+            before = beforeName.Name;
+        else
+            scanner.Position = position;
+
+        names.Add(after);
+        names.Add(before);
+        return after.Length > 0 || before.Length > 0;
+    }
+}
 
 public record struct UsingParamsParser : IParser<UsingParams>
 {

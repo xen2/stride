@@ -3,8 +3,10 @@
 
 namespace Stride.Rendering
 {
-    partial effect Picking
+    effect Picking
     {
         mixin PickingShader;
+        unbind ShaderBase.PSMain.Shade;
+        unbind ShaderBase.PSMain.Input;
     };
 }

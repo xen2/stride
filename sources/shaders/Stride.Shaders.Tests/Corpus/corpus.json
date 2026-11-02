@@ -3991,7 +3991,16 @@
           ]
         }
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        null,
+        "Stride.Rendering.SpriteBase"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.Images.ThresholdAlphaCoC",
@@ -8925,7 +8934,15 @@
         "Stride.Rendering.TransformationWAndVP",
         "Stride.Rendering.HighlightShader"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -9118,7 +9135,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -9402,7 +9433,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -9478,7 +9523,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -9663,7 +9722,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -9838,7 +9911,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -10071,7 +10158,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -10142,7 +10243,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -10331,7 +10446,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -10544,7 +10673,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -10681,7 +10824,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -10861,7 +11018,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -11059,7 +11230,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -11139,7 +11324,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Picking",
@@ -11286,7 +11485,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -11445,7 +11658,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -11510,7 +11737,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -11720,7 +11961,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -11859,7 +12114,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -11929,7 +12198,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -12053,7 +12336,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -12168,7 +12465,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -12274,7 +12585,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -12447,7 +12772,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -12764,7 +13103,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -12838,7 +13191,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -12911,7 +13278,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ShadowMapCaster",
@@ -13022,7 +13403,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.Wireframe",
@@ -13359,7 +13754,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ZPrepass",
@@ -13424,7 +13833,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ZPrepass",
@@ -13535,7 +13958,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ZPrepass",
@@ -13609,7 +14046,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ZPrepass",
@@ -13715,7 +14166,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ZPrepass",
@@ -13874,7 +14339,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ZPrepass",
@@ -14013,7 +14492,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ZPrepass",
@@ -14128,7 +14621,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ZPrepass",
@@ -14338,7 +14845,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ZPrepass",
@@ -14411,7 +14932,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect.ZPrepass",
@@ -14535,7 +15070,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideEditorForwardShadingEffect",
@@ -45916,7 +46465,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -46229,7 +46792,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -46402,7 +46979,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -46971,7 +47562,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -47289,7 +47894,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -47436,7 +48055,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -47543,7 +48176,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -47607,7 +48254,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -47748,7 +48409,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -47951,7 +48626,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -48152,7 +48841,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -48226,7 +48929,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -48310,7 +49027,15 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -48428,7 +49153,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -48510,7 +49249,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -49061,7 +49814,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -49178,7 +49945,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -49335,7 +50116,15 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -49496,7 +50285,15 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -49613,7 +50410,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -49739,7 +50550,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -49826,7 +50651,21 @@
           "1"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -50101,7 +50940,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -50170,7 +51023,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -50331,7 +51198,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -50411,7 +51292,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -50552,7 +51447,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -50626,7 +51535,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -50838,7 +51761,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -50932,7 +51869,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -51048,7 +51999,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -51151,7 +52116,15 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -51384,7 +52357,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -51449,7 +52436,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -51642,7 +52643,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -51782,7 +52797,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -51932,7 +52961,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -52024,7 +53067,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -52106,7 +53163,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -52219,7 +53290,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -52306,7 +53391,21 @@
           "3"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -52463,7 +53562,15 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -52532,7 +53639,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -52598,7 +53719,21 @@
           "7"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -52704,7 +53839,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -52865,7 +54014,15 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
@@ -52978,7 +54135,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCasterCubeMap",
@@ -53119,7 +54290,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCasterCubeMap",
@@ -53184,7 +54369,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCasterParaboloid",
@@ -53249,7 +54448,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCasterParaboloid",
@@ -53390,7 +54603,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -53507,7 +54734,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -54076,7 +55317,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -54393,7 +55648,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -54543,7 +55812,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -54684,7 +55967,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -54845,7 +56142,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -54919,7 +56230,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -55131,7 +56456,21 @@
           "56"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -55682,7 +57021,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -55789,7 +57142,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -55990,7 +57357,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -56103,7 +57484,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ZPrepass",
@@ -56229,7 +57624,21 @@
           ]
         }
       }
-    }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect",

@@ -55,7 +55,8 @@ public static class ShaderNames
 /// <summary>
 /// A class or effect declared at the top of a source file.
 /// </summary>
-public readonly record struct ShaderFileDeclaration(string? Namespace, string Name, bool IsEffect)
+/// <param name="IsLayer">Whether it is an <c>extend effect</c>, which adds to an effect declared elsewhere.</param>
+public readonly record struct ShaderFileDeclaration(string? Namespace, string Name, bool IsEffect, bool IsLayer = false)
 {
     public string FullName => ShaderNames.Combine(Namespace, Name);
 }
@@ -99,6 +100,12 @@ public static class ShaderFileDeclarations
             else if (char.IsAsciiLetter(c) || c == '_')
             {
                 var word = ReadWord(text, ref i, dots: false);
+                var isExtend = word == "extend";
+                if (isExtend)
+                {
+                    SkipCodeSpaces(source, ref i);
+                    word = ReadWord(text, ref i, dots: false);
+                }
                 switch (word)
                 {
                     case "namespace":
@@ -125,7 +132,7 @@ public static class ShaderFileDeclarations
                             var name = ReadWord(text, ref i, dots: false);
                             // The keys of params are C#, and several files can write one params class
                             if (name.Length > 0 && word != "params")
-                                result.Add(new(namespaces.Count > 0 ? namespaces.Peek() : fileNamespace, name, word == "effect"));
+                                result.Add(new(namespaces.Count > 0 ? namespaces.Peek() : fileNamespace, name, word == "effect", isExtend && word == "effect"));
                             var open = source.NextCode('{', i);
                             var close = open < 0 ? -1 : source.MatchingBrace(open);
                             i = close < 0 ? text.Length : close + 1;

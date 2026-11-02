@@ -1,0 +1,4 @@
+---
+!EffectCompileRequest
+EffectName: ShaderPipe.PipeEffect
+UsedParameters: {}

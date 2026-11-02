@@ -10,12 +10,14 @@ using Stride.Shaders.Spirv.Core;
 namespace Stride.Shaders.Parsing.SDFX.AST;
 
 
-public partial class ShaderEffect(TypeName name, bool isPartial, TextLocation info) : ShaderDeclaration(info)
+public partial class ShaderEffect(TypeName name, bool isLayer, TextLocation info) : ShaderDeclaration(info)
 {
     public TypeName Name { get; set; } = name;
 
     public BlockStatement? Block { get; set; }
-    public bool IsPartial { get; set; } = isPartial;
+
+    /// <summary>Whether it is written <c>extend effect</c>: it adds to the effect of this name, which another project declares.</summary>
+    public bool IsLayer { get; set; } = isLayer;
 
     public override string ToString() => Block?.ToString() ?? "(empty)";
 
@@ -98,6 +100,23 @@ public partial class EffectDiscardStatement(TextLocation info) : EffectStatement
     {
         throw new NotImplementedException();
     }
+}
+
+/// <summary>
+/// A linkage rule: <c>order</c>, <c>bind</c>, <c>unbind</c> or <c>phase</c>.
+/// </summary>
+/// <param name="keyword">The word that starts the rule.</param>
+/// <param name="path">The dotted name after it, cut at the dots.</param>
+/// <param name="names">The class names, or for <c>phase</c> the phases after and before it (empty when not given).</param>
+public partial class EffectLinkageRule(string keyword, List<string> path, List<string> names, TextLocation info) : EffectStatement(info)
+{
+    public string Keyword { get; } = keyword;
+    public List<string> Path { get; } = path;
+    public List<string> Names { get; } = names;
+
+    public override void Compile(SymbolTable table, CompilerUnit compiler) => throw new NotImplementedException();
+
+    public override string ToString() => $"{Keyword} {string.Join('.', Path)} {string.Join(", ", Names)}";
 }
 
 /// <summary>

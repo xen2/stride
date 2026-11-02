@@ -5,7 +5,7 @@ using Stride.Rendering.Materials;
 
 namespace Stride.BepuPhysics.Debug
 {
-    partial effect StrideSinglePassWireframeShader
+    effect StrideSinglePassWireframeShader
     {
         mixin SinglePassWireframeShader;
     }

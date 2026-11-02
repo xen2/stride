@@ -54,6 +54,30 @@ namespace Stride.Assets.Tests
             Assert.False(Prepare(context, second).HasErrors);
         }
 
+        [Fact]
+        public void ALayerInAnotherPackageIsNotASecondDeclaration()
+        {
+            var first = AddEffect("First", "namespace Game; effect MyEffect { };");
+            var second = AddEffect("Second", "namespace Game; extend effect MyEffect { };");
+            InOneSession(first, second);
+            var context = new AssetCompilerContext { CompilationContext = typeof(AssetCompilationContext) };
+
+            Assert.False(Prepare(context, first).HasErrors);
+            Assert.False(Prepare(context, second).HasErrors);
+        }
+
+        [Fact]
+        public void TwoLayersInTwoPackagesAreFine()
+        {
+            var first = AddEffect("First", "namespace Game; extend effect MyEffect { };");
+            var second = AddEffect("Second", "namespace Game; extend effect MyEffect { };");
+            InOneSession(first, second);
+            var context = new AssetCompilerContext { CompilationContext = typeof(AssetCompilationContext) };
+
+            Assert.False(Prepare(context, first).HasErrors);
+            Assert.False(Prepare(context, second).HasErrors);
+        }
+
         // A params class can have parts in several files
         [Fact]
         public void TwoFilesCanWriteOneParams()

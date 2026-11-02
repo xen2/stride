@@ -1,0 +1,20 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+using ShaderPipe;
+
+namespace ShaderStepB
+{
+    /// <summary>A step of the point of another package. It doesn't know the other step.</summary>
+    module StepB
+    {
+        import PipeOwner;
+
+        [Phase(Scene)]
+        override void ModifyValue()
+        {
+            base.ModifyValue();
+            streams.PipeValue = lerp(streams.PipeValue, 0.9, 0.5);
+        }
+    };
+}

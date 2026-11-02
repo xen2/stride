@@ -59,6 +59,23 @@ namespace Stride.Assets.Effect
             var replacements = EffectShaderAssetCompiler.GetReplacementsHash(context, package.Session);
             if (replacements != ObjectId.Empty)
                 writer.Write(replacements);
+
+            // A layer of another assembly changes what the effect mixes, not its name
+            if (ShaderMixinManager.Contains(effectName) && TryGenerate() is { } effect)
+                writer.Write(ShaderMixinObjectId.Compute(effect, compilerParameters.EffectParameters));
+
+            // An effect that can't be generated is an error of the command when it runs, with its place in the log
+            ShaderMixinSource TryGenerate()
+            {
+                try
+                {
+                    return ShaderMixinManager.Generate(effectName, compilerParameters);
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
         }
 
         protected override void ComputeAssemblyHash(BinarySerializationWriter writer)

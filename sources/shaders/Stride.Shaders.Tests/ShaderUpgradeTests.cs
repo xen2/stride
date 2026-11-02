@@ -594,8 +594,8 @@ public class ShaderUpgradeTests
         // The namespace of the effect is the namespace of the file
         ["sources/engine/Stride.Graphics/Shaders/SpriteAlphaCutoff.sdsl"] =
         [
-            ("namespace Stride.Rendering\n{\n    partial effect SpriteAlphaCutoffEffect\n    {\n        using params SpriteBaseKeys;\n        mixin SpriteAlphaCutoff<SpriteBaseKeys.ColorIsSRgb>;\n    };\n}\n",
-                "partial effect SpriteAlphaCutoffEffect\n{\n    using params SpriteBaseKeys;\n    mixin SpriteAlphaCutoff<SpriteBaseKeys.ColorIsSRgb>;\n};\n"),
+            ("namespace Stride.Rendering\n{\n    effect SpriteAlphaCutoffEffect\n    {\n        using params SpriteBaseKeys;\n        mixin SpriteAlphaCutoff<SpriteBaseKeys.ColorIsSRgb>;\n    };\n}\n",
+                "effect SpriteAlphaCutoffEffect\n{\n    using params SpriteBaseKeys;\n    mixin SpriteAlphaCutoff<SpriteBaseKeys.ColorIsSRgb>;\n};\n"),
         ],
         // Key names are full names
         ["sources/plugins/Voxels/Stride.Voxels/Voxels/Voxelization/Modifiers/Appliers/Anisotropic/VoxelModifierApplierOpacifyAnisotropic.sdsl"] =
@@ -611,6 +611,20 @@ public class ShaderUpgradeTests
             ("[Link(\"BufferToTexture.", "[Link(\"Stride.Rendering.Voxels.BufferToTexture."),
         ],
     };
+
+    // In an effect file and in a shader file, which both can declare effects
+    [Fact]
+    public void PartialEffectBecomesEffect()
+    {
+        const string effect = "// partial effect in a comment\nnamespace N\n{\n    partial  effect E { mixin A; };\n    extend effect F { mixin A; };\n}\n";
+        const string shader = "partial effect G { mixin A; };\nshader S { };\n";
+
+        var files = ShaderUpgrader.Upgrade(new Dictionary<string, string> { ["E.sdfx"] = effect, ["S.sdsl"] = shader }, engine: null).Files;
+
+        Assert.Equal("// partial effect in a comment\nnamespace N\n{\n    effect E { mixin A; };\n    extend effect F { mixin A; };\n}\n", files["E.sdfx"]);
+        Assert.Equal("effect G { mixin A; };\nshader S { };\n", files["S.sdsl"]);
+        Assert.Equal(files["E.sdfx"], ShaderUpgrader.Upgrade(new Dictionary<string, string> { ["E.sdfx"] = files["E.sdfx"] }, engine: null).Files["E.sdfx"]);
+    }
 
     // The engine shaders of that commit, upgraded, are today's engine shaders apart from the edits made by hand
     [Fact]

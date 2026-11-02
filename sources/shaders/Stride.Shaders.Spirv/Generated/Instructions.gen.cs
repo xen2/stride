@@ -130931,11 +130931,23 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
         }
     }
 
-    public OpContributionSDSL(string phase, string after, string replaces)
+    public string AddedPhase
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public OpContributionSDSL(string phase, string after, string replaces, string addedPhase)
     {
         Phase = phase;
         After = after;
         Replaces = replaces;
+        AddedPhase = addedPhase;
         UpdateInstructionMemory();
         opData = ref Unsafe.NullRef<OpData>();
     }
@@ -130948,7 +130960,7 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
     public void UpdateInstructionMemory()
     {
         InstructionMemory ??= MemoryOwner<int>.Empty;
-        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words, ..After.AsDisposableLiteralValue().Words, ..Replaces.AsDisposableLiteralValue().Words];
+        Span<int> instruction = [(int)Op.OpContributionSDSL, ..Phase.AsDisposableLiteralValue().Words, ..After.AsDisposableLiteralValue().Words, ..Replaces.AsDisposableLiteralValue().Words, ..AddedPhase.AsDisposableLiteralValue().Words];
         instruction[0] |= instruction.Length << 16;
         if (instruction.Length == InstructionMemory.Length)
             instruction.CopyTo(InstructionMemory.Span);
@@ -130975,6 +130987,9 @@ public ref partial struct OpContributionSDSL : IMemoryInstruction
                     break;
                 case "replaces":
                     Replaces = o.ToLiteral<string>();
+                    break;
+                case "addedPhase":
+                    AddedPhase = o.ToLiteral<string>();
                     break;
                 // We ignore unrecognized operands
                 default:

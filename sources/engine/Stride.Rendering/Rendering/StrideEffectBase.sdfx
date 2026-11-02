@@ -8,7 +8,7 @@ namespace Stride.Rendering
     /// <summary>
     /// Base effect
     /// </summary>
-    partial effect StrideEffectBase
+    effect StrideEffectBase
     {
         using params MaterialKeys;
         using params StrideEffectBaseKeys;

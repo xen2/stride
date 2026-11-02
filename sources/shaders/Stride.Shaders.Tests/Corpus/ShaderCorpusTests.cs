@@ -4,6 +4,9 @@
 using System.Diagnostics;
 using System.Text;
 using Stride.Shaders.Compiler;
+using Stride.Shaders.Parsing;
+using Stride.Shaders.Parsing.SDFX.AST;
+using Stride.Shaders.Parsing.SDSL.AST;
 
 namespace Stride.Shaders.Parsers.Tests.Corpus;
 
@@ -48,6 +51,47 @@ public partial class ShaderCorpusTests
         Assert.NotEmpty(entries);
         foreach (var entry in entries)
             Assert.Equal(entry.Hash, ShaderCorpusEntry.FromJson(ShaderCorpusEntry.ToJson(entry)).Hash);
+    }
+
+    // A tree holds the rules it was captured with, so an effect file that loses a rule still compiles here, and only a real build fails.
+    // A layer of any project also adds rules, to its effect and to the child effects of that effect
+    [Fact]
+    public void StoredLinkageRulesAreTheOnesOfTheEffectFiles()
+    {
+        var effects = Directory.EnumerateFiles(Path.Combine(ShaderCorpus.RepositoryRoot, "sources"), "*.sdfx", SearchOption.AllDirectories)
+            .Select(x => (Folders: x.Split(Path.DirectorySeparatorChar), File: SDSLParser.Parse(File.ReadAllText(x)).AST as ShaderFile))
+            .Where(x => x.File != null && !x.Folders.Any(y => y is "bin" or "obj"))
+            .SelectMany(x => EffectsOf(x.File!).Select(y => (IsInTests: x.Folders.Any(z => z.Contains(".Tests", StringComparison.Ordinal)), Effect: y)))
+            .ToList();
+        var written = effects.Where(x => !x.IsInTests && !x.Effect.IsLayer).ToDictionary(x => x.Effect.Name.Name, x => WrittenRules(x.Effect).ToHashSet());
+        var fromLayers = effects.Where(x => x.Effect.IsLayer).SelectMany(x => WrittenRules(x.Effect)).ToHashSet();
+
+        var stored = ShaderCorpus.ReadEntries()
+            .Where(x => written.ContainsKey(ShaderNames.ShortName(x.EffectName)))
+            .GroupBy(x => ShaderNames.ShortName(x.EffectName))
+            .ToDictionary(x => x.Key, x => x.SelectMany(y => y.Mixin.Linkage).Select(RuleText).ToHashSet());
+
+        Assert.NotEmpty(stored);
+        foreach (var (effect, rules) in stored)
+            Assert.True(rules.SetEquals(written[effect].Union(rules.Intersect(fromLayers))), $"{effect}: the corpus has [{string.Join("; ", rules.Order())}], its .sdfx file has [{string.Join("; ", written[effect].Order())}], and no layer has the others");
+
+        static IEnumerable<string> WrittenRules(ShaderEffect effect) => RulesOf(effect.Block).Select(x => x.Keyword + " " + string.Join('.', x.Path) + (x.Names.Count > 0 ? " = " + string.Join(',', x.Names) : ""));
+
+        static string RuleText(ShaderLinkageRule rule)
+        {
+            var path = string.Join('.', new[] { ShaderNames.ShortName(rule.Owner), rule.Method, rule.Phase }.Where(x => x != null));
+            return rule.Kind.ToString().ToLowerInvariant() + " " + path + (rule.Names.Count > 0 ? " = " + string.Join(',', rule.Names.Select(ShaderNames.ShortName)) : "");
+        }
+
+        static IEnumerable<ShaderEffect> EffectsOf(ShaderFile file) => file.RootDeclarations.Concat(file.Namespaces.SelectMany(x => x.Declarations)).OfType<ShaderEffect>();
+
+        static IEnumerable<EffectLinkageRule> RulesOf(Statement? statement) => statement switch
+        {
+            EffectLinkageRule rule => [rule],
+            BlockStatement block => block.Statements.SelectMany(RulesOf),
+            ConditionalFlow flow => RulesOf(flow.If.Body).Concat(flow.ElseIfs.SelectMany(x => RulesOf(x.Body))).Concat(RulesOf(flow.Else?.Body)),
+            _ => [],
+        };
     }
 
     /// <summary>

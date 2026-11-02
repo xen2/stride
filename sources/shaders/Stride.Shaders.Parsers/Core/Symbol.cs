@@ -16,6 +16,12 @@ public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Ow
     /// <summary>What marks a phase in the targets of <c>[Replaces]</c>, which are otherwise full names of classes.</summary>
     public const char ReplacedPhasePrefix = '@';
 
+    /// <summary>What a contribution that adds a phase records when its body calls <c>base</c> as its first statement.</summary>
+    public const string BaseCallFirst = "first";
+
+    /// <summary>What a contribution that adds a phase records when its body calls <c>base</c> as its last statement.</summary>
+    public const string BaseCallLast = "last";
+
     /// <summary>The phase of the default body of a pipeline: <see cref="DefaultPhase"/>, else the first one.</summary>
     public int DefaultPhaseIndex => Math.Max(Array.IndexOf(Phases, DefaultPhase), 0);
 }

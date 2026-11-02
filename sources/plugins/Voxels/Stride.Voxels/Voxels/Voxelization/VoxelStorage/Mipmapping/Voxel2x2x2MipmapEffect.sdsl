@@ -2,7 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 namespace Stride.Rendering.Voxels
 {
-    partial effect Voxel2x2x2MipmapEffect
+    effect Voxel2x2x2MipmapEffect
     {
         using params Voxel2x2x2MipmapKeys;
         

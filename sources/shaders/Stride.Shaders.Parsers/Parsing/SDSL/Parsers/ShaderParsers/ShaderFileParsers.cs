@@ -44,7 +44,7 @@ public record struct ShaderFileParser : IParser<ShaderFile>
                 file.RootDeclarations.Add(shader);
                 Parsers.Spaces0(ref scanner, result, out _);
             }
-            else if ((Tokens.Literal("effect", ref scanner) || Parsers.SequenceOf(ref scanner, ["partial", "effect"]))
+            else if ((Tokens.Literal("effect", ref scanner) || Parsers.SequenceOf(ref scanner, ["extend", "effect"]) || Parsers.SequenceOf(ref scanner, ["partial", "effect"]))
                 && EffectParser.Effect(ref scanner, result, out var effect)
             )
             {

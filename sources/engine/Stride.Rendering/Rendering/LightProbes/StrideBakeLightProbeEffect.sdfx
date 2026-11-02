@@ -5,7 +5,7 @@ using Stride.Rendering.Materials;
 
 namespace Stride.Rendering.LightProbes
 {
-    partial effect StrideBakeLightProbeEffect
+    effect StrideBakeLightProbeEffect
     {
         mixin BakeLightProbeShader;
     }

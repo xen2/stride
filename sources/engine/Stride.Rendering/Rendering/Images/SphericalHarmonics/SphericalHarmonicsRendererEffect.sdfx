@@ -8,5 +8,6 @@ namespace Stride.Rendering.Images
         using params SphericalHarmonicsParameters;
 
         mixin SphericalHarmonicsRenderer<SphericalHarmonicsParameters.HarmonicsOrder>;
+        unbind ShaderBase.PSMain = SpriteBase;
     };
 }
