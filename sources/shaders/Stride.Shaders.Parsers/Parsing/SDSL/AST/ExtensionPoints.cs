@@ -11,14 +11,15 @@ namespace Stride.Shaders.Parsing.SDSL.AST;
 
 /// <summary>
 /// Extension points: <c>[Replace]</c>, <c>[Pipeline(A, B)]</c> or <c>[Around(A, B)]</c> on the first definition of a module
-/// method, <c>[Phase(A)]</c> on an override. The class records them next to <see cref="OpFunctionMetadataSDSL"/>, and the
-/// mixer orders the override chain with them.
+/// method, <c>[Phase(A)]</c> and <c>[After(X)]</c> on an override. The class records them next to <see cref="OpFunctionMetadataSDSL"/>,
+/// and the mixer orders the override chain with them.
 /// </summary>
 internal static class ExtensionPoints
 {
     private const string PhaseAttribute = "Phase";
+    private const string AfterAttribute = "After";
 
-    public static bool IsAttribute(string name) => name is "Replace" or "Pipeline" or "Around" or "Collect" or PhaseAttribute;
+    public static bool IsAttribute(string name) => name is "Replace" or "Pipeline" or "Around" or "Collect" or PhaseAttribute or AfterAttribute;
 
     /// <summary>
     /// Checks the attributes of a method and writes what the mixer needs. An override of a declared point carries the point too,
@@ -30,6 +31,7 @@ internal static class ExtensionPoints
         var inherited = method.IsOverride ? FindOverridden(table, method.Name.Name, type)?.ExtensionPoint : null;
         var point = inherited;
         string? phase = null;
+        var after = new List<string>();
         var shaderName = table.CurrentShader!.ShortName;
         var methodName = $"{shaderName}.{method.Name.Name}";
 
@@ -40,6 +42,8 @@ internal static class ExtensionPoints
                 table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0139, methodName)));
             else if (name == PhaseAttribute)
                 phase = ReadPhase(table, attribute, method, methodName, inherited) ?? phase;
+            else if (name == AfterAttribute)
+                ReadAfter(table, attribute, method, methodName, inherited, after);
             else if (method.IsOverride)
                 table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0142, name, method.Name.Name, methodName)));
             else if (!method.IsStaged)
@@ -52,12 +56,10 @@ internal static class ExtensionPoints
 
         if (point != null)
             builder.Insert(new OpExtensionPointSDSL(point.Kind, point.Owner, string.Join(',', point.Phases)));
-        if (phase != null)
-        {
-            builder.Insert(new OpContributionSDSL(phase));
-            if (point != null)
-                CheckBasePosition(table, method, methodName, point, phase);
-        }
+        if (phase != null || after.Count > 0)
+            builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', after)));
+        if (phase != null && point != null)
+            CheckBasePosition(table, method, methodName, point, phase);
     }
 
     /// <summary>
@@ -120,6 +122,31 @@ internal static class ExtensionPoints
         else
             return phase.Name;
         return null;
+    }
+
+    /// <summary>
+    /// The classes this contributor runs after, by full name. A class that isn't in the effect is ignored at link, but it has to exist.
+    /// </summary>
+    private static void ReadAfter(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, MethodExtensionPoint? point, List<string> after)
+    {
+        if (!method.IsOverride || point == null)
+            table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "[After] goes on an override of an extension point")));
+        else if (point.Kind == ExtensionPointKindSDSL.Replace)
+            table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "one override of a [Replace] point runs, so it has no order")));
+        else if (attribute.Parameters.Count == 0)
+            table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "[After] takes class names")));
+        else
+        {
+            foreach (var parameter in attribute.Parameters)
+            {
+                if (parameter is not Identifier identifier)
+                    table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, $"'{parameter}' is not a class name")));
+                else if (table.ResolveClassName(identifier.Name, identifier.Info) is { } fullName)
+                    after.Add(fullName);
+                else
+                    table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0110, identifier.Name) + table.DidYouMean(identifier.Name)));
+            }
+        }
     }
 
     /// <summary>

@@ -81,6 +81,9 @@ public partial class ShaderMixer
         /// <summary>The phase of each contributor that names one, by method.</summary>
         public Dictionary<int, string> Phases { get; } = new();
 
+        /// <summary>The full names of the classes a contributor runs after, by method.</summary>
+        public Dictionary<int, string[]> After { get; } = new();
+
         public override string ToString() => $"{Name} (shader: {Shader}, function Id: {string.Join(", ", Methods.Select(x => $"{x.Shader.ShaderName} {x.MethodId}"))})";
     }
 }
