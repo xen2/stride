@@ -16,8 +16,8 @@ namespace Stride.Shaders.Compilers.SDSL;
 public partial class ShaderMixer
 {
     /// <summary>
-    /// An effect the asset build compiles. A contributor that drops others is then a warning (SDSL0216), and
-    /// information in a mix built at run time, where replacing engine code is often the point.
+    /// An effect the asset build compiles. A contributor that drops others is then a warning (SDSL0216) or an error (SDSL0136),
+    /// and information in a mix built at run time, where replacing engine code is often the point.
     /// </summary>
     public bool IsAssetBuild { get; set; }
 
@@ -29,7 +29,7 @@ public partial class ShaderMixer
         var index = functionIndex + 2;
         if (buffer[index].Op == Op.OpExtensionPointSDSL && (OpExtensionPointSDSL)buffer[index] is { } point)
         {
-            methodGroup.ExtensionPoint ??= new(point.Kind, point.Owner, point.Phases.Split(',', StringSplitOptions.RemoveEmptyEntries));
+            methodGroup.ExtensionPoint ??= new(point.Kind, point.Owner, point.Phases.Split(',', StringSplitOptions.RemoveEmptyEntries), point.Parameters.Split(',', StringSplitOptions.RemoveEmptyEntries));
             index++;
         }
         if (buffer[index].Op == Op.OpContributionSDSL && (OpContributionSDSL)buffer[index] is { } contribution)
@@ -42,6 +42,8 @@ public partial class ShaderMixer
                 methodGroup.Replaces[functionId] = contribution.Replaces.Split(',');
             if (contribution.AddedPhase.Length > 0 && contribution.AddedPhase.Split(',') is [var after, var before, var baseCall])
                 methodGroup.AddedPhases[functionId] = (contribution.Phase, after, before, baseCall);
+            if (contribution.Form == MethodExtensionPoint.ExtendForm)
+                methodGroup.Extends.Add(functionId);
         }
     }
 
@@ -668,12 +670,30 @@ public partial class ShaderMixer
         }
     }
 
-    private void ReportDroppedContributors(MixinNode rootMixin, MixinGlobalContext globalContext, ILogger log)
+    private bool ReportDroppedContributors(MixinNode rootMixin, MixinGlobalContext globalContext, ILogger log)
     {
+        var result = true;
         foreach (var group in NodesOf(rootMixin).SelectMany(x => x.MethodGroups.Values).Distinct())
         {
             if (group.ExtensionPoint == null || FindDropped(group, globalContext) is not var (by, dropped))
                 continue;
+
+            // In an asset build the target syntax has to say it. The compat form stays what it always was.
+            if (group.Extends.Contains(group.Methods.Find(x => x.Shader == by).MethodId))
+            {
+                var names = string.Join(", ", dropped.Select(x => ShaderNames.WithoutGenerics(x.ShaderName)));
+                var dropMessage = string.Format(SDSLErrorMessages.SDSL0136, by.ShaderName, group.Name, names, names);
+                if (IsAssetBuild)
+                {
+                    log.Error(dropMessage);
+                    result = false;
+                }
+                else
+                {
+                    log.Info(dropMessage);
+                }
+                continue;
+            }
 
             var message = string.Format(SDSLErrorMessages.SDSL0216, by.ShaderName, group.Name, string.Join(", ", dropped.Select(x => x.ShaderName)));
             if (IsAssetBuild)
@@ -681,6 +701,7 @@ public partial class ShaderMixer
             else
                 log.Info(message);
         }
+        return result;
     }
 
     /// <summary>

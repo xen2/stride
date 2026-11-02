@@ -206,6 +206,10 @@
         {
           "kind": "LiteralString",
           "name": "phases"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "parameters"
         }
       ]
     },
@@ -229,6 +233,10 @@
         {
           "kind": "LiteralString",
           "name": "addedPhase"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "form"
         }
       ]
     },

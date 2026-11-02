@@ -11,11 +11,8 @@ shader NormalMeshSkinning
     import TransformationSkinning;
     import NormalStream;
 
-    [Phase(World)]
-    [After(TransformationSkinning, TransformationSkinningInstanced)]
-    override module void PreTransformPosition()
+    extend TransformationBase.PreTransformPosition in World after TransformationSkinning, TransformationSkinningInstanced
     {
-        base.PreTransformPosition();
         streams.meshNormal = normalize(mul(streams.meshNormal, (float3x3)streams.skinningBlendMatrix)); // TODO: Does this result in an object or world space normal? If world space, write to meshNormalWS instead!
     }
 };

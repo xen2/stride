@@ -50,10 +50,8 @@ shader ShadingBase
         return ShadingColor0.Compute();
     }
     
-    [Phase(Shade)]
-    module override void PSMain()
+    extend ShaderBase.PSMain in Shade
     {
-        base.PSMain();
         streams.ColorTarget = this.Shading();
 
 #if STRIDE_RENDER_TARGET_COUNT > 1

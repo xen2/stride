@@ -148,7 +148,7 @@ public record struct EffectLinkageRuleParser : IParser<EffectLinkageRule>
         return false;
     }
 
-    private static bool DottedName<TScanner>(ref TScanner scanner, ParseResult result, out List<string> parts) where TScanner : struct, IScanner
+    internal static bool DottedName<TScanner>(ref TScanner scanner, ParseResult result, out List<string> parts) where TScanner : struct, IScanner
     {
         parts = [];
         do

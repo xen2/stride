@@ -38,10 +38,8 @@ module TransformationBase
         this.PostTransformPosition();
     }
 
-    [Phase(Transform)]
-    override void VSMain()
+    extend ShaderBase.VSMain in Transform
     {
-        base.VSMain();
         this.BaseTransformVS();
     }
 };

@@ -7,11 +7,10 @@ namespace Stride.Rendering.Materials
     {
         import NormalStream;
 
-        [Phase(Post)]
-        module override float4 Shading()
+        extend ShadingBase.Shading in Post
         {
             // Run surface shading but don't take the result
-            base.Shading();
+            next();
             return float4(streams.normalWS * 0.5f + 0.5f, 1.0f);
         }
     };

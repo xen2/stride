@@ -13,11 +13,8 @@ shader TransformationBendWorld
         module float DeformFactorY = -0.0006f;
     }
 
-    [Phase(Offset)]
-    module override void PreTransformPosition()
+    extend TransformationBase.PreTransformPosition in Offset
     {
-        base.PreTransformPosition();
-        
         // Deform Y
         streams.PositionWS.y += DeformFactorY * streams.PositionWS.z * streams.PositionWS.z;
         // Deform X
