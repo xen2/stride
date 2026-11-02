@@ -1233,6 +1233,13 @@ public static partial class Specification
         PushConstant = 4,
     }
 
+    public enum ExtensionPointKindSDSL
+    {
+        Replace = 0,
+        Pipeline = 1,
+        Around = 2,
+    }
+
     public enum GenericParameterKindSDSL
     {
         LinkType = 1,

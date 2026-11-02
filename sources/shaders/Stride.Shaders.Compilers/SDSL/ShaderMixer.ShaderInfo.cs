@@ -32,6 +32,11 @@ public partial class ShaderMixer
         public ShaderDefinition? Symbol { get; set; }
 
         /// <summary>
+        /// The class as it was loaded, before the merge.
+        /// </summary>
+        public ShaderClassInstantiation? Source { get; set; }
+
+        /// <summary>
         /// Kept for debug purpose.
         /// </summary>
         public string? CompositionPath { get; set; }

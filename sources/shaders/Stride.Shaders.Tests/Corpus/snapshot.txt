@@ -47,6 +47,8 @@ Direct3D11/RenderTests.ContinueInSwitch strict=7ed0cf1b02a1 legal=7c68ce6949a1 r
 Direct3D11/RenderTests.DerivativeControl strict=1be3281776ea legal=e720e3be141c reflection=0c37ebdeab25 explain=e9f10de77042
 Direct3D11/RenderTests.DoWhile strict=ec80718951ee legal=c589fa651bd6 reflection=e3b0c44298fc explain=ccbaa6abdd24
 Direct3D11/RenderTests.EmptyStatements strict=044bcba85511 legal=74d69c4e610a reflection=e3b0c44298fc explain=5c8e6420fd03
+Direct3D11/RenderTests.ExtensionPointEntry strict=3d2e5feb941d legal=f0fef86380f8 reflection=ca914904170c explain=edd10ef37b37
+Direct3D11/RenderTests.ExtensionPointPhases strict=cd3bfc614760 legal=f0fef86380f8 reflection=ca914904170c explain=b86e5ccb53fd
 Direct3D11/RenderTests.FloatIndex strict=c8adb3ebb55b legal=00d4a9e7abfd reflection=e3b0c44298fc explain=b4625b5d2ea9
 Direct3D11/RenderTests.For strict=03b4c8516042 legal=a705a2933f21 reflection=e3b0c44298fc explain=8e85da65f2b3
 Direct3D11/RenderTests.ForBreak strict=5932b2b29a27 legal=e87617b4c1a2 reflection=493b5871e03d explain=29f99da61467
@@ -772,6 +774,8 @@ Vulkan/RenderTests.ContinueInSwitch strict=4d6d02a42587 legal=c894bf517d6b refle
 Vulkan/RenderTests.DerivativeControl strict=cee9597a33ee legal=750f42d2200c reflection=0c37ebdeab25 explain=e9f10de77042
 Vulkan/RenderTests.DoWhile strict=57902f738d4c legal=ed56658a4c49 reflection=e3b0c44298fc explain=ccbaa6abdd24
 Vulkan/RenderTests.EmptyStatements strict=035a0989b85e legal=9ec84ec8893a reflection=e3b0c44298fc explain=5c8e6420fd03
+Vulkan/RenderTests.ExtensionPointEntry strict=bc389f2329d5 legal=59e9de690d40 reflection=ca914904170c explain=edd10ef37b37
+Vulkan/RenderTests.ExtensionPointPhases strict=acf2473e575e legal=59e9de690d40 reflection=ca914904170c explain=b86e5ccb53fd
 Vulkan/RenderTests.FloatIndex strict=ea835fa4cc30 legal=6d2768455cce reflection=e3b0c44298fc explain=b4625b5d2ea9
 Vulkan/RenderTests.For strict=1c72085e025f legal=f80b9616f9bc reflection=e3b0c44298fc explain=8e85da65f2b3
 Vulkan/RenderTests.ForBreak strict=5a70063496db legal=2160ee8bdee0 reflection=493b5871e03d explain=29f99da61467

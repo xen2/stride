@@ -520,7 +520,11 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
                 MethodSymbolDefaultParameters? methodDefaultParameters = methodsDefaultParameters.TryGetValue(functionInstruction.ResultId, out var methodDefaultParametersValue)
                     ? methodDefaultParametersValue
                     : null;
-                methods.Add((new(sid, functionType, 0, MethodDefaultParameters: methodDefaultParameters, OwnerType: shaderType), functionFlags));
+                // Right after OpFunctionMetadataSDSL
+                MethodExtensionPoint? extensionPoint = null;
+                if (index + 2 < shaderBuffers.Buffer.Count && shaderBuffers.Buffer[index + 2].Op == Op.OpExtensionPointSDSL && (OpExtensionPointSDSL)shaderBuffers.Buffer[index + 2] is { } point)
+                    extensionPoint = new(point.Kind, point.Owner, point.Phases.Split(',', StringSplitOptions.RemoveEmptyEntries));
+                methods.Add((new(sid, functionType, 0, MethodDefaultParameters: methodDefaultParameters, OwnerType: shaderType, ExtensionPoint: extensionPoint), functionFlags));
             }
 
             if (instruction.Op == Op.OpTypeStruct && (OpTypeStruct)instruction is { } typeStructInstruction)

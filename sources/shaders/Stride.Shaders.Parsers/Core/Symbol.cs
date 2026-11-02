@@ -1,8 +1,21 @@
 using System.Collections.Immutable;
+using static Stride.Shaders.Spirv.Specification;
 
 namespace Stride.Shaders.Core;
 
+/// <summary>
+/// A module method declared for overriding, with how its overrides combine.
+/// </summary>
+/// <param name="Owner">The full name of the class of the first definition.</param>
+/// <param name="Phases">In the order the call reaches them.</param>
+public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Owner, string[] Phases)
+{
+    /// <summary>The phase of a <c>pipeline</c> or <c>around</c> written without phases, and of the default body of a pipeline that declares it.</summary>
+    public const string DefaultPhase = "Default";
 
+    /// <summary>The phase of the default body of a pipeline: <see cref="DefaultPhase"/>, else the first one.</summary>
+    public int DefaultPhaseIndex => Math.Max(Array.IndexOf(Phases, DefaultPhase), 0);
+}
 
 
 public enum SymbolKind
@@ -58,7 +71,8 @@ public record struct ExternalConstant(ConstantExpression Expression);
 /// <param name="MethodDefaultParameters">The method's default parameter values, if any.</param>
 /// <param name="ExternalConstant">The external constant expression, if any.</param>
 /// <param name="OwnerType">The shader that owns the symbol, if any.</param>
-public record Symbol(SymbolID Id, SymbolType Type, int IdRef, int? AccessChain = null, SymbolType? MemberAccessWithImplicitThis = null, ImmutableArray<Symbol> GroupMembers = default, MethodSymbolDefaultParameters? MethodDefaultParameters = null, ExternalConstant? ExternalConstant = null, ShaderDefinition? OwnerType = null)
+/// <param name="ExtensionPoint">How the overrides of a module method combine, if it declares it.</param>
+public record Symbol(SymbolID Id, SymbolType Type, int IdRef, int? AccessChain = null, SymbolType? MemberAccessWithImplicitThis = null, ImmutableArray<Symbol> GroupMembers = default, MethodSymbolDefaultParameters? MethodDefaultParameters = null, ExternalConstant? ExternalConstant = null, ShaderDefinition? OwnerType = null, MethodExtensionPoint? ExtensionPoint = null)
 {
     public int IdRef { get; set; } = IdRef;
     public SymbolType Type { get; set; } = Type;

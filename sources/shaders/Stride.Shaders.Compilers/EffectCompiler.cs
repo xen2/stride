@@ -56,6 +56,11 @@ namespace Stride.Shaders.Compiler
         public bool UseFileSystem { get; set; }
 
         /// <summary>
+        /// Set by the asset build, for the effects it compiles (<see cref="ShaderMixer.IsAssetBuild"/>).
+        /// </summary>
+        public bool IsAssetBuild { get; set; }
+
+        /// <summary>
         /// When true, runs spirv-val on the SPIR-V bytecode after MergeSDSL.
         /// Validation errors block the compile via <c>log.Error</c>.
         /// Default: on in Debug builds, off in Release.
@@ -198,7 +203,7 @@ namespace Stride.Shaders.Compiler
 
             AddPlatformMacros(shaderMixinSource, effectParameters);
 
-            var shaderMixer = new ShaderMixer(GetFileShaderLoader());
+            var shaderMixer = new ShaderMixer(GetFileShaderLoader()) { IsAssetBuild = IsAssetBuild };
             if (!shaderMixer.MergeSDSL(shaderMixinSource, GetMixerOptions(effectParameters.Platform), log, out var spirvBytecode, out var effectReflection, out var usedHashSources, out var entryPoints))
                 return new EffectBytecodeCompilerResult(null, log);
 

@@ -1,0 +1,47 @@
+// PSMain(ExpectedResult=#04040404)
+
+namespace Stride.Shaders.Tests;
+
+// The entry point itself is an extension point: the stage runs the last step of the sorted chain, ExtensionPointEntryB,
+// although ExtensionPointEntryA is the last one in the mix.
+module ExtensionPointEntryOwner
+{
+    stream float4 Position : POSITION;
+    stream float4 ShadingPosition : SV_Position;
+    stream float4 ColorTarget : SV_Target0;
+
+    void VSMain() { streams.ShadingPosition = streams.Position; }
+
+    [Phases(Default, A, B)]
+    pipeline void PSMain() { streams.ColorTarget = 1 / 255.0; }
+}
+
+module ExtensionPointEntryB
+{
+    import ExtensionPointEntryOwner;
+
+    [Phase(B)]
+    override void PSMain()
+    {
+        base.PSMain();
+        streams.ColorTarget = streams.ColorTarget * 2;
+    }
+}
+
+module ExtensionPointEntryA
+{
+    import ExtensionPointEntryOwner;
+
+    [Phase(A)]
+    override void PSMain()
+    {
+        base.PSMain();
+        streams.ColorTarget = streams.ColorTarget + 1 / 255.0;
+    }
+}
+
+shader ExtensionPointEntry
+{
+    import ExtensionPointEntryB;
+    import ExtensionPointEntryA;
+}

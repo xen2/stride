@@ -155,7 +155,7 @@ namespace Stride.Assets.Effect
                 if (compiler == null)
                 {
                     // Create compiler
-                    var effectCompiler = new EffectCompiler(MicrothreadLocalDatabases.DatabaseFileProvider) { ImplicitUsings = ShaderImplicitUsings.List };
+                    var effectCompiler = new EffectCompiler(MicrothreadLocalDatabases.DatabaseFileProvider) { ImplicitUsings = ShaderImplicitUsings.List, IsAssetBuild = true };
                     effectCompiler.SourceDirectories.Add(EffectCompilerBase.DefaultSourceShaderFolder);
                     // Each command has its own database: its entry in the index is saved with its result
                     compiler = new EffectCompilerCache(effectCompiler, MicrothreadLocalDatabases.ProviderService) { CurrentCache = EffectBytecodeCacheLoadSource.StartupCache };
