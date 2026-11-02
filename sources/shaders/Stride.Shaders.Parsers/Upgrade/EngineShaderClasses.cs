@@ -16,6 +16,33 @@ public sealed class EngineShaderClasses
     internal List<ShaderUpgradeClass> Classes { get; } = [];
 
     /// <summary>
+    /// The full names of the engine shaders and effects that Stride 4.5 removed, because nothing used them.
+    /// </summary>
+    public static IReadOnlySet<string> Removed { get; } = new HashSet<string>
+    {
+        "Stride.Rendering.BackgroundVelocity",
+        "Stride.Rendering.BackgroundVelocityEffect",
+        "Stride.Rendering.ComputeColorScaler",
+        "Stride.Rendering.Deferred.GBuffer",
+        "Stride.Rendering.FlattenLayers",
+        "Stride.Rendering.SelectedSprite",
+        "Stride.Rendering.SelectedSpriteShader",
+        "Stride.Rendering.ShadingColor",
+        "Stride.Rendering.SwapUV",
+        "Stride.Rendering.TransformationMatrix",
+        "Stride.Rendering.TransformationWVP",
+        "Stride.Rendering.TransformationZero",
+    };
+
+    /// <summary>
+    /// The end of the message of a name that can't be found, when it is the short or full name of a removed engine shader; otherwise empty.
+    /// </summary>
+    public static string RemovedHint(string name)
+        => Removed.Contains(name) || Removed.Any(x => ShaderNames.ShortName(x) == name)
+            ? $" {name} was removed from the engine in Stride 4.5. To keep using it, copy it from the sources of Stride 4.4 into your project."
+            : "";
+
+    /// <summary>
     /// The full names of the effects, by short name.
     /// </summary>
     public Dictionary<string, string> Effects { get; } = [];
