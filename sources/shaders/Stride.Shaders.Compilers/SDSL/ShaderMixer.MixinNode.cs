@@ -90,6 +90,9 @@ public partial class ShaderMixer
         /// <summary>The contributors taken out of the chain by <c>[Replaces]</c>, by method, and the class that did it.</summary>
         public Dictionary<int, (ShaderInfo Shader, ShaderInfo By)> Replaced { get; } = new();
 
+        /// <summary>The phases where the order of the mix decided between contributors whose order matters.</summary>
+        public HashSet<string> DecidedByBuilder { get; } = new();
+
         public override string ToString() => $"{Name} (shader: {Shader}, function Id: {string.Join(", ", Methods.Select(x => $"{x.Shader.ShaderName} {x.MethodId}"))})";
     }
 }

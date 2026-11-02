@@ -10,8 +10,7 @@ using static Stride.Shaders.Spirv.Specification;
 namespace Stride.Shaders.Parsing.SDSL.AST;
 
 /// <summary>
-/// Extension points: <c>[Replace]</c>, <c>[Pipeline(A, B)]</c> or <c>[Around(A, B)]</c> on the first definition of a module
-/// method, <c>[Phase(A)]</c>, <c>[After(X)]</c> and <c>[Replaces(X)]</c> on an override. The class records them next to <see cref="OpFunctionMetadataSDSL"/>,
+/// Extension points: <c>[Replace]</c>, <c>[Pipeline(A, B)]</c> or <c>[Around(A, B)]</c> on the first definition of a method, <c>[Phase(A)]</c>, <c>[After(X)]</c> and <c>[Replaces(X)]</c> on an override. The class records them next to <see cref="OpFunctionMetadataSDSL"/>,
 /// and the mixer orders the override chain with them.
 /// </summary>
 internal static class ExtensionPoints
@@ -50,8 +49,6 @@ internal static class ExtensionPoints
                 ReadReplaces(table, attribute, method, methodName, inherited, replaces);
             else if (method.IsOverride)
                 table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0142, name, method.Name.Name, methodName)));
-            else if (!method.IsStaged)
-                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, name, methodName, "a kind goes on a module method")));
             else if (point != null)
                 table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, name, methodName, "a method has one kind")));
             else
