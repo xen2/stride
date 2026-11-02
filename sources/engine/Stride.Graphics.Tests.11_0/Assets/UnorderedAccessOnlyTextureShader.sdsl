@@ -12,7 +12,7 @@ namespace Stride.Graphics.Tests
 
         module RWTexture2D<float4> Output;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             Output[streams.DispatchThreadId.xy] = float4(streams.DispatchThreadId.x, streams.DispatchThreadId.y, 0, 1);
         }

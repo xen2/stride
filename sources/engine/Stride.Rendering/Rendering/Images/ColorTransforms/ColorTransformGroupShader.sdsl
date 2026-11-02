@@ -13,9 +13,9 @@ shader ColorTransformGroupShader
     compose ColorTransformShader Transforms[];
 
     [Phase(Post)]
-    override module float4 Shading()
+    extend SpriteBase.Shading()
     {
-        float4 color = base.Shading();
+        float4 color = next();
 
         foreach (var transform in Transforms)
         {

@@ -10,7 +10,7 @@ shader HammersleyTest
     RWTexture2D<float4> OutputTexture;
 
     // Shading of the sprite
-    override void Compute()
+    extend ComputeShaderBase.Compute()
     {
         var xy = Hammersley.GetSamplePlane(streams.ThreadGroupIndex, SamplesCount);
         

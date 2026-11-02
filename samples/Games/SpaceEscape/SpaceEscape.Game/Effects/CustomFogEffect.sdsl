@@ -21,9 +21,8 @@ shader CustomFogEffect : ShadingBase
     module stream float FogFactor : FOG;
         
     [Phase(AfterProject)]
-    module override void PostTransformPosition()
+    extend TransformationBase.PostTransformPosition()
     {
-        base.PostTransformPosition();
         float depth;
         const float LOG2 = 1.442695;
 
@@ -33,9 +32,9 @@ shader CustomFogEffect : ShadingBase
     }
     
     [Phase(Post)]
-    module override float4 Shading() 
+    extend ShadingBase.Shading() 
     {
-        float4 normalShade = base.Shading();
+        float4 normalShade = next();
 
         if(normalShade.w <= 0.005)
             return normalShade;

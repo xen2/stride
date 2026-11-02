@@ -10,10 +10,8 @@ shader TransformationSkinningInstanced
 
     [Phase(World)]
     [MixinOrder(After = TransformationSkinning)]
-    override module void PreTransformPosition()
+    extend TransformationBase.PreTransformPosition()
     {
-        base.PreTransformPosition();
-
         streams.skinningBlendMatrix = GetBlendMatrix(streams.BlendIndices[0]) * streams.BlendWeights[0]
                                     + GetBlendMatrix(streams.BlendIndices[1]) * streams.BlendWeights[1]
                                     + GetBlendMatrix(streams.BlendIndices[2]) * streams.BlendWeights[2]

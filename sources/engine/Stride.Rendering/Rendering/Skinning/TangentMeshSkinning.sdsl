@@ -14,9 +14,8 @@ shader TangentMeshSkinning
 
     [Phase(World)]
     [MixinOrder(After = { TransformationSkinning, TransformationSkinningInstanced })]
-    override void PreTransformPosition()
+    extend TransformationBase.PreTransformPosition()
     {
-        base.PreTransformPosition();
         streams.meshTangent.xyz = mul(streams.meshTangent.xyz, (float3x3)streams.skinningBlendMatrix);
     }
 };

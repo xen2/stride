@@ -103,7 +103,7 @@ shader MorphSkinning
     }
 
     // No early returns or continues: the SPIR-V to HLSL translation turns them into a one-pass loop that FXC warns about.
-    override void Compute()
+    extend ComputeShaderBase.Compute()
     {
         uint vertex = streams.DispatchThreadId.x;
         uint instance = streams.DispatchThreadId.y;

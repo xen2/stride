@@ -110,7 +110,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         if (!CheckAbstractCalls(globalContext, log))
             return false;
 
-        ReportDroppedContributors(rootMixin, globalContext, log);
+        if (!ReportDroppedContributors(rootMixin, globalContext, log))
+            return false;
         if (!ReportContributionConflicts(conflicts, log))
             return false;
 
@@ -949,8 +950,10 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                         throw new InvalidOperationException($"{nameof(OpFunction)} {functionName} without {nameof(OpShaderSDSL)}, can't figure out owner type");
 
                     // Add symbol for each method in current type (equivalent to implicit this pointer)
+                    var isBaseLastForm = IsBaseLastForm(temp, index);
                     var symbol = new Symbol(new(functionName, SymbolKind.Method), context.ReverseTypes[function.FunctionType], function.ResultId, OwnerType: currentShader.Symbol);
-                    globalContext.Table.CurrentFrame.Add(functionName, symbol);
+                    if (!isBaseLastForm)
+                        globalContext.Table.CurrentFrame.Add(functionName, symbol);
 
                     var methodMixinGroup = mixinNode;
                     if (!mixinNode.IsRoot && (functionInfo.Flags & FunctionFlagsMask.Stage) != 0)
@@ -977,6 +980,14 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                     // Check if it has a parent (and if yes, share the MethodGroup)
                     if (!methodMixinGroup.MethodGroups.TryGetValue(functionInfo.Parent, out var methodGroup))
                         methodGroup = new MethodGroup(functionName, functionType, currentShader);
+
+                    // The second form of an extend waits next to the first one, until the place of its phase is known
+                    if (isBaseLastForm)
+                    {
+                        methodGroup.BaseLastForms[methodGroup.Methods.FindLast(x => x.Shader == currentShader).MethodId] = function.ResultId;
+                        methodMixinGroup.MethodGroups[function.ResultId] = methodGroup;
+                        continue;
+                    }
 
                     methodGroup.Methods.Add((Shader: currentShader, MethodId: function.ResultId, Flags: functionInfo.Flags));
                     ReadExtensionPoint(temp, index, function.ResultId, methodGroup);

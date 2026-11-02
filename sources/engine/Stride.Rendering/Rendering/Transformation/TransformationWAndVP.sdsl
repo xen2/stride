@@ -12,22 +12,20 @@ shader TransformationWAndVP : PositionHStream4
     import PositionStream4;
 
     [Phase(World)]
-    module override void PreTransformPosition()
+    extend TransformationBase.PreTransformPosition()
     {
-        base.PreTransformPosition();
         streams.PositionWS = mul(streams.Position, Transformation.World);
     }
 
     [Phase(Project)]
-    module override void PostTransformPosition()
+    extend TransformationBase.PostTransformPosition()
     {
-        base.PostTransformPosition();
         streams.ShadingPosition = ComputeShadingPosition(streams.PositionWS);
         streams.PositionH = streams.ShadingPosition;
         streams.DepthVS = streams.ShadingPosition.w;
     }
     
-    module override float4 ComputeShadingPosition(float4 world)
+    extend TransformationBase.ComputeShadingPosition(float4 world)
     {
         return mul(world, Transformation.ViewProjection);
     }

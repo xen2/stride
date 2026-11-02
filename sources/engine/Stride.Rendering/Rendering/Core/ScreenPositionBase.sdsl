@@ -15,17 +15,15 @@ module ScreenPositionBase
     stream float4 ScreenPosition;
 
     [Phase(Screen)]
-    override void VSMain()
+    extend ShaderBase.VSMain()
     {
-        base.VSMain();
         streams.ScreenPosition = streams.ShadingPosition;
     }
 
     [Phase(Input)]
     [MixinOrder(After = MeshVelocity)]
-    override void PSMain()
+    extend ShaderBase.PSMain()
     {
         streams.ScreenPosition /= streams.ScreenPosition.w;
-        base.PSMain();
     }
 };

@@ -13,7 +13,7 @@ namespace Stride.Graphics.Tests
         module StructuredBuffer<uint> Source;
         module RWBuffer<uint> Arguments;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             Arguments[streams.DispatchThreadId.x] = Source[streams.DispatchThreadId.x];
         }

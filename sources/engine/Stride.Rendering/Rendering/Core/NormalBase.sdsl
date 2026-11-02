@@ -12,21 +12,18 @@ module NormalBase
     import ShaderBase;
 
     [Phase(Attributes)]
-    override void VSMain()
+    extend ShaderBase.VSMain()
     {
-        base.VSMain();
-
         // Perform normal generation at the end in case vNormal is modified.
         // TODO: Another mechanism (compute on first access?)
         GenerateNormal_VS();
     }
 	
     [Phase(Input)]
-    override void PSMain()
+    extend ShaderBase.PSMain()
     {
         // Perform normal generation at beginning so that it is accessible during PS.
         // TODO: Another mechanism (compute on first access?)
         GenerateNormal_PS();
-        base.PSMain();
     }
 };

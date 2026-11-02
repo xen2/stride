@@ -25,7 +25,7 @@ shader MaterialFrontBackBlendShader<bool TUseNormalBackface> : ShadingBase
     // method computing color
     [Phase(Surface)]
     [Drops(Phases = { Surface })]
-    module override float4 Shading()
+    extend ShadingBase.Shading()
     {
         float3 color = ColorFront;
         if (TUseNormalBackface)

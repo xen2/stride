@@ -643,9 +643,9 @@ public class ShaderUpgradeTests
             foreach (var (upgradedText, todayText) in ManualEdits.GetValueOrDefault(path) ?? [])
                 text = text.Replace(upgradedText, todayText);
             // The kinds the upgrade writes are not the ones the engine chose by hand
-            text = WithoutEngineNamespaceLines(WithoutKinds(text));
+            text = WithoutCallSyntax(WithoutEngineNamespaceLines(WithoutKinds(text)));
             // [Root], [Pure] and the kinds, phases and orders of extension points are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
-            var expected = WithoutEngineNamespaceLines(WithoutKinds(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|(Phases|Phase|MixinOrder|Drops)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline)));
+            var expected = WithoutCallSyntax(WithoutEngineNamespaceLines(WithoutKinds(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|(Phases|Phase|MixinOrder|Drops)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline))));
             if (text != expected)
                 differences.Add(path);
         }
@@ -654,6 +654,16 @@ public class ShaderUpgradeTests
 
     static string WithoutKinds(string text)
         => System.Text.RegularExpressions.Regex.Replace(text, @"^([ \t]*(?:module[ \t]+)?)(?:pipeline|replace|around)[ \t]+", "$1", System.Text.RegularExpressions.RegexOptions.Multiline);
+
+    // The engine moved to extend after that commit: what is left of a method is its body, whichever way the override is written
+    static string WithoutCallSyntax(string text)
+    {
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"^[ \t]*extend [^\n]*\n", "override\n", System.Text.RegularExpressions.RegexOptions.Multiline);
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"^[ \t]*(?:(?:module|override)[ \t]+)+[^\n(]*\w+[ \t]*\([^\n]*\)[ \t]*\n", "override\n", System.Text.RegularExpressions.RegexOptions.Multiline);
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"^[ \t]*(?:base\.\w+|next)\([^\n;]*\);[ \t]*\n", "", System.Text.RegularExpressions.RegexOptions.Multiline);
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\bbase\.\w+\(", "next(");
+        return System.Text.RegularExpressions.Regex.Replace(text, @"\n[ \t]*\n", "\n");
+    }
 
     static string AddKind(string owner, string overrider, IReadOnlyDictionary<string, string>? dependencies = null, List<string>? notes = null)
     {

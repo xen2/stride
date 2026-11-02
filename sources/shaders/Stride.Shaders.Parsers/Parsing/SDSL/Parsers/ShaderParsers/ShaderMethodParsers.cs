@@ -137,6 +137,15 @@ public record struct SimpleMethodParser : IParser<ShaderMethod>
 
 public record struct MethodParser : IParser<ShaderMethod>
 {
+    /// <summary>
+    /// Reads a method again from the text it was read from: a second tree of it, with the same places.
+    /// </summary>
+    internal static ShaderMethod? ReadAgain(ShaderMethod method)
+    {
+        var scanner = new Scanner<ScannableString>(method.Info.Original.ToString()) { Position = method.Info.Range.Start.GetOffset(method.Info.Original.Length) };
+        return new MethodParser().Match(ref scanner, new ParseResult(), out var parsed) ? parsed : null;
+    }
+
     public readonly bool Match<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderMethod parsed, in ParseError? orError = null)
         where TScanner : struct, IScanner
     {
@@ -145,6 +154,14 @@ public record struct MethodParser : IParser<ShaderMethod>
 
         var hasAttributes = ShaderAttributeListParser.AttributeList(ref scanner, result, out var attributes) && Parsers.Spaces0(ref scanner, result, out _);
         var hasModifiers = Parsers.MethodModifiers(ref scanner, result, out var isStaged, out var isStatic, out var isClone, out var isOverride, out var isAbstract, out var kinds, advance: true) && Parsers.Spaces0(ref scanner, result, out _);
+
+        if (!hasModifiers && Extend(ref scanner, result, out parsed))
+        {
+            if (hasAttributes)
+                parsed.Attributes = attributes!.Attributes;
+            parsed.Info = scanner[position..scanner.Position];
+            return true;
+        }
 
         if (isAbstract)
         {
@@ -200,5 +217,58 @@ public record struct MethodParser : IParser<ShaderMethod>
         return Parsers.Exit(ref scanner, result, out parsed, position, orError);
     }
 
+    /// <summary>
+    /// <c>extend Owner.Method(parameters) { }</c> or <c>patch Owner.Method(parameters) { }</c>. The words are not reserved: <c>patch x;</c> is a member.
+    /// A form with no parameters is read for its error.
+    /// </summary>
+    private static bool Extend<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderMethod parsed)
+        where TScanner : struct, IScanner
+    {
+        parsed = null;
+        var position = scanner.Position;
+        if (!Tokens.AnyOf(["extend", "patch"], ref scanner, out var keyword, advance: true)
+            || !Parsers.Spaces1(ref scanner, result, out _)
+            || !SDFX.EffectShaderBlockParser.DottedName(ref scanner, result, out var path)
+            || path.Count < 2)
+        {
+            scanner.Position = position;
+            return false;
+        }
+
+        var name = new Identifier(path[^1], scanner[position..scanner.Position]);
+        var hasParameters = false;
+        List<MethodParameter>? parameters = null;
+        if (Parsers.FollowedBy(ref scanner, Tokens.Char('('), withSpaces: true, advance: true))
+        {
+            hasParameters = true;
+            if (!Parsers.FollowedByDel(ref scanner, result, ShaderMethodParsers.MethodParameters, out parameters, withSpaces: true, advance: true)
+                || !Parsers.FollowedBy(ref scanner, Tokens.Char(')'), withSpaces: true, advance: true))
+            {
+                scanner.Position = position;
+                return false;
+            }
+        }
+
+        Parsers.Spaces0(ref scanner, result, out _);
+        var outer = result.ExtendedMethod;
+        result.ExtendedMethod = name.Name;
+        BlockStatement? block = null;
+        if (Tokens.Char('{', ref scanner) && StatementParsers.Block(ref scanner, result, out var body))
+            block = (BlockStatement)body;
+        result.ExtendedMethod = outer;
+        if (block == null)
+        {
+            scanner.Position = position;
+            return false;
+        }
+
+        parsed = new ShaderMethod(new TypeName("void", name.Info), name, scanner[position..scanner.Position], isStaged: true, isOverride: true)
+        {
+            Parameters = parameters ?? [],
+            Body = block,
+            Extend = new ExtendClause(keyword == "patch", string.Join('.', path.Take(path.Count - 1)), hasParameters),
+        };
+        return true;
+    }
 }
 

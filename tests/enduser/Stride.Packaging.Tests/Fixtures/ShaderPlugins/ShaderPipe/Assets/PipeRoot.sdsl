@@ -10,7 +10,7 @@ namespace ShaderPipe
         import PipeOwner;
 
         [Phase(Surface)]
-        override float4 Shading()
+        extend SpriteBase.Shading()
         {
             streams.PipeValue = 0.5;
             ModifyValue();

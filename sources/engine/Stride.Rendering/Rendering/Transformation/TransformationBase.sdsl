@@ -36,9 +36,8 @@ module TransformationBase
     }
 
     [Phase(Transform)]
-    override void VSMain()
+    extend ShaderBase.VSMain()
     {
-        base.VSMain();
         this.BaseTransformVS();
     }
 };

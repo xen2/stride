@@ -20,7 +20,7 @@ module NormalFromNormalMapping
         streams.meshNormalWS = mul(streams.meshNormal, (float3x3)WorldInverseTranspose);    // TODO: PERFORMANCE: Normalization required?
     }
 
-    override float3x3 GetTangentWorldTransform()
+    extend NormalUpdate.GetTangentWorldTransform()
     {
         return (float3x3)WorldInverseTranspose;
     }

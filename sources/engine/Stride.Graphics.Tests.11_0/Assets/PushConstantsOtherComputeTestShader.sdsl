@@ -12,7 +12,7 @@ namespace Stride.Graphics.Tests
 
         module RWStructuredBuffer<uint> Output;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             Output[streams.DispatchThreadId.x] = 0xDEAD;
         }

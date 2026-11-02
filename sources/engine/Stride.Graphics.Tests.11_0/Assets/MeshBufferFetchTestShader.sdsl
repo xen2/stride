@@ -20,7 +20,7 @@ namespace Stride.Graphics.Tests
         module uint VertexByteOffset;
         module uint VertexStride;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             uint n = streams.DispatchThreadId.x;
 

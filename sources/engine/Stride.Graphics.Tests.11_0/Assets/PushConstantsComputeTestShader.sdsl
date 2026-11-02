@@ -20,7 +20,7 @@ namespace Stride.Graphics.Tests
 
         module RWStructuredBuffer<uint> Output;
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             uint start = Slot * 8;
             Output[start + 0] = Values.x * Factor;

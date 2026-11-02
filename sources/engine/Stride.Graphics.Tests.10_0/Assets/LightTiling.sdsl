@@ -27,7 +27,7 @@ namespace Stride.Rendering.Lights
         groupshared uint FilteredLightIndicesCount;
         groupshared uint FilteredLightIndices[1024];
 
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             // Initialize variables and build frustum
             if (ThreadGroupIndex == 0)

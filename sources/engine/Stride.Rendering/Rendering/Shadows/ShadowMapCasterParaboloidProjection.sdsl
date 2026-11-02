@@ -29,7 +29,7 @@ namespace Stride.Rendering.Shadows
         }
 
         [Drops(Mixins = { TransformationWAndVP })]
-        module override float4 ComputeShadingPosition(float4 world)
+        extend TransformationBase.ComputeShadingPosition(float4 world)
         {
             float dummy;
             return ComputeParaboloidProjection(world, dummy);

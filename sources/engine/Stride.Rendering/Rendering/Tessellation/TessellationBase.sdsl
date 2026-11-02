@@ -37,10 +37,8 @@ shader TessellationBase : MaterialDomainStream
     patchstream float insideTessFactor : SV_InsideTessFactor;
     
     [Phase(Adjust)]
-    override module void GenerateNormal_VS()
+    extend NormalUpdate.GenerateNormal_VS()
     {
-        base.GenerateNormal_VS();
-
         // Ensure that normal is normalized at every steps of the tessellation.
         streams.normalWS = normalize(streams.normalWS);
     }
@@ -103,7 +101,7 @@ shader TessellationBase : MaterialDomainStream
         output = streams;
     }
 
-    module override void BaseTransformVS()
+    extend TransformationBase.BaseTransformVS()
     {
         this.PreTransformPosition();
     }

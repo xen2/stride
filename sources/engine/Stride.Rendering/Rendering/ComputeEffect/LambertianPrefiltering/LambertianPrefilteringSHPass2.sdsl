@@ -22,7 +22,7 @@ namespace Stride.Rendering.Images
         groupshared float4 PartialSHCoeffs[TSize];
 
         // Reduce (sums) the SH coefficients along the columns
-        override void Compute()
+        extend ComputeShaderBase.Compute()
         {
             int coeffId = streams.GroupId.z;
             int threadId = streams.GroupThreadId.x;

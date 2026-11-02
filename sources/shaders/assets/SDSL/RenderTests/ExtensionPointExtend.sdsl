@@ -1,0 +1,64 @@
+// PSMain(ExpectedResult=#09090909)
+
+namespace Stride.Shaders.Tests;
+
+// extend and next: Early runs first and sets 3. The default body subtracts 2, A adds 1, and B doubles, which gives 4.
+// Around gives (4 + 0.5) * 2 = 9.
+module ExtensionPointExtendOwner
+{
+    stream float4 Position : POSITION;
+    stream float4 ShadingPosition : SV_Position;
+    stream float4 ColorTarget : SV_Target0;
+    stream float Steps;
+
+    [Phases(Early, Default, A, B)]
+    pipeline void Run() { streams.Steps = streams.Steps - 2; }
+
+    [Phases(Outer, Inner)]
+    around float Wrap() { return streams.Steps; }
+
+    void VSMain() { streams.ShadingPosition = streams.Position; }
+
+    void PSMain()
+    {
+        Run();
+        streams.ColorTarget = Wrap() / 255.0;
+    }
+}
+
+module ExtensionPointExtendSteps
+{
+    import ExtensionPointExtendOwner;
+
+    [Phase(Outer)]
+    extend ExtensionPointExtendOwner.Wrap() { return next() * 2; }
+
+    [Phase(B)]
+    extend ExtensionPointExtendOwner.Run() { streams.Steps = streams.Steps * 2; }
+}
+
+module ExtensionPointExtendInner
+{
+    import ExtensionPointExtendOwner;
+
+    [Phase(Inner)]
+    extend ExtensionPointExtendOwner.Wrap() { return next() + 0.5; }
+
+    [Phase(A)]
+    extend ExtensionPointExtendOwner.Run() { streams.Steps = streams.Steps + 1; }
+}
+
+module ExtensionPointExtendEarly
+{
+    import ExtensionPointExtendOwner;
+
+    [Phase(Early)]
+    extend ExtensionPointExtendOwner.Run() { streams.Steps = 3; }
+}
+
+shader ExtensionPointExtend
+{
+    import ExtensionPointExtendSteps;
+    import ExtensionPointExtendInner;
+    import ExtensionPointExtendEarly;
+}
