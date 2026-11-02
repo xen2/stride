@@ -18,6 +18,7 @@ module PostEffectBoundingRay<int TSampleCount>
         return 0;
     }
 
+    [Replace]
     float3 ComputeColorIn(float4 positionWS, float stepSize, int stepIndex) 
     {
         return 0;
