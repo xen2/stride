@@ -214,6 +214,225 @@ public class ExtensionPointTests : IDisposable
         Assert.Contains(code, log);
     }
 
+    [Theory]
+    [InlineData("[After(StepB)] void F() { }", "SDSL0135")]
+    [InlineData("[After(StepB)] override float Plain() { return 2; }", "SDSL0246")]
+    [InlineData("[After(StepB)] override float Pick() { return 2; }", "SDSL0135")]
+    [InlineData("[After] override void Run() { base.Run(); }", "SDSL0135")]
+    [InlineData("[After(StepB + 1)] override void Run() { base.Run(); }", "SDSL0135")]
+    [InlineData("[After(NoSuchClass)] override void Run() { base.Run(); }", "SDSL0110")]
+    public void AWrongAfterIsAnError(string member, string code)
+    {
+        WriteOwner();
+        WriteModule("StepB", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("Wrong", member);
+
+        var (ok, log, _) = Mix("Test.Wrong");
+
+        Assert.False(ok, log);
+        Assert.Contains(code, log);
+    }
+
+    // After a phase that runs later: B runs after A whatever the mix says, so A can't run after B
+    [Fact]
+    public void AfterAClassOfALaterPhaseIsAnError()
+    {
+        WriteOwner();
+        WriteModule("StepB", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("StepA", "[Phase(A)] [After(StepB)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix("Test.StepB", "Test.StepA");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138", log);
+    }
+
+    [Fact]
+    public void AfterAnOverrideWithoutPhaseIsAnError()
+    {
+        WriteOwner();
+        WriteModule("Patch", "override void Run() { base.Run(); }");
+        WriteModule("StepA", "[Phase(A)] [After(Patch)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix("Test.Patch", "Test.StepA");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138", log);
+    }
+
+    [Fact]
+    public void AfterGoingInACircleIsAnError()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] [After(Second)] override void Run() { base.Run(); }");
+        WriteModule("Second", "[Phase(A)] [After(First)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix("Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138", log);
+    }
+
+    [Fact]
+    public void AfterOrdersAPhaseThatCallsBaseFirst()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] [After(Second)] override void Run() { base.Run(); }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix("Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Contains("A: Second > First", Block(explanation, "Run"));
+    }
+
+    // The chain is run from its end here: the step that runs later is reached from the one that runs first, so it is lower in the chain
+    [Fact]
+    public void AfterOrdersAPhaseThatCallsBaseLast()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(Early)] override void Run() { streams.Steps = 2; base.Run(); }");
+        WriteModule("Second", "[Phase(Early)] [After(First)] override void Run() { streams.Steps = 3; base.Run(); }");
+
+        var (ok, log, explanation) = Mix(wired: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Run() -> void = Owner > Second > First", Block(explanation, "Run")[0]);
+    }
+
+    [Fact]
+    public void AfterOrdersAnAroundPhaseFromTheOutside()
+    {
+        WriteOwner();
+        WriteModule("Inner", "[Phase(Outer)] [After(Outermost)] override float Wrap() { return base.Wrap(); }");
+        WriteModule("Outermost", "[Phase(Outer)] override float Wrap() { return base.Wrap(); }");
+
+        var (ok, log, explanation) = Mix("Test.Outermost", "Test.Inner");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Wrap() -> float = Owner > Inner > Outermost", Block(explanation, "Wrap")[0]);
+    }
+
+    [Fact]
+    public void AfterAClassThatIsNotInTheEffectIsIgnored()
+    {
+        WriteOwner();
+        WriteModule("Absent", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Step", "[Phase(A)] [After(Absent)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix("Test.Step");
+
+        Assert.True(ok, log);
+    }
+
+    [Theory]
+    [InlineData("streams.Steps = 2;", "streams.Steps = 3;", "streams.Steps")]
+    [InlineData("streams.Other = streams.Steps;", "streams.Steps = 3;", "streams.Steps")]
+    [InlineData("Helper();", "streams.Steps = 3;", "streams.Steps")]
+    [InlineData("discard;", "discard;", "side effect")]
+    [InlineData("Values[0] = 1;", "discard;", "side effect")]
+    public void AConflictInAPhaseIsAnErrorInAWiredEffect(string first, string second, string message)
+    {
+        WriteOwner();
+        Write("Helpers", "module Helpers { import Owner; stream float Other; RWStructuredBuffer<float> Values; void Helper() { streams.Steps = 2; } }");
+        Write("First", $"module First {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {first} }} }}");
+        Write("Second", $"module Second {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {second} }} }}");
+
+        var (ok, log, _) = Mix(wired: true, "Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0137", log);
+        Assert.Contains(message, log);
+
+        // In a mix built at run time, the order of the mix decides
+        var (runtimeOk, runtimeLog, _) = Mix("Test.First", "Test.Second");
+
+        Assert.True(runtimeOk, runtimeLog);
+    }
+
+    [Theory]
+    [InlineData("streams.Other = 2;", "streams.Steps = 3;")]
+    [InlineData("streams.Other = streams.Steps;", "streams.Third = streams.Steps;")]
+    [InlineData("discard;", "streams.Steps = 3;")]
+    public void NoConflictNeedsNoOrder(string first, string second)
+    {
+        WriteOwner();
+        Write("Helpers", "module Helpers { import Owner; stream float Other; stream float Third; }");
+        Write("First", $"module First {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {first} }} }}");
+        Write("Second", $"module Second {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {second} }} }}");
+
+        var (ok, log, _) = Mix(wired: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
+    // What the steps of other phases do isn't part of the step, although base reaches them
+    [Fact]
+    public void BaseIsNotPartOfWhatAContributorDoes()
+    {
+        WriteOwner();
+        WriteModule("Writes", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Later", "[Phase(B)] override void Run() { base.Run(); streams.Steps = 3; }");
+
+        var (ok, log, _) = Mix(wired: true, "Test.Writes", "Test.Later");
+
+        Assert.True(ok, log);
+    }
+
+    [Theory]
+    [InlineData("[After(First)]")]
+    [InlineData("[After(Middle)]")]
+    public void AfterSettlesAConflict(string attribute)
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Middle", "[Phase(A)] [After(First)] override void Run() { base.Run(); }");
+        Write("Last", $"module Last {{ import First; import Middle; [Phase(A)] {attribute} override void Run() {{ base.Run(); streams.Steps = 3; }} }}");
+
+        var (ok, log, _) = Mix(wired: true, "Test.First", "Test.Middle", "Test.Last");
+
+        Assert.True(ok, log);
+    }
+
+    // A class comes after its parents, so inheritance is an order
+    [Fact]
+    public void InheritanceSettlesAConflict()
+    {
+        WriteOwner();
+        Write("Parent", "shader Parent { import Owner; [Phase(A)] module override void Run() { base.Run(); streams.Steps = 2; } }");
+        Write("Child", "shader Child : Parent { [Phase(A)] module override void Run() { base.Run(); streams.Steps = 3; } }");
+
+        var (ok, log, _) = Mix(wired: true, "Test.Child");
+
+        Assert.True(ok, log);
+    }
+
+    // A contributor that a replacement drops never runs
+    [Fact]
+    public void ADroppedContributorConflictsWithNothing()
+    {
+        WriteOwner();
+        WriteModule("Dropped", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Replacement", "[Phase(A)] override void Run() { streams.Steps = 3; }");
+
+        var (ok, log, _) = Mix(wired: true, "Test.Dropped", "Test.Replacement");
+
+        Assert.True(ok, log);
+    }
+
+    // The order of the mix: code without a phase never needs an order
+    [Fact]
+    public void ExternalHasNoConflicts()
+    {
+        WriteOwner();
+        WriteModule("First", "override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Second", "override void Run() { base.Run(); streams.Steps = 3; }");
+
+        var (ok, log, _) = Mix(wired: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
     [Fact]
     public void AKindGoesOnAModuleMethod()
     {
@@ -383,6 +602,7 @@ public class ExtensionPointTests : IDisposable
     [InlineData("[Pipeline(A, B)] shader Wrong { }")]
     [InlineData("[Around] module Wrong { }")]
     [InlineData("[Phase(A)] shader Wrong { }")]
+    [InlineData("[After(Other)] shader Wrong { }")]
     [InlineData("[Collect] shader Wrong { }")]
     [InlineData("shader Wrong { [Pipeline] cbuffer PerDraw { float A; } }")]
     public void AKindOrAPhaseOnAClassIsAnError(string code)
