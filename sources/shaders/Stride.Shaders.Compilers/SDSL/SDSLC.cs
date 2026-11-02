@@ -21,6 +21,8 @@ public record struct CompileOptions()
     public bool RegisterInCache { get; init; } = true;
     /// <summary>Original source code before preprocessing, used for OpSource debug info. Falls back to preprocessed code if null.</summary>
     public string? OriginalCode { get; init; }
+    /// <summary>The class to compile, by full name: the others of the file aren't compiled. All of them if null.</summary>
+    public string? ClassName { get; init; }
 }
 
 public record struct SDSLC(IExternalShaderLoader ShaderLoader)
@@ -37,7 +39,10 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
             return false;
         }
         if (parsed.AST is not ShaderFile sf)
+        {
+            ReportClassNotDeclared(filename, log, options);
             return false;
+        }
 
         var fileUsings = sf.RootDeclarations.OfType<UsingShaderNamespace>().Select(x => string.Join('.', x.NamespacePath)).ToList();
         var declarations = sf.Namespaces
@@ -48,15 +53,14 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
             })
             .Concat(sf.RootDeclarations.Select(x => (Declaration: x, Scope: new ShaderNameScope(null, [], fileUsings))))
             .ToList();
-        var classes = declarations.Select(x => x.Declaration).OfType<ShaderClass>().ToList();
-        var fileName = Path.GetFileNameWithoutExtension(filename);
-        // Every class of the file is validated against the file, whichever namespace the class is in
-        var storageName = filename != null ? ShaderFileDeclarations.StorageName(options.OriginalCode ?? code, fileName!) : null;
         foreach (var (declaration, scope) in declarations)
         {
             if (declaration is ShaderClass shader)
             {
                 shader.Scope = scope;
+                if (options.ClassName != null && shader.FullName != options.ClassName)
+                    continue;
+
                 var compiler = new CompilerUnit();
                 SymbolTable table = new(compiler.Context, ShaderLoader)
                 {
@@ -69,16 +73,13 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
                     var filenameId = compiler.Context.Add(new OpString(compiler.Context.Bound++, filename)).ResultId;
                     // TODO: Add SourceLanguage.SDSL
                     compiler.Context.Add(new OpSource(Spirv.Specification.SourceLanguage.Unknown, 0, filenameId, options.OriginalCode ?? code));
-                    compiler.Context.Add(new OpSourceHashSDSL(filenameId, (int)hash.Hash1, (int)hash.Hash2, (int)hash.Hash3, (int)hash.Hash4, storageName));
+                    compiler.Context.Add(new OpSourceHashSDSL(filenameId, (int)hash.Hash1, (int)hash.Hash2, (int)hash.Hash3, (int)hash.Hash4, shader.FullName));
                     compiler.SourceFileId = filenameId;
                 }
                 // TODO: Do we want to record macros with a custom OpMacroSDSL? (mostly for debug purposes)
 
                 compiler.Macros.AddRange(macros);
                 bool hasErrors = false;
-
-                if (filename != null && shader == classes[0] && classes.All(x => x.Name.Name != fileName))
-                    table.AddWarning(new(shader.Name.Info, string.Format(SDSLErrorMessages.SDSL0245, fileName, shader.Name.Name)));
 
                 try
                 {
@@ -158,7 +159,20 @@ public record struct SDSLC(IExternalShaderLoader ShaderLoader)
             }
         }
 
+        // A file with only effects compiles to no class
+        if (options.ClassName != null && lastBuffer.Context == null)
+        {
+            ReportClassNotDeclared(filename, log, options);
+            return false;
+        }
         return lastBuffer != null;
+    }
+
+    // The URL of a class comes from a read of the text that sees both sides of an #if
+    private static void ReportClassNotDeclared(string? filename, ILogger log, CompileOptions options)
+    {
+        if (options.ClassName != null)
+            log.Error(string.Format(SDSLErrorMessages.SDSL0308, options.ClassName, Path.GetFileName(filename)));
     }
 
     /// <summary>

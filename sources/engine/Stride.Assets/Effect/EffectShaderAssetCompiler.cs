@@ -43,22 +43,44 @@ namespace Stride.Assets.Effect
 
             var sessionShaders = GetSessionShaders(context, assetItem.Package.Session);
             var declaredBy = Describe(assetItem);
-            foreach (var name in DeclaredNames(code, originalSourcePath))
+            var names = ShaderFileDeclarations.StorageNames(code, originalSourcePath.GetFileNameWithoutExtension());
+            foreach (var name in names)
             {
                 var first = sessionShaders[name][0];
                 if (first != declaredBy)
                     result.Error(string.Format(SDSLErrorMessages.SDSL0301, name, first, declaredBy));
             }
 
-            var url = EffectCompilerBase.GetStoragePathFromShaderType(ShaderFileDeclarations.StorageName(code, originalSourcePath.GetFileNameWithoutExtension()));
-
             result.BuildSteps = new AssetBuildStep(assetItem);
-            result.BuildSteps.Add(new ImportStreamCommand { SourcePath = originalSourcePath, Location = url, SaveSourcePath = true });
-            PrepareReplacers(context, assetItem, code, result);
             var shaderLocations = (ConcurrentDictionary<string, string>)context.Properties.GetOrAdd(ShaderLocationsKey, key => new ConcurrentDictionary<string, string>());
+            foreach (var name in names)
+            {
+                var url = EffectCompilerBase.GetStoragePathFromShaderType(name);
+                result.BuildSteps.Add(new ImportStreamCommand { SourcePath = originalSourcePath, Location = url, SaveSourcePath = true });
 
-            // Store directly this into the context TODO this this temporary
-            shaderLocations[url] = originalSourcePath;
+                // Store directly this into the context TODO this this temporary
+                shaderLocations[url] = originalSourcePath;
+            }
+            PrepareReplacers(context, assetItem, code, result);
+        }
+
+        /// <summary>
+        /// The classes in <paramref name="stored"/> that a file declared before a build and no longer declares: the <c>/path</c> of two classes of one file are one object.
+        /// </summary>
+        /// <param name="stored">The URLs of the database before the build.</param>
+        /// <param name="written">The URLs the build wrote.</param>
+        public static List<string> FindClassesNoLongerDeclared(IEnumerable<KeyValuePair<string, ObjectId>> stored, IEnumerable<KeyValuePair<string, ObjectId>> written)
+        {
+            var prefix = $"{EffectCompilerBase.DefaultSourceShaderFolder}/";
+            const string suffix = ".sdsl/path";
+            bool IsPath(string url) => url.StartsWith(prefix, StringComparison.Ordinal) && url.EndsWith(suffix, StringComparison.Ordinal);
+
+            var writtenUrls = written.ToDictionary(x => x.Key, x => x.Value);
+            var writtenFiles = writtenUrls.Where(x => IsPath(x.Key)).Select(x => x.Value).ToHashSet();
+
+            return stored.Where(x => IsPath(x.Key) && writtenFiles.Contains(x.Value) && !writtenUrls.ContainsKey(x.Key))
+                .Select(x => x.Key[prefix.Length..^suffix.Length])
+                .ToList();
         }
 
         private static void PrepareReplacers(AssetCompilerContext context, AssetItem assetItem, string code, AssetCompilerResult result)
@@ -191,7 +213,7 @@ namespace Stride.Assets.Effect
                         continue;
 
                     var declaredBy = Describe(assetItem);
-                    foreach (var name in DeclaredNames(File.ReadAllText(assetItem.FullPath), assetItem.FullPath))
+                    foreach (var name in ShaderFileDeclarations.StorageNames(File.ReadAllText(assetItem.FullPath), assetItem.FullPath.GetFileNameWithoutExtension()))
                     {
                         if (!shaders.TryGetValue(name, out var files))
                             shaders.Add(name, files = []);
@@ -209,13 +231,6 @@ namespace Stride.Assets.Effect
             {
                 return (Dictionary<string, List<string>>)context.Properties.GetOrAdd(SessionShadersKey, key => FindDeclaredShaders(session.Packages, context.Properties.Get(ImportedShadersKey)));
             }
-        }
-
-        private static IEnumerable<string> DeclaredNames(string code, UFile path)
-        {
-            return ShaderFileDeclarations.Read(code).Where(x => !x.IsEffect).Select(x => x.FullName)
-                .Append(ShaderFileDeclarations.StorageName(code, path.GetFileNameWithoutExtension()))
-                .Distinct();
         }
 
         private static string Describe(AssetItem assetItem) => $"{assetItem.FullPath} (package {assetItem.Package.Meta.Name})";

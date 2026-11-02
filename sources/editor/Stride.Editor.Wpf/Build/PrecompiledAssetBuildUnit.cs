@@ -10,6 +10,7 @@ using Stride.Core.Assets.Compiler;
 using Stride.Core.Assets.Editor.Services;
 using Stride.Core.BuildEngine;
 using Stride.Core.Serialization.Contents;
+using Stride.Core.Storage;
 using Stride.Shaders.Compiler;
 using Stride.Shaders.Parsing;
 
@@ -43,14 +44,28 @@ namespace Stride.Editor.Build
             base.PostBuild();
             if (mergeInCommonDatabase)
             {
-                MicrothreadLocalDatabases.AddToSharedGroup(OutputsOfAssetsThatBuilt());
-                MicrothreadLocalDatabases.RemoveFromSharedGroup(ReplacementsNoLongerDeclared());
+                var outputs = OutputsOfAssetsThatBuilt();
+                var removedClasses = EffectShaderAssetCompiler.FindClassesNoLongerDeclared(
+                    MicrothreadLocalDatabases.GetSharedDatabase().ContentIndexMap.GetMergedIdMap(),
+                    outputs.Where(x => x.Key.Type == UrlType.Content).Select(x => new KeyValuePair<string, ObjectId>(x.Key.Path, x.Value.ObjectId)));
+
+                MicrothreadLocalDatabases.AddToSharedGroup(outputs);
+                MicrothreadLocalDatabases.RemoveFromSharedGroup(ClassUrls(removedClasses).Concat(ReplacementsNoLongerDeclared(removedClasses)));
                 Merged?.Invoke();
             }
         }
 
         // After the merge: a new replacer of the same class has written over the old one
-        private List<ObjectUrl> ReplacementsNoLongerDeclared()
+        private static IEnumerable<ObjectUrl> ClassUrls(List<string> classes)
+        {
+            foreach (var url in classes.Select(EffectCompilerBase.GetStoragePathFromShaderType))
+            {
+                yield return new ObjectUrl(UrlType.Content, url);
+                yield return new ObjectUrl(UrlType.Content, $"{url}/path");
+            }
+        }
+
+        private List<ObjectUrl> ReplacementsNoLongerDeclared(List<string> removedClasses)
         {
             var replacements = EffectCompilerBase.ReadReplacements(MicrothreadLocalDatabases.GetSharedDatabase()).ToList();
             if (replacements.Count == 0)
@@ -61,14 +76,14 @@ namespace Stride.Editor.Build
             {
                 try
                 {
-                    files.Add(new(File.ReadAllText(asset.AssetItem.FullPath), asset.AssetItem.FullPath.GetFileNameWithoutExtension(), asset.Succeeded));
+                    files.Add(new(File.ReadAllText(asset.AssetItem.FullPath), asset.Succeeded));
                 }
                 catch (IOException)
                 {
                     // Being written or deleted: the next build reads it
                 }
             }
-            return ShaderReplacement.NoLongerDeclared(replacements, files)
+            return ShaderReplacement.NoLongerDeclared(replacements, files, removedClasses)
                 .Select(target => new ObjectUrl(UrlType.Content, $"{EffectCompilerBase.GetStoragePathFromShaderType(target)}/replacedby"))
                 .ToList();
         }

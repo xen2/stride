@@ -126,7 +126,6 @@ public static class SDSLErrorMessages
     public const string SDSL0242 = "SDSL0242: & within |: {0} computes {1} first. Add parentheses around it to make it clear.";
     public const string SDSL0243 = "SDSL0243: && within ||: {0} computes {1} first. Add parentheses around it to make it clear.";
     public const string SDSL0244 = "SDSL0244: {0} has lower precedence than {1}: {2} computes {3} first. Add parentheses to make it clear.";
-    public const string SDSL0245 = "SDSL0245: {0}.sdsl declares {1} and no class named {0}. A class is found by its file name: rename the file or the class.";
 
     // Partial structs
 
@@ -160,6 +159,7 @@ public static class SDSLErrorMessages
     public const string SDSL0305 = "SDSL0305: {0} can't replace {1}: {2}.";
     public const string SDSL0306 = "SDSL0306: {0} can't replace {1}: it must declare the generic parameters of {1} ({2}), in the same order and of the same kinds, and pass them to {1} unchanged.";
     public const string SDSL0307 = "SDSL0307: no shader or effect is named {0}. Did you mean {1}? A string in C# or in stored data takes the full name.";
+    public const string SDSL0308 = "SDSL0308: {1} doesn't declare {0} with the macros of this compile: it is inside an #if that is off, or the file changed since the last build.";
 
     // Definition checks: found when a class compiles, reported as warnings (errors with ShaderLoaderBase.WarningsAsErrors)
 

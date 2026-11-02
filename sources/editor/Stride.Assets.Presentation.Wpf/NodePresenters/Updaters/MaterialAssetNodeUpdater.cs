@@ -33,7 +33,7 @@ namespace Stride.Assets.Presentation.NodePresenters.Updaters
             {
                 // Pick only effect shaders visible from the package in which the related asset is contained
                 var asset = node.Asset;
-                node.AttachedProperties.Add(MaterialData.Key, asset.Directory.Package.AllAssets.Where(x => x.AssetType == typeof(EffectShaderAsset)).Select(x => ShaderFileDeclarations.StorageName(((EffectShaderAsset)x.Asset).Text, x.Name)));
+                node.AttachedProperties.Add(MaterialData.Key, asset.Directory.Package.AllAssets.Where(x => x.AssetType == typeof(EffectShaderAsset)).SelectMany(x => ShaderFileDeclarations.StorageNames(((EffectShaderAsset)x.Asset).Text, x.Name)));
             }
 
             // The node is a material blend layer

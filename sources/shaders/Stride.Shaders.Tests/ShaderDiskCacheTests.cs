@@ -530,10 +530,13 @@ public class ShaderDiskCacheTests : IDisposable
             return true;
         }
 
-        protected override bool LoadFromCode(string? filename, string code, ObjectId hash, ReadOnlySpan<ShaderMacro> macros, out ShaderBuffers buffer, bool registerInCache = true)
+        protected override IEnumerable<string> ListSourceFiles()
+            => searchPaths.Where(Directory.Exists).SelectMany(x => Directory.EnumerateFiles(x, "*.sdsl")).Select(x => Path.GetFileNameWithoutExtension(x)!);
+
+        protected override bool LoadFromCode(string? filename, string code, ObjectId hash, ReadOnlySpan<ShaderMacro> macros, out ShaderBuffers buffer, bool registerInCache = true, string? className = null)
         {
             compiled.Add(Path.GetFileNameWithoutExtension(filename) ?? "");
-            return base.LoadFromCode(filename, code, hash, macros, out buffer, registerInCache);
+            return base.LoadFromCode(filename, code, hash, macros, out buffer, registerInCache, className);
         }
 
         private string? SourceOf(string name) => searchPaths.Select(p => Path.Combine(p, $"{name}.sdsl")).FirstOrDefault(File.Exists);

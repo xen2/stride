@@ -146,12 +146,8 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
             if (!LoadExternalFileContent(name, out var filename, out var code, out h))
                 throw new InvalidOperationException($"Shader {name} could not be loaded");
 
-            if (!LoadFromCode(filename, code, h, macrosArray, out buf))
+            if (!LoadFromCode(filename, code, h, macrosArray, out buf, className: name))
                 throw new InvalidOperationException($"Shader {name} could not be compiled");
-
-            // A file can hold several classes
-            if (Cache.TryLoadFromCache(name, null, macrosArray, out var declared, out var declaredHash))
-                return (declared, declaredHash);
 
             return (buf, h);
         }, LazyThreadSafetyMode.ExecutionAndPublication));
@@ -235,7 +231,8 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
         }
     }
 
-    protected virtual bool LoadFromCode(string? filename, string code, ObjectId hash, ReadOnlySpan<ShaderMacro> macros, out ShaderBuffers buffer, bool registerInCache = true)
+    /// <param name="className">The class of the file to compile, by full name. All of them if null.</param>
+    protected virtual bool LoadFromCode(string? filename, string code, ObjectId hash, ReadOnlySpan<ShaderMacro> macros, out ShaderBuffers buffer, bool registerInCache = true, string? className = null)
     {
         var defines = new (string Name, string Definition)[macros.Length];
         for (int i = 0; i < macros.Length; ++i)
@@ -249,7 +246,7 @@ public abstract class ShaderLoaderBase(IShaderCache fileCache) : IExternalShader
 
         // Use provided logger, or a temporary one that throws on errors
         var log = Log ?? new LoggerResult();
-        if (!sdslc.Compile(filename, text, hash, macros, log, out buffer, new() { RegisterInCache = registerInCache, OriginalCode = code }))
+        if (!sdslc.Compile(filename, text, hash, macros, log, out buffer, new() { RegisterInCache = registerInCache, OriginalCode = code, ClassName = className }))
         {
             if (log is LoggerResult loggerResult && loggerResult.HasErrors)
                 throw new InvalidOperationException(string.Join(Environment.NewLine, loggerResult.Messages.Where(m => m.Type >= LogMessageType.Error).Select(m => m.ToString())));

@@ -1484,9 +1484,8 @@ new ShaderMacro("class", "shader"),
     // Mixes a RenderTests file (its effect, or its shader of the same name) and returns how the mixer linked it
     static string ExplainRenderTest(string name, Stride.Core.Diagnostics.LoggerResult log)
     {
-        var loader = new ShaderLoader("./assets/SDSL/RenderTests") { Log = log };
+        var loader = new ShaderLoader("./assets/SDSL/RenderTests") { Log = log, OwnClassesOf = name };
         var shaderMixer = new ShaderMixer(loader) { CollectExplanation = true };
-        Assert.True(loader.LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _));
         var source = ShaderMixinManager.Contains(TestShader.FullName(name)) ? new ShaderMixinGeneratorSource(TestShader.FullName(name)) : (ShaderSource)new ShaderClassSource(TestShader.FullName(name));
         Assert.True(shaderMixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));

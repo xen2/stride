@@ -30,6 +30,8 @@ namespace Stride.Shaders.Compilers
         private readonly Dictionary<string, string?> storedReplacers = new Dictionary<string, string?>();
         // Classes whose source file was deleted while running, or no longer declares them: the database still holds them, but they no longer replace anything
         private readonly HashSet<string> deletedSources = new HashSet<string>();
+        // The files that declare each class of a source directory, read once: a database has a URL for each class
+        private readonly Dictionary<string, Dictionary<string, List<string>>> classesOfDirectories = new Dictionary<string, Dictionary<string, List<string>>>();
 
         /// <summary>
         /// The file provider used to load shader sources.
@@ -183,6 +185,17 @@ namespace Stride.Shaders.Compilers
         {
             lock (locker)
             {
+                // The file event only names the classes an effect used: the others of the file changed too
+                var modifiedFiles = modifiedShaders.Select(SourceFileOf).ToHashSet();
+                foreach (var (shaderName, source) in loadedShaderSources.ToList())
+                {
+                    if (modifiedFiles.Contains(source.Path))
+                    {
+                        loadedShaderSources.Remove(shaderName);
+                        classNameToPath.Remove(shaderName);
+                    }
+                }
+
                 foreach (var shaderName in modifiedShaders)
                 {
                     loadedShaderSources.Remove(shaderName);
@@ -190,7 +203,23 @@ namespace Stride.Shaders.Compilers
                 }
                 UpdateDeletedSources(modifiedShaders);
                 storedReplacers.Clear();
+                classesOfDirectories.Clear();
             }
+        }
+
+        // What ShaderSourceWithHash.Path is once loaded
+        private string? SourceFileOf(string type)
+        {
+            if (loadedShaderSources.TryGetValue(type, out var loaded))
+                return loaded.Path;
+
+            // No SDSL0301 here: a reload is how that mistake gets fixed
+            var url = FindFile(type);
+            if (url == null)
+                return null;
+            if (Platform.IsWindowsDesktop && LoadFromOriginalPathFirst && FileExists(url + "/path"))
+                return Path.Combine(PlatformFolders.ApplicationBinaryDirectory, ReadText(url + "/path"));
+            return UrlToFilePath.GetValueOrDefault(url, url);
         }
 
         /// <summary>
@@ -222,7 +251,7 @@ namespace Stride.Shaders.Compilers
             try
             {
                 // The file can be back with another class in it
-                return !File.Exists(path) || !ShaderFileDeclarations.Holds(File.ReadAllText(path), ShaderNames.ShortName(type), type);
+                return !File.Exists(path) || !ShaderFileDeclarations.Holds(File.ReadAllText(path), type);
             }
             catch (IOException)
             {
@@ -376,37 +405,49 @@ namespace Stride.Shaders.Compilers
                 if (LookupDirectoryList == null)
                     return null;
 
-                string? path = null;
-                if (classNameToPath.TryGetValue(type, out path))
-                    return path;
+                // Before looking for a file: the one named after the class can be one of the two. A build reports the same mistake
+                var declaredBy = LookupDirectoryList.SelectMany(directory => ClassesOfDirectory(directory).GetValueOrDefault(type) ?? []).Distinct().ToList();
+                if (declaredBy.Count > 1)
+                    throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0301, type, declaredBy[0], declaredBy[1]));
 
-                foreach (var directory in LookupDirectoryList)
-                {
-                    // Under its full name
-                    var shortName = ShaderNames.ShortName(type);
-                    var testPath = FilePath(directory, type);
-                    if (FileExists(testPath) && (shortName != type || ShaderFileDeclarations.Holds(ReadText(testPath), shortName, type)))
-                    {
-                        path = testPath;
-                        break;
-                    }
-
-                    // A source directory holds C.sdsl for the class A.B.C
-                    testPath = FilePath(directory, shortName);
-                    if (shortName != type && FileExists(testPath) && ShaderFileDeclarations.Holds(ReadText(testPath), shortName, type))
-                    {
-                        path = testPath;
-                        break;
-                    }
-                }
-
-                if (path != null)
-                {
-                    classNameToPath.Add(type, path);
-                }
-
-                return path;
+                return FindFile(type);
             }
+        }
+
+        private string? FindFile(string type)
+        {
+            if (classNameToPath.TryGetValue(type, out var path))
+                return path;
+
+            foreach (var directory in LookupDirectoryList)
+            {
+                // Under its full name
+                var shortName = ShaderNames.ShortName(type);
+                var testPath = FilePath(directory, type);
+                if (FileExists(testPath) && (shortName != type || ShaderFileDeclarations.Holds(ReadText(testPath), type)))
+                {
+                    path = testPath;
+                    break;
+                }
+
+                // A source directory holds C.sdsl for the class A.B.C
+                testPath = FilePath(directory, shortName);
+                if (shortName != type && FileExists(testPath) && ShaderFileDeclarations.Holds(ReadText(testPath), type))
+                {
+                    path = testPath;
+                    break;
+                }
+            }
+
+            // Or a file of another name
+            path ??= LookupDirectoryList.Select(directory => ClassesOfDirectory(directory).GetValueOrDefault(type)?[0]).FirstOrDefault(x => x != null);
+
+            if (path != null)
+            {
+                classNameToPath.Add(type, path);
+            }
+
+            return path;
         }
 
         /// <summary>
@@ -428,9 +469,11 @@ namespace Stride.Shaders.Compilers
                     var filePath = FilePath(directory, shortName);
                     if (FileExists(filePath))
                     {
-                        var fullName = ShaderFileDeclarations.StorageName(ReadText(filePath), shortName);
-                        if (!result.Contains(fullName))
-                            result.Add(fullName);
+                        foreach (var declaration in ShaderFileDeclarations.Read(ReadText(filePath)).Where(x => !x.IsEffect && x.Name == shortName))
+                        {
+                            if (!result.Contains(declaration.FullName))
+                                result.Add(declaration.FullName);
+                        }
                     }
 
                     foreach (var file in ListFiles(directory, $"*.{shortName}{DefaultEffectFileExtension}"))
@@ -439,9 +482,38 @@ namespace Stride.Shaders.Compilers
                         if (!result.Contains(fullName))
                             result.Add(fullName);
                     }
+
+                    foreach (var fullName in ClassesOfDirectory(directory).Keys)
+                    {
+                        if (ShaderNames.ShortName(fullName) == shortName && !result.Contains(fullName))
+                            result.Add(fullName);
+                    }
                 }
             }
             return result;
+        }
+
+        private Dictionary<string, List<string>> ClassesOfDirectory(string directory)
+        {
+            if (classesOfDirectories.TryGetValue(directory, out var classes))
+                return classes;
+
+            classes = new Dictionary<string, List<string>>();
+            if (fileProvider is not DatabaseFileProvider || UseFileSystem)
+            {
+                foreach (var file in ListFiles(directory, $"*{DefaultEffectFileExtension}"))
+                {
+                    var path = FilePath(directory, Path.GetFileNameWithoutExtension(file));
+                    foreach (var fullName in ShaderFileDeclarations.Read(ReadText(path)).Where(x => !x.IsEffect).Select(x => x.FullName).Distinct())
+                    {
+                        if (!classes.TryGetValue(fullName, out var files))
+                            classes.Add(fullName, files = []);
+                        files.Add(path);
+                    }
+                }
+            }
+            classesOfDirectories.Add(directory, classes);
+            return classes;
         }
 
         // use / for directory separation to allow to work with both Storage and FileSystem.

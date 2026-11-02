@@ -27,6 +27,16 @@ static class TestShader
     public static string FullName(string name) => FullNames.Value.GetValueOrDefault(name, name);
 
     /// <summary>
+    /// The full name of what a test of a file is about: the class or effect named like the file, else its first class, else the file name.
+    /// </summary>
+    public static string MainClass(string text, string fileName)
+    {
+        var declarations = ShaderFileDeclarations.Read(text);
+        var main = declarations.Where(x => x.Name == fileName).Concat(declarations.Where(x => !x.IsEffect)).Select(x => x.FullName).FirstOrDefault();
+        return main ?? ShaderFileDeclarations.StorageNames(text, fileName)[0];
+    }
+
+    /// <summary>
     /// The full name of a shader a test writes in <c>namespace Stride.Shaders.Tests</c>, or of an engine shader it uses.
     /// </summary>
     public static string Written(string name) => name.Contains('.') ? name : FullNames.Value.GetValueOrDefault(name, $"Stride.Shaders.Tests.{name}");

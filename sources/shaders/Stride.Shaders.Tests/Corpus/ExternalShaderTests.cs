@@ -132,6 +132,8 @@ public class ExternalShaderTests
             hash = ObjectId.FromBytes(Encoding.UTF8.GetBytes(code));
             return true;
         }
+
+        protected override IEnumerable<string> ListSourceFiles() => external.Keys.Concat(engine.Keys);
     }
 
     static ShaderMixinSource WithPlatformMacros(ShaderMixinSource mixin)
@@ -197,7 +199,7 @@ public class ExternalShaderTests
             }
 
             File.AppendAllText(progress, $"load {name}{Environment.NewLine}");
-            var fullName = Stride.Shaders.Parsing.ShaderFileDeclarations.StorageName(file.Text, name);
+            var fullName = TestShader.MainClass(file.Text, name);
             var log = new LoggerResult();
             run.Loader.Log = log;
             bool loaded;

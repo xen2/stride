@@ -316,7 +316,7 @@ public class ShaderUpgradeTests
 
         var loader = new ShaderLoader(Path.Combine(FixturesDirectory, fixture, "after"), Path.Combine(FixturesDirectory, fixture, "dependencies"), "./assets/Stride/SDSL");
         foreach (var name in expected.Keys.Where(x => !ShaderUpgrader.IsEffectFile(x)))
-            Assert.True(loader.LoadExternalBuffer(Stride.Shaders.Parsing.ShaderFileDeclarations.StorageName(expected[name], Path.GetFileNameWithoutExtension(name)), [], out _, out _, out _), name);
+            Assert.True(loader.LoadExternalBuffer(TestShader.MainClass(expected[name], Path.GetFileNameWithoutExtension(name)), [], out _, out _, out _), name);
     }
 
     // A dependency is read, never changed; one written for an older version is read as if upgraded, with a note
@@ -551,8 +551,11 @@ public class ShaderUpgradeTests
                 continue;
             try
             {
-                if (!loader.LoadExternalBuffer(Stride.Shaders.Parsing.ShaderFileDeclarations.StorageName(text, name), ShaderMacros.GetValueOrDefault(name) ?? [], out _, out _, out _))
-                    failures.Add(path);
+                foreach (var declared in Stride.Shaders.Parsing.ShaderFileDeclarations.Read(text).Where(x => !x.IsEffect).Select(x => x.FullName).Distinct())
+                {
+                    if (!loader.LoadExternalBuffer(declared, ShaderMacros.GetValueOrDefault(name) ?? [], out _, out _, out _))
+                        failures.Add(path);
+                }
             }
             catch (Exception e)
             {

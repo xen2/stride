@@ -101,7 +101,7 @@ static class ShaderCorpus
         foreach (var file in Directory.EnumerateFiles(RenderTestsDirectory, "*.sdsl").Order(StringComparer.Ordinal))
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
-            var name = Stride.Shaders.Parsing.ShaderFileDeclarations.StorageName(File.ReadAllText(file), fileName);
+            var name = TestShader.MainClass(File.ReadAllText(file), fileName);
             items.Add(new CorpusItem($"RenderTests.{fileName}", name, GraphicsProfile.Level_11_0, file, () => ShaderMixinManager.Contains(name)
                 ? ShaderMixinManager.Generate(name, new CompilerParameters())
                 : new ShaderMixinSource { Name = name, Mixins = { new ShaderClassSource(name) } }));
@@ -154,10 +154,6 @@ static class ShaderCorpus
             // RenderTests are compiled without macros, like RenderingTests does
             if (item.SourceFile == null)
                 EffectCompiler.AddPlatformMacros(mixin, new EffectCompilerParameters { Platform = platform, Profile = item.Profile });
-
-            // Registers every shader of the file, under the macros the mixer looks them up with
-            if (item.SourceFile != null)
-                loader.LoadExternalBuffer(item.EffectName, mixin.Macros.ToArray(), out _, out _, out _);
 
             success = mixer.MergeSDSL(mixin, EffectCompiler.GetMixerOptions(platform), log, out bytecode, out reflection, out _, out _);
         }
@@ -265,9 +261,11 @@ static class ShaderCorpus
     /// <param name="extraFile">Found by its file name before the index (a RenderTests file).</param>
     sealed class IndexShaderLoader(Dictionary<string, string> index, string? extraFile = null) : SourceFileShaderLoader(new ShaderCache())
     {
+        readonly HashSet<string> extraClasses = extraFile != null ? [Path.GetFileNameWithoutExtension(extraFile), .. Stride.Shaders.Parsing.ShaderFileDeclarations.Read(File.ReadAllText(extraFile)).Select(x => x.Name)] : [];
+
         bool TryFind(string name, out string path)
         {
-            if (extraFile != null && Path.GetFileNameWithoutExtension(extraFile) == name)
+            if (extraClasses.Contains(name))
             {
                 path = extraFile;
                 return true;
@@ -292,6 +290,8 @@ static class ShaderCorpus
             filename = path;
             return true;
         }
+
+        protected override IEnumerable<string> ListSourceFiles() => extraFile != null ? index.Keys.Append(Path.GetFileNameWithoutExtension(extraFile)) : index.Keys;
     }
 }
 

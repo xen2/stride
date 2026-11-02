@@ -560,7 +560,7 @@ public class ReplacesTests : IDisposable
     private const string Retargeted = """namespace Game; [Replaces("Lib.Y")] shader R : Lib.Y { };""";
     private const string ParseError = "namespace Game; shader R : Lib.X { override float4 Get() { retur n 1; } };";
 
-    private static ShaderReplacement.BuiltFile Built(string text, string fileName = "R", bool succeeded = true) => new(text, fileName, succeeded);
+    private static ShaderReplacement.BuiltFile Built(string text, bool succeeded = true) => new(text, succeeded);
 
     // What the editor does after the merge of a shader build
     private static void AfterBuild(GrowingDatabase database, EffectCompiler compiler, params ShaderReplacement.BuiltFile[] files)
@@ -669,26 +669,29 @@ public class ReplacesTests : IDisposable
 
     [Theory]
     // It still declares that class
-    [InlineData(ReplacerShader, "R", true, false)]
-    [InlineData(NoAttribute, "R", true, true)]
-    [InlineData(Retargeted, "R", true, true)]
+    [InlineData(ReplacerShader, true, false)]
+    [InlineData(NoAttribute, true, true)]
+    [InlineData(Retargeted, true, true)]
     // The file has an error: it isn't known what it declares
-    [InlineData(ParseError, "R", true, false)]
+    [InlineData(ParseError, true, false)]
     // Two assets write one class: the one that failed keeps it, whatever the other says
-    [InlineData(NoAttribute, "R", false, false)]
+    [InlineData(NoAttribute, false, false)]
     // A class of another namespace, or of another file
-    [InlineData("namespace Other; shader R : Lib.X { };", "R", true, false)]
-    [InlineData("namespace Game; shader S : Lib.X { };", "S", true, false)]
-    // The file of the replacer, whose class has a new name
-    [InlineData("namespace Game; shader Renamed : Lib.X { };", "R", true, true)]
-    // Another file holds the class
-    [InlineData(NoAttribute, "OtherFile", true, true)]
-    public void AReplacementIsDroppedOnlyWhenTheFileThatHoldsItSaysSo(string text, string fileName, bool succeeded, bool dropped)
+    [InlineData("namespace Other; shader R : Lib.X { };", true, false)]
+    [InlineData("namespace Game; shader S : Lib.X { };", true, false)]
+    public void AReplacementIsDroppedOnlyWhenTheFileThatHoldsItSaysSo(string text, bool succeeded, bool dropped)
     {
-        var result = ShaderReplacement.NoLongerDeclared([XByR], [Built(text, fileName, succeeded)]);
+        var result = ShaderReplacement.NoLongerDeclared([XByR], [Built(text, succeeded)]);
 
         Assert.Equal(dropped ? ["Lib.X"] : [], result);
     }
+
+    // The replacer has a new name in its file, which could also be named like nothing
+    [Theory]
+    [InlineData("namespace Game; shader Renamed : Lib.X { };")]
+    [InlineData("namespace Game; shader Other { }; shader Renamed : Lib.X { };")]
+    public void ARenamedReplacerIsDropped(string text)
+        => Assert.Equal(["Lib.X"], ShaderReplacement.NoLongerDeclared([XByR], [Built(text)], removedClasses: ["Game.R"]));
 
     [Fact]
     public void TheTextWithAParseErrorHasOne() => Assert.NotEmpty(SDSLParser.Parse(ParseError).Errors);
@@ -696,8 +699,8 @@ public class ReplacesTests : IDisposable
     [Fact]
     public void TwoFilesThatHoldAReplacerMustBothHaveBuilt()
     {
-        Assert.Empty(ShaderReplacement.NoLongerDeclared([XByR], [Built(NoAttribute), Built(ReplacerShader, "Copy", succeeded: false)]));
-        Assert.Empty(ShaderReplacement.NoLongerDeclared([XByR], [Built(NoAttribute), Built(ReplacerShader, "Copy")]));
+        Assert.Empty(ShaderReplacement.NoLongerDeclared([XByR], [Built(NoAttribute), Built(ReplacerShader, succeeded: false)]));
+        Assert.Empty(ShaderReplacement.NoLongerDeclared([XByR], [Built(NoAttribute), Built(ReplacerShader)]));
     }
 
     [Fact]
@@ -706,7 +709,7 @@ public class ReplacesTests : IDisposable
         KeyValuePair<string, string> yByS = new("Lib.Y", "Game.S");
         const string other = """namespace Game; [Replaces("Lib.Y")] shader S : Lib.Y { };""";
 
-        Assert.Equal(["Lib.X"], ShaderReplacement.NoLongerDeclared([XByR, yByS], [Built(NoAttribute), Built(other, "S")]));
+        Assert.Equal(["Lib.X"], ShaderReplacement.NoLongerDeclared([XByR, yByS], [Built(NoAttribute), Built(other)]));
         // S isn't in this build: a package built apart, or a file that was deleted
         Assert.Equal(["Lib.X"], ShaderReplacement.NoLongerDeclared([XByR, yByS], [Built(NoAttribute)]));
     }
@@ -714,7 +717,7 @@ public class ReplacesTests : IDisposable
     // The build wrote the new replacer of X over R, before this runs
     [Fact]
     public void ANewReplacerOfTheClassIsNotDropped()
-        => Assert.Empty(ShaderReplacement.NoLongerDeclared([new("Lib.X", "Game.S")], [Built(NoAttribute), Built("""namespace Game; [Replaces("Lib.X")] shader S : Lib.X { };""", "S")]));
+        => Assert.Empty(ShaderReplacement.NoLongerDeclared([new("Lib.X", "Game.S")], [Built(NoAttribute), Built("""namespace Game; [Replaces("Lib.X")] shader S : Lib.X { };""")]));
 
     // Its file is gone, so no build goes through it: the deleted state of the compiler holds it (see AReplacerDeletedWithNoFileEventIsFoundByABuild)
     [Fact]

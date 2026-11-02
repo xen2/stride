@@ -83,7 +83,8 @@ namespace Stride.Assets.Presentation.ViewModel
             {
                 // TODO: we don't detect collision of name here
                 var text = ((EffectShaderAsset)asset.Asset).Text;
-                projectShaders[ShaderFileDeclarations.StorageName(text, asset.Name)] = text;
+                foreach (var name in ShaderFileDeclarations.StorageNames(text, asset.Name))
+                    projectShaders[name] = text;
             }
 
             var shader = node.ParseReferencedShader(projectShaders);

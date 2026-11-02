@@ -76,14 +76,25 @@ public class ShaderFullNameLookupTests : IDisposable
         ], declarations);
     }
 
+    // Each side of the #if opens a class, and one closing brace ends them
     [Fact]
-    public void AFileIsStoredUnderTheNamespaceOfItsClass()
+    public void BothSidesOfAnIfThatOpensAClassAreRead()
+        => Assert.Equal([
+            new(null, "One", false),
+            new(null, "Two", false),
+        ], ShaderFileDeclarations.Read("#ifdef A\nshader One : P {\n#else\nshader Two : Q {\n#endif\n    float x;\n};\n"));
+
+    [Fact]
+    public void AFileIsStoredUnderTheNameOfEachOfItsClasses()
     {
-        Assert.Equal("C", ShaderFileDeclarations.StorageName("shader C { };", "C"));
-        Assert.Equal("A.B.C", ShaderFileDeclarations.StorageName("namespace A.B; shader C { };", "C"));
-        // The class named like the file wins, then the first class; the URL keeps the file name
-        Assert.Equal("Y.C", ShaderFileDeclarations.StorageName("namespace X { shader D { }; } namespace Y { shader C { }; }", "C"));
-        Assert.Equal("X.C", ShaderFileDeclarations.StorageName("namespace X { shader D { }; } namespace Y { shader E { }; }", "C"));
+        Assert.Equal(["C"], ShaderFileDeclarations.StorageNames("shader C { };", "C"));
+        Assert.Equal(["A.B.C"], ShaderFileDeclarations.StorageNames("namespace A.B; shader C { };", "C"));
+        Assert.Equal(["X.D", "Y.E"], ShaderFileDeclarations.StorageNames("namespace X { shader D { }; } namespace Y { shader E { }; }", "C"));
+        // One class on both sides of an #if; an effect is C#, so a file with only effects has its own name
+        Assert.Equal(["X.D"], ShaderFileDeclarations.StorageNames("namespace X;\n#if A\nshader D { };\n#else\nshader D { float x; };\n#endif\n", "C"));
+        Assert.Equal(["X.D"], ShaderFileDeclarations.StorageNames("namespace X; shader D { }; effect E { };", "C"));
+        Assert.Equal(["X.C"], ShaderFileDeclarations.StorageNames("namespace X; effect E { };", "C"));
+        Assert.Equal(["C"], ShaderFileDeclarations.StorageNames("", "C"));
     }
 
     [Fact]
@@ -144,19 +155,6 @@ public class ShaderFullNameLookupTests : IDisposable
         Assert.Contains("SDSL0301: A.B.Twice is declared twice", error.Message);
         Assert.Contains("first/Twice.sdsl", error.Message);
         Assert.Contains("second/Twice.sdsl", error.Message);
-    }
-
-    [Fact]
-    public void AFileWithoutItsClassIsAWarning()
-    {
-        WriteFile("NamedLikeNothing.sdsl", "namespace A.B; shader Other { };");
-        WriteFile("NamedLikeOne.sdsl", "namespace A.B; shader Other { }; shader NamedLikeOne { };");
-
-        var loader = new ShaderLoader(sourceDir.FullName) { WarningsAsErrors = true };
-        var error = Assert.Throws<InvalidOperationException>(() => loader.LoadExternalBuffer("A.B.NamedLikeNothing", [], out _, out _, out _));
-        Assert.Contains("SDSL0245: NamedLikeNothing.sdsl declares Other and no class named NamedLikeNothing", error.Message);
-
-        Assert.True(loader.LoadExternalBuffer("A.B.NamedLikeOne", [], out _, out _, out _));
     }
 
     [Fact]

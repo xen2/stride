@@ -70,7 +70,8 @@ public class EmbeddedEffectTests
         {
             var relative = Path.GetRelativePath(RepositoryRoot, file).Replace('\\', '/');
             var code = File.ReadAllText(file).ReplaceLineEndings("\n");
-            sourceManager.AddShaderSource(ShaderFileDeclarations.StorageName(code, Path.GetFileNameWithoutExtension(file)), code, relative);
+            foreach (var name in ShaderFileDeclarations.StorageNames(code, Path.GetFileNameWithoutExtension(file)))
+                sourceManager.AddShaderSource(name, code, relative);
         }
 
         var files = new Dictionary<string, string>();

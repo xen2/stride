@@ -47,7 +47,7 @@ namespace Stride.Assets.Materials
                     if (parsed.AST is not ShaderFile sf)
                         return null;
 
-                    return sf.RootDeclarations.Concat(sf.Namespaces.SelectMany(x => x.Declarations)).OfType<ShaderClass>().SingleOrDefault();
+                    return ShaderReplacement.Classes(sf).FirstOrDefault(x => ShaderNames.Combine(x.Namespace, x.Class.Name.Name) == node.MixinReference).Class;
                 }
                 catch
                 {

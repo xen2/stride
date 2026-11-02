@@ -127,8 +127,15 @@ public static class ShaderFileDeclarations
                             if (name.Length > 0 && word != "params")
                                 result.Add(new(namespaces.Count > 0 ? namespaces.Peek() : fileNamespace, name, word == "effect"));
                             var open = source.NextCode('{', i);
-                            var close = open < 0 ? -1 : source.MatchingBrace(open);
-                            i = close < 0 ? text.Length : close + 1;
+                            if (open < 0)
+                            {
+                                i = text.Length;
+                                break;
+                            }
+
+                            // No closing brace: each side of an #if can open the class, so the next one is still to read
+                            var close = source.MatchingBrace(open);
+                            i = close < 0 ? open + 1 : close + 1;
                             break;
                         }
                 }
@@ -142,22 +149,20 @@ public static class ShaderFileDeclarations
     }
 
     /// <summary>
-    /// The full name a file is stored and found under: the namespace of its class named like the file, else of its first class, then the file name.
+    /// The full names a file is stored and found under: one per class, on either side of an <c>#if</c>. A file with no class has its file name.
     /// </summary>
-    public static string StorageName(string text, string fileName)
+    public static List<string> StorageNames(string text, string fileName)
     {
         var declarations = Read(text);
-        var classes = declarations.Where(x => !x.IsEffect).ToList();
-        var candidates = classes.Count > 0 ? classes : declarations;
-        var main = candidates.Where(x => x.Name == fileName).Select(x => (ShaderFileDeclaration?)x).FirstOrDefault() ?? candidates.Select(x => (ShaderFileDeclaration?)x).FirstOrDefault();
-        return ShaderNames.Combine(main?.Namespace, fileName);
+        var classes = declarations.Where(x => !x.IsEffect).Select(x => x.FullName).Distinct().ToList();
+        return classes.Count > 0 ? classes : [ShaderNames.Combine(declarations.Select(x => x.Namespace).FirstOrDefault(), fileName)];
     }
 
     /// <summary>
-    /// Whether a file with this file name holds <paramref name="fullName"/>: it declares it, or it is the name it is stored under.
+    /// Whether a file declares the class <paramref name="fullName"/>, on either side of an <c>#if</c>.
     /// </summary>
-    public static bool Holds(string text, string fileName, string fullName)
-        => Read(text).Any(x => x.FullName == fullName) || StorageName(text, fileName) == fullName;
+    public static bool Holds(string text, string fullName)
+        => Read(text).Any(x => !x.IsEffect && x.FullName == fullName);
 
     private static string ReadWord(string text, ref int i, bool dots)
     {

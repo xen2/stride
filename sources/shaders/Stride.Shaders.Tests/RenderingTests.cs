@@ -74,14 +74,10 @@ public partial class RenderingTests
         SkipUnlessBackendAvailable(backend);
 
         // Compiler shader
-        var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/ComputeTests"));
+        var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/ComputeTests") { OwnClassesOf = shaderName });
         var shaderSource = ShaderMixinManager.Contains(TestShader.FullName(shaderName))
             ? new ShaderMixinGeneratorSource(TestShader.FullName(shaderName))
             : (ShaderSource)new ShaderClassSource(TestShader.FullName(shaderName));
-
-        // Force file to be parsed and all its shaders registered
-        // (since there are multiple shader/effects in a simple file, simply using the effect would not go through normal load and it wouldn't know about the shaders in the file)
-        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
         shaderMixer.MergeSDSL(shaderSource, GetMixerOptions(backend), log, out var bytecode, out var effectReflection, out _, out _);
@@ -199,8 +195,7 @@ public partial class RenderingTests
         // of OpMemberDecorate, not of OpMemberDecorateString), and spirv-opt crashed the process on it once the function was
         // inlined and removed (LegalizeForHlsl, the Direct3D 11 path).
         const string shaderName = "HelperParameterSemantic";
-        var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/RenderTests"));
-        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
+        var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/RenderTests") { OwnClassesOf = shaderName });
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
         Assert.True(shaderMixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
@@ -260,14 +255,10 @@ public partial class RenderingTests
         SkipUnlessBackendAvailable(backend);
 
         // Compiler shader
-        var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/RenderTests"));
+        var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/RenderTests") { OwnClassesOf = shaderName });
         var shaderSource = ShaderMixinManager.Contains(TestShader.FullName(shaderName))
             ? new ShaderMixinGeneratorSource(TestShader.FullName(shaderName))
             : (ShaderSource)new ShaderClassSource(TestShader.FullName(shaderName));
-
-        // Force file to be parsed and all its shaders registered
-        // (since there are multiple shader/effects in a simple file, simply using the effect would not go through normal load and it wouldn't know about the shaders in the file)
-        shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
         shaderMixer.MergeSDSL(shaderSource, GetMixerOptions(backend), log, out var bytecode, out var effectReflection, out _, out _);
