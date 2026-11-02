@@ -20,6 +20,7 @@ module NormalBase
         GenerateNormal_VS();
     }
 	
+    [Phase(Input)]
     override void PSMain()
     {
         // Perform normal generation at beginning so that it is accessible during PS.

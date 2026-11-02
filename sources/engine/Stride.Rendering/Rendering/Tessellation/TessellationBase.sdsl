@@ -36,6 +36,7 @@ shader TessellationBase : MaterialDomainStream
     patchstream float tessFactor[3] : SV_TessFactor;
     patchstream float insideTessFactor : SV_InsideTessFactor;
     
+    [Phase(Adjust)]
     override module void GenerateNormal_VS()
     {
         base.GenerateNormal_VS();
@@ -133,9 +134,10 @@ shader TessellationBase : MaterialDomainStream
         return f2ScreenPosition;
     }
     
-    module void TessellateHull(InputPatch<Input, InputControlPointCount> input, uint uCPID, uint NextCPID) {}
-    module void TessellateHullConstant(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants) {}
-    module float ComputeClipping(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants) { return 0.0f; }
-    module void InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords) {}
-    module void TessellateDomain() {}
+    module pipeline void TessellateHull(InputPatch<Input, InputControlPointCount> input, uint uCPID, uint NextCPID) {}
+    module replace void TessellateHullConstant(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants) {}
+    module replace float ComputeClipping(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants) { return 0.0f; }
+    [Phases(Interpolate, Fixup)]
+    module pipeline void InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords) {}
+    module pipeline void TessellateDomain() {}
 };

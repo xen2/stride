@@ -44,11 +44,13 @@ shader ShadingBase
 #endif
 
     // method computing color
-    module float4 Shading()
+    [Phases(Post, Surface)]
+    module around float4 Shading()
     {
         return ShadingColor0.Compute();
     }
     
+    [Phase(Shade)]
     module override void PSMain()
     {
         base.PSMain();

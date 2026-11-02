@@ -37,7 +37,8 @@ module SpriteBase
         streams.ColorTarget = Shading();
     }
 
-    float4 Shading()
+    [Phases(Post, Surface)]
+    around float4 Shading()
     {
         return Texture0.Sample(Sampler, streams.TexCoord);
     }

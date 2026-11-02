@@ -244,6 +244,58 @@ public partial class ExtensionPointTests : IDisposable
     }
 
     [Theory]
+    [InlineData("[Phases(A)] pipeline", false)]
+    [InlineData("replace", false)]
+    [InlineData("around", false)]
+    [InlineData("", true)]
+    public void OverridingAnUndeclaredModuleMethodWarns(string kind, bool warns)
+    {
+        Write("Base", $"module Base {{ {kind} void F() {{ }} }}");
+        Write("Patch", "module Patch { import Base; override void F() { base.F(); } }");
+
+        var (ok, log, _) = Mix("Test.Patch");
+
+        Assert.True(ok, log);
+        Assert.Equal(warns, log.Contains("SDSL0246"));
+    }
+
+    [Fact]
+    public void ARootShaderOverridingAnUndeclaredModuleMethodWarns()
+    {
+        Write("Base", "module Base { void F() { } }");
+        Write("Patch", "[Root] shader Patch { import Base; override void F() { base.F(); } }");
+
+        var (ok, log, _) = Mix("Test.Patch");
+
+        Assert.True(ok, log);
+        Assert.Contains("SDSL0246", log);
+    }
+
+    [Fact]
+    public void ImplementingAnAbstractModuleMethodDoesNotWarn()
+    {
+        Write("Base", "module Base { abstract void F(); }");
+        Write("Implementation", "module Implementation { import Base; override void F() { } }");
+
+        var (ok, log, _) = Mix("Test.Implementation");
+
+        Assert.True(ok, log);
+        Assert.DoesNotContain("SDSL0246", log);
+    }
+
+    [Fact]
+    public void AnInstanceOverrideDoesNotWarn()
+    {
+        Write("Base", "shader Base { void F() { } }");
+        Write("Implementation", "shader Implementation : Base { override void F() { } }");
+
+        var (ok, log, _) = Mix("Test.Implementation");
+
+        Assert.True(ok, log);
+        Assert.DoesNotContain("SDSL0246", log);
+    }
+
+    [Theory]
     [InlineData(false, "Info")]
     [InlineData(true, "Warning")]
     public void ADroppedContributorIsReported(bool isAssetBuild, string type)
@@ -322,5 +374,19 @@ public partial class ExtensionPointTests : IDisposable
 
         Assert.False(ok, log);
         Assert.Contains("SDSL0171", log);
+    }
+
+    // No capture mixes these two: VL.ImGui and StrideTerrainEditor do
+    [Theory]
+    [InlineData("Stride.Rendering.PositionStream2", "Input: PositionStream2")]
+    [InlineData("Stride.Rendering.PositionVertexTransform", "Attributes: PositionVertexTransform")]
+    public void TheEngineShadersNoCaptureMixesHaveTheirPhase(string shader, string line)
+    {
+        Write("Root", "module Root { import Stride.Rendering.ShaderBase; }");
+
+        var (ok, log, explanation) = Mix("Test.Root", shader);
+
+        Assert.True(ok, log);
+        Assert.Contains(line, Block(explanation, "VSMain"));
     }
 }

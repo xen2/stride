@@ -13,6 +13,7 @@ namespace Stride.Rendering.Materials
         compose IMaterialSurface materialPixelStage;
         compose IStreamInitializer streamInitializerPixelStage;
 
+        [Phase(Surface)]
         module override float4 Shading()
         {
             // Prepare global streams (temp)

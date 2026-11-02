@@ -6,6 +6,7 @@ shader TransformationTextureUV
     import ShaderBase;
     import Texturing;
 
+    [Phase(Input)]
     override void VSMain()
     {
         TransformUV_VS();
