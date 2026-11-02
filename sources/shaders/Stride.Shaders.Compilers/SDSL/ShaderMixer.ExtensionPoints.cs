@@ -321,18 +321,54 @@ public partial class ShaderMixer
         return false;
     }
 
+    private static IEnumerable<MixinNode> NodesOf(MixinNode node)
+    {
+        yield return node;
+        foreach (var composition in node.Compositions.Values.Concat(node.CompositionArrays.Values.SelectMany(x => x)))
+        {
+            foreach (var child in NodesOf(composition))
+                yield return child;
+        }
+    }
+
     /// <summary>
-    /// Inside a phase, two contributors need an order when one writes what the other uses, and two wrappers of an <c>around</c> point
-    /// always do, as each one wraps the other. An effect of the asset build has to state it. <c>External</c> follows the order of the mix,
-    /// and code that never runs conflicts with nothing.
+    /// Two contributors of one phase whose order matters and that nothing orders. <paramref name="First"/> runs first today.
     /// </summary>
-    private static bool CheckContributionConflicts(MixinNode rootMixin, MixinGlobalContext globalContext, SpirvContext context, SpirvBuffer buffer, ILogger log)
+    private sealed record ContributionConflict(MethodGroup Group, string Phase, ShaderInfo First, ShaderInfo Second, string What);
+
+    /// <summary>
+    /// An effect of the asset build has to state the order. In a mix built at run time, the order of the mix decides, and the log says so.
+    /// </summary>
+    private bool ReportContributionConflicts(List<ContributionConflict> conflicts, ILogger log)
     {
         var result = true;
+        foreach (var conflict in conflicts)
+        {
+            var point = $"{ShaderNames.ShortName(conflict.Group.ExtensionPoint!.Owner)}.{conflict.Group.Name}";
+            if (IsAssetBuild)
+            {
+                log.Error(string.Format(SDSLErrorMessages.SDSL0137, ShaderNames.WithoutGenerics(conflict.First.ShaderName), ShaderNames.WithoutGenerics(conflict.Second.ShaderName), conflict.Phase, point, conflict.What));
+                result = false;
+            }
+            else
+            {
+                log.Info($"{point}, phase {conflict.Phase}: {conflict.First.ShaderName} runs before {conflict.Second.ShaderName} because of the order of the mix. They {conflict.What}.");
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Inside a phase, two contributors need an order when one writes what the other uses, and two wrappers of an <c>around</c> point
+    /// always do, as each one wraps the other. <c>External</c> follows the order of the mix, and code that never runs conflicts with nothing.
+    /// </summary>
+    private static List<ContributionConflict> FindContributionConflicts(MixinNode rootMixin, MixinGlobalContext globalContext, SpirvContext context, SpirvBuffer buffer)
+    {
+        var conflicts = new List<ContributionConflict>();
         Dictionary<int, int>? functions = null;
         Dictionary<int, string>? semantics = null;
         Dictionary<int, PlacePointer>? statics = null;
-        foreach (var group in rootMixin.MethodGroups.Values.Distinct())
+        foreach (var group in NodesOf(rootMixin).SelectMany(x => x.MethodGroups.Values).Distinct())
         {
             if (group.ExtensionPoint == null)
                 continue;
@@ -360,14 +396,15 @@ public partial class ShaderMixer
                     {
                         if ((isAround ? "wrap each other" : accesses[a].ConflictWith(accesses[b], context, semantics)) is { } conflict && !IsOrdered(group, contributors[a].Shader, contributors[b].Shader))
                         {
-                            log.Error(string.Format(SDSLErrorMessages.SDSL0137, contributors[a].Shader.ShaderName, contributors[b].Shader.ShaderName, phase.Key, $"{ShaderNames.ShortName(group.ExtensionPoint.Owner)}.{group.Name}", conflict));
-                            result = false;
+                            var (first, second) = IsReachedFromOutside(group.ExtensionPoint, phase.Key) ? (contributors[b], contributors[a]) : (contributors[a], contributors[b]);
+                            conflicts.Add(new(group, phase.Key, first.Shader, second.Shader, conflict));
+                            group.DecidedByBuilder.Add(phase.Key);
                         }
                     }
                 }
             }
         }
-        return result;
+        return conflicts;
     }
 
     /// <summary>
@@ -695,7 +732,7 @@ public partial class ShaderMixer
 
     private void ReportDroppedContributors(MixinNode rootMixin, MixinGlobalContext globalContext, ILogger log)
     {
-        foreach (var group in rootMixin.MethodGroups.Values.Distinct())
+        foreach (var group in NodesOf(rootMixin).SelectMany(x => x.MethodGroups.Values).Distinct())
         {
             if (group.ExtensionPoint == null || FindDropped(group, globalContext) is not var (by, dropped))
                 continue;
@@ -706,6 +743,25 @@ public partial class ShaderMixer
             else
                 log.Info(message);
         }
+    }
+
+    /// <summary>
+    /// What ordered the contributors of a phase, when it has several: <c>mixin order</c> for what <c>[MixinOrder]</c> states, <c>builder</c>
+    /// when the order of the mix decided a pair whose order matters, <c>tie-break</c> when no conflict was found (<see cref="ContributionAccesses"/>).
+    /// </summary>
+    private static string OrderSource(MethodGroup group, string phase)
+    {
+        var contributors = group.Methods.Where(x => group.Phases.GetValueOrDefault(x.MethodId) == phase).ToList();
+        if (contributors.Count < 2)
+            return "";
+
+        var classes = contributors.Select(x => ClassName(x.Shader)).ToHashSet();
+        var sources = new List<string>();
+        if (group.Pairs.Any(x => classes.Contains(x.Earlier) && classes.Contains(x.Later)))
+            sources.Add("mixin order");
+        if (group.DecidedByBuilder.Contains(phase))
+            sources.Add("builder");
+        return $"   order: {(sources.Count > 0 ? string.Join(", ", sources) : "tie-break")}";
     }
 
     /// <summary>
@@ -732,7 +788,7 @@ public partial class ShaderMixer
                 // The first definition sits in the phase of the default body, and an around point reaches it last
                 if (phase == defaultPhase)
                     names = names.Prepend(group.Methods[0].Shader.ShaderName);
-                builder.AppendLine($"    {phase}: {(names.Any() ? string.Join(" > ", names) : "(none)")}");
+                builder.AppendLine($"    {phase}: {(names.Any() ? string.Join(" > ", names) : "(none)")}{OrderSource(group, phase)}");
             }
             if (defaultPhase == null)
                 builder.AppendLine($"    default: {group.Methods[0].Shader.ShaderName}");

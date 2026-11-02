@@ -289,7 +289,7 @@ public partial class ExtensionPointTests : IDisposable
         var (ok, log, explanation) = Mix("Test.First", "Test.Second");
 
         Assert.True(ok, log);
-        Assert.Contains("A: Second > First", Block(explanation, "Run"));
+        Assert.Contains("A: Second > First   order: mixin order", Block(explanation, "Run"));
     }
 
     // The chain is run from its end here: the step that runs later is reached from the one that runs first, so it is lower in the chain
@@ -406,6 +406,12 @@ public partial class ExtensionPointTests : IDisposable
         Assert.False(ok, log);
         Assert.Contains("SDSL0137", log);
         Assert.Contains($"share {place}", log);
+
+        var (runtimeOk, runtimeLog, explanation) = Mix("Test.First", "Test.Second");
+
+        Assert.True(runtimeOk, runtimeLog);
+        Assert.Contains($"share {place}", runtimeLog);
+        Assert.Contains("A: Places > First > Second   order: builder", Block(explanation, "Run"));
     }
 
     // The copy of the struct around the call to the next one, the copy a helper takes by value, and other fields are nothing to order
@@ -422,9 +428,10 @@ public partial class ExtensionPointTests : IDisposable
     {
         WritePlaces(first, second);
 
-        var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
+        var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
 
         Assert.True(ok, log);
+        Assert.Contains("A: Places > First > Second   order: tie-break", Block(explanation, "Run"));
     }
 
     [Fact]
@@ -465,6 +472,12 @@ public partial class ExtensionPointTests : IDisposable
         Assert.False(ok, log);
         Assert.Contains("SDSL0137", log);
         Assert.Contains("wrap each other", log);
+
+        var (runtimeOk, runtimeLog, explanation) = Mix("Test.First", "Test.Second");
+
+        Assert.True(runtimeOk, runtimeLog);
+        Assert.Contains("wrap each other", runtimeLog);
+        Assert.Contains("order: builder", string.Join('\n', Block(explanation, "Wrap")));
     }
 
     [Theory]
@@ -592,6 +605,22 @@ public partial class ExtensionPointTests : IDisposable
     }
 
     // A class comes after its parents, so inheritance is an order
+    // [MixinOrder] and a block take the name of a class, without its generic values
+    [Fact]
+    public void TheMessageOfAConflictNamesAClassAsItIsWritten()
+    {
+        WriteOwner();
+        Write("Gen", "module Gen<int N> { import Owner; [Phase(A)] override void Run() { base.Run(); streams.Steps = N; } }");
+        WriteModule("UsesGen", "import Gen<1>;");
+        WriteModule("Other", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+
+        var (ok, log, _) = Mix(true, "Test.UsesGen", "Test.Other");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0137", log);
+        Assert.Contains("[MixinOrder(After = Gen)]", log);
+    }
+
     [Fact]
     public void InheritanceSettlesAConflict()
     {
@@ -787,15 +816,81 @@ public partial class ExtensionPointTests : IDisposable
         Assert.Contains("replaced by Winner: Other", block);
     }
 
-    [Fact]
-    public void AKindGoesOnAModuleMethod()
+    // The node is the effect of an instance method: classes mixed into one composition
+    private (bool Ok, string Log, string Explanation) MixInComposition(params string[] classes)
     {
-        Write("Wrong", "shader Wrong { [Phases(A)] pipeline void F() { } }");
+        Write("Entry", Entry);
+        Write("Host", "module Host { import Entry; compose Part Slot; }");
+        var node = new ShaderMixinSource();
+        foreach (var name in classes)
+            node.Mixins.Add(new ShaderClassSource(name));
+        var source = new ShaderMixinSource { Mixins = { new ShaderClassSource("Test.Host") } };
+        source.AddComposition("Slot", node);
 
-        var (ok, log, _) = Mix("Test.Wrong");
+        var log = new LoggerResult();
+        var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL") { WarningsAsErrors = false }) { CollectExplanation = true };
+        var ok = mixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+        return (ok, string.Join(Environment.NewLine, log.Messages.Select(x => $"{x.Type}: {x.Text}")), mixer.Explanation ?? "");
+    }
 
-        Assert.False(ok, log);
-        Assert.Contains("SDSL0250: pipeline on Wrong.F: a kind goes on a module method.", log);
+    [Fact]
+    public void AnInstanceMethodIsAPointOfItsNode()
+    {
+        Write("Part", "shader Part { [Phases(A, B)] pipeline void Go() { } }");
+        Write("PartB", "shader PartB : Part { [Phase(B)] override void Go() { base.Go(); } }");
+        Write("PartA", "shader PartA : Part { [Phase(A)] override void Go() { base.Go(); } }");
+
+        var (ok, log, explanation) = MixInComposition("Test.PartB", "Test.PartA");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Go");
+        Assert.Equal("method Go() -> void = Part > PartA > PartB", block[0]);
+        Assert.Contains("pipeline", block);
+    }
+
+    [Fact]
+    public void AnUndeclaredInstanceMethodKeepsTheOrderOfTheMix()
+    {
+        Write("Part", "shader Part { void Go() { } }");
+        Write("PartB", "shader PartB : Part { override void Go() { base.Go(); } }");
+        Write("PartA", "shader PartA : Part { override void Go() { base.Go(); } }");
+
+        var (ok, log, explanation) = MixInComposition("Test.PartB", "Test.PartA");
+
+        Assert.True(ok, log);
+        Assert.Equal("method Go() -> void = Part > PartB > PartA", Block(explanation, "Go")[0]);
+        Assert.DoesNotContain("SDSL0246", log);
+    }
+
+    [Fact]
+    public void TheOrderOfTheMixDecidesAConflictInAMixBuiltAtRunTime()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 3; }");
+
+        var (ok, log, explanation) = Mix("Test.Second", "Test.First");
+
+        Assert.True(ok, log);
+        Assert.Contains("Info: Owner.Run, phase A: Second runs before First because of the order of the mix", log);
+        Assert.Contains("A: Second > First   order: builder", Block(explanation, "Run"));
+    }
+
+    [Fact]
+    public void ExplainNamesWhatOrdersAPhase()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Second", "[Phase(A)] [MixinOrder(After = First)] override void Run() { base.Run(); streams.Steps = 3; }");
+        WriteModule("Free1", "[Phase(B)] override void Run() { base.Run(); }");
+        WriteModule("Free2", "[Phase(B)] override void Run() { base.Run(); }");
+
+        var (ok, log, explanation) = Mix("Test.Second", "Test.First", "Test.Free1", "Test.Free2");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Contains("A: First > Second   order: mixin order", block);
+        Assert.Contains("B: Free1 > Free2   order: tie-break", block);
     }
 
     [Theory]

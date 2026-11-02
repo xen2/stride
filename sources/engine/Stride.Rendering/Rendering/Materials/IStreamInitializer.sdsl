@@ -7,7 +7,7 @@ namespace Stride.Rendering.Materials
     /// </summary>
     shader IStreamInitializer
     {
-        void ResetStream()
+        pipeline void ResetStream()
         {
         }
     };

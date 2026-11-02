@@ -10,8 +10,8 @@ using static Stride.Shaders.Spirv.Specification;
 namespace Stride.Shaders.Parsing.SDSL.AST;
 
 /// <summary>
-/// Extension points: <c>replace</c>, <c>[Phases(A, B)] pipeline</c> or <c>[Phases(A, B)] around</c> on the first definition of a module method,
-/// with <c>[MixinOrder(X, Y)]</c>, and <c>[Phase(A)]</c>, <c>[MixinOrder(After = X)]</c> and <c>[Drops(...)]</c> on an override.
+/// Extension points: <c>replace</c>, <c>[Phases(A, B)] pipeline</c> or <c>[Phases(A, B)] around</c> on the first definition of a method, with
+/// <c>[MixinOrder(X, Y)]</c>, and <c>[Phase(A)]</c>, <c>[MixinOrder(After = X)]</c> and <c>[Drops(...)]</c> on an override.
 /// The class records them next to <see cref="OpFunctionMetadataSDSL"/>, and the mixer orders the override chain with them.
 /// </summary>
 internal static class ExtensionPoints
@@ -57,8 +57,6 @@ internal static class ExtensionPoints
                 table.AddError(new(kind.Info, string.Format(SDSLErrorMessages.SDSL0250, kind.Name, methodName, "a method has one kind")));
             else if (method.IsOverride)
                 table.AddError(new(kind.Info, string.Format(SDSLErrorMessages.SDSL0142, kind.Name, method.Name.Name, methodName)));
-            else if (!method.IsStaged)
-                table.AddError(new(kind.Info, string.Format(SDSLErrorMessages.SDSL0250, kind.Name, methodName, "a kind goes on a module method")));
             else if (method.IsAbstract)
                 table.AddError(new(kind.Info, string.Format(SDSLErrorMessages.SDSL0250, kind.Name, methodName, "an abstract method has no body to extend, and its overrides implement it. Remove the kind, or give the method a body")));
             else

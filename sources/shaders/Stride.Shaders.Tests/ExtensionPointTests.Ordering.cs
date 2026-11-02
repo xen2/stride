@@ -20,7 +20,7 @@ public partial class ExtensionPointTests
         var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
 
         Assert.True(ok, log);
-        Assert.Contains("A: Second > First", Block(explanation, "Run"));
+        Assert.Contains("A: Second > First   order: mixin order", Block(explanation, "Run"));
     }
 
     // Each name is one pair, in braces or in another attribute
@@ -35,7 +35,8 @@ public partial class ExtensionPointTests
         var (ok, log, explanation) = Mix(isAssetBuild: false, "Test.First", "Test.Second", "Test.Third");
 
         Assert.True(ok, log);
-        Assert.Contains("A: Third > First > Second", Block(explanation, "Run"));
+        Assert.Contains("Info: Owner.Run, phase A: First runs before Second because of the order of the mix", log);
+        Assert.Contains("A: Third > First > Second   order: mixin order, builder", Block(explanation, "Run"));
     }
 
     // The phases already order classes of different phases, so naming one is a mistake
@@ -74,7 +75,7 @@ public partial class ExtensionPointTests
         var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
 
         Assert.True(ok, log);
-        Assert.Contains("A: ListingOwner > Second > First", Block(explanation, "Go"));
+        Assert.Contains("A: ListingOwner > Second > First   order: mixin order", Block(explanation, "Go"));
     }
 
     [Theory]
@@ -104,7 +105,7 @@ public partial class ExtensionPointTests
         Assert.True(ok, log);
         var block = Block(explanation, "Run");
         Assert.Equal("module method Run() -> void = Owner > Second > First", block[0]);
-        Assert.Contains("Early: First > Second", block);
+        Assert.Contains("Early: First > Second   order: mixin order", block);
     }
 
     // On an around point, phases are nesting levels and each wrapper runs its code around the next one: after a class means inside it.
@@ -119,7 +120,7 @@ public partial class ExtensionPointTests
         Assert.True(ok, log);
         var block = Block(explanation, "Shading");
         Assert.Equal("module method Shading() -> float4 = SpriteBase > ImageScalerShader > SpriteSuperSampler", block[0]);
-        Assert.Contains("Post: SpriteSuperSampler > ImageScalerShader", block);
+        Assert.Contains("Post: SpriteSuperSampler > ImageScalerShader   order: mixin order", block);
     }
 
 }

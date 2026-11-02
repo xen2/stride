@@ -147,7 +147,7 @@ public class KindKeywordTests : IDisposable
     [InlineData("replace\n    float F() { return 1; }")]
     public void AKindCanBeWritten(string member)
     {
-        Write("Good", $"module Good {{ {member} }}");
+        Write("Good", $"shader Good {{ {member} }}");
 
         var (ok, log) = Mix("Good");
 
@@ -162,7 +162,7 @@ public class KindKeywordTests : IDisposable
     [InlineData("collect void F() { }", "SDSL0139: collect on Wrong.F: collect is reserved for a later version. Use pipeline or around.")]
     public void AWrongCombinationIsAnError(string member, string expected)
     {
-        Write("Wrong", $"module Wrong {{ {member} }}");
+        Write("Wrong", $"shader Wrong {{ {member} }}");
 
         var (ok, log) = Mix("Wrong");
 
@@ -175,8 +175,8 @@ public class KindKeywordTests : IDisposable
     [InlineData("pipeline override void F() { base.F(); }")]
     public void AKindOnAnOverrideIsAnError(string member)
     {
-        Write("Owner", "module Owner { pipeline void F() { } }");
-        Write("Wrong", $"module Wrong {{ import Owner; {member} }}");
+        Write("Owner", "shader Owner { pipeline void F() { } }");
+        Write("Wrong", $"shader Wrong : Owner {{ {member} }}");
 
         var (ok, log) = Mix("Wrong");
 
@@ -194,7 +194,7 @@ public class KindKeywordTests : IDisposable
     [InlineData("[Phases(A)] abstract float F();", "SDSL0135: [Phases] on Wrong.F: the phases belong to a pipeline or an around method.")]
     public void PhasesWithoutAKindThatUsesThemIsAnError(string member, string expected)
     {
-        Write("Wrong", $"module Wrong {{ {member} }}");
+        Write("Wrong", $"shader Wrong {{ {member} }}");
 
         var (ok, log) = Mix("Wrong");
 
@@ -205,8 +205,8 @@ public class KindKeywordTests : IDisposable
     [Fact]
     public void PhasesOnAnOverrideIsAnError()
     {
-        Write("Owner", "module Owner { [Phases(A)] pipeline void F() { } }");
-        Write("Wrong", "module Wrong { import Owner; [Phases(A, B)] override void F() { base.F(); } }");
+        Write("Owner", "shader Owner { [Phases(A)] pipeline void F() { } }");
+        Write("Wrong", "shader Wrong : Owner { [Phases(A, B)] override void F() { base.F(); } }");
 
         var (ok, log) = Mix("Wrong");
 
