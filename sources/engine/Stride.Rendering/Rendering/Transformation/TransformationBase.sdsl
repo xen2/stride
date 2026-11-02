@@ -14,18 +14,23 @@ module TransformationBase
     import ShaderBase;
 
     // End of the VS (usually skinning)
+    [Pipeline(World, Offset)]
     void PreTransformPosition() {}
 
     // End of tessellation (usually displacement mapping in world space, etc...)
+    [Pipeline]
     void TransformPosition() {}
 
     // At the end of the geometry pipeline (to generate ShadingPosition)
+    [Pipeline(Project, AfterProject)]
     void PostTransformPosition() {}
     
     // Used in cases where a shading position needs to be calculated from a given world position
     //  for example: in tesselation, which needs to determine the triangle size on the screen
+    [Replace]
     float4 ComputeShadingPosition(float4 world) { return 0; }
 
+    [Pipeline]
     void BaseTransformVS()
     {
         this.PreTransformPosition();
@@ -33,6 +38,7 @@ module TransformationBase
         this.PostTransformPosition();
     }
 
+    [Phase(Transform)]
     override void VSMain()
     {
         base.VSMain();

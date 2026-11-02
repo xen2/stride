@@ -11,6 +11,7 @@ shader NormalMeshSkinning
     import TransformationSkinning;
     import NormalStream;
 
+    [Phase(World)]
     override module void PreTransformPosition()
     {
         base.PreTransformPosition();
