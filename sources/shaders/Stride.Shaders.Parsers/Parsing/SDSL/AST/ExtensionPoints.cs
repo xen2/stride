@@ -226,8 +226,9 @@ internal static class ExtensionPoints
             builder.Insert(new OpExtensionPointSDSL(point.Kind, point.Owner, string.Join(',', point.Phases), string.Join(',', point.ParameterNames)));
         var form = method.Extend switch
         {
-            { IsPatch: false } when method.IsBaseLastForm => MethodExtensionPoint.BaseLastForm,
-            { IsPatch: false } => MethodExtensionPoint.ExtendForm,
+            { IsPatch: true } => MethodExtensionPoint.PatchForm,
+            not null when method.IsBaseLastForm => MethodExtensionPoint.BaseLastForm,
+            not null => MethodExtensionPoint.ExtendForm,
             _ => "",
         };
         // The mixer checks every call to base once the place of each phase is known
@@ -387,7 +388,8 @@ internal static class ExtensionPoints
     /// </summary>
     private static void ReadMixinOrder(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, MethodExtensionPoint? point, Contribution contribution)
     {
-        var problem = point == null ? "[MixinOrder] goes on an override of an extension point, or the method being extended"
+        // A patch has no point, and two patches of a method need an order
+        var problem = method.IsOverride && point == null && method.Extend is not { IsPatch: true } ? "[MixinOrder] goes on an override of an extension point, a patch, or the method being extended"
             : point?.Kind == ExtensionPointKindSDSL.Replace ? "one override of a replace point runs, so it has no order"
             : attribute.Parameters.Count == 0 ? "[MixinOrder] takes class names"
             : null;

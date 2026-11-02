@@ -947,7 +947,7 @@ public partial class ExtensionPointTests : IDisposable
         Assert.Equal(isError, !ok);
         Assert.Equal(isError, log.Contains("SDSL0246"));
         if (isError)
-            Assert.Contains("If Base is in a library or in the engine, its author has to write it", log);
+            Assert.Contains("If you own Base, write replace, pipeline or around on the first definition of F. If you don't, write patch Base.F instead of override.", log);
     }
 
     [Fact]
@@ -1434,10 +1434,10 @@ public partial class ExtensionPointTests : IDisposable
     }
 
     [Theory]
-    [InlineData("List", "SDSL0154: the block extend shader Owner (C#) names Runn, but Owner is in the effect and has no method Runn that is an extension point.")]
+    [InlineData("List", "SDSL0154: the block extend shader Owner (C#) names Runn, but Owner is in the effect and has no method Runn that is an extension point or has patches.")]
     [InlineData("Unbind", "SDSL0154: the block extend shader Owner (C#) names Runn, but Owner is in the effect and has no method Runn that is an extension point.")]
-    [InlineData("UnbindPlain", "SDSL0154: the block extend shader Owner (C#) names Plain, but Owner is in the effect and has no method Plain that is an extension point.")]
-    [InlineData("Phase", "SDSL0154: the block extend shader Step (C#) names Test.Owner.Runn, but Step is in the effect and Owner has no method Runn that is an extension point.")]
+    [InlineData("UnbindPlain", "SDSL0154: the block extend shader Owner (C#) names Plain, but Owner is in the effect and Plain is not an extension point, so there is nothing to unbind.")]
+    [InlineData("Phase", "SDSL0154: the block extend shader Step (C#) names Test.Owner.Runn, but Step is in the effect and Owner has no method Runn that is an extension point or has patches.")]
     [InlineData("NotContributing", "SDSL0154: the block extend shader Step (C#) names Test.Owner.Wrap, but Step is in the effect and doesn't contribute to Test.Owner.Wrap.")]
     public void ABlockAboutAMethodItsClassDoesNotHaveIsAnError(string attribute, string message)
     {
@@ -1570,5 +1570,214 @@ public partial class ExtensionPointTests : IDisposable
 
         Assert.True(ok, log);
         Assert.Contains(line, Block(explanation, "VSMain"));
+    }
+
+    // SDSL0148: the order of two patches would be the order of the mix, which nothing states
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TwoPatchesWithNoOrderAreAnError(bool isAssetBuild)
+    {
+        WriteOwner();
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "patch Owner.Plain() { return next() * 2; }");
+
+        var (ok, log, _) = Mix(isAssetBuild, "Test.PatchA", "Test.PatchB");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0148: PatchA and PatchB both patch Owner.Plain, and nothing orders them. Add [MixinOrder(After = PatchA)] to the patch in PatchB, or this block to the effect: extend shader Owner { [MixinOrder(PatchA, PatchB)] Plain; }", log);
+    }
+
+    [Theory]
+    [InlineData("Test.PatchA", "Test.PatchB")]
+    [InlineData("Test.PatchB", "Test.PatchA")]
+    public void MixinOrderAfterOrdersTwoPatches(string first, string second)
+    {
+        WriteOwner();
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "[MixinOrder(After = PatchA)] patch Owner.Plain() { return next() * 2; }");
+
+        var (ok, log, explanation) = Mix(first, second);
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Plain() -> float = Owner > PatchA > PatchB", Block(explanation, "Plain")[0]);
+    }
+
+    [Fact]
+    public void MixinOrderAfterOrdersPatchesThroughAThird()
+    {
+        WriteOwner();
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "[MixinOrder(After = PatchA)] patch Owner.Plain() { return next() + 2; }");
+        WriteModule("PatchC", "[MixinOrder(After = PatchB)] patch Owner.Plain() { return next() + 3; }");
+
+        var (ok, log, explanation) = Mix("Test.PatchC", "Test.PatchA", "Test.PatchB");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Plain() -> float = Owner > PatchA > PatchB > PatchC", Block(explanation, "Plain")[0]);
+    }
+
+    // Each pair needs an order
+    [Fact]
+    public void AThirdPatchWithNoOrderIsAnError()
+    {
+        WriteOwner();
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "[MixinOrder(After = PatchA)] patch Owner.Plain() { return next() + 2; }");
+        WriteModule("PatchC", "patch Owner.Plain() { return next() + 3; }");
+
+        var (ok, log, _) = Mix("Test.PatchA", "Test.PatchB", "Test.PatchC");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0148: PatchA and PatchC both patch", log);
+    }
+
+    [Fact]
+    public void PatchesAfterEachOtherAreAnError()
+    {
+        WriteOwner();
+        WriteModule("PatchA", "[MixinOrder(After = PatchB)] patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "[MixinOrder(After = PatchA)] patch Owner.Plain() { return next() + 2; }");
+
+        var (ok, log, _) = Mix("Test.PatchA", "Test.PatchB");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138", log);
+    }
+
+    // The class named by 'after' isn't in the effect: nothing orders the two that are
+    [Fact]
+    public void MixinOrderAfterAClassOutsideTheEffectIsNoOrder()
+    {
+        WriteOwner();
+        WriteModule("PatchOther", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchA", "[MixinOrder(After = PatchOther)] patch Owner.Plain() { return next() + 2; }");
+        WriteModule("PatchB", "patch Owner.Plain() { return next() + 3; }");
+
+        var (ok, log, _) = Mix("Test.PatchA", "Test.PatchB");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0148: PatchA and PatchB", log);
+    }
+
+    // Two patches of libraries that the author of the effect can't change
+    [Fact]
+    public void AnOrderRuleOrdersTwoPatches()
+    {
+        WriteOwner();
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "patch Owner.Plain() { return next() * 2; }");
+
+        var (ok, log, explanation) = Mix(true, x => x.MixinOrder("Test.Owner", "Plain", "Test.PatchB", "Test.PatchA"), "Test.PatchA", "Test.PatchB");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Plain() -> float = Owner > PatchB > PatchA", Block(explanation, "Plain")[0]);
+    }
+
+    [Fact]
+    public void TheMessageOfTwoPatchesNamesAClassAsItIsWritten()
+    {
+        WriteOwner();
+        Write("Gen", "module Gen<int N> { import Owner; patch Owner.Plain() { return N; } }");
+        WriteModule("UsesGen", "import Gen<1>;");
+        WriteModule("Other", "patch Owner.Plain() { return 2; }");
+
+        var (ok, log, _) = Mix(false, "Test.UsesGen", "Test.Other");
+
+        Assert.False(ok, log);
+        Assert.Contains("Add [MixinOrder(After = Gen)] to the patch in Other", log);
+    }
+
+    [Fact]
+    public void OnePatchNeedsNoOrder()
+    {
+        WriteOwner();
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+
+        var (ok, log, _) = Mix("Test.PatchA");
+
+        Assert.True(ok, log);
+    }
+
+    // A class comes after the classes it inherits
+    [Fact]
+    public void APatchOfAChildComesAfterThePatchOfItsParent()
+    {
+        WriteOwner();
+        Write("PatchParent", "shader PatchParent { import Owner; patch Owner.Plain() { return next() + 1; } }");
+        Write("PatchChild", "shader PatchChild : PatchParent { patch Owner.Plain() { return next() * 2; } }");
+
+        var (ok, log, explanation) = Mix("Test.PatchChild");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Plain() -> float = Owner > PatchParent > PatchChild", Block(explanation, "Plain")[0]);
+    }
+
+    // The rule is on patches: two overrides of an instance method follow the order of the mix, as they always did
+    [Fact]
+    public void OverridesOfAnInstanceMethodKeepTheOrderOfTheMix()
+    {
+        WriteOwner();
+        Write("InstanceBase", "shader InstanceBase { float Value() { return 1; } }");
+        Write("InstanceA", "shader InstanceA : InstanceBase { override float Value() { return base.Value() + 1; } }");
+        Write("InstanceB", "shader InstanceB : InstanceBase { override float Value() { return base.Value() * 2; } }");
+
+        var (ok, log, _) = Mix("Test.InstanceA", "Test.InstanceB");
+
+        Assert.True(ok, log);
+        Assert.DoesNotContain("SDSL0148", log);
+    }
+
+    // One patch and an override of an instance method: one patch needs no order
+    [Fact]
+    public void APatchAndAnOverrideOfAnInstanceMethodNeedNoOrder()
+    {
+        WriteOwner();
+        Write("InstanceBase", "shader InstanceBase { float Value() { return 1; } }");
+        Write("InstanceA", "shader InstanceA : InstanceBase { override float Value() { return base.Value() + 1; } }");
+        Write("InstanceB", "shader InstanceB : InstanceBase { patch InstanceBase.Value() { return next() * 2; } }");
+
+        var (ok, log, _) = Mix("Test.InstanceA", "Test.InstanceB");
+
+        Assert.True(ok, log);
+    }
+
+    [Fact]
+    public void TwoPatchesOfAnInstanceMethodNeedAnOrder()
+    {
+        WriteOwner();
+        Write("InstanceBase", "shader InstanceBase { float Value() { return 1; } }");
+        Write("InstanceA", "shader InstanceA : InstanceBase { patch InstanceBase.Value() { return next() + 1; } }");
+        Write("InstanceB", "shader InstanceB : InstanceBase { patch InstanceBase.Value() { return next() * 2; } }");
+
+        var (ok, log, _) = Mix("Test.InstanceA", "Test.InstanceB");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0148: InstanceA and InstanceB both patch InstanceBase.Value", log);
+    }
+
+    // A patch has no phases, and 'in' used to be read and dropped
+    [Fact]
+    public void APatchInAPhaseIsAnError()
+    {
+        WriteOwner();
+        WriteModule("PatchA", "[Phase(A)] patch Owner.Plain() { return next() + 1; }");
+
+        var (ok, log, _) = Mix("Test.PatchA");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0141: [Phase(A)] on PatchA.Plain: Plain is not an extension point, so it has no phases.", log);
+    }
+
+    [Fact]
+    public void AnOverrideOfAMethodWithNoKindNamesPatch()
+    {
+        WriteOwner();
+        WriteModule("Plainer", "override float Plain() { return 2; }");
+
+        var (ok, log, _) = Mix("Test.Plainer");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0246: Plainer overrides Plain of Owner, which is not an extension point. If you own Owner, write replace, pipeline or around on the first definition of Plain. If you don't, write patch Owner.Plain instead of override.", log);
     }
 }

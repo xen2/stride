@@ -18,13 +18,16 @@ public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Ow
     /// <summary>What a contribution records when it is written with <c>extend</c>.</summary>
     public const string ExtendForm = "extend";
 
+    /// <summary>What a contribution records when it is written with <c>patch</c>.</summary>
+    public const string PatchForm = "patch";
+
     /// <summary>
     /// What the second form of an <c>extend</c> records: one whose phase its class can't place compiles twice, calling <c>base</c> first
     /// and last, and the mixer keeps the one that fits.
     /// </summary>
     public const string BaseLastForm = "extend, base last";
 
-    /// <summary>The implicit phase after every declared phase, in the order of the mix: where a contributor without a phase is.</summary>
+    /// <summary>The implicit phase after every declared phase, in the order of the mix: where a contributor without a phase is, and where the patches of a method are.</summary>
     public const string ImplicitPhase = "External";
 
     /// <summary>What marks a phase in the names of <c>[Drops]</c> and <c>[Unbind]</c>, which are otherwise full names of classes.</summary>
