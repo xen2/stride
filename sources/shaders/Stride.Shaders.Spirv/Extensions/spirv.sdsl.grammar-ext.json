@@ -217,6 +217,22 @@
         {
           "kind": "LiteralString",
           "name": "phase"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "after"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "before"
+        },
+        {
+          "kind": "LiteralString",
+          "name": "mixinOrder"
+        },
+        {
+          "kind": "LiteralInteger",
+          "name": "line"
         }
       ]
     },

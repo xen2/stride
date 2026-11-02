@@ -28,7 +28,7 @@ module TransformationBase
     //  for example: in tesselation, which needs to determine the triangle size on the screen
     replace float4 ComputeShadingPosition(float4 world) { return 0; }
 
-    pipeline void BaseTransformVS()
+    replace void BaseTransformVS()
     {
         this.PreTransformPosition();
         this.TransformPosition();

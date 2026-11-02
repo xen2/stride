@@ -88,6 +88,8 @@ public static class SDSLErrorMessages
     public const string SDSL0163 = "SDSL0163: The call {0} is ambiguous: these overloads match equally well:{1}\nCast the arguments to the parameter types of the one to call.";
     public const string SDSL0170 = "SDSL0170: [StreamOutput] on {0} is not supported: Stride shaders have no geometry shader stream output. Remove the attribute; to keep generated vertices, write them to a RWStructuredBuffer from a compute shader instead.";
     public const string SDSL0135 = "SDSL0135: [{0}] on {1}: {2}.";
+    public const string SDSL0137 = "SDSL0137: {0} and {1} are both in phase {2} of {3} and {4}, and nothing orders them. Add [MixinOrder(After = {0})] to {1}, or [MixinOrder(After = {1})] to {0}.";
+    public const string SDSL0138 = "SDSL0138: the order of {0} can't be followed: {1}.";
     public const string SDSL0139 = "SDSL0139: collect on {0}: collect is reserved for a later version. Use pipeline or around.";
     public const string SDSL0140 = "SDSL0140: {0} is in phase {1} of {2} and {3}. A step before the phase of the default body ({4}) calls base last, a step after it calls base first.";
     public const string SDSL0141 = "SDSL0141: [Phase({0})] on {1}: {2}.";

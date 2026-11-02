@@ -13,8 +13,12 @@ public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Ow
     /// <summary>The phase of a <c>pipeline</c> or <c>around</c> written without phases, and of the default body of a pipeline that declares it.</summary>
     public const string DefaultPhase = "Default";
 
+    /// <summary>The implicit phase after every declared phase, in the order of the mix: where a contributor without a phase is.</summary>
+    public const string ImplicitPhase = "External";
+
     /// <summary>The phase of the default body of a pipeline: <see cref="DefaultPhase"/>, else the first one.</summary>
     public int DefaultPhaseIndex => Math.Max(Array.IndexOf(Phases, DefaultPhase), 0);
+
 }
 
 

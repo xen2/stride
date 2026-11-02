@@ -11,15 +11,26 @@ namespace Stride.Shaders.Parsing.SDSL.AST;
 
 /// <summary>
 /// Extension points: <c>replace</c>, <c>[Phases(A, B)] pipeline</c> or <c>[Phases(A, B)] around</c> on the first definition of a module method,
-/// and <c>[Phase(A)]</c> on an override.
+/// with <c>[MixinOrder(X, Y)]</c>, and <c>[Phase(A)]</c> and <c>[MixinOrder(After = X)]</c> on an override.
 /// The class records them next to <see cref="OpFunctionMetadataSDSL"/>, and the mixer orders the override chain with them.
 /// </summary>
 internal static class ExtensionPoints
 {
     private const string PhasesAttribute = "Phases";
     private const string PhaseAttribute = "Phase";
+    private const string MixinOrderAttribute = "MixinOrder";
 
-    public static bool IsAttribute(string name) => name is PhasesAttribute or PhaseAttribute;
+    public static bool IsAttribute(string name) => name is PhasesAttribute or PhaseAttribute or MixinOrderAttribute;
+
+    /// <summary>
+    /// What a method states about its place in a chain, as the mixer reads it: classes by full name.
+    /// </summary>
+    private sealed class Contribution
+    {
+        public List<string> After { get; } = [];
+        public List<string> Before { get; } = [];
+        public List<string> MixinOrder { get; } = [];
+    }
 
     /// <summary>
     /// Checks the attributes of a method and writes what the mixer needs. An override of a declared point carries the point too,
@@ -31,6 +42,7 @@ internal static class ExtensionPoints
         var inherited = method.IsOverride ? FindOverridden(table, method.Name.Name, type)?.ExtensionPoint : null;
         var point = inherited;
         string? phase = null;
+        var contribution = new Contribution();
         var shaderName = table.CurrentShader!.ShortName;
         var methodName = $"{shaderName}.{method.Name.Name}";
 
@@ -56,12 +68,14 @@ internal static class ExtensionPoints
             var name = attribute.Name.Name;
             if (name == PhaseAttribute)
                 phase = ReadPhase(table, attribute, method, methodName, inherited) ?? phase;
+            else if (name == MixinOrderAttribute)
+                ReadMixinOrder(table, attribute, method, methodName, point, contribution);
         }
 
         if (point != null)
             builder.Insert(new OpExtensionPointSDSL(point.Kind, point.Owner, string.Join(',', point.Phases)));
-        if (phase != null)
-            builder.Insert(new OpContributionSDSL(phase));
+        if (phase != null || contribution is { After.Count: > 0 } or { Before.Count: > 0 } or { MixinOrder.Count: > 0 })
+            builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', contribution.After), string.Join(',', contribution.Before), string.Join(',', contribution.MixinOrder), method.Name.Info.Line));
         if (phase != null && point != null)
             CheckBasePosition(table, method, methodName, point, phase);
     }
@@ -159,6 +173,60 @@ internal static class ExtensionPoints
             => new Identifier(string.Join('.', chain.Accessors.Select(x => ((Identifier)x).Name).Prepend(source.Name)), chain.Info),
         _ => null,
     };
+
+    // One name, or several in braces
+    private static List<Expression> Names(Expression value) => value is ArrayLiteral list ? list.Values : [value];
+
+    /// <summary>
+    /// On an override, the classes this contributor runs after or before in its phase, by full name. On the method being extended,
+    /// a list of classes in their running order. A class that isn't in the effect is ignored at link, but it has to exist.
+    /// </summary>
+    private static void ReadMixinOrder(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, MethodExtensionPoint? point, Contribution contribution)
+    {
+        var problem = point == null ? "[MixinOrder] goes on an override of an extension point, or the method being extended"
+            : point?.Kind == ExtensionPointKindSDSL.Replace ? "one override of a replace point runs, so it has no order"
+            : attribute.Parameters.Count == 0 ? "[MixinOrder] takes class names"
+            : null;
+        if (problem != null)
+        {
+            table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, problem)));
+            return;
+        }
+
+        foreach (var parameter in attribute.Parameters)
+        {
+            if (parameter is AssignExpression { Target: Identifier { Name: "After" or "Before" } key, Value: var value })
+            {
+                if (!method.IsOverride)
+                    table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "on the method being extended, [MixinOrder] lists the classes in their running order: [MixinOrder(A, B)]. After = and Before = go on an override")));
+                else
+                    ResolveClasses(table, attribute, methodName, Names(value), key.Name == "After" ? contribution.After : contribution.Before);
+            }
+            else if (method.IsOverride)
+            {
+                table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "on an override, [MixinOrder] takes After = and Before =. A list of classes goes on the method being extended")));
+            }
+            else
+            {
+                ResolveClasses(table, attribute, methodName, [parameter], contribution.MixinOrder);
+            }
+        }
+    }
+
+    private static void ResolveClasses(SymbolTable table, AnyShaderAttribute attribute, string methodName, List<Expression> names, List<string> into)
+    {
+        foreach (var name in names)
+        {
+            if (name is StringLiteral text)
+                table.AddError(new(text.Info, string.Format(SDSLErrorMessages.SDSL0255, attribute.Name.Name, methodName, text.Value)));
+            else if (DottedName(name) is not { } identifier)
+                table.AddError(new(name.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, $"'{name}' is not a class name")));
+            else if (table.ResolveClassName(identifier.Name, identifier.Info) is { } fullName)
+                into.Add(fullName);
+            else
+                table.AddError(new(identifier.Info, string.Format(SDSLErrorMessages.SDSL0110, identifier.Name) + table.DidYouMean(identifier.Name)));
+        }
+    }
 
     /// <summary>
     /// A pipeline step in the compat form runs where its <c>base</c> call puts it: before the default body it calls <c>base</c>

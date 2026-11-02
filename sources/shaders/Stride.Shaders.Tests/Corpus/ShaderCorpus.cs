@@ -141,7 +141,8 @@ static class ShaderCorpus
         var loader = item.SourceFile != null ? new IndexShaderLoader(ShaderIndex.Value, item.SourceFile) { WarningsAsErrors = false } : sharedLoader;
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        var mixer = new ShaderMixer(loader) { CollectExplanation = true };
+        // As the asset build: an engine effect with contributors that nothing orders fails here
+        var mixer = new ShaderMixer(loader) { CollectExplanation = true, IsAssetBuild = true };
         bool success;
         Span<byte> bytecode = default;
         EffectReflection? reflection = null;

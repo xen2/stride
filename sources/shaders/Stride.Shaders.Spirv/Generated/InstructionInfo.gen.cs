@@ -3276,6 +3276,10 @@ public partial class InstructionInfo
         Instance.Register(Op.OpExtensionPointSDSL, OperandKind.LiteralString, OperandQuantifier.One, "owner", "Miscellaneous", []);
         Instance.Register(Op.OpExtensionPointSDSL, OperandKind.LiteralString, OperandQuantifier.One, "phases", "Miscellaneous", []);
         Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "phase", "Miscellaneous", []);
+        Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "after", "Miscellaneous", []);
+        Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "before", "Miscellaneous", []);
+        Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralString, OperandQuantifier.One, "mixinOrder", "Miscellaneous", []);
+        Instance.Register(Op.OpContributionSDSL, OperandKind.LiteralInteger, OperandQuantifier.One, "line", "Miscellaneous", []);
         Instance.Register(Op.OpBaseSDSL, OperandKind.IdResult, OperandQuantifier.One, "resultId", "Miscellaneous", []);
         Instance.Register(Op.OpThisSDSL, OperandKind.IdResult, OperandQuantifier.One, "resultId", "Miscellaneous", []);
         Instance.Register(Op.OpStreamsSDSL, OperandKind.IdResult, OperandQuantifier.One, "resultId", "Miscellaneous", []);

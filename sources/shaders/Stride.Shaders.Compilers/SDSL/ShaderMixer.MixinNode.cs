@@ -81,6 +81,21 @@ public partial class ShaderMixer
         /// <summary>The phase of each contributor that names one, by method.</summary>
         public Dictionary<int, string> Phases { get; } = new();
 
+        /// <summary>The full names of the classes a contributor runs after in its phase, by method: <c>[MixinOrder(After = ...)]</c>.</summary>
+        public Dictionary<int, string[]> After { get; } = new();
+
+        /// <summary>The full names of the classes a contributor runs before in its phase, by method: <c>[MixinOrder(Before = ...)]</c>.</summary>
+        public Dictionary<int, string[]> Before { get; } = new();
+
+        /// <summary>The line of each contributor in its file, by method, for messages.</summary>
+        public Dictionary<int, int> Lines { get; } = new();
+
+        /// <summary>The classes the first definition lists in their running order: <c>[MixinOrder(A, B)]</c>.</summary>
+        public List<string> MixinOrder { get; } = new();
+
+        /// <summary>The pairs that order contributors inside their phase, once merged: see <see cref="OrderPhases"/>.</summary>
+        public List<OrderPair> Pairs { get; } = new();
+
         public override string ToString() => $"{Name} (shader: {Shader}, function Id: {string.Join(", ", Methods.Select(x => $"{x.Shader.ShaderName} {x.MethodId}"))})";
     }
 }
