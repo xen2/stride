@@ -29,7 +29,7 @@ public partial class ShaderMixer
         var index = functionIndex + 2;
         if (buffer[index].Op == Op.OpExtensionPointSDSL && (OpExtensionPointSDSL)buffer[index] is { } point)
         {
-            methodGroup.ExtensionPoint ??= new(point.Kind, point.Owner, point.Phases.Split(',', StringSplitOptions.RemoveEmptyEntries));
+            methodGroup.ExtensionPoint ??= new(point.Kind, point.Owner, point.Phases.Split(',', StringSplitOptions.RemoveEmptyEntries), point.Parameters.Split(',', StringSplitOptions.RemoveEmptyEntries));
             index++;
         }
         if (buffer[index].Op == Op.OpContributionSDSL && (OpContributionSDSL)buffer[index] is { } contribution)
@@ -42,6 +42,8 @@ public partial class ShaderMixer
                 methodGroup.Replaces[functionId] = contribution.Replaces.Split(',');
             if (contribution.AddedPhase.Length > 0 && contribution.AddedPhase.Split(',') is [var after, var before])
                 methodGroup.AddedPhases[functionId] = (contribution.Phase, after, before);
+            if (contribution.Form == MethodExtensionPoint.ExtendForm)
+                methodGroup.Extends.Add(functionId);
         }
     }
 
@@ -541,12 +543,22 @@ public partial class ShaderMixer
         }
     }
 
-    private void ReportDroppedContributors(MixinNode rootMixin, MixinGlobalContext globalContext, ILogger log)
+    private bool ReportDroppedContributors(MixinNode rootMixin, MixinGlobalContext globalContext, ILogger log)
     {
+        var result = true;
         foreach (var group in NodesOf(rootMixin).SelectMany(x => x.MethodGroups.Values).Distinct())
         {
             if (group.ExtensionPoint == null || FindDropped(group, globalContext) is not var (by, dropped))
                 continue;
+
+            // The target syntax has to say it. The compat form stays what it always was.
+            if (group.Extends.Contains(group.Methods.Find(x => x.Shader == by).MethodId))
+            {
+                var names = string.Join(", ", dropped.Select(x => ShaderNames.WithoutGenerics(x.ShaderName)));
+                log.Error(string.Format(SDSLErrorMessages.SDSL0136, by.ShaderName, group.Name, names, names));
+                result = false;
+                continue;
+            }
 
             var message = string.Format(SDSLErrorMessages.SDSL0216, by.ShaderName, group.Name, string.Join(", ", dropped.Select(x => x.ShaderName)));
             if (IsWiredEffect)
@@ -554,6 +566,7 @@ public partial class ShaderMixer
             else
                 log.Info(message);
         }
+        return result;
     }
 
     /// <summary>

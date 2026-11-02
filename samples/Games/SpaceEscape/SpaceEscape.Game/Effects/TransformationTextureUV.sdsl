@@ -6,12 +6,9 @@ shader TransformationTextureUV
     import ShaderBase;
     import Texturing;
 
-    [Phase(Input)]
-    override void VSMain()
+    extend ShaderBase.VSMain in Input
     {
         TransformUV_VS();
-
-        base.VSMain();
     }
 
     cbuffer PerDraw

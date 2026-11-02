@@ -523,7 +523,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
                 // Right after OpFunctionMetadataSDSL
                 MethodExtensionPoint? extensionPoint = null;
                 if (index + 2 < shaderBuffers.Buffer.Count && shaderBuffers.Buffer[index + 2].Op == Op.OpExtensionPointSDSL && (OpExtensionPointSDSL)shaderBuffers.Buffer[index + 2] is { } point)
-                    extensionPoint = new(point.Kind, point.Owner, point.Phases.Split(',', StringSplitOptions.RemoveEmptyEntries));
+                    extensionPoint = new(point.Kind, point.Owner, point.Phases.Split(',', StringSplitOptions.RemoveEmptyEntries), point.Parameters.Split(',', StringSplitOptions.RemoveEmptyEntries));
                 methods.Add((new(sid, functionType, 0, MethodDefaultParameters: methodDefaultParameters, OwnerType: shaderType, ExtensionPoint: extensionPoint), functionFlags));
             }
 
@@ -724,7 +724,12 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         // In case a method is calling another method not yet processed, we first declare all methods, then analysis of method body
         // (SPIR-V allow forward calling)
         foreach (var method in Elements.OfType<ShaderMethod>())
+        {
+            // Its signature comes from the method it extends
+            if (method.Extend != null)
+                ExtensionPoints.ResolveExtend(table, method);
             method.ProcessSymbol(table, context);
+        }
 
         // If any errors occurred during symbol processing, skip method body analysis and compilation
         if (table.Errors.Count > 0)

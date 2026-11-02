@@ -19,6 +19,101 @@ internal static class ExtensionPoints
     private const string AfterAttribute = "After";
     private const string ReplacesAttribute = "Replaces";
 
+    /// <summary>
+    /// Makes an <c>extend</c> or a <c>patch</c> the override it stands for, so that everything after this sees an override: the signature
+    /// and the kind of member come from the method, the phase and the clauses become attributes. A pipeline step gets its call to
+    /// <c>base</c>: before the default body it comes last, after it first.
+    /// </summary>
+    public static void ResolveExtend(SymbolTable table, ShaderMethod method)
+    {
+        var extend = method.Extend!;
+        var info = method.Name.Info;
+        var keyword = extend.IsPatch ? "patch" : "extend";
+        var owner = table.ResolveClassName(extend.Owner, info);
+        if (owner == null)
+        {
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0110, extend.Owner) + table.DidYouMean(extend.Owner)));
+            return;
+        }
+
+        bool IsOwner(MethodExtensionPoint point) => ShaderNames.WithoutGenerics(point.Owner) == owner;
+        var inherited = table.InheritedShaders.SelectMany(x => x.Symbol!.Methods.Select(y => y.Symbol)).Where(x => x.Id.Name == method.Name.Name && x.Type is FunctionType).ToList();
+        var declared = inherited.Where(x => x.ExtensionPoint is { } point && IsOwner(point)).ToList();
+        var target = extend.IsPatch
+            ? inherited.LastOrDefault(x => x.OwnerType is { } ownerType && ownerType.ToClassName() == owner)
+            : declared.LastOrDefault();
+        var shortName = ShaderNames.ShortName(owner);
+        if (extend.IsPatch && declared.Count > 0)
+        {
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, keyword, shortName, method.Name.Name, "it is an extension point: use extend")));
+            return;
+        }
+        if (target == null)
+        {
+            var problem = extend.IsPatch
+                ? "this class doesn't inherit or import such a method"
+                : inherited.Count > 0 ? "it is not an extension point: use patch" : "this class doesn't inherit or import such a method";
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, keyword, shortName, method.Name.Name, problem)));
+            return;
+        }
+
+        var type = (FunctionType)target.Type;
+        method.IsStaged = target.Id.IsStage;
+        method.ReturnTypeName = new TypeName(type.ReturnType.ToString(), info);
+        if (!extend.HasParameters)
+            method.Parameters = TakeParameters(table, method, type, target.ExtensionPoint, info);
+
+        var attributes = method.Attributes ?? [];
+        method.Attributes = attributes;
+        if (target.ExtensionPoint is { } extended)
+        {
+            var phase = extend.Phase?.Name;
+            if (phase == null && !attributes.OfType<AnyShaderAttribute>().Any(x => x.Name.Name == PhaseAttribute) && extended.Phases.Length > 0)
+                phase = extended.Kind == ExtensionPointKindSDSL.Pipeline ? extended.Phases[extended.DefaultPhaseIndex] : extended.Phases[^1];
+            if (phase != null)
+                attributes.Add(new AnyShaderAttribute(new(PhaseAttribute, info), info, [new Identifier(phase, info)]));
+            if (extended.Kind == ExtensionPointKindSDSL.Pipeline && method.Body != null)
+                AddBaseCall(table, method, extended, phase, type);
+        }
+        if (extend.After.Count > 0)
+            attributes.Add(new AnyShaderAttribute(new(AfterAttribute, info), info, [.. extend.After]));
+        if (extend.Replaces.Count > 0)
+            attributes.Add(new AnyShaderAttribute(new(ReplacesAttribute, info), info, [.. extend.Replaces]));
+    }
+
+    private static List<MethodParameter> TakeParameters(SymbolTable table, ShaderMethod method, FunctionType type, MethodExtensionPoint? point, TextLocation info)
+    {
+        if (type.ParameterTypes.Count == 0)
+            return [];
+        if (point == null || point.ParameterNames.Length != type.ParameterTypes.Count)
+        {
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, method.Extend!.IsPatch ? "patch" : "extend", method.Extend.Owner, method.Name.Name, "write the parameters: they can only be left out for an extension point")));
+            return [];
+        }
+        return type.ParameterTypes.Select((x, i) => new MethodParameter(new TypeName((x.Type is PointerType pointer ? pointer.BaseType : x.Type).ToString(), info), new Identifier(point.ParameterNames[i], info), info, x.Modifiers)).ToList();
+    }
+
+    private static void AddBaseCall(SymbolTable table, ShaderMethod method, MethodExtensionPoint point, string? phase, FunctionType type)
+    {
+        var info = method.Name.Info;
+        var finder = new BaseCallFinder(method.Name.Name);
+        finder.VisitNode(method.Body!);
+        if (finder.Count > 0)
+        {
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0144, table.CurrentShader!.ShortName, ShaderNames.ShortName(point.Owner), method.Name.Name)));
+            return;
+        }
+
+        var arguments = new ShaderExpressionList(info) { Values = [.. method.Parameters.Select(x => (Expression)new Identifier(x.Name, info))] };
+        var call = new AccessorChainExpression(new Identifier("base", info), info) { Accessors = [new MethodCall(new Identifier(method.Name.Name, info), arguments, info)] };
+        var statement = new ExpressionStatement(call, info);
+        // A phase this class adds is placed at link: it is after the default body, unless it is a step before the first phase
+        if (phase != null && Array.IndexOf(point.Phases, phase) is >= 0 and var index && index < point.DefaultPhaseIndex)
+            method.Body!.Statements.Add(statement);
+        else
+            method.Body!.Statements.Insert(0, statement);
+    }
+
     public static bool IsAttribute(string name) => name is "Replace" or "Pipeline" or "Around" or "Collect" or PhaseAttribute or AfterAttribute or ReplacesAttribute;
 
     /// <summary>
@@ -53,13 +148,14 @@ internal static class ExtensionPoints
             else if (point != null)
                 table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, name, methodName, "a method has one kind")));
             else
-                point = ReadPoint(table, attribute, methodName, table.CurrentShader.ToClassName());
+                point = ReadPoint(table, attribute, method, methodName, table.CurrentShader.ToClassName());
         }
 
         if (point != null)
-            builder.Insert(new OpExtensionPointSDSL(point.Kind, point.Owner, string.Join(',', point.Phases)));
-        if (phase != null || after.Count > 0 || replaces.Count > 0)
-            builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', after), string.Join(',', replaces), addedPhase));
+            builder.Insert(new OpExtensionPointSDSL(point.Kind, point.Owner, string.Join(',', point.Phases), string.Join(',', point.ParameterNames)));
+        var form = method.Extend is { IsPatch: false } ? MethodExtensionPoint.ExtendForm : "";
+        if (phase != null || after.Count > 0 || replaces.Count > 0 || form.Length > 0)
+            builder.Insert(new OpContributionSDSL(phase ?? "", string.Join(',', after), string.Join(',', replaces), addedPhase, form));
         // The place of an added phase is only known at link
         if (phase != null && point != null && addedPhase.Length == 0)
             CheckBasePosition(table, method, methodName, point, phase);
@@ -76,7 +172,7 @@ internal static class ExtensionPoints
             .Symbol;
     }
 
-    private static MethodExtensionPoint? ReadPoint(SymbolTable table, AnyShaderAttribute attribute, string methodName, string owner)
+    private static MethodExtensionPoint? ReadPoint(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, string owner)
     {
         var kind = attribute.Name.Name switch
         {
@@ -106,7 +202,7 @@ internal static class ExtensionPoints
         }
         if (kind != ExtensionPointKindSDSL.Replace && phases.Count == 0)
             phases.Add(MethodExtensionPoint.DefaultPhase);
-        return new MethodExtensionPoint(kind, owner, [.. phases]);
+        return new MethodExtensionPoint(kind, owner, [.. phases], [.. method.Parameters.Select(x => x.Name.Name)]);
     }
 
     private static string? ReadPhase(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, MethodExtensionPoint? point, out string addedPhase)

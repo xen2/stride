@@ -23,9 +23,7 @@ shader MaterialFrontBackBlendShader<bool TUseNormalBackface> : ShadingBase
     }
 
     // method computing color
-    [Phase(Surface)]
-    [Replaces(Surface)]
-    module override float4 Shading()
+    extend ShadingBase.Shading in Surface replaces Surface
     {
         float3 color = ColorFront;
         if (TUseNormalBackface)

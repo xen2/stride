@@ -35,12 +35,8 @@ module TransformationSkinning
         return BlendMatrixArray[index];
     }
 
-    [Phase(World)]
-    [Replaces(TransformationWAndVP, TransformationWAndVPInstanced)]
-    override void PreTransformPosition()
+    extend TransformationBase.PreTransformPosition in World replaces TransformationWAndVP, TransformationWAndVPInstanced
     {
-        base.PreTransformPosition();
-
         streams.skinningBlendMatrix = GetBlendMatrix(streams.BlendIndices[0]) * streams.BlendWeights[0]
                                     + GetBlendMatrix(streams.BlendIndices[1]) * streams.BlendWeights[1]
                                     + GetBlendMatrix(streams.BlendIndices[2]) * streams.BlendWeights[2]

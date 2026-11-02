@@ -146,6 +146,14 @@ public record struct MethodParser : IParser<ShaderMethod>
         var hasAttributes = ShaderAttributeListParser.AttributeList(ref scanner, result, out var attributes) && Parsers.Spaces0(ref scanner, result, out _);
         var hasModifiers = Parsers.MethodModifiers(ref scanner, result, out var isStaged, out var isStatic, out var isClone, out var isOverride, out var isAbstract, advance: true) && Parsers.Spaces0(ref scanner, result, out _);
 
+        if (!hasModifiers && Extend(ref scanner, result, out parsed))
+        {
+            if (hasAttributes)
+                parsed.Attributes = attributes!.Attributes;
+            parsed.Info = scanner[position..scanner.Position];
+            return true;
+        }
+
         if (isAbstract)
         {
             if (
@@ -197,5 +205,97 @@ public record struct MethodParser : IParser<ShaderMethod>
         return Parsers.Exit(ref scanner, result, out parsed, position, orError);
     }
 
+    /// <summary>
+    /// <c>extend Owner.Method [(parameters)] [in Phase] [after X, Y] [replaces Z] { }</c>, or <c>patch Owner.Method { }</c>. The words are not
+    /// reserved: <c>patch x;</c> is a member.
+    /// </summary>
+    private static bool Extend<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderMethod parsed)
+        where TScanner : struct, IScanner
+    {
+        parsed = null;
+        var position = scanner.Position;
+        if (!Tokens.AnyOf(["extend", "patch"], ref scanner, out var keyword, advance: true)
+            || !Parsers.Spaces1(ref scanner, result, out _)
+            || !SDFX.EffectWiringParser.DottedName(ref scanner, result, out var path)
+            || path.Count < 2)
+        {
+            scanner.Position = position;
+            return false;
+        }
+
+        var name = new Identifier(path[^1], scanner[position..scanner.Position]);
+        var hasParameters = false;
+        List<MethodParameter>? parameters = null;
+        if (Parsers.FollowedBy(ref scanner, Tokens.Char('('), withSpaces: true, advance: true))
+        {
+            hasParameters = true;
+            if (!Parsers.FollowedByDel(ref scanner, result, ShaderMethodParsers.MethodParameters, out parameters, withSpaces: true, advance: true)
+                || !Parsers.FollowedBy(ref scanner, Tokens.Char(')'), withSpaces: true, advance: true))
+            {
+                scanner.Position = position;
+                return false;
+            }
+        }
+
+        Identifier? phase = null;
+        var after = new List<Identifier>();
+        var replaces = new List<Identifier>();
+        while (true)
+        {
+            Parsers.Spaces0(ref scanner, result, out _);
+            var clause = scanner.Position;
+            if (Tokens.AnyOf(["in", "after", "replaces"], ref scanner, out var word, advance: true) && Parsers.Spaces1(ref scanner, result, out _))
+            {
+                if (word == "in")
+                {
+                    if (!LiteralsParser.Identifier(ref scanner, result, out phase))
+                    {
+                        scanner.Position = position;
+                        return false;
+                    }
+                }
+                else
+                {
+                    var names = word == "after" ? after : replaces;
+                    do
+                    {
+                        Parsers.Spaces0(ref scanner, result, out _);
+                        if (!SDFX.EffectWiringParser.DottedName(ref scanner, result, out var target))
+                        {
+                            scanner.Position = position;
+                            return false;
+                        }
+                        names.Add(new Identifier(string.Join('.', target), scanner[clause..scanner.Position]));
+                    }
+                    while (Parsers.FollowedBy(ref scanner, Tokens.Char(','), withSpaces: true, advance: true));
+                }
+            }
+            else
+            {
+                scanner.Position = clause;
+                break;
+            }
+        }
+
+        var outer = result.ExtendedMethod;
+        result.ExtendedMethod = name.Name;
+        BlockStatement? block = null;
+        if (Tokens.Char('{', ref scanner) && StatementParsers.Block(ref scanner, result, out var body))
+            block = (BlockStatement)body;
+        result.ExtendedMethod = outer;
+        if (block == null)
+        {
+            scanner.Position = position;
+            return false;
+        }
+
+        parsed = new ShaderMethod(new TypeName("void", name.Info), name, scanner[position..scanner.Position], isStaged: true, isOverride: true)
+        {
+            Parameters = parameters ?? [],
+            Body = block,
+            Extend = new ExtendClause(keyword == "patch", string.Join('.', path.Take(path.Count - 1)), hasParameters, phase, after, replaces),
+        };
+        return true;
+    }
 }
 

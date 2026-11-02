@@ -106,7 +106,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         if (!CheckAbstractCalls(globalContext, log))
             return false;
 
-        ReportDroppedContributors(rootMixin, globalContext, log);
+        if (!ReportDroppedContributors(rootMixin, globalContext, log))
+            return false;
         if (!ReportContributionConflicts(conflicts, log))
             return false;
 

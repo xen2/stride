@@ -54,7 +54,10 @@ public record struct PrimaryParsers : IParser<Expression>
             Parsers.Spaces0(ref scanner, result, out _);
             if (Tokens.Char(')', ref scanner, advance: true))
             {
-                parsed = new MethodCall(identifier, parameters, scanner[position..scanner.Position]);
+                var info = scanner[position..scanner.Position];
+                parsed = identifier.Name == "next" && result.ExtendedMethod is { } extended
+                    ? new AccessorChainExpression(new Identifier("base", identifier.Info), info) { Accessors = [new MethodCall(new Identifier(extended, identifier.Info), parameters, info)] }
+                    : new MethodCall(identifier, parameters, info);
                 return true;
             }
             else return Parsers.Exit(ref scanner, result, out parsed, position, new(SDSLErrorMessages.SDSL0018, scanner[scanner.Position], scanner.Memory));

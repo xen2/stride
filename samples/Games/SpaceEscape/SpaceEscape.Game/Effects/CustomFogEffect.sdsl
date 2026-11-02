@@ -20,10 +20,8 @@ shader CustomFogEffect : ShadingBase
     // Varying FogFactor calculated from VS and passed to PS
     module stream float FogFactor : FOG;
         
-    [Phase(AfterProject)]
-    module override void PostTransformPosition()
+    extend TransformationBase.PostTransformPosition in AfterProject
     {
-        base.PostTransformPosition();
         float depth;
         const float LOG2 = 1.442695;
 
@@ -32,10 +30,9 @@ shader CustomFogEffect : ShadingBase
         streams.FogFactor = saturate( depthFactor + heightFactor );
     }
     
-    [Phase(Post)]
-    module override float4 Shading() 
+    extend ShadingBase.Shading in Post 
     {
-        float4 normalShade = base.Shading();
+        float4 normalShade = next();
 
         if(normalShade.w <= 0.005)
             return normalShade;

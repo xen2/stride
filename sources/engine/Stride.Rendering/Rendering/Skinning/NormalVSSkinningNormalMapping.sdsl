@@ -10,8 +10,7 @@ module NormalVSSkinningNormalMapping
 {
     import NormalFromNormalMapping;
 
-    [Replaces(NormalFromNormalMapping, NormalFromNormalMappingInstanced)]
-    override float3x3 GetTangentWorldTransform()
+    extend NormalUpdate.GetTangentWorldTransform replaces NormalFromNormalMapping, NormalFromNormalMappingInstanced
     {
         // TangentMatrix is already in world space, so return an identity matrix here
         return float3x3(1,0,0, 0,1,0, 0,0,1);

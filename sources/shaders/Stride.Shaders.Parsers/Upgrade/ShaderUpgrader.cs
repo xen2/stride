@@ -9,7 +9,7 @@ namespace Stride.Shaders.Parsing.Upgrade;
 /// Rewrites the <c>.sdsl</c> files of a project written for an older Stride version. Each syntax change adds a step; a step
 /// changes only the old pattern, so running it again, or on new code, changes nothing.
 /// </summary>
-public static class ShaderUpgrader
+public static partial class ShaderUpgrader
 {
     /// <summary>
     /// The steps, in order.
@@ -37,6 +37,8 @@ public static class ShaderUpgrader
         "add-usings",
         // 4.5: the key of a member of a namespaced class has the full name of the class
         "full-key-names",
+        // 4.5: an override with a phase, or of a [Replace] point, says what it extends
+        "extend",
     ];
 
     /// <summary>
@@ -94,6 +96,9 @@ public static class ShaderUpgrader
                 case "add-usings":
                     if (engine != null)
                         AddUsings(texts, effects, dependencyTexts, engine, implicitUsings ?? []);
+                    break;
+                case "extend":
+                    ConvertToExtend(texts, dependencyTexts);
                     break;
                 case "full-key-names":
                     if (engine != null)
