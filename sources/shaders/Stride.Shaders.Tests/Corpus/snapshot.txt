@@ -331,7 +331,6 @@ Direct3D11/Stride.Rendering.ParticleEffect.eab084993b strict=dd3c240e0161 legal=
 Direct3D11/Stride.Rendering.ParticleEffect.efe701a6c5 strict=fedc78a0cac2 legal=ec9ddbae2bb7 reflection=5351460c8fd1 explain=e141d5405d6a
 Direct3D11/Stride.Rendering.ParticleEffect.f5a4f360b9 strict=584348e0a4c0 legal=35c13d1cfb21 reflection=803672c4d48b explain=569f058d3077
 Direct3D11/Stride.Rendering.PreviewTexture.298bc34d76 strict=dfe06131c833 legal=7dd8d75d7d74 reflection=376dec94dd08 explain=346fcb8703df
-Direct3D11/Stride.Rendering.SelectedSprite.54906165e8 strict=051841c66ad6 legal=ac0e74d23238 reflection=cb7a400e1b1a explain=b72feffad03a
 Direct3D11/Stride.Rendering.SignedDistanceFieldFontShader.ac83e9d1db strict=d128e69e5614 legal=66a6b7df434d reflection=4dfeb51503f0 explain=ed13f0b7269c
 Direct3D11/Stride.Rendering.Skyboxes.SkyboxShaderCubemap.5e13365a50 strict=5903bc608ed8 legal=c657232a5102 reflection=6939ae25a3ec explain=e47afeb151cb
 Direct3D11/Stride.Rendering.Skyboxes.SkyboxShaderCubemap.8450fc39da strict=5903bc608ed8 legal=c657232a5102 reflection=6939ae25a3ec explain=e47afeb151cb
@@ -1057,7 +1056,6 @@ Vulkan/Stride.Rendering.ParticleEffect.eab084993b strict=efa700e131e7 legal=35b8
 Vulkan/Stride.Rendering.ParticleEffect.efe701a6c5 strict=4cf4dd02c1da legal=7dc0434a60db reflection=a4181efdd173 explain=e141d5405d6a
 Vulkan/Stride.Rendering.ParticleEffect.f5a4f360b9 strict=af7678abe61d legal=507ced4f8eb3 reflection=dfb2af030eac explain=413ba8c15677
 Vulkan/Stride.Rendering.PreviewTexture.298bc34d76 strict=d7c3a32188e3 legal=667c07ed66bf reflection=6ee2fcd94890 explain=346fcb8703df
-Vulkan/Stride.Rendering.SelectedSprite.54906165e8 strict=e3700ed4dc8f legal=a9df766e08e6 reflection=fbfb2539a706 explain=b72feffad03a
 Vulkan/Stride.Rendering.SignedDistanceFieldFontShader.ac83e9d1db strict=e50e559c9393 legal=7f3ca79b8c25 reflection=b1dda7afeb3e explain=ce897342ba4d
 Vulkan/Stride.Rendering.Skyboxes.SkyboxShaderCubemap.5e13365a50 strict=5b2a7b4b0ef8 legal=e4775d8535a9 reflection=5404fb9676b3 explain=e47afeb151cb
 Vulkan/Stride.Rendering.Skyboxes.SkyboxShaderCubemap.8450fc39da strict=5b2a7b4b0ef8 legal=e4775d8535a9 reflection=5404fb9676b3 explain=e47afeb151cb

@@ -398,9 +398,8 @@ public class RenderFeatureTests : RenderFeatureTestBase
 
         if (EditorEffectTrees)
         {
-            // Highlight, SelectedSprite and PreviewTexture in the editor's sdfx
+            // Highlight and PreviewTexture in the editor's sdfx
             CompileTree("Stride.Rendering.StrideEditorForwardShadingEffect.Highlight", new ShaderClassSource("Stride.Rendering.ShaderBase"), new ShaderClassSource("Stride.Rendering.ShadingBase"), new ShaderClassSource("Stride.Rendering.TransformationBase"), new ShaderClassSource("Stride.Rendering.TransformationWAndVP"), new ShaderClassSource("Stride.Rendering.HighlightShader"));
-            CompileTree("Stride.Rendering.SelectedSprite", new ShaderClassSource("Stride.Rendering.SpriteBatchShader", false), new ShaderClassSource("Stride.Rendering.SelectedSpriteShader"));
             CompileTree("Stride.Rendering.PreviewTexture", new ShaderClassSource("Stride.Rendering.Sprite3DBase"), new ShaderClassSource("Stride.Rendering.SpriteBatchShader", false));
         }
     }

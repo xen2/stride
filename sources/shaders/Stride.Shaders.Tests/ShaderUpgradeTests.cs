@@ -590,10 +590,6 @@ public class ShaderUpgradeTests
                 "partial effect SpriteAlphaCutoffEffect\n{\n    using params SpriteBaseKeys;\n    mixin SpriteAlphaCutoff<SpriteBaseKeys.ColorIsSRgb>;\n};\n"),
         ],
         // Key names are full names
-        ["sources/engine/Stride.Rendering/Rendering/Transformation/TransformationWVP.sdsl"] =
-        [
-            ("TransformationMatrix<Transformation.", "TransformationMatrix<Stride.Rendering.Transformation."),
-        ],
         ["sources/plugins/Voxels/Stride.Voxels/Voxels/Voxelization/Modifiers/Appliers/Anisotropic/VoxelModifierApplierOpacifyAnisotropic.sdsl"] =
         [
             ("[Link(\"VoxelModifierApplierOpacifyIsotropic.", "[Link(\"Stride.Rendering.VoxelModifierApplierOpacifyIsotropic."),

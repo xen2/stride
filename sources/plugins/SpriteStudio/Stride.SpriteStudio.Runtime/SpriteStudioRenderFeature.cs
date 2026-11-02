@@ -12,7 +12,6 @@ namespace Stride.SpriteStudio.Runtime
     //TODO this whole renderer is not optimized at all! batching is wrong and depth calculation should be done differently
     public class SpriteStudioRenderFeature : RootRenderFeature
     {
-        private EffectInstance selectedSpriteEffect;
         private EffectInstance pickingSpriteEffect;
 
         private Sprite3DBatch sprite3DBatch;
@@ -120,8 +119,6 @@ namespace Stride.SpriteStudio.Runtime
                     var projectedZ = projectedPosition.Z / projectedPosition.W;
 
                     var blendState = isPicking ? BlendStates.Default : spriteBlending;
-                    // TODO: the current impementation to determine if the sprite is selected does not work. This should be fixed later at some point
-                    //var currentEffect = isPicking ? GetOrCreatePickingSpriteEffect() : ShadowObject.IsObjectSelected(spriteState.SpriteStudioComponent) ? GetOrCreateSelectedSpriteEffect() : null;
                     var currentEffect = isPicking ? GetOrCreatePickingSpriteEffect() : null;
                     // TODO remove this code when material are available
                     if (previousEffect != currentEffect || blendState != previousBlendState || depthStencilState != previousDepthStencilState)
@@ -201,11 +198,6 @@ namespace Stride.SpriteStudio.Runtime
             }
 
             if (hasBegin) sprite3DBatch.End();
-        }
-
-        private EffectInstance GetOrCreateSelectedSpriteEffect()
-        {
-            return selectedSpriteEffect ?? (selectedSpriteEffect = new EffectInstance(RenderSystem.EffectSystem.LoadEffect("Stride.Rendering.SelectedSprite").WaitForResult()));
         }
 
         private EffectInstance GetOrCreatePickingSpriteEffect()
