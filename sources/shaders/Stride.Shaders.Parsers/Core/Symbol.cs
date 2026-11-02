@@ -17,6 +17,12 @@ public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Ow
     /// <summary>What a contribution records when it is written with <c>extend</c>.</summary>
     public const string ExtendForm = "extend";
 
+    /// <summary>What a contribution records when it is written with <c>patch</c>.</summary>
+    public const string PatchForm = "patch";
+
+    /// <summary>The implicit phase after every declared phase, in the order of the mix: where a contributor without a phase is, and the name an <c>order</c> line gives to the patches of a method.</summary>
+    public const string ImplicitPhase = "External";
+
     /// <summary>What marks a phase in the targets of <c>[Replaces]</c>, which are otherwise full names of classes.</summary>
     public const char ReplacedPhasePrefix = '@';
 

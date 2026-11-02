@@ -99,6 +99,9 @@ public partial class ShaderMixer
         /// <summary>The contributors written with <c>extend</c>, by method.</summary>
         public HashSet<int> Extends { get; } = new();
 
+        /// <summary>The contributors written with <c>patch</c>, by method.</summary>
+        public HashSet<int> Patches { get; } = new();
+
         /// <summary>The phases where the order of the mix decided between contributors whose order matters.</summary>
         public HashSet<string> DecidedByBuilder { get; } = new();
 

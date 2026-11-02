@@ -206,7 +206,7 @@ public record struct MethodParser : IParser<ShaderMethod>
     }
 
     /// <summary>
-    /// <c>extend Owner.Method [(parameters)] [in Phase] [after X, Y] [replaces Z] { }</c>, or <c>patch Owner.Method { }</c>. The words are not
+    /// <c>extend Owner.Method [(parameters)] [in Phase] [after X, Y] [replaces Z] { }</c>, or <c>patch Owner.Method [(parameters)] [after X, Y] { }</c>. The words are not
     /// reserved: <c>patch x;</c> is a member.
     /// </summary>
     private static bool Extend<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderMethod parsed)
