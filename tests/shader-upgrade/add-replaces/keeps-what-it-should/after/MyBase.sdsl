@@ -1,0 +1,9 @@
+module MyBase
+{
+    import ShaderBase;
+
+    override void PSMain()
+    {
+        streams.ColorTarget = 1;
+    }
+};

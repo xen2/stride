@@ -1,0 +1,9 @@
+// It states its place: the step leaves it as it is
+shader MyOrdered : MyBase
+{
+    [MixinOrder(After = MyBase)]
+    override stage void PSMain()
+    {
+        streams.ColorTarget = 6;
+    }
+};

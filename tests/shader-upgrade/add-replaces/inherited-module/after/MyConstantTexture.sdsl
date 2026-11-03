@@ -1,0 +1,18 @@
+shader MyConstantTexture
+{
+    import MyConstantColor;
+    import Texturing;
+
+    [Drops(Mixins = { MyConstantColor })]
+    override module void VSMain()
+    {
+        streams.ShadingPosition = mul(streams.Position, WorldViewProjection);
+    }
+
+    [Drops(Mixins = { MyConstantColor })]
+    override module void PSMain()
+    {
+        // base.PSMain();
+        streams.ColorTarget = Texture0.Sample(LinearSampler, streams.TexCoord) * Color;
+    }
+};

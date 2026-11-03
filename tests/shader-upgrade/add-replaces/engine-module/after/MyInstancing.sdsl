@@ -1,0 +1,19 @@
+shader MyInstancing
+{
+    import ShaderBase;
+    import PositionStream4;
+    import TransformationInstancing;
+
+    StructuredBuffer<float4> InstanceColors;
+
+    [Drops(Mixins = { TransformationBase })]
+    module override void VSMain()
+    {
+        streams.ShadingPosition = mul(streams.Position, WorldViewProjection);
+    }
+
+    module override void PSMain()
+    {
+        streams.ColorTarget = InstanceColors[streams.InstanceID];
+    }
+};

@@ -1,0 +1,7 @@
+shader MyLast
+{
+    import MyStep;
+
+    [Drops(Mixins = { MyStep })]
+    extend MyOwner.Pick() { return 3; }
+};
