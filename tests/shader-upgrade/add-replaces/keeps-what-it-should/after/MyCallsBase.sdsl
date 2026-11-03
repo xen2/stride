@@ -1,0 +1,11 @@
+// It keeps what it inherited
+shader MyCallsBase
+{
+    import MyBase;
+
+    override module void PSMain()
+    {
+        base.PSMain();
+        streams.ColorTarget *= 2;
+    }
+};

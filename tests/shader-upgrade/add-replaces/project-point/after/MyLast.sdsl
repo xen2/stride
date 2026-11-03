@@ -1,0 +1,6 @@
+shader MyLast
+{
+    import MyStep;
+
+    extend MyOwner.Pick replaces MyStep { return 3; }
+};

@@ -1,0 +1,8 @@
+// Mixed with MyBase, it drops it, and only the author knows whether that is meant. Nothing in the classes says so
+shader MyUnrelated : ShaderBase
+{
+    override stage void PSMain()
+    {
+        streams.ColorTarget = 3;
+    }
+};

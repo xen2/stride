@@ -1,0 +1,7 @@
+shader MyBase : ShaderBase
+{
+    override stage void PSMain()
+    {
+        streams.ColorTarget = 1;
+    }
+};

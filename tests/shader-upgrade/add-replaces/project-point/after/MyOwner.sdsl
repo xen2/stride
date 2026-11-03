@@ -1,0 +1,5 @@
+module MyOwner
+{
+    [Replace]
+    float Pick() { return 1; }
+};
