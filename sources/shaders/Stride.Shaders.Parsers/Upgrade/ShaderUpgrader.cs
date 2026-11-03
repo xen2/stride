@@ -122,14 +122,16 @@ public static partial class ShaderUpgrader
     }
 
     /// <summary>
-    /// A file that names an engine class or effect out of its scope gets the <c>using</c> of its namespace, or the full name when
-    /// that <c>using</c> would make the name ambiguous.
+    /// A file that names a class or effect of the engine, the project or a dependency out of its scope gets the <c>using</c> of its
+    /// namespace, or the full name when that <c>using</c> would make the name ambiguous.
     /// </summary>
     private static void AddUsings(Dictionary<string, string> texts, Dictionary<string, string> effects, Dictionary<string, string> dependencies, EngineShaderClasses engine, IReadOnlyList<string> implicitUsings)
     {
-        var projectNames = texts.Values.Concat(effects.Values).Concat(dependencies.Values)
-            .SelectMany(ShaderFileDeclarations.Read).Select(x => x.FullName).ToHashSet();
+        var projectSources = texts.Values.Concat(effects.Values).Concat(dependencies.Values).ToList();
+        var projectNames = projectSources.SelectMany(ShaderFileDeclarations.Read).Select(x => x.FullName).ToHashSet();
         var known = engine.Classes.Select(x => x.FullName ?? x.Name).Concat(engine.Effects.Values).Concat(projectNames).ToHashSet();
+        // A project class hides an engine class of its name, as it did when all names were global
+        var classes = engine.WithProject(projectSources);
 
         foreach (var files in new[] { texts, effects })
         {
@@ -144,7 +146,7 @@ public static partial class ShaderUpgrader
                 foreach (var match in source.CodeMatches(@"(?<![\w.])[A-Za-z_]\w*"))
                 {
                     var name = match.Value;
-                    if (engine.FullName(name) is not { } fullName || fullName == name || declarations.Any(x => x.Name == name)
+                    if (classes.FullName(name) is not { } fullName || fullName == name || declarations.Any(x => x.Name == name)
                         || scope.Resolve(name, implicitUsings, known.Contains, out _) != null
                         || IsDeclaredAsMember(source, name))
                         continue;

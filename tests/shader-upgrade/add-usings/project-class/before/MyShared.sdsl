@@ -1,0 +1,8 @@
+namespace Game.Renderers;
+
+shader MyShared
+{
+    float4 Color;
+
+    float4 Tint() { return Color; }
+};
