@@ -26,11 +26,11 @@ namespace Stride.Rendering.Voxels
         {
             Marcher = marcher;
         }
-        public ShaderSource GetMarchingShader(int attrID, ShaderSourceCollection attributeSamplers)
+        public ShaderSource GetMarchingShader(ShaderSourceCollection attributeSamplers)
         {
             var mixin = new ShaderMixinSource();
             mixin.Mixins.Add(new ShaderClassSource(VoxelMarchSetRandomHemisphereKeys.ShaderName));
-            mixin.AddComposition("Marcher", Marcher.GetMarchingShader(attrID, attributeSamplers));
+            mixin.AddComposition("Marcher", Marcher.GetMarchingShader(attributeSamplers));
             return mixin;
         }
 
@@ -51,9 +51,9 @@ namespace Stride.Rendering.Voxels
             parameters.Set(CountKey, Count);
             parameters.Set(TimeKey, AnimateNoise ? time : 0f);
         }
-        public void ApplyAttributeSamplers(VoxelAttribute attribute, int attrID, VoxelViewContext viewContext, ParameterCollection parameters)
+        public void ApplyAttributeSamplers(VoxelAttribute attribute, VoxelViewContext viewContext, ParameterCollection parameters)
         {
-            Marcher.ApplyAttributeSamplers(attribute, attrID, viewContext, parameters);
+            Marcher.ApplyAttributeSamplers(attribute, viewContext, parameters);
         }
     }
 }

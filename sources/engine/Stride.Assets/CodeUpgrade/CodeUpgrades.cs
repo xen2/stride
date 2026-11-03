@@ -161,6 +161,50 @@ public static partial class CodeUpgrades
     }
 
     /// <summary>
+    /// Migrates a removed parameter at call sites: <c>x.Foo(0, y)</c> → <c>x.Foo(y)</c>. Matches the method(s) named
+    /// <paramref name="methodName"/> on <paramref name="declaringType"/> that have a parameter named
+    /// <paramref name="parameterName"/>. Only a literal or a name is dropped: any other argument may do work, so it stays
+    /// and the compile error is what the author sees.
+    /// </summary>
+    public static SymbolRewrite ArgumentRemove(string declaringType, string methodName, string parameterName)
+    {
+        ArgumentNullException.ThrowIfNull(declaringType);
+        return ArgumentRemove([declaringType], methodName, parameterName);
+    }
+
+    /// <summary>
+    /// <see cref="ArgumentRemove(string, string, string)"/> for one method on several types of a hierarchy. It has to be one rewrite: the
+    /// references of an interface method include the ones of its implementations, so a rewrite per type would remove the argument of a call twice.
+    /// </summary>
+    public static SymbolRewrite ArgumentRemove(IReadOnlyList<string> declaringTypes, string methodName, string parameterName)
+    {
+        ArgumentNullException.ThrowIfNull(declaringTypes);
+        ArgumentNullException.ThrowIfNull(methodName);
+        ArgumentNullException.ThrowIfNull(parameterName);
+        return new SymbolRewrite(
+            compilation => declaringTypes.SelectMany(declaringType => ResolveMembers(compilation, declaringType, methodName))
+                .Where(member => member is IMethodSymbol method && method.Parameters.Any(p => p.Name == parameterName)),
+            (editor, referenceNode, symbol) =>
+            {
+                var target = referenceNode.Parent is MemberAccessExpressionSyntax { Name: var accessName } && accessName == referenceNode
+                    || referenceNode.Parent is MemberBindingExpressionSyntax { Name: var bindingName } && bindingName == referenceNode
+                    ? referenceNode.Parent
+                    : referenceNode;
+                if (target.Parent is not InvocationExpressionSyntax invocation || invocation.Expression != target)
+                    return;
+
+                var arguments = invocation.ArgumentList.Arguments;
+                var index = ((IMethodSymbol)symbol).Parameters.IndexOf(((IMethodSymbol)symbol).Parameters.First(p => p.Name == parameterName));
+                var argument = arguments.FirstOrDefault(x => x.NameColon?.Name.Identifier.ValueText == parameterName);
+                if (argument == null && index < arguments.Count && arguments.Take(index + 1).All(x => x.NameColon == null))
+                    argument = arguments[index];
+
+                if (argument?.Expression is LiteralExpressionSyntax or IdentifierNameSyntax or MemberAccessExpressionSyntax)
+                    editor.ReplaceNode(invocation.ArgumentList, invocation.ArgumentList.WithArguments(arguments.Remove(argument)));
+            });
+    }
+
+    /// <summary>
     /// Migrates a static member that moved to another (non-nested) type, optionally renamed:
     /// <c>Utilities.FreeMemory(p)</c> → <c>MemoryUtilities.Free(p)</c>. Alias and <c>using static</c>
     /// references become fully qualified, since the new type can't be assumed in scope.

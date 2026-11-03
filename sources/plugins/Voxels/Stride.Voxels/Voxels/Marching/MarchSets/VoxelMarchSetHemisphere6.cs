@@ -21,11 +21,11 @@ namespace Stride.Rendering.Voxels
             Marcher = marcher;
         }
 
-        public ShaderSource GetMarchingShader(int attrID, ShaderSourceCollection attributeSamplers)
+        public ShaderSource GetMarchingShader(ShaderSourceCollection attributeSamplers)
         {
             var mixin = new ShaderMixinSource();
             mixin.Mixins.Add(new ShaderClassSource(VoxelMarchSetHemisphere6Keys.ShaderName));
-            mixin.AddComposition("Marcher", Marcher.GetMarchingShader(attrID, attributeSamplers));
+            mixin.AddComposition("Marcher", Marcher.GetMarchingShader(attributeSamplers));
             return mixin;
         }
 

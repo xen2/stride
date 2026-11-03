@@ -1,0 +1,25 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Sean Boettger <sean@whypenguins.com>
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.Rendering;
+
+/// <summary>
+/// Renders one clip of the clipmap, chosen by the constants of the pass.
+/// </summary>
+shader VoxelStorageClipmapSingleShader : VoxelStorageClipmapShader
+{
+    override float3 ToClipSpace(float3 positionWS)
+    {
+        return positionWS * clipScale + clipOffset;
+    }
+    override uint FirstVoxelOfClip(int3 clipMapResolutionI)
+    {
+        return (uint)clipPos;
+    }
+    override void PrepareVertex()
+    {
+        method.PrepareVertex();
+        streams.ShadingPosition.xyz = mul(float4(ToClipSpace(streams.PositionWS.xyz), 1),Transformation.View).xyz;
+        streams.ShadingPosition.xyz = streams.ShadingPosition.xyz * 2 - 1;
+    }
+};

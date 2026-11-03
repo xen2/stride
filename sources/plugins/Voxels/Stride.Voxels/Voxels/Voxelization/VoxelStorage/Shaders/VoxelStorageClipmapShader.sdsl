@@ -3,6 +3,10 @@
 
 namespace Stride.Rendering;
 
+/// <summary>
+/// Stores voxel fragments in a clipmap. <see cref="VoxelStorageClipmapSingleShader"/> renders one clip at a time and
+/// <see cref="VoxelStorageClipmapAllShader"/> renders all of them at once.
+/// </summary>
 shader VoxelStorageClipmapShader : VoxelStorageShader
 {
     import Texturing;
@@ -12,14 +16,11 @@ shader VoxelStorageClipmapShader : VoxelStorageShader
     cbuffer PerView.VoxelizerStorer
     {
         float3 clipMapResolution;
-        //#ifdef singleClip
-            float clipPos;
-            float3 clipScale;
-            float3 clipOffset;
-        //#else
-            float clipMapCount;
-            float4 perClipMapOffsetScale[20];
-        //#endif
+        float clipPos;
+        float3 clipScale;
+        float3 clipOffset;
+        float clipMapCount;
+        float4 perClipMapOffsetScale[20];
         float storageUints;
     }
     rgroup PerView.VoxelizerStorer
@@ -30,31 +31,26 @@ shader VoxelStorageClipmapShader : VoxelStorageShader
     compose VoxelAttribute AttributesDirect[];
     compose VoxelAttribute AttributesIndirect[];
 
-    #ifdef singleClip
-        #define clipScaleIn clipScale
-        #define clipOffsetIn clipOffset
-        #define clipPosIn ((uint)clipPos)
-    #else
-        module stream uint clipIndex;
-        #define clipScaleIn perClipMapOffsetScale[streams.clipIndex].w
-        #define clipOffsetIn perClipMapOffsetScale[streams.clipIndex].xyz
-        #define clipPosIn ((streams.clipIndex) * clipMapResolutionI.x * clipMapResolutionI.y * clipMapResolutionI.z)
-    #endif
+    /// <summary>
+    /// A position in world space as a position in the clip, from 0 to 1.
+    /// </summary>
+    abstract float3 ToClipSpace(float3 positionWS);
 
-    #ifndef IndirectStoreMacro
-        #define IndirectStoreMacro
-    #endif
+    /// <summary>
+    /// The index of the first voxel of the clip in the fragments buffer.
+    /// </summary>
+    abstract uint FirstVoxelOfClip(int3 clipMapResolutionI);
 
     override bool MightStoreFragments()
     {
-        float3 texPos = streams.PositionWS.xyz * clipScaleIn + clipOffsetIn;
+        float3 texPos = ToClipSpace(streams.PositionWS.xyz);
         return dot(texPos - saturate(texPos), float3(1, 1, 1)) == 0;
     }
     override void StoreFragments()
     {
         int3 clipMapResolutionI = (int3)clipMapResolution;
 
-        float3 texPos = streams.PositionWS.xyz * clipScaleIn + clipOffsetIn;
+        float3 texPos = ToClipSpace(streams.PositionWS.xyz);
 
         streams.PositionVXS = texPos;
         streams.VoxelVolumeSize = clipMapResolution;
@@ -62,7 +58,7 @@ shader VoxelStorageClipmapShader : VoxelStorageShader
 
         int3 pixelPos = streams.PositionVXPS;
 
-        uint index = clipPosIn + pixelPos.x + pixelPos.y * clipMapResolutionI.x + pixelPos.z * clipMapResolutionI.x * clipMapResolutionI.y;
+        uint index = FirstVoxelOfClip(clipMapResolutionI) + pixelPos.x + pixelPos.y * clipMapResolutionI.x + pixelPos.z * clipMapResolutionI.x * clipMapResolutionI.y;
 
         uint writeindex = index * (uint)storageUints;
 
@@ -80,35 +76,11 @@ shader VoxelStorageClipmapShader : VoxelStorageShader
         {
             attr.InitializeFromStreams();
         }
-        
-        //See VoxelStorageClipmaps.cs Line #307 and Line #425
-        IndirectStoreMacro
-    }
-    #ifndef singleClip
-        override void GenerateTriangles(triangle Input input[3], inout TriangleStream<Output> triangleStream)
-        {
-            method.InitializeFromTriangle(input);
-            int3 clipMapResolutionI = (int3)clipMapResolution;
 
-            for (streams.clipIndex = 0; streams.clipIndex < clipMapCount; streams.clipIndex++)
-            {
-                [unroll]
-                for (int i = 0; i < 3 ; i ++)
-                {
-                    streams = input[i];
-                    streams.ShadingPosition.xyz = mul(float4(streams.PositionWS.xyz * clipScaleIn + clipOffsetIn, 1),Transformation.View).xyz;
-                    streams.ShadingPosition.xyz = streams.ShadingPosition.xyz * 2 - 1;
-                    method.Append(triangleStream);
-                }
-                method.RestartStrip(triangleStream);
-            }
-        }
-    #else
-        override void PrepareVertex()
+        // Each attribute adds its own place in the buffer (VoxelAttributeBufferOffset)
+        foreach (var attr in AttributesIndirect)
         {
-            method.PrepareVertex();
-            streams.ShadingPosition.xyz = mul(float4(streams.PositionWS.xyz * clipScaleIn + clipOffsetIn, 1),Transformation.View).xyz;
-            streams.ShadingPosition.xyz = streams.ShadingPosition.xyz * 2 - 1;
+            attr.IndirectWrite(fragmentsBuffer, writeindex);
         }
-    #endif
+    }
 };

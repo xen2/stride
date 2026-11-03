@@ -1,0 +1,15 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Sean Boettger <sean@whypenguins.com>
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.Rendering;
+
+/// <summary>
+/// Mixed after an attribute: it writes at its own place in the fragments of a voxel.
+/// </summary>
+shader VoxelAttributeBufferOffset<int bufferOffset> : VoxelAttribute
+{
+    override void IndirectWrite(RWBuffer<uint> buffer, uint address)
+    {
+        base.IndirectWrite(buffer, address + bufferOffset);
+    }
+};

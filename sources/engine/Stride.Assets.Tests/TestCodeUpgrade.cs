@@ -547,6 +547,76 @@ public class TestCodeUpgrade
     }
 
     [Fact]
+    public async Task ArgumentRemoveDropsOnlyAValueWithNoWork()
+    {
+        var source = """
+            namespace TestNs
+            {
+                interface IMarcher
+                {
+                    string Shader(int attrID, string samplers);
+                }
+                class Other
+                {
+                    public string Shader(int attrID, string samplers) => samplers;
+                }
+                class Usage
+                {
+                    const int First = 0;
+                    int Next() => 1;
+                    string A(IMarcher m) => m.Shader(0, "a");
+                    string B(IMarcher m) => m?.Shader(attrID: First, samplers: "b");
+                    string C(IMarcher m) => m.Shader(samplers: "c", attrID: 0);
+                    string D(IMarcher m) => m.Shader(Next(), "d");
+                    string E(Other o) => o.Shader(0, "e");
+                }
+            }
+            """;
+
+        var result = await ApplyAsync(source, Rewrite(ArgumentRemove("TestNs.IMarcher", "Shader", "attrID")));
+
+        Assert.Contains("m.Shader(\"a\")", result);
+        Assert.Contains("m?.Shader(samplers: \"b\")", result);
+        Assert.Contains("m.Shader(samplers: \"c\")", result);
+        Assert.Contains("m.Shader(Next(), \"d\")", result);
+        Assert.Contains("o.Shader(0, \"e\")", result);
+    }
+
+    [Fact]
+    public async Task ArgumentRemoveOnSeveralTypesEditsACallOnce()
+    {
+        var source = """
+            namespace TestNs
+            {
+                interface IMarcher
+                {
+                    string Shader(int attrID, string samplers);
+                }
+                class Marcher : IMarcher
+                {
+                    public string Shader(int attrID, string samplers) => samplers;
+                }
+                class Own : IMarcher
+                {
+                    public string Shader(int attrID, string samplers) => samplers;
+                }
+                class Usage
+                {
+                    string A(IMarcher m) => m.Shader(0, new string('a', 1));
+                    string B(Marcher m) => m.Shader(0, "b");
+                    string C(Own m) => $"{m.Shader(0, "c")}";
+                }
+            }
+            """;
+
+        var result = await ApplyAsync(source, Rewrite(ArgumentRemove(["TestNs.IMarcher", "TestNs.Marcher"], "Shader", "attrID")));
+
+        Assert.Contains("m.Shader(new string('a', 1))", result);
+        Assert.Contains("m.Shader(\"b\")", result);
+        Assert.Contains("m.Shader(\"c\")", result);
+    }
+
+    [Fact]
     public async Task MethodToPropertyUnwrapsOnlyTheMatchingSymbol()
     {
         var source = """
