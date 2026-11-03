@@ -22,6 +22,8 @@ namespace Stride.Rendering.Materials
 
         public static readonly PermutationParameterKey<ShaderSource> TessellationShader = ParameterKeys.NewPermutation<ShaderSource>();
 
+        public static readonly PermutationParameterKey<int> TessellationInputControlPoints = ParameterKeys.NewPermutation<int>();
+
         public static readonly PermutationParameterKey<ShaderSource> PixelStageSurfaceFilter = ParameterKeys.NewPermutation<ShaderSource>();
 
         public static readonly ObjectParameterKey<Texture> BlendMap = ParameterKeys.NewObject<Texture>();

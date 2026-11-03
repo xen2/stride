@@ -72,6 +72,8 @@ namespace Stride.Assets.Effect
             writer.Write(1);
         }
 
+        private const string FailedEntryMessage = "This entry of an effect log failed. If the error above is about your shaders, fix it. If the log is older than the engine, delete it and record it again.";
+
         protected override Task<ResultStatus> DoCommandOverride(ICommandContext commandContext)
         {
             var compiler = GetOrCreateEffectCompiler(context);
@@ -96,6 +98,7 @@ namespace Stride.Assets.Effect
             compilerResults.CopyTo(commandContext.Logger);
             if (compilerResults.HasErrors)
             {
+                commandContext.Logger.Error(FailedEntryMessage);
                 return Task.FromResult(ResultStatus.Failed);
             }
 
@@ -104,6 +107,7 @@ namespace Stride.Assets.Effect
             completedTask.CompilationLog.CopyTo(commandContext.Logger);
             if (completedTask.CompilationLog.HasErrors)
             {
+                commandContext.Logger.Error(FailedEntryMessage);
                 return Task.FromResult(ResultStatus.Failed);
             }
 

@@ -410,7 +410,11 @@ namespace Stride.Rendering
                     var renderStage = renderNode.RenderStage;
                     var renderStageShaderSource = renderStage.OutputValidator.ShaderSource;
                     if (renderStageShaderSource != null)
+                    {
                         renderEffect.EffectValidator.ValidateParameter(StrideEffectBaseKeys.RenderTargetExtensions, renderStageShaderSource);
+                        renderEffect.EffectValidator.ValidateParameter(StrideEffectBaseKeys.RenderTargetCount, renderStage.OutputValidator.RenderTargetCountMacro);
+                        renderEffect.EffectValidator.ValidateParameter(StrideEffectBaseKeys.MultisampleCount, renderStage.OutputValidator.MultisampleCountMacro);
+                    }
                 }
             }
         }
