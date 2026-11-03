@@ -418,6 +418,7 @@ public partial class ShaderMixer
     {
         var conflicts = new List<ContributionConflict>();
         Dictionary<int, int>? functions = null;
+        Dictionary<int, string>? semantics = null;
         foreach (var group in NodesOf(rootMixin).SelectMany(x => x.MethodGroups.Values).Distinct())
         {
             if (group.ExtensionPoint == null)
@@ -434,6 +435,7 @@ public partial class ShaderMixer
             foreach (var phase in running.Where(x => group.Phases.ContainsKey(x.MethodId)).GroupBy(x => group.Phases[x.MethodId]).Where(x => x.Count() > 1))
             {
                 functions ??= FindFunctions(buffer);
+                semantics ??= FindSemantics(context);
                 var chain = group.Methods.Select(x => x.MethodId).ToHashSet();
                 var contributors = phase.Reverse().ToList();
                 var accesses = contributors.Select(x => FindAccesses(context, buffer, functions, x.MethodId, chain)).ToList();
@@ -441,7 +443,7 @@ public partial class ShaderMixer
                 {
                     for (var b = a + 1; b < contributors.Count; b++)
                     {
-                        if (accesses[a].ConflictWith(accesses[b], context) is { } conflict && !IsOrdered(group, phase.Key, contributors, contributors[a].Shader, contributors[b].Shader))
+                        if (accesses[a].ConflictWith(accesses[b], context, semantics) is { } conflict && !IsOrdered(group, phase.Key, contributors, contributors[a].Shader, contributors[b].Shader))
                         {
                             var (first, second) = IsReachedFromOutside(group.ExtensionPoint, phase.Key) ? (contributors[b], contributors[a]) : (contributors[a], contributors[b]);
                             conflicts.Add(new(group, phase.Key, first.Shader, second.Shader, conflict));
@@ -489,6 +491,17 @@ public partial class ShaderMixer
         return functions;
     }
 
+    private static Dictionary<int, string> FindSemantics(SpirvContext context)
+    {
+        var semantics = new Dictionary<int, string>();
+        foreach (var i in context)
+        {
+            if (i.Op == Op.OpDecorateString && (OpDecorateString)i is { Decoration: Decoration.UserSemantic, Target: var target, Value: var semantic })
+                semantics[target] = semantic;
+        }
+        return semantics;
+    }
+
     /// <summary>
     /// What a contributor does that others can see: the streams its body and the functions it calls read and write, and side effects.
     /// </summary>
@@ -497,18 +510,41 @@ public partial class ShaderMixer
         public HashSet<int> Reads { get; } = [];
         public HashSet<int> Writes { get; } = [];
 
+        /// <summary>A store to the whole of <c>streams</c>, such as <c>streams = input[i]</c>.</summary>
+        public bool WritesEveryField { get; set; }
+
         /// <summary>A write to a buffer or a texture, an atomic operation, or a discard.</summary>
         public bool HasSideEffect { get; set; }
 
         /// <summary>
-        /// The words of the message when one writes what the other reads or writes, null when their order doesn't matter.
+        /// The words of the message when one writes what the other reads or writes, null when their order doesn't matter. Streams with
+        /// one semantic are one field: the interface step merges them.
         /// </summary>
-        public string? ConflictWith(ContributionAccesses other, SpirvContext context)
+        public string? ConflictWith(ContributionAccesses other, SpirvContext context, Dictionary<int, string> semantics)
         {
-            var shared = Writes.Intersect(other.Writes).Union(Writes.Intersect(other.Reads)).Union(Reads.Intersect(other.Writes)).ToList();
+            object Field(int id) => semantics.TryGetValue(id, out var semantic) ? semantic : id;
+            string Name(int id) => $"streams.{context.Names[id]}";
+
+            var shared = WrittenByFirst(this, other).Concat(WrittenByFirst(other, this)).ToHashSet();
             if (shared.Count > 0)
-                return $"share {string.Join(", ", shared.Select(x => $"streams.{context.Names[x]}").Order(StringComparer.Ordinal))}, which one of them writes";
+            {
+                var names = Reads.Concat(Writes).Concat(other.Reads).Concat(other.Writes).Distinct()
+                    .Where(x => shared.Contains(Field(x)))
+                    .GroupBy(Field)
+                    .Select(x => x.Count() > 1 ? $"{string.Join(" and ", x.Select(Name).Order(StringComparer.Ordinal))} (semantic {x.Key})" : Name(x.First()))
+                    .Order(StringComparer.Ordinal);
+                return $"share {string.Join(", ", names)}, which one of them writes";
+            }
+
+            if (WritesEveryField && other.WritesEveryField)
+                return "both write the whole of streams";
             return HasSideEffect && other.HasSideEffect ? "both have a side effect (a write to a buffer or a texture, or a discard)" : null;
+
+            IEnumerable<object> WrittenByFirst(ContributionAccesses first, ContributionAccesses second)
+            {
+                var used = second.Reads.Concat(second.Writes).Select(Field);
+                return first.WritesEveryField ? used : first.Writes.Select(Field).Intersect(used);
+            }
         }
     }
 
@@ -529,6 +565,7 @@ public partial class ShaderMixer
                 return;
 
             var streams = new HashSet<int>();
+            var stageStreams = new HashSet<int>();
             var streamMembers = new Dictionary<int, int>();
             var bufferPointers = new HashSet<int>();
             for (; buffer[index].Op != Op.OpFunctionEnd; index++)
@@ -538,6 +575,7 @@ public partial class ShaderMixer
                 {
                     case Op.OpStreamsSDSL:
                         streams.Add(((OpStreamsSDSL)i).ResultId);
+                        stageStreams.Add(((OpStreamsSDSL)i).ResultId);
                         break;
                     case Op.OpFunctionParameter when (OpFunctionParameter)i is var parameter && context.ReverseTypes[parameter.ResultType] is PointerType { BaseType: StreamsType }:
                         streams.Add(parameter.ResultId);
@@ -562,6 +600,9 @@ public partial class ShaderMixer
                         var pointer = ((OpStore)i).Pointer;
                         if (streamMembers.TryGetValue(pointer, out var written))
                             accesses.Writes.Add(written);
+                        // A store to a local copy or a parameter isn't a write of the stage's streams: an inout argument is stored back by its caller
+                        else if (stageStreams.Contains(pointer))
+                            accesses.WritesEveryField = true;
                         else if (bufferPointers.Contains(pointer))
                             accesses.HasSideEffect = true;
                         break;

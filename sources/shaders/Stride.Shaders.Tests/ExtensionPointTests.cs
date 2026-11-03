@@ -353,6 +353,72 @@ public class ExtensionPointTests : IDisposable
         Assert.True(runtimeOk, runtimeLog);
     }
 
+    // Streams with one semantic become one field, so a contributor reads what the other wrote under another name
+    [Theory]
+    [InlineData("streams.One = 2;", "streams.Two = 3;")]
+    [InlineData("streams.Other = streams.One;", "streams.Two = 3;")]
+    public void StreamsWithOneSemanticAreOneField(string first, string second)
+    {
+        WriteOwner();
+        Write("Helpers", "module Helpers { import Owner; stream float Other; stream float One : SAME; stream float Two : SAME; }");
+        Write("First", $"module First {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {first} }} }}");
+        Write("Second", $"module Second {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {second} }} }}");
+
+        var (ok, log, _) = Mix(wired: true, "Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0137", log);
+        Assert.Contains("streams.One and streams.Two (semantic SAME)", log);
+    }
+
+    [Fact]
+    public void StreamsWithTwoSemanticsAreTwoFields()
+    {
+        WriteOwner();
+        Write("Helpers", "module Helpers { import Owner; stream float One : ONE; stream float Two : TWO; }");
+        Write("First", "module First { import Helpers; [Phase(A)] override void Run() { base.Run(); streams.One = 2; } }");
+        Write("Second", "module Second { import Helpers; [Phase(A)] override void Run() { base.Run(); streams.Two = 3; } }");
+
+        var (ok, log, _) = Mix(wired: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
+    // A store to the whole of streams writes every field the other contributor uses
+    [Theory]
+    [InlineData("var saved = streams; streams = saved;", "streams.Steps = 3;", "streams.Steps")]
+    [InlineData("var saved = streams; streams = saved;", "streams.Other = streams.Steps;", "streams.Other, streams.Steps")]
+    [InlineData("Restore();", "streams.Steps = 3;", "streams.Steps")]
+    [InlineData("var saved = streams; streams = saved;", "var saved = streams; streams = saved;", "the whole of streams")]
+    public void AWriteOfTheWholeValueIsAWriteOfEveryField(string first, string second, string message)
+    {
+        WriteOwner();
+        Write("Helpers", "module Helpers { import Owner; stream float Other; void Restore() { var saved = streams; streams = saved; } }");
+        Write("First", $"module First {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {first} }} }}");
+        Write("Second", $"module Second {{ import Helpers; [Phase(A)] override void Run() {{ base.Run(); {second} }} }}");
+
+        var (ok, log, _) = Mix(wired: true, "Test.First", "Test.Second");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0137", log);
+        Assert.Contains(message, log);
+    }
+
+    // A copy is a local variable: writing to it changes no stream. And a contributor that uses no stream shares nothing
+    [Theory]
+    [InlineData("var saved = streams;", "streams.Steps = 3;")]
+    [InlineData("var saved = streams; streams = saved;", "discard;")]
+    public void AWriteOfACopyOrOfNothingSharedIsNoConflict(string first, string second)
+    {
+        WriteOwner();
+        WriteModule("First", $"[Phase(A)] override void Run() {{ base.Run(); {first} }}");
+        WriteModule("Second", $"[Phase(A)] override void Run() {{ base.Run(); {second} }}");
+
+        var (ok, log, _) = Mix(wired: true, "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+    }
+
     [Theory]
     [InlineData("streams.Other = 2;", "streams.Steps = 3;")]
     [InlineData("streams.Other = streams.Steps;", "streams.Third = streams.Steps;")]
