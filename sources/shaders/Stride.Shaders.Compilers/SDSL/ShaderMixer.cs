@@ -34,7 +34,13 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
 
     public IExternalShaderLoader ShaderLoader { get; } = shaderLoader;
 
-    public bool MergeSDSL(ShaderSource shaderSource, Options options, ILogger log, out Span<byte> bytecode, [MaybeNullWhen(false)] out EffectReflection effectReflection, [MaybeNullWhen(false)] out HashSourceCollection usedHashSources, [MaybeNullWhen(false)] out List<InterfaceProcessor.EntryPointInfo> entryPoints)
+    /// <summary>
+    /// Mixes one class as an effect with no macros.
+    /// </summary>
+    public bool MergeSDSL(ShaderClassCode shaderClass, Options options, ILogger log, out Span<byte> bytecode, [MaybeNullWhen(false)] out EffectReflection effectReflection, [MaybeNullWhen(false)] out HashSourceCollection usedHashSources, [MaybeNullWhen(false)] out List<InterfaceProcessor.EntryPointInfo> entryPoints)
+        => MergeSDSL(new EffectSource(shaderClass), options, log, out bytecode, out effectReflection, out usedHashSources, out entryPoints);
+
+    public bool MergeSDSL(EffectSource effect, Options options, ILogger log, out Span<byte> bytecode, [MaybeNullWhen(false)] out EffectReflection effectReflection, [MaybeNullWhen(false)] out HashSourceCollection usedHashSources, [MaybeNullWhen(false)] out List<InterfaceProcessor.EntryPointInfo> entryPoints)
     {
         bytecode = default;
         effectReflection = default;
@@ -54,25 +60,14 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         var shaderLoader = new CaptureLoadedShaders(ShaderLoader);
         var table = new SymbolTable(context, shaderLoader);
 
-        //var effectEvaluator = new EffectEvaluator(shaderLoader);
-        // We basically put the shader we want to merge through the EffectEvaluator to resolve all mixins/compositions first
-        //shaderSource = effectEvaluator.EvaluateEffects(shaderSource);
-
-        if (shaderSource is ShaderMixinGeneratorSource mixinGeneratorSource)
-            shaderSource = ShaderMixinManager.Generate(mixinGeneratorSource.Name, new());
-
-        // Propgate macros to child
-        if (shaderSource is ShaderMixinSource mixinSource)
-            PropagateMacrosRecursively(mixinSource, null);
-
         // Root shader
-        var globalContext = new MixinGlobalContext(table, log) { Linkage = (shaderSource as ShaderMixinSource)?.Linkage ?? [] };
+        var globalContext = new MixinGlobalContext(table, log) { Linkage = effect.Linkage };
 
         MixinNode rootMixin;
         var conflicts = new List<ContributionConflict>();
         try
         {
-            var shaderSource2 = EvaluateInheritanceAndCompositions(shaderLoader, context, null, shaderSource);
+            var shaderSource2 = EvaluateInheritanceAndCompositions(shaderLoader, context, effect.Macros.ToArray(), effect.Root);
             CollectModules(shaderSource2);
 
             // Process name and types imported by constants due to generics instantiation

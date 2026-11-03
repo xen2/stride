@@ -18,7 +18,7 @@ public class EffectDiscardTests
         var parameters = new ParameterCollection();
         parameters.Set(EffectDiscardParameters.IsError, true);
 
-        var mixin = ShaderMixinManager.Generate(TestShader.FullName("EffectDiscard"), parameters);
+        var mixin = ShaderMixinManager.Generate(TestShader.FullName("EffectDiscard"), parameters).Root;
 
         Assert.Equal(["ErrorShader"], mixin.Mixins.Select(x => x.ClassName));
     }
@@ -26,7 +26,7 @@ public class EffectDiscardTests
     [Fact]
     public void NoDiscardRunsTheWholeEffect()
     {
-        var mixin = ShaderMixinManager.Generate(TestShader.FullName("EffectDiscard"), new ParameterCollection());
+        var mixin = ShaderMixinManager.Generate(TestShader.FullName("EffectDiscard"), new ParameterCollection()).Root;
 
         Assert.Equal(["FullShader"], mixin.Mixins.Select(x => x.ClassName));
     }

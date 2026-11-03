@@ -205,7 +205,7 @@ public class ShaderDefinitionCheckTests : IDisposable
             Compositions = { ["contract"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("CheckGeneric"), "1") } } },
         };
         var log = new LoggerResult();
-        var ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+        var ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
         Assert.False(ok);
         Assert.Contains("SDSL0117: CheckGeneric has 2 generic parameter(s) (N, M), but 1 given (1).", string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
     }
@@ -471,7 +471,7 @@ public class ShaderDefinitionCheckTests : IDisposable
         bool ok;
         try
         {
-            ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+            ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
         }
         catch (InvalidOperationException e)
         {
@@ -521,7 +521,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
         var log = new LoggerResult();
         var ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")) { IsAssetBuild = isAssetBuild }
-            .MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+            .MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
 
         Assert.False(ok);
         Assert.Contains(log.Messages, x => x.Text.Contains("SDSL0247: CheckSlotModule is a module, but it is in the composition contract.", StringComparison.Ordinal));
@@ -568,7 +568,7 @@ public class ShaderDefinitionCheckTests : IDisposable
         bool ok;
         try
         {
-            ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+            ok = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
         }
         catch (InvalidOperationException e)
         {
@@ -1203,7 +1203,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
         var source = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("StRoot")), new ShaderClassSource(TestShader.Written("StA")), new ShaderClassSource(TestShader.Written("StB")) } };
         var log = new LoggerResult();
-        new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+        new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
         Assert.False(log.HasErrors, string.Join(Environment.NewLine, log.Messages));
     }
 

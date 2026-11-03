@@ -182,9 +182,9 @@ namespace Stride.Engine.Tests
             {
             }
 
-            public override TaskOrResult<EffectBytecodeCompilerResult> Compile(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
+            public override TaskOrResult<EffectBytecodeCompilerResult> Compile(EffectSource effect, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
             {
-                var result = base.Compile(mixinTree, effectParameters, compilerParameters, effectInputHash);
+                var result = base.Compile(effect, effectParameters, compilerParameters, effectInputHash);
                 if (!Hold || !compilerParameters.ContainsKey(MaterialKeys.TessellationShader))
                     return result;
 

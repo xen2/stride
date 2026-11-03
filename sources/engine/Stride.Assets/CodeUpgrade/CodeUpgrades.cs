@@ -186,11 +186,7 @@ public static partial class CodeUpgrades
                 .Where(member => member is IMethodSymbol method && method.Parameters.Any(p => p.Name == parameterName)),
             (editor, referenceNode, symbol) =>
             {
-                var target = referenceNode.Parent is MemberAccessExpressionSyntax { Name: var accessName } && accessName == referenceNode
-                    || referenceNode.Parent is MemberBindingExpressionSyntax { Name: var bindingName } && bindingName == referenceNode
-                    ? referenceNode.Parent
-                    : referenceNode;
-                if (target.Parent is not InvocationExpressionSyntax invocation || invocation.Expression != target)
+                if (GetInvocation(referenceNode) is not { } invocation)
                     return;
 
                 var arguments = invocation.ArgumentList.Arguments;

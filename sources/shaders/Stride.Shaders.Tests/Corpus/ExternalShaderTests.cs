@@ -134,10 +134,10 @@ public class ExternalShaderTests
         }
     }
 
-    static ShaderMixinSource WithPlatformMacros(ShaderMixinSource mixin)
+    static EffectSource WithPlatformMacros(EffectSource effect)
     {
-        EffectCompiler.AddPlatformMacros(mixin, new EffectCompilerParameters { Platform = GraphicsPlatform.Direct3D11, Profile = GraphicsProfile.Level_11_0 });
-        return mixin;
+        EffectCompiler.AddPlatformMacros(effect, new EffectCompilerParameters { Platform = GraphicsPlatform.Direct3D11, Profile = GraphicsProfile.Level_11_0 });
+        return effect;
     }
 
     static readonly Regex Codes = new(@"SDSL\d{4}", RegexOptions.Compiled);
@@ -203,7 +203,7 @@ public class ExternalShaderTests
             bool loaded;
             try
             {
-                loaded = run.Loader.LoadExternalBuffer(fullName, WithPlatformMacros(new ShaderMixinSource()).Macros.ToArray(), out _, out _, out _);
+                loaded = run.Loader.LoadExternalBuffer(fullName, WithPlatformMacros(new EffectSource(new ShaderMixinSource())).Macros.ToArray(), out _, out _, out _);
             }
             catch (Exception e)
             {
@@ -215,7 +215,7 @@ public class ExternalShaderTests
             if (!loaded || log.HasErrors)
                 continue;
 
-            var (step, outcome) = Compile(run.Loader, name, new ShaderMixinSource { Mixins = { new ShaderClassSource(fullName) } }, progress, dump ? run.Output : null);
+            var (step, outcome) = Compile(run.Loader, name, new EffectSource(new ShaderClassSource(fullName)), progress, dump ? run.Output : null);
             lines.Add(Line([file.Library, file.RelativePath, name, step, .. outcome]));
         }
 
@@ -231,6 +231,8 @@ public class ExternalShaderTests
         return node;
     }
 
+    static EffectSource Effect(string root, object[]? generics = null, params (string Name, ShaderSource Value)[] compositions) => new(Node(root, generics, compositions));
+
     static ShaderArraySource Array(params ShaderSource[] values)
     {
         var array = new ShaderArraySource();
@@ -239,16 +241,16 @@ public class ExternalShaderTests
         return array;
     }
 
-    static readonly (string Name, Func<ShaderMixinSource> Tree)[] Trees =
+    static readonly (string Name, Func<EffectSource> Tree)[] Trees =
     [
         // ShaderFX draw graph: an input and a texture declared through LinkType / MemberName generics, in compositions
-        ("ShaderFXDraw", () => Node("ShaderFXGraph", null,
+        ("ShaderFXDraw", () => Effect("ShaderFXGraph", null,
             ("VertexRoot", Node("InputFloat4", ["ShaderFX.InputValueFloat4", "PerUpdate"])),
             ("PixelRoot", Node("SampleLevelTextureFloat4", ["ObjectTexture_fx0", "PerMaterial", "ObjectSampler_fx1", "PerMaterial"],
                 ("TexCd", Node("ConstantFloat2", ["float2(0.5, 0.5)"])),
                 ("LOD", Node("InputFloat", ["ShaderFX.InputValueFloat", "PerMaterial"])))))),
         // Two textures (other keys), the same sampler key twice
-        ("ShaderFXDrawTwoTextures", () => Node("ShaderFXGraph", null,
+        ("ShaderFXDrawTwoTextures", () => Effect("ShaderFXGraph", null,
             ("VertexRoot", Node("InputFloat4", ["ShaderFX.InputValueFloat4", "PerUpdate"])),
             ("PixelRoot", Node("PlusFloat4", null,
                 ("Left", Node("SampleLevelTextureFloat4", ["ObjectTexture_fx0", "PerMaterial", "ObjectSampler_fx2", "PerMaterial"],
@@ -257,19 +259,19 @@ public class ExternalShaderTests
                 ("Right", Node("SampleLevelTextureFloat4", ["ObjectTexture_fx1", "PerMaterial", "ObjectSampler_fx2", "PerMaterial"],
                     ("TexCd", Node("ConstantFloat2", ["float2(0.75, 0.5)"])),
                     ("LOD", Node("InputFloat", ["ShaderFX.InputValueFloat.i1", "PerMaterial"])))))))),
-        ("TextureFXGraph", () => Node("TextureFXGraph", null,
+        ("TextureFXGraph", () => Effect("TextureFXGraph", null,
             ("Root", Node("PlusFloat4", null,
                 ("Left", Node("InputFloat4", ["ShaderFX.InputValueFloat4", "PerMaterial"])),
                 ("Right", Node("InputFloat4", ["ShaderFX.InputValueFloat4.i1", "PerMaterial"])))))),
         // A node in a composition that calls a parent's helper through `base.` (VL.Addons ValueMap)
-        ("TextureFXGraphBaseHelper", () => Node("TextureFXGraph", null,
+        ("TextureFXGraphBaseHelper", () => Effect("TextureFXGraph", null,
             ("Root", Node("JoinFloat4Float3", null,
                 ("v", Node("ConstantFloat3", ["float3(1, 0, 0)"])),
                 ("w", Node("ValueMap_Advanced_Internal_ShaderFX", null,
                     ("ColorIn", Node("InputFloat4", ["ShaderFX.InputValueFloat4", "PerMaterial"])))))))),
         // ComputeFX graph: an array of compositions, stream variables named by MemberName, a thread id node that reads the compute
         // streams (inherited ComputeShaderBase before 4.5)
-        ("ComputeFXGraph", () => Node("ComputeFXGraph", null,
+        ("ComputeFXGraph", () => Effect("ComputeFXGraph", null,
             ("Root", Node("ComputeOrder", null,
                 ("Computes", Array(
                     Node("AssignVarFloat", ["Var_1"], ("Value", Node("InputFloat", ["ShaderFX.InputValueFloat", "PerUpdate"]))),
@@ -282,13 +284,12 @@ public class ExternalShaderTests
     ];
 
     // What StrideEffectBase mixes, in its order, for a model without a material
-    static ShaderMixinSource ForwardShadingWithExtension(string extension, params string[] skinning)
+    static EffectSource ForwardShadingWithExtension(string extension, params string[] skinning)
     {
         var node = new ShaderMixinSource();
-        node.Macros.Add(new("SkinningMaxBones", "56"));
         foreach (var name in (string[])[.. Engine("ShaderBase", "ShadingBase", "TransformationBase", "NormalStream", "TransformationWAndVP", "NormalFromMesh"), .. skinning, "Stride.Rendering.NormalBase", extension])
             node.Mixins.Add(new ShaderClassSource(name));
-        return node;
+        return new EffectSource(node) { Macros = { new("SkinningMaxBones", "56") } };
 
         static IEnumerable<string> Engine(params string[] names) => names.Select(x => $"Stride.Rendering.{x}");
     }
@@ -321,7 +322,7 @@ public class ExternalShaderTests
     }
 
     // Mix, then the Direct3D 11 effect compiler's chain; returns the last step reached and its outcome
-    static (string Step, string[] Outcome) Compile(Loader loader, string name, ShaderMixinSource mixin, string progress, string? dumpFolder, Action<EffectReflection>? onReflection = null)
+    static (string Step, string[] Outcome) Compile(Loader loader, string name, EffectSource effect, string progress, string? dumpFolder, Action<EffectReflection>? onReflection = null)
     {
         var log = new LoggerResult();
         var step = "mix";
@@ -329,10 +330,10 @@ public class ExternalShaderTests
         try
         {
             File.AppendAllText(progress, $"mix {name}{Environment.NewLine}");
-            mixin.Name = name;
-            WithPlatformMacros(mixin);
+            effect.Root.Name = name;
+            WithPlatformMacros(effect);
             var mixer = new ShaderMixer(loader) { CollectExplanation = dumpFolder != null };
-            if (!mixer.MergeSDSL(mixin, EffectCompiler.GetMixerOptions(GraphicsPlatform.Direct3D11), log, out var bytecode, out var reflection, out _, out _))
+            if (!mixer.MergeSDSL(effect, EffectCompiler.GetMixerOptions(GraphicsPlatform.Direct3D11), log, out var bytecode, out var reflection, out _, out _))
                 return (step, Outcome(false, log));
             onReflection?.Invoke(reflection);
             if (dumpFolder != null)

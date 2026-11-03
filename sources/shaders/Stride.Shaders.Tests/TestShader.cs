@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using Stride.Rendering;
 using Stride.Shaders.Parsing;
 
 namespace Stride.Shaders.Parsers.Tests;
@@ -30,4 +31,13 @@ static class TestShader
     /// The full name of a shader a test writes in <c>namespace Stride.Shaders.Tests</c>, or of an engine shader it uses.
     /// </summary>
     public static string Written(string name) => name.Contains('.') ? name : FullNames.Value.GetValueOrDefault(name, $"Stride.Shaders.Tests.{name}");
+
+    /// <summary>
+    /// The test effect of this name, or a shader of this name as an effect.
+    /// </summary>
+    public static EffectSource Effect(string name)
+    {
+        var fullName = FullName(name);
+        return ShaderMixinManager.Contains(fullName) ? ShaderMixinManager.Generate(fullName, new ParameterCollection()) : new EffectSource(new ShaderClassSource(fullName));
+    }
 }

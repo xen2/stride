@@ -94,7 +94,7 @@ namespace Stride.Shaders.Compiler
             }
         }
 
-        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(ShaderMixinSource mixin, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
+        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(EffectSource effect, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
         {
             var database = databaseProvider.FileProvider;
 
@@ -121,7 +121,7 @@ namespace Stride.Shaders.Compiler
                 if (Compiler is NullEffectCompiler && bytecode.Key == null)
                 {
                     var stringBuilder = new StringBuilder();
-                    stringBuilder.AppendFormat("Unable to find compiled shaders [{0}] for mixin [{1}] with parameters [{2}]", compiledUrl, mixin, compilerParameters.ToStringPermutationsDetailed());
+                    stringBuilder.AppendFormat("Unable to find compiled shaders [{0}] for mixin [{1}] with parameters [{2}]", compiledUrl, effect.Root, compilerParameters.ToStringPermutationsDetailed());
                     Log.Error(stringBuilder.ToString());
                     throw new InvalidOperationException(stringBuilder.ToString());
                 }
@@ -156,7 +156,7 @@ namespace Stride.Shaders.Compiler
                 // ------------------------------------------------------------------------------------------------------------
                 if (bytecode.Key == null)
                 {
-                    var indirectionPath = GetAppCacheIndirectionPath(mixin.Name, effectInputHash);
+                    var indirectionPath = GetAppCacheIndirectionPath(effect.Name, effectInputHash);
                     if (VirtualFileSystem.ApplicationCache.FileExists(indirectionPath))
                     {
                         try
@@ -173,7 +173,7 @@ namespace Stride.Shaders.Compiler
                             }
 
                             // Load bytecode from the shared output file
-                            var bytecodePath = GetAppCachePath(mixin.Name, outputHash);
+                            var bytecodePath = GetAppCachePath(effect.Name, outputHash);
                             if (VirtualFileSystem.ApplicationCache.FileExists(bytecodePath))
                             {
                                 using var stream = VirtualFileSystem.ApplicationCache.OpenStream(
@@ -224,7 +224,7 @@ namespace Stride.Shaders.Compiler
                 if (CompileEffectAsynchronously)
                 {
                     var compilerParametersCopy = compilerParameters != null ? new CompilerParameters(compilerParameters) : null;
-                    var resultTask = Task.Factory.StartNew(() => CompileBytecode(mixin, effectParameters, compilerParametersCopy, effectInputHash, database, compiledUrl), CancellationToken.None, TaskCreationOptions.None, taskSchedulerSelector != null ? taskSchedulerSelector(mixin, compilerParametersCopy.EffectParameters) : TaskScheduler.Default);
+                    var resultTask = Task.Factory.StartNew(() => CompileBytecode(effect, effectParameters, compilerParametersCopy, effectInputHash, database, compiledUrl), CancellationToken.None, TaskCreationOptions.None, taskSchedulerSelector != null ? taskSchedulerSelector(effect.Root, compilerParametersCopy.EffectParameters) : TaskScheduler.Default);
 
                     compilingShaders.Add(effectInputHash, resultTask);
 
@@ -232,19 +232,19 @@ namespace Stride.Shaders.Compiler
                 }
                 else
                 {
-                    return CompileBytecode(mixin, effectParameters, compilerParameters, effectInputHash, database, compiledUrl);
+                    return CompileBytecode(effect, effectParameters, compilerParameters, effectInputHash, database, compiledUrl);
                 }
             }
         }
 
-        private EffectBytecodeCompilerResult CompileBytecode(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash, DatabaseFileProvider database, string compiledUrl)
+        private EffectBytecodeCompilerResult CompileBytecode(EffectSource effect, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash, DatabaseFileProvider database, string compiledUrl)
         {
             // Open the database for writing
             var log = new LoggerResult();
             var effectLog = GlobalLogger.GetLogger("EffectCompilerCache");
 
             // Note: this compiler is expected to not be async and directly write stuff in localLogger
-            var compiledShader = base.Compile(mixinTree, effectParameters, compilerParameters, effectInputHash).WaitForResult();
+            var compiledShader = base.Compile(effect, effectParameters, compilerParameters, effectInputHash).WaitForResult();
             compiledShader.CompilationLog.CopyTo(log);
 
             // If there are any errors, return immediately
@@ -284,8 +284,8 @@ namespace Stride.Shaders.Compiler
                     // Persist to ApplicationCache with content-addressed dedup:
                     //   {effectInputHash}.cache → 16-byte output hash (indirection)
                     //   {outputHash}            → EffectBytecode (shared across inputs with same output)
-                    var bytecodePath = GetAppCachePath(mixinTree.Name, newBytecodeId);
-                    var indirectionPath = GetAppCacheIndirectionPath(mixinTree.Name, effectInputHash);
+                    var bytecodePath = GetAppCachePath(effect.Name, newBytecodeId);
+                    var indirectionPath = GetAppCacheIndirectionPath(effect.Name, effectInputHash);
                     try
                     {
                         var dir = Path.GetDirectoryName(bytecodePath)!;

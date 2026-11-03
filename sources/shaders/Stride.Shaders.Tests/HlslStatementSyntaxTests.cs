@@ -39,7 +39,7 @@ public class HlslStatementSyntaxTests
         var parameters = new ParameterCollection();
         parameters.Set(EffectDoWhileParameters.Count, count);
 
-        var mixin = ShaderMixinManager.Generate(TestShader.FullName("EffectDoWhile"), parameters);
+        var mixin = ShaderMixinManager.Generate(TestShader.FullName("EffectDoWhile"), parameters).Root;
 
         Assert.Equal([expectedMixin], mixin.Mixins.Select(x => x.ClassName));
     }

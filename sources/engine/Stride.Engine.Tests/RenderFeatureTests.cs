@@ -413,8 +413,9 @@ public class RenderFeatureTests : RenderFeatureTestBase
 
     private void CompileTree(string effectName, params ShaderClassSource[] shaders)
     {
-        var effect = new ShaderMixinSource { Name = effectName };
-        effect.Mixins.AddRange(shaders);
+        var root = new ShaderMixinSource { Name = effectName };
+        root.Mixins.AddRange(shaders);
+        var effect = new EffectSource(root);
         var compilerParameters = new CompilerParameters();
         compilerParameters.EffectParameters.Platform = GraphicsDevice.Platform;
         compilerParameters.EffectParameters.Profile = GraphicsDevice.ShaderProfile ?? GraphicsDevice.Features.RequestedProfile;

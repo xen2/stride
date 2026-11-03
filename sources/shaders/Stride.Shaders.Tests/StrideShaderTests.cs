@@ -231,7 +231,7 @@ public class StrideShaderTests
         };
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.False(shaderMixer.MergeSDSL(shaderSource, new ShaderMixer.Options(true), log, out _, out _, out _, out _));
+        Assert.False(shaderMixer.MergeSDSL(new EffectSource(shaderSource), new ShaderMixer.Options(true), log, out _, out _, out _, out _));
 
         Assert.Contains(log.Messages, m => m.Type == Stride.Core.Diagnostics.LogMessageType.Error
             && m.Text.Contains("'Samplers'") && m.Text.Contains("StageComposePathDeclarer")
@@ -264,7 +264,7 @@ public class StrideShaderTests
         shaderSource.Compositions["Samplers"] = new ShaderArraySource { new ShaderClassSource(TestShader.FullName("StageComposePathImpl")) };
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(shaderSource, new ShaderMixer.Options(true), log, out _, out var reflection, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new EffectSource(shaderSource), new ShaderMixer.Options(true), log, out _, out var reflection, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
         return reflection;
     }
@@ -330,7 +330,7 @@ public class StrideShaderTests
         var mixin = new ShaderMixinSource { Name = shaderName };
         mixin.Mixins.Add(new ShaderClassSource(TestShader.FullName(shaderName)));
         var effectParameters = Stride.Shaders.Compiler.EffectCompilerParameters.Default with { Platform = platform };
-        var result = compiler.Compile(mixin, effectParameters, new Stride.Shaders.Compiler.CompilerParameters(), ObjectId.New()).WaitForResult();
+        var result = compiler.Compile(new EffectSource(mixin), effectParameters, new Stride.Shaders.Compiler.CompilerParameters(), ObjectId.New()).WaitForResult();
 
         Assert.False(result.CompilationLog.HasErrors, string.Join(Environment.NewLine, result.CompilationLog.Messages.Select(m => m.Text)));
         Assert.Contains(result.Bytecode.Stages, stage => stage.Stage == ShaderStage.Pixel);
@@ -548,7 +548,7 @@ public class StrideShaderTests
         };
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(shaderSource, new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new EffectSource(shaderSource), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var validation = Spv.ValidateBinary(bytecode);
@@ -636,7 +636,7 @@ public class StrideShaderTests
     [Fact]
     public void TextureDecorateStringWarning()
     {
-        var shaderSource = new ShaderMixinSource
+        var shaderSource = new EffectSource(new ShaderMixinSource
         {
             Mixins =
 {
@@ -655,44 +655,10 @@ new ShaderClassSource(TestShader.FullName("MaterialSurfacePixelStageCompositor")
 new ShaderMixinSource
 {
 Mixins ={new ShaderClassSource(TestShader.FullName("LightClusteredPointGroup"))},
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
 },
 new ShaderMixinSource
 {
 Mixins ={new ShaderClassSource(TestShader.FullName("LightClusteredSpotGroup"))},
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
 },
 },
 ["environmentLights"] = new ShaderArraySource
@@ -700,44 +666,10 @@ new ShaderMacro("class", "shader"),
 new ShaderMixinSource
 {
 Mixins ={new ShaderClassSource(TestShader.FullName("LightSimpleAmbient"))},
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
 },
 new ShaderMixinSource
 {
 Mixins ={new ShaderClassSource(TestShader.FullName("EnvironmentLight"))},
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
 },
 },
 ["materialPixelStage"] = new ShaderMixinSource
@@ -751,89 +683,21 @@ new ShaderMixinSource
 {
 Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceDiffuse"))},
 Compositions ={["diffuseMap"] = new ShaderClassSource(TestShader.FullName("ComputeColorTextureScaledOffsetDynamicSampler"),"Material.DiffuseMap","TEXCOORD0","Material.Sampler.i0","rgba","Material.TextureScale","Material.TextureOffset")},
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
 },
 new ShaderMixinSource
 {
 Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceNormalMap"),"true","true")},
 Compositions ={["normalMap"] = new ShaderClassSource(TestShader.FullName("ComputeColorTextureScaledOffsetDynamicSampler"),"Material.NormalMap","TEXCOORD0","Material.Sampler.i0","rgba","Material.TextureScale.i1","Material.TextureOffset.i1")},
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
 },
 new ShaderMixinSource
 {
 Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceGlossinessMap"),"false")},
 Compositions ={["glossinessMap"] = new ShaderClassSource(TestShader.FullName("ComputeColorTextureScaledOffsetDynamicSampler"),"Material.GlossinessMap","TEXCOORD0","Material.Sampler.i0","r","Material.TextureScale.i2","Material.TextureOffset.i2")},
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
 },
 new ShaderMixinSource
 {
 Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceMetalness"))},
 Compositions ={["metalnessMap"] = new ShaderClassSource(TestShader.FullName("ComputeColorConstantFloatLink"),"Material.MetalnessValue")},
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
 },
 new ShaderMixinSource
 {
@@ -853,62 +717,11 @@ Compositions =
 ["geometricShadowingFunction"] = new ShaderClassSource(TestShader.FullName("MaterialSpecularMicrofacetVisibilitySmithSchlickGGX")),
 ["normalDistributionFunction"] = new ShaderClassSource(TestShader.FullName("MaterialSpecularMicrofacetNormalDistributionGGX")),
 },
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
 },
 },
 },
 },
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
 },
-},
-},
-},
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
 },
 },
 ["streamInitializerPixelStage"] = new ShaderMixinSource
@@ -918,42 +731,27 @@ Mixins =
 new ShaderClassSource(TestShader.FullName("MaterialStream")),
 new ShaderClassSource(TestShader.FullName("MaterialPixelShadingStream")),
 },
-Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
 },
 },
-},
+        })
+        {
             Macros =
-{
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
+            {
+                new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
+                new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
+                new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
+                new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
+                new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
+                new ShaderMacro("class", "shader"),
+            },
         };
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
@@ -971,7 +769,7 @@ new ShaderMacro("class", "shader"),
     public void Tessellation()
     {
         // Dumped from TessellationTest using ShaderSource.ToCode()
-        var shaderSource = new ShaderMixinSource
+        var shaderSource = new EffectSource(new ShaderMixinSource
         {
             Mixins =
 {
@@ -992,24 +790,6 @@ new ShaderClassSource(TestShader.FullName("MaterialSurfacePixelStageCompositor")
 new ShaderMixinSource
 {
 Mixins ={new ShaderClassSource(TestShader.FullName("LightSimpleAmbient"))},
-Macros =
-{
-new ShaderMacro("InputControlPointCount", "12"),
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
 },
 },
 ["materialPixelStage"] = new ShaderMixinSource
@@ -1023,24 +803,6 @@ new ShaderMixinSource
 {
 Mixins ={new ShaderClassSource(TestShader.FullName("MaterialSurfaceDiffuse"))},
 Compositions ={["diffuseMap"] = new ShaderClassSource(TestShader.FullName("ComputeColorConstantColorLink"),"Material.DiffuseValue")},
-Macros =
-{
-new ShaderMacro("InputControlPointCount", "12"),
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
 },
 new ShaderMixinSource
 {
@@ -1052,44 +814,8 @@ Compositions =
 new ShaderClassSource(TestShader.FullName("MaterialSurfaceShadingDiffuseLambert"),"false"),
 },
 },
-Macros =
-{
-new ShaderMacro("InputControlPointCount", "12"),
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
 },
 },
-},
-},
-Macros =
-{
-new ShaderMacro("InputControlPointCount", "12"),
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
 },
 },
 ["streamInitializerPixelStage"] = new ShaderMixinSource
@@ -1099,44 +825,28 @@ Mixins =
 new ShaderClassSource(TestShader.FullName("MaterialStream")),
 new ShaderClassSource(TestShader.FullName("MaterialPixelShadingStream")),
 },
-Macros =
-{
-new ShaderMacro("InputControlPointCount", "12"),
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
 },
 },
-},
+        })
+        {
             Macros =
-{
-new ShaderMacro("InputControlPointCount", "12"),
-new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-new ShaderMacro("class", "shader"),
-},
+            {
+                new ShaderMacro("InputControlPointCount", "12"),
+                new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
+                new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", "1"),
+                new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
+                new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
+                new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "45056"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
+                new ShaderMacro("class", "shader"),
+            },
         };
 
         TestCore("StrideTessellation", shaderSource, "./assets/Stride/SDSL");
@@ -1150,12 +860,14 @@ new ShaderMacro("class", "shader"),
     [InlineData(8)]
     public void MsaaResolverShaderCompiles(int samples)
     {
-        var shaderSource = new ShaderMixinSource
+        var shaderSource = new EffectSource(new ShaderMixinSource
         {
             Mixins =
             {
                 new ShaderClassSource(TestShader.FullName("MSAAResolverShader"), samples, 1, 2.0f),
             },
+        })
+        {
             Macros =
             {
                 new ShaderMacro("INPUT_MSAA_SAMPLES", samples.ToString()),
@@ -1175,12 +887,14 @@ new ShaderMacro("class", "shader"),
     [InlineData(8)]
     public void MsaaDepthResolverShaderCompiles(int samples)
     {
-        var shaderSource = new ShaderMixinSource
+        var shaderSource = new EffectSource(new ShaderMixinSource
         {
             Mixins =
             {
                 new ShaderClassSource(TestShader.FullName("MSAADepthResolverShader")),
             },
+        })
+        {
             Macros =
             {
                 new ShaderMacro("INPUT_MSAA_SAMPLES", samples.ToString()),
@@ -1199,7 +913,7 @@ new ShaderMacro("class", "shader"),
     [Fact]
     public void EditorEffectErrorFallbackCompiles()
     {
-        var shaderSource = new ShaderMixinSource
+        var shaderSource = new EffectSource(new ShaderMixinSource
         {
             Mixins =
             {
@@ -1209,6 +923,8 @@ new ShaderMacro("class", "shader"),
                 new ShaderClassSource(TestShader.FullName("TransformationWAndVP")),
                 new ShaderClassSource(TestShader.FullName("CompilationErrorShader")),
             },
+        })
+        {
             Macros =
             {
                 new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
@@ -1239,29 +955,12 @@ new ShaderMacro("class", "shader"),
     /// way ForwardLightingRenderFeature composes one. Only what an environment light needs is
     /// included: the material streams it reads, and the shading stage it writes into.
     /// </summary>
-    private static ShaderMixinSource EnvironmentLightMixin(int multisampleCount, ShaderSource environmentLight)
+    private static EffectSource EnvironmentLightMixin(int multisampleCount, ShaderSource environmentLight)
     {
         ShaderMixinSource Compose(params ShaderClassCode[] mixins)
         {
             var source = new ShaderMixinSource();
             source.Mixins.AddRange(mixins);
-            source.Macros.AddRange(
-            [
-                new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
-                new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", multisampleCount.ToString()),
-                new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
-                new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
-                new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
-                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
-                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
-                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
-                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
-                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
-                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
-                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
-                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
-                new ShaderMacro("class", "shader"),
-            ]);
             return source;
         }
 
@@ -1295,10 +994,29 @@ new ShaderMacro("class", "shader"),
             new ShaderClassSource(TestShader.FullName("MaterialStream")),
             new ShaderClassSource(TestShader.FullName("MaterialPixelShadingStream"))));
 
-        return root;
+        return new EffectSource(root)
+        {
+            Macros =
+            {
+                new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", "1"),
+                new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", multisampleCount.ToString()),
+                new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D", "1"),
+                new ShaderMacro("STRIDE_GRAPHICS_API_DIRECT3D11", "1"),
+                new ShaderMacro("STRIDE_GRAPHICS_PROFILE", "40960"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_1", "37120"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_2", "37376"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_9_3", "37632"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_0", "40960"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_10_1", "41216"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_0", "45056"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_1", "45312"),
+                new ShaderMacro("GRAPHICS_PROFILE_LEVEL_11_2", "45568"),
+                new ShaderMacro("class", "shader"),
+            },
+        };
     }
 
-    private static void TestCore(string shaderName, ShaderMixinSource shaderSource, params string[] searchPaths)
+    private static void TestCore(string shaderName, EffectSource shaderSource, params string[] searchPaths)
     {
         var shaderMixer = new ShaderMixer(new ShaderLoader(searchPaths));
         var log = new Stride.Core.Diagnostics.LoggerResult();
@@ -1343,7 +1061,7 @@ new ShaderMacro("class", "shader"),
         };
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(shaderSource, new ShaderMixer.Options(true), log, out var bytecode, out var reflection, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new EffectSource(shaderSource), new ShaderMixer.Options(true), log, out var bytecode, out var reflection, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         // The body survived, so its texture is still live and reflected.
@@ -1369,7 +1087,7 @@ new ShaderMacro("class", "shader"),
         };
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(shaderSource, new ShaderMixer.Options(true), log, out var bytecode, out var reflection, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(new EffectSource(shaderSource), new ShaderMixer.Options(true), log, out var bytecode, out var reflection, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var disassembly = Spv.Dis(SpirvBytecode.CreateFromSpan(bytecode), DisassemblerFlags.Name | DisassemblerFlags.Id | DisassemblerFlags.InstructionIndex, true);
@@ -1423,16 +1141,16 @@ new ShaderMacro("class", "shader"),
         Assert.Contains("Append", hlsl);
     }
 
-    // A composition with no value in the mixin tree gets its default shader, compiled with the macros of its node
+    // A composition with no value in the mixin tree gets its default shader, compiled with the macros of the effect
     [Fact]
-    public void DefaultCompositionGetsTheMacrosOfItsNode()
+    public void DefaultCompositionGetsTheMacrosOfTheEffect()
     {
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/CompilerTests"));
-        var mixin = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("DefaultCompositionMacrosRoot")) } };
-        mixin.AddMacro("DEFAULT_COMPOSITION_MACRO", 1);
+        var effect = new EffectSource(new ShaderClassSource(TestShader.FullName("DefaultCompositionMacrosRoot")));
+        effect.AddMacro("DEFAULT_COMPOSITION_MACRO", 1);
 
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(shaderMixer.MergeSDSL(mixin, new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(effect, new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
 
         var code = Spv.Dis(SpirvBytecode.CreateFromSpan(bytecode), DisassemblerFlags.Id, false);
@@ -1446,8 +1164,7 @@ new ShaderMacro("class", "shader"),
         var loader = new ShaderLoader("./assets/SDSL/RenderTests") { Log = log };
         var shaderMixer = new ShaderMixer(loader) { CollectExplanation = true };
         Assert.True(loader.LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _));
-        var source = ShaderMixinManager.Contains(TestShader.FullName(name)) ? new ShaderMixinGeneratorSource(TestShader.FullName(name)) : (ShaderSource)new ShaderClassSource(TestShader.FullName(name));
-        Assert.True(shaderMixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
+        Assert.True(shaderMixer.MergeSDSL(TestShader.Effect(name), new ShaderMixer.Options(true), log, out _, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
         return shaderMixer.Explanation!;
     }
@@ -1523,7 +1240,7 @@ new ShaderMacro("class", "shader"),
             Compositions = { ["Comp0"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName(slotShader)) } } },
         };
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        var success = new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+        var success = new ShaderMixer(loader).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
         return (success, log);
     }
 
@@ -1583,7 +1300,7 @@ new ShaderMacro("class", "shader"),
             Compositions = { ["Comp0"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("ModuleRuleGenericChild")) } } },
         };
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
+        Assert.True(new ShaderMixer(loader).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
     }
 

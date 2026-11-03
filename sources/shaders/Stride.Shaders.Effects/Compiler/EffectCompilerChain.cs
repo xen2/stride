@@ -57,9 +57,9 @@ namespace Stride.Shaders.Compiler
             compiler.ResetCache(modifiedShaders);
         }
 
-        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
+        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(EffectSource effect, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
         {
-            return compiler.Compile(mixinTree, effectParameters, compilerParameters, effectInputHash);
+            return compiler.Compile(effect, effectParameters, compilerParameters, effectInputHash);
         }
     }
 }

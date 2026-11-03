@@ -19,6 +19,48 @@ namespace Stride.Shaders
             return sb.ToString();
         }
 
+        public static string ToCode(this EffectSource effect)
+        {
+            var sb = new StringBuilder("new EffectSource(");
+            ToCode(effect.Root, sb);
+            sb.Append(")");
+            if (effect.Macros.Count > 0 || effect.Linkage.Count > 0)
+            {
+                sb.Append($"\n{{\n");
+                if (effect.Macros.Count > 0)
+                {
+                    sb.Append($"Macros = {{ ");
+                    foreach (var macro in effect.Macros)
+                        sb.Append($"new ShaderMacro(\"{macro.Name}\", \"{macro.Definition}\"),");
+                    sb.Append($" }},\n");
+                }
+                if (effect.Linkage.Count > 0)
+                {
+                    sb.Append($"Linkage =\n{{\n");
+                    foreach (var rule in effect.Linkage)
+                    {
+                        sb.Append($"new ShaderLinkageRule {{ Kind = ShaderLinkageKind.{rule.Kind}, Shader = \"{rule.Shader}\"");
+                        foreach (var (name, value) in new[] { ("Owner", rule.Owner), ("Method", rule.Method), ("Parameters", rule.Parameters), ("Phase", rule.Phase) })
+                        {
+                            if (value != null)
+                                sb.Append($", {name} = \"{value}\"");
+                        }
+                        foreach (var (name, values) in new[] { ("Names", rule.Names), ("After", rule.After), ("Before", rule.Before), ("Phases", rule.Phases), ("Mixins", rule.Mixins) })
+                        {
+                            if (values.Count > 0)
+                                sb.Append($", {name} = {{ {string.Join(", ", values.Select(x => $"\"{x}\""))} }}");
+                        }
+                        if (rule.Level != 0)
+                            sb.Append($", Level = {rule.Level}");
+                        sb.Append($" }},\n");
+                    }
+                    sb.Append($"}},\n");
+                }
+                sb.Append($"}}");
+            }
+            return sb.ToString();
+        }
+
         static void ToCode(ShaderSource source, StringBuilder sb)
         {
             switch (source)
@@ -83,16 +125,6 @@ namespace Stride.Shaders
                                 sb.AppendLine(",");
                         }
                         sb.AppendLine($"}},");
-                    }
-
-                    if (mixinSource.Macros != null && mixinSource.Macros.Count > 0)
-                    {
-                        sb.Append($"Macros = {{ ");
-                        for (int i = 0; i < mixinSource.Macros.Count; i++)
-                        {
-                            sb.Append($"new ShaderMacro(\"{mixinSource.Macros[i].Name}\", \"{mixinSource.Macros[i].Definition}\"),");
-                        }
-                        sb.AppendLine($" }},");
                     }
 
                     sb.Append($"}}");
