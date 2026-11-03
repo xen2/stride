@@ -644,9 +644,12 @@ public partial class ExtensionPointTests : IDisposable
         WriteModule("Dropped", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
         WriteModule("Replacement", "[Phase(A)] override void Run() { streams.Steps = 3; }");
 
-        var (ok, log, _) = Mix(isAssetBuild: true, "Test.Dropped", "Test.Replacement");
+        // In an asset build, the drop is an error before any conflict is looked at
+        var (ok, log, _) = Mix(isAssetBuild: false, "Test.Dropped", "Test.Replacement");
 
         Assert.True(ok, log);
+        Assert.Contains("SDSL0216", log);
+        Assert.DoesNotContain("because of the order of the mix", log);
     }
 
     // The order of the mix: code without a phase never needs an order
@@ -756,7 +759,7 @@ public partial class ExtensionPointTests : IDisposable
 
         var (ok, log, _) = Mix(isAssetBuild: true, "Test.Step", "Test.Middle", "Test.Replacement");
 
-        Assert.True(ok, log);
+        Assert.False(ok, log);
         Assert.Contains("SDSL0216: Replacement.Run doesn't call base, so Step never run", log);
     }
 
@@ -988,7 +991,7 @@ public partial class ExtensionPointTests : IDisposable
 
     [Theory]
     [InlineData(false, "Info")]
-    [InlineData(true, "Warning")]
+    [InlineData(true, "Error")]
     public void ADroppedContributorIsReported(bool isAssetBuild, string type)
     {
         WriteOwner();
@@ -997,9 +1000,30 @@ public partial class ExtensionPointTests : IDisposable
 
         var (ok, log, explanation) = Mix(isAssetBuild, "Test.Step", "Test.Replacement");
 
-        Assert.True(ok, log);
-        Assert.Contains($"{type}: SDSL0216: Replacement.Run doesn't call base, so Step never run", log);
+        Assert.Equal(!isAssetBuild, ok);
+        Assert.Contains($"{type}: SDSL0216: Replacement.Run doesn't call base, so Step never run in this effect. Write [Drops(Mixins = {{ Step }})] on it, or call base.", log);
         Assert.Contains("dropped by Replacement: Step", Block(explanation, "Run"));
+    }
+
+    // The message gives a linkage rule to write, and that rule is enough
+    [Fact]
+    public void WritingWhatTheMessageOfADropSaysCompiles()
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Other", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Replacement", "override void Run() { streams.Steps = 2; }");
+
+        var (ok, log, _) = Mix(isAssetBuild: true, "Test.Step", "Test.Other", "Test.Replacement");
+
+        Assert.False(ok, log);
+        Assert.Contains("Write [Drops(Mixins = { Step, Other })] on it", log);
+
+        WriteModule("Replacement", "[Drops(Mixins = { Step, Other })] override void Run() { streams.Steps = 2; }");
+        (ok, log, _) = Mix(isAssetBuild: true, "Test.Step", "Test.Other", "Test.Replacement");
+
+        Assert.True(ok, log);
+        Assert.DoesNotContain("SDSL0216", log);
     }
 
     [Fact]
@@ -1038,7 +1062,7 @@ public partial class ExtensionPointTests : IDisposable
 
         var (ok, log, _) = Mix(isAssetBuild: true, "Test.Replacement");
 
-        Assert.True(ok, log);
+        Assert.False(ok, log);
         Assert.Contains("SDSL0216: Replacement.Run doesn't call base, so Imported never run", log);
     }
 

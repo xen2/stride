@@ -16,8 +16,8 @@ namespace Stride.Shaders.Compilers.SDSL;
 public partial class ShaderMixer
 {
     /// <summary>
-    /// An effect the asset build compiles. A contributor that drops others is then a warning (SDSL0216) or an error (SDSL0136),
-    /// and information in a mix built at run time, where replacing engine code is often the point.
+    /// An effect the asset build compiles. A contributor that drops others without saying so is then an error
+    /// (SDSL0136, SDSL0216), and information in a mix built at run time, where replacing engine code is often the point.
     /// </summary>
     public bool IsAssetBuild { get; set; }
 
@@ -1130,28 +1130,19 @@ public partial class ShaderMixer
             if (group.ExtensionPoint == null || FindDropped(group, globalContext) is not var (by, dropped))
                 continue;
 
-            // In an asset build the target syntax has to say it. The compat form stays what it always was.
-            if (group.Extends.Contains(group.Methods.Find(x => x.Shader == by).MethodId))
-            {
-                var names = string.Join(", ", dropped.Select(x => ShaderNames.WithoutGenerics(x.ShaderName)));
-                var dropMessage = string.Format(SDSLErrorMessages.SDSL0136, by.ShaderName, group.Name, names, names);
-                if (IsAssetBuild)
-                {
-                    log.Error(dropMessage);
-                    result = false;
-                }
-                else
-                {
-                    log.Info(dropMessage);
-                }
-                continue;
-            }
-
-            var message = string.Format(SDSLErrorMessages.SDSL0216, by.ShaderName, group.Name, string.Join(", ", dropped.Select(x => x.ShaderName)));
+            var names = string.Join(", ", dropped.Select(x => ShaderNames.WithoutGenerics(x.ShaderName)));
+            var message = group.Extends.Contains(group.Methods.Find(x => x.Shader == by).MethodId)
+                ? string.Format(SDSLErrorMessages.SDSL0136, by.ShaderName, group.Name, names, names)
+                : string.Format(SDSLErrorMessages.SDSL0216, by.ShaderName, group.Name, string.Join(", ", dropped.Select(x => x.ShaderName)), names);
             if (IsAssetBuild)
-                log.Warning(message);
+            {
+                log.Error(message);
+                result = false;
+            }
             else
+            {
                 log.Info(message);
+            }
         }
         return result;
     }
