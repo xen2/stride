@@ -301,7 +301,12 @@ public sealed partial class ShaderMember(
                 },
                 IsStage: IsStaged
             );
-        Symbol = new Symbol(sid, Type, 0, OwnerType: table.CurrentShader!);
+        // A semantic from a generic of the class: the text a parent gets when it is given that generic
+        var semantic = Semantic?.Name;
+        if (semantic != null && table.TryResolveSymbol(semantic, out var semanticSymbol) && semanticSymbol.Id.Kind == SymbolKind.ConstantGeneric)
+            semantic = ConstantExpression.ParseFromBuffer(semanticSymbol.IdRef, context.GetBuffer(), context).ToString();
+        Symbol = new Symbol(sid, Type, 0, OwnerType: table.CurrentShader!, Semantic: semantic);
+        DefinitionChecks.CheckStreamDeclaration(table, Name, Symbol);
         table.CurrentShader!.Variables.Add((Symbol, IsStaged ? Specification.VariableFlagsMask.Stage : Specification.VariableFlagsMask.None));
 
         CompiledValue?.ProcessSymbol(table, memberType);

@@ -437,6 +437,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
         var methods = new List<(Symbol Symbol, FunctionFlagsMask Flags)>();
         var methodsDefaultParameters = new Dictionary<int, MethodSymbolDefaultParameters>();
         var structTypes = new List<(StructuredType Type, int ImportedId)>();
+        var semantics = new Dictionary<int, string>();
 
         // Build full inheritance list
         List<ShaderClassInstantiation> inheritanceList = new();
@@ -490,6 +491,10 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
                 var symbol = new Symbol(new(constName, SymbolKind.Constant), shaderBuffers.Context.ReverseTypes[resultType], 0, ExternalConstant: new(constExpr), OwnerType: shaderType);
                 variables.Add((symbol, VariableFlagsMask.None));
             }
+            else if (i.Op == Op.OpDecorateString && (OpDecorateString)i is { Decoration: Decoration.UserSemantic, Target: var target3, Value: var semantic })
+            {
+                semantics[target3] = semantic;
+            }
         }
 
         for (var index = 0; index < shaderBuffers.Buffer.Count; index++)
@@ -503,7 +508,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
                 var variableType = shaderBuffers.Context.ReverseTypes[variable.ResultType];
 
                 var sid = new SymbolID(variableName, SymbolKind.Variable, variable.Flags.HasFlag(VariableFlagsMask.Stream) ? Storage.Stream : 0, IsStage: (variable.Flags & VariableFlagsMask.Stage) != 0);
-                variables.Add((new(sid, variableType, 0, OwnerType: shaderType), variable.Flags));
+                variables.Add((new(sid, variableType, 0, OwnerType: shaderType, Semantic: semantics.GetValueOrDefault(variable.ResultId)), variable.Flags));
             }
 
             if (instruction.Op == Op.OpFunction)
