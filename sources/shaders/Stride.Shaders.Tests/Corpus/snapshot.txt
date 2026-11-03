@@ -137,6 +137,9 @@ Direct3D11/RenderTests.StreamCarryPartialWriteVertexInput strict=1827714e1014 le
 Direct3D11/RenderTests.StreamCarryReadThenWrite strict=002b5c13630a legal=4d2aecf07095 reflection=ea90ff937df6 explain=14056e3fa4c1
 Direct3D11/RenderTests.StreamParameter strict=4a48ea7b5b95 legal=125fa95c80b8 reflection=729ac1a7215b explain=9d180af13c11
 Direct3D11/RenderTests.StreamPassthroughPS strict=d3c6c65b00dd legal=c6bab10aac82 reflection=729ac1a7215b explain=029a6fca66a1
+Direct3D11/RenderTests.StreamSameNameDiamond strict=ed1a57715d16 legal=46b04d3efab9 reflection=ca914904170c explain=73d19a1b4991
+Direct3D11/RenderTests.StreamSameNameOneSemantic strict=bec27e51df5a legal=8866a37a1e0e reflection=ca914904170c explain=c276b6e0cb86
+Direct3D11/RenderTests.StreamSameNameSeparateFields strict=02c2220a6a9a legal=ee0e4c8c3787 reflection=ca914904170c explain=e1ea9ec63249
 Direct3D11/RenderTests.StreamVSToPS strict=4ad0990a9c40 legal=2a0744337ae5 reflection=729ac1a7215b explain=af991e0010aa
 Direct3D11/RenderTests.StructValueMember strict=ad9e5d536069 legal=b2481f43283c reflection=afabbf9fc2d7 explain=c4d4366ed78e
 Direct3D11/RenderTests.StructuredBufferGetDimensions strict=eba771d42e6e legal=e1b7cd580347 reflection=66664035a32d explain=9f2499a5b7e5
@@ -866,6 +869,9 @@ Vulkan/RenderTests.StreamCarryPartialWriteVertexInput strict=13f616b19b06 legal=
 Vulkan/RenderTests.StreamCarryReadThenWrite strict=1e4b8fc96059 legal=9cc3aa0aa96d reflection=ea90ff937df6 explain=14056e3fa4c1
 Vulkan/RenderTests.StreamParameter strict=e492d599198f legal=8388fe8e43b0 reflection=729ac1a7215b explain=9d180af13c11
 Vulkan/RenderTests.StreamPassthroughPS strict=fd40b87b04cb legal=65fa5396c348 reflection=729ac1a7215b explain=029a6fca66a1
+Vulkan/RenderTests.StreamSameNameDiamond strict=de9300396510 legal=151cd12b5fa1 reflection=ca914904170c explain=73d19a1b4991
+Vulkan/RenderTests.StreamSameNameOneSemantic strict=5f1953818add legal=fb6618c23520 reflection=ca914904170c explain=c276b6e0cb86
+Vulkan/RenderTests.StreamSameNameSeparateFields strict=876068a38310 legal=15efec047dff reflection=ca914904170c explain=e1ea9ec63249
 Vulkan/RenderTests.StreamVSToPS strict=9a299736cfde legal=0de583a8ba2b reflection=729ac1a7215b explain=af991e0010aa
 Vulkan/RenderTests.StructValueMember strict=9b40a9e83f11 legal=c6a8a64edc6e reflection=afabbf9fc2d7 explain=c4d4366ed78e
 Vulkan/RenderTests.StructuredBufferGetDimensions strict=7e95c68e6f00 legal=9da9fb70c953 reflection=66664035a32d explain=9f2499a5b7e5

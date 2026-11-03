@@ -1,0 +1,38 @@
+// PSMain(ExpectedResult=#336699FF)
+
+namespace Stride.Shaders.Tests;
+
+// One name and one semantic in two classes: one field. The class that inherits both can name it, and a write through one class is
+// read through the other.
+
+shader StreamSameSemanticWriter
+{
+    stream float4 value : STREAM_SAME_VALUE;
+
+    void WriteValue() { streams.value = float4(0.2, 0.4, 0.6, 1); }
+};
+
+shader StreamSameSemanticReader
+{
+    stream float4 value : STREAM_SAME_VALUE;
+
+    float4 ReadValue() { return streams.value; }
+};
+
+shader StreamSameNameOneSemantic : StreamSameSemanticWriter, StreamSameSemanticReader
+{
+    stream float4 Position : POSITION;
+    stream float4 ShadingPosition : SV_Position;
+    stream float4 ColorTarget : SV_Target0;
+
+    void VSMain()
+    {
+        streams.ShadingPosition = streams.Position;
+        WriteValue();
+    }
+
+    void PSMain()
+    {
+        streams.ColorTarget = (ReadValue() + streams.value) * 0.5;
+    }
+};
