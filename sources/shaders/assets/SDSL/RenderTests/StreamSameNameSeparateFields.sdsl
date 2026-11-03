@@ -1,0 +1,40 @@
+// PSMain(ExpectedResult=#3366FFFF)
+
+namespace Stride.Shaders.Tests;
+
+// One name, no semantic, in two classes: two fields, and each class uses its own. The class that inherits both doesn't name it.
+
+shader StreamSameNameFieldA
+{
+    stream float tmp;
+
+    void SetA() { streams.tmp = 0.2; }
+    float GetA() { return streams.tmp; }
+};
+
+shader StreamSameNameFieldB
+{
+    stream float tmp;
+
+    void SetB() { streams.tmp = 0.4; }
+    float GetB() { return streams.tmp; }
+};
+
+shader StreamSameNameSeparateFields : StreamSameNameFieldA, StreamSameNameFieldB
+{
+    stream float4 Position : POSITION;
+    stream float4 ShadingPosition : SV_Position;
+    stream float4 ColorTarget : SV_Target0;
+
+    void VSMain()
+    {
+        streams.ShadingPosition = streams.Position;
+    }
+
+    void PSMain()
+    {
+        SetA();
+        SetB();
+        streams.ColorTarget = float4(GetA(), GetB(), 1, 1);
+    }
+};

@@ -118,7 +118,8 @@ public record struct ExternalConstant(ConstantExpression Expression);
 /// <param name="ExternalConstant">The external constant expression, if any.</param>
 /// <param name="OwnerType">The shader that owns the symbol, if any.</param>
 /// <param name="ExtensionPoint">How the overrides of a module method combine, if it declares it.</param>
-public record Symbol(SymbolID Id, SymbolType Type, int IdRef, int? AccessChain = null, SymbolType? MemberAccessWithImplicitThis = null, ImmutableArray<Symbol> GroupMembers = default, MethodSymbolDefaultParameters? MethodDefaultParameters = null, ExternalConstant? ExternalConstant = null, ShaderDefinition? OwnerType = null, MethodExtensionPoint? ExtensionPoint = null)
+/// <param name="Semantic">The semantic of a member, if it has one.</param>
+public record Symbol(SymbolID Id, SymbolType Type, int IdRef, int? AccessChain = null, SymbolType? MemberAccessWithImplicitThis = null, ImmutableArray<Symbol> GroupMembers = default, MethodSymbolDefaultParameters? MethodDefaultParameters = null, ExternalConstant? ExternalConstant = null, ShaderDefinition? OwnerType = null, MethodExtensionPoint? ExtensionPoint = null, string? Semantic = null)
 {
     public int IdRef { get; set; } = IdRef;
     public SymbolType Type { get; set; } = Type;

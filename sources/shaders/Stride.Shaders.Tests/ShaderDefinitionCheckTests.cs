@@ -997,6 +997,239 @@ public class ShaderDefinitionCheckTests : IDisposable
         Assert.True(ok, log);
     }
 
+    private void WriteStreamClasses()
+    {
+        Write("StA", "namespace Stride.Shaders.Tests; shader StA { stream float tmp; float GetA() { return streams.tmp; } }");
+        Write("StB", "namespace Stride.Shaders.Tests; shader StB { stream float tmp; float GetB() { return streams.tmp; } }");
+        Write("StMid", "namespace Stride.Shaders.Tests; shader StMid : StA, StB { }");
+        Write("StModule", "namespace Stride.Shaders.Tests; module StModule { stream float tmp; }");
+        Write("StBase", "namespace Stride.Shaders.Tests; shader StBase { stream float tmp; }");
+        Write("StLeft", "namespace Stride.Shaders.Tests; shader StLeft : StBase { }");
+        Write("StRight", "namespace Stride.Shaders.Tests; shader StRight : StBase { }");
+        Write("StSem1", "namespace Stride.Shaders.Tests; shader StSem1 { stream float tmp : ST_VALUE; }");
+        Write("StSem2", "namespace Stride.Shaders.Tests; shader StSem2 { stream float tmp : ST_VALUE; }");
+        Write("StOtherSem", "namespace Stride.Shaders.Tests; shader StOtherSem { stream float tmp : ST_OTHER; }");
+        Write("StOtherType", "namespace Stride.Shaders.Tests; shader StOtherType { stream float2 tmp : ST_VALUE; }");
+        Write("StOtherName", "namespace Stride.Shaders.Tests; shader StOtherName { stream float other : ST_VALUE; }");
+        Write("StGeneric", "namespace Stride.Shaders.Tests; shader StGeneric<int N> { stream float tmp; }");
+        Write("StGenSem1", "namespace Stride.Shaders.Tests; shader StGenSem1<Semantic S> { stream float tmp : S; }");
+        Write("StGenSem2", "namespace Stride.Shaders.Tests; shader StGenSem2<Semantic S> { stream float tmp : S; }");
+    }
+
+    // SDSL0152: streams.X in a class that reaches two different streams named X. It is reported on the use: a class that only
+    // inherits both harms nothing, each parent uses its own field.
+    [Theory]
+    [InlineData("StA, StB", "float Get() { return streams.tmp; }", "Error: StCheck.sdsl(5,34): SDSL0152: StCheck sees two streams named tmp, declared by StA and StB. They are separate fields, and streams.tmp means the one of StA (the class's own, else the first inherited or imported). Rename one of them.")]
+    [InlineData("StB, StA", "void Set() { streams.tmp = 1; }", "(5,26): SDSL0152: StCheck sees two streams named tmp, declared by StB and StA.")]
+    [InlineData("StA, StB", "float Get() { Streams copy = streams; return copy.tmp; }", "(5,55): SDSL0152: StCheck sees two streams named tmp, declared by StA and StB.")]
+    [InlineData("StMid", "float Get() { return streams.tmp; }", "(5,34): SDSL0152: StCheck sees two streams named tmp, declared by StA and StB.")]
+    [InlineData("StA, StOtherSem", "float Get() { return streams.tmp; }", "SDSL0152: StCheck sees two streams named tmp, declared by StA and StOtherSem.")]
+    [InlineData("StSem1, StOtherSem", "float Get() { return streams.tmp; }", "SDSL0152: StCheck sees two streams named tmp, declared by StSem1 and StOtherSem.")]
+    [InlineData("StSem1, StOtherType", "float Get() { return streams.tmp; }", "SDSL0152: StCheck sees two streams named tmp, declared by StSem1 and StOtherType.")]
+    [InlineData("StGeneric<1>, StGeneric<2>", "float Get() { return streams.tmp; }", "SDSL0152: StCheck sees two streams named tmp, declared by StGeneric<1> and StGeneric<2>.")]
+    [InlineData("StGenSem1<ST_A>, StGenSem2<ST_B>", "float Get() { return streams.tmp; }", "SDSL0152: StCheck sees two streams named tmp, declared by StGenSem1<\"ST_A\"> and StGenSem2<\"ST_B\">.")]
+    // Inheriting both, with no use
+    [InlineData("StA, StB", "float Get() { return GetA() + GetB(); }", null)]
+    [InlineData("StMid", "float Get() { return GetA(); }", null)]
+    // One declaration reached twice
+    [InlineData("StLeft, StRight", "float Get() { return streams.tmp; }", null)]
+    // One semantic and one type: one field
+    [InlineData("StSem1, StSem2", "float Get() { return streams.tmp; }", null)]
+    [InlineData("StGenSem1<ST_A>, StGenSem2<ST_A>", "float Get() { return streams.tmp; }", null)]
+    // Two names and one semantic: one field, and each name reaches one declaration
+    [InlineData("StSem1, StOtherName", "float Get() { return streams.tmp + streams.other; }", null)]
+    public void StreamNameReachedTwice(string parents, string body, string? expected)
+    {
+        WriteStreamClasses();
+        Write("StCheck", $$"""
+            namespace Stride.Shaders.Tests;
+
+            shader StCheck : {{parents}}
+            {
+                {{body}}
+            }
+            """);
+
+        var (ok, log) = Compile("StCheck");
+        AssertMistake(expected, "SDSL0152", ok, log);
+    }
+
+    [Fact]
+    public void StreamInheritedAndImportedIsReachedTwice()
+    {
+        WriteStreamClasses();
+        Write("StCheck", """
+            namespace Stride.Shaders.Tests;
+
+            shader StCheck : StA
+            {
+                import StModule;
+                float Get() { return streams.tmp; }
+            }
+            """);
+
+        var (ok, log) = Compile("StCheck");
+        Assert.False(ok);
+        Assert.Contains("(6,34): SDSL0152: StCheck sees two streams named tmp, declared by ", log);
+        Assert.Contains("StA", log);
+        Assert.Contains("StModule", log);
+    }
+
+    // SDSL0152 on a stream the class declares with the name of one it reaches. It is reported on the declaration, with or
+    // without a use: the class hides the other field.
+    [Theory]
+    [InlineData("StA", "stream float tmp;", "(5,18): SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StA. They are separate fields, and streams.tmp means the one of StCheck (the class's own, else the first inherited or imported). Rename one of them.")]
+    [InlineData("StA", "stream float tmp; float Get() { return streams.tmp; }", "(5,18): SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StA.")]
+    [InlineData("StMid", "stream float tmp;", "(5,18): SDSL0152: StCheck sees two streams named tmp, declared by StCheck and ")]
+    // Another semantic, or the same one on another type: two fields
+    [InlineData("StSem1", "stream float tmp;", "SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StSem1.")]
+    [InlineData("StA", "stream float tmp : ST_A;", "SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StA.")]
+    [InlineData("StSem1", "stream float tmp : ST_OTHER;", "SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StSem1.")]
+    [InlineData("StSem1", "stream float4 tmp : ST_VALUE;", "SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StSem1.")]
+    // One semantic and one type: one field
+    [InlineData("StSem1", "stream float tmp : ST_VALUE; float Get() { return streams.tmp; }", null)]
+    [InlineData("StGenSem1<ST_A>", "stream float tmp : ST_A; float Get() { return streams.tmp; }", null)]
+    // Another name
+    [InlineData("StA", "stream float other; float Get() { return streams.tmp + streams.other; }", null)]
+    public void StreamDeclaredWithTheNameOfOneItReaches(string parents, string body, string? expected)
+    {
+        WriteStreamClasses();
+        Write("StCheck", $$"""
+            namespace Stride.Shaders.Tests;
+
+            shader StCheck : {{parents}}
+            {
+                {{body}}
+            }
+            """);
+
+        var (ok, log) = Compile("StCheck");
+        AssertMistake(expected, "SDSL0152", ok, log);
+    }
+
+    [Fact]
+    public void StreamDeclaredWithTheNameOfAnImportedOne()
+    {
+        WriteStreamClasses();
+        Write("StCheck", """
+            namespace Stride.Shaders.Tests;
+
+            shader StCheck
+            {
+                import StModule;
+                stream float tmp;
+            }
+            """);
+
+        var (ok, log) = Compile("StCheck");
+        Assert.False(ok);
+        Assert.Contains("(6,18): SDSL0152: StCheck sees two streams named tmp, declared by StCheck and ", log);
+        Assert.Contains("StModule", log);
+    }
+
+    [Fact]
+    public void StreamHiddenByAParentStopsItsChild()
+    {
+        WriteStreamClasses();
+        Write("StHides", "namespace Stride.Shaders.Tests; shader StHides : StA { stream float tmp; }");
+        Write("StCheck", """
+            namespace Stride.Shaders.Tests;
+
+            shader StCheck : StHides
+            {
+                float Get() { return streams.tmp; }
+            }
+            """);
+
+        var (ok, log) = Compile("StCheck");
+        Assert.False(ok);
+        Assert.Contains("SDSL0152: StHides sees two streams named tmp, declared by StHides and StA.", log);
+    }
+
+    // The semantic is a generic of the class, and the parent gets that generic: one field whatever the value
+    [Fact]
+    public void StreamDeclaredWithASemanticFromAGenericOfTheClass()
+    {
+        WriteStreamClasses();
+        Write("StOpen", """
+            namespace Stride.Shaders.Tests;
+
+            shader StOpen<Semantic S> : StGenSem1<S>
+            {
+                stream float tmp : S;
+                float Get() { return streams.tmp; }
+            }
+            """);
+
+        var (ok, log) = Compile("StOpen");
+        Assert.True(ok, log);
+    }
+
+    // A semantic from a generic of the class being compiled: one value for both parents, so one field
+    [Fact]
+    public void StreamSemanticFromAGenericOfTheChild()
+    {
+        WriteStreamClasses();
+        Write("StOpen", """
+            namespace Stride.Shaders.Tests;
+
+            shader StOpen<Semantic S> : StGenSem1<S>, StGenSem2<S>
+            {
+                float Get() { return streams.tmp; }
+            }
+            """);
+
+        var (ok, log) = Compile("StOpen");
+        Assert.True(ok, log);
+    }
+
+    // The same name in classes of one mix that don't know each other stays legal: each class reaches one stream
+    [Fact]
+    public void StreamNameInUnrelatedClassesOfOneMix()
+    {
+        WriteStreamClasses();
+        Write("StRoot", """
+            namespace Stride.Shaders.Tests;
+
+            shader StRoot
+            {
+                stream float4 Position : POSITION;
+                stream float4 ShadingPosition : SV_Position;
+                stream float4 ColorTarget : SV_Target0;
+                void VSMain() { streams.ShadingPosition = streams.Position; }
+                void PSMain() { streams.ColorTarget = 1; }
+            }
+            """);
+
+        var source = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written("StRoot")), new ShaderClassSource(TestShader.Written("StA")), new ShaderClassSource(TestShader.Written("StB")) } };
+        var log = new LoggerResult();
+        new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL")).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+        Assert.False(log.HasErrors, string.Join(Environment.NewLine, log.Messages));
+    }
+
+    // SDSL0153: a class in front of a stream's name. streams.Class.name stopped with "Operation is not valid"
+    [Theory]
+    [InlineData("return streams.StA.tmp;", "(5,34): SDSL0153: streams.StA.tmp: StA is a class, not a stream. A stream is named without its class: streams.name. If two classes declare a stream of one name, rename one of them.")]
+    [InlineData("streams.StB.tmp = 1; return 0;", "(5,27): SDSL0153: streams.StB.tmp: StB is a class, not a stream.")]
+    [InlineData("Streams copy = streams; return copy.StA.tmp;", "(5,55): SDSL0153: copy.StA.tmp: StA is a class, not a stream.")]
+    public void StreamWithItsClassInFront(string body, string expected)
+    {
+        WriteStreamClasses();
+        Write("StCheck", $$"""
+            namespace Stride.Shaders.Tests;
+
+            shader StCheck : StA, StB
+            {
+                float Get() { {{body}} }
+            }
+            """);
+
+        var (ok, log) = Compile("StCheck");
+        Assert.False(ok);
+        Assert.Contains(expected, log);
+        Assert.DoesNotContain("Operation is not valid", log);
+    }
+
     // A mistake doesn't compile, and code without it compiles with no mention of it
     private static void AssertMistake(string? expected, string code, bool ok, string log)
     {
