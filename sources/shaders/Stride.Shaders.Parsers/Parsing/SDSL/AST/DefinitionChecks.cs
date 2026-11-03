@@ -63,6 +63,48 @@ internal static class DefinitionChecks
     }
 
     /// <summary>
+    /// <c>streams.X</c> in a class that inherits or imports two streams named X (SDSL0152): they are separate fields, and the
+    /// name reaches only the first. A stream the class declares itself is reported on its declaration (<see cref="CheckStreamDeclaration"/>).
+    /// </summary>
+    public static void CheckStreamName(SymbolTable table, Identifier name)
+    {
+        if (name.ResolvedSymbol is { Id.Storage: Storage.Stream, OwnerType: { } owner } symbol && table.CurrentShader is { } shader && owner != shader
+            && FindOtherStream(shader, symbol) is { } other)
+            table.AddError(new(name.Info, string.Format(SDSLErrorMessages.SDSL0152, shader.ShortName, name.Name, owner, other)));
+    }
+
+    /// <summary>
+    /// A stream declared with the name of a stream the class inherits or imports (SDSL0152): they are separate fields, and the
+    /// new one hides the other in this class.
+    /// </summary>
+    public static void CheckStreamDeclaration(SymbolTable table, Identifier name, Symbol symbol)
+    {
+        if (symbol.Id.Storage == Storage.Stream && table.CurrentShader is { } shader && FindOtherStream(shader, symbol) is { } other)
+            table.AddError(new(name.Info, string.Format(SDSLErrorMessages.SDSL0152, shader.ShortName, name.Name, shader, other)));
+    }
+
+    /// <summary>
+    /// The first class that <paramref name="shader"/> inherits or imports with a stream of the name of <paramref name="symbol"/>
+    /// that is another field. A class reached twice is one entry of the list, and two streams with one semantic and one type are
+    /// one field (<c>VariableMerger</c>).
+    /// </summary>
+    private static ShaderDefinition? FindOtherStream(ShaderDefinition shader, Symbol symbol)
+    {
+        foreach (var inherited in shader.InheritedShaders)
+        {
+            if (inherited == symbol.OwnerType)
+                continue;
+            foreach (var (other, _) in inherited.Variables)
+            {
+                if (other.Id.Name == symbol.Id.Name && other.Id.Storage == Storage.Stream
+                    && !(symbol.Semantic != null && other.Semantic == symbol.Semantic && other.Type == symbol.Type))
+                    return inherited;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
     /// The module rules are checked in shaders that are not root-only: module code has one copy per effect, so it can't use
     /// the members of one instance. A module has only module code, and a root-only shader is the effect's only instance.
     /// </summary>

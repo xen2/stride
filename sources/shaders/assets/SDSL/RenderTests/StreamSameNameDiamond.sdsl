@@ -1,0 +1,38 @@
+// PSMain(ExpectedResult=#336699FF)
+
+namespace Stride.Shaders.Tests;
+
+// One stream reached through two parents: one declaration, so the class can name it.
+
+shader StreamDiamondBase
+{
+    stream float4 value;
+};
+
+shader StreamDiamondWriter : StreamDiamondBase
+{
+    void WriteValue() { streams.value = float4(0.2, 0.4, 0.6, 1); }
+};
+
+shader StreamDiamondReader : StreamDiamondBase
+{
+    float4 ReadValue() { return streams.value; }
+};
+
+shader StreamSameNameDiamond : StreamDiamondWriter, StreamDiamondReader
+{
+    stream float4 Position : POSITION;
+    stream float4 ShadingPosition : SV_Position;
+    stream float4 ColorTarget : SV_Target0;
+
+    void VSMain()
+    {
+        streams.ShadingPosition = streams.Position;
+        WriteValue();
+    }
+
+    void PSMain()
+    {
+        streams.ColorTarget = (ReadValue() + streams.value) * 0.5;
+    }
+};
