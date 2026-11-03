@@ -1,0 +1,10 @@
+// Mixed with MyBase, it drops it, and only the author knows whether that is meant. Nothing in the classes says so
+shader MyUnrelated
+{
+    import ShaderBase;
+
+    override module void PSMain()
+    {
+        streams.ColorTarget = 3;
+    }
+};

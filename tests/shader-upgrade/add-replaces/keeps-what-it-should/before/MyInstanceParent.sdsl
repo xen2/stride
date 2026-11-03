@@ -1,0 +1,10 @@
+// Stays a shader, because of its instance member: replacing it is single inheritance
+shader MyInstanceParent : ShaderBase
+{
+    float Amount;
+
+    override stage void PSMain()
+    {
+        streams.ColorTarget = Amount;
+    }
+};
