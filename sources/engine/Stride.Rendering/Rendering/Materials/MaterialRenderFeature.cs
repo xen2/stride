@@ -102,6 +102,7 @@ namespace Stride.Rendering.Materials
             public ShaderSource DomainStageStreamInitializer;
 
             public ShaderSource TessellationShader;
+            public int TessellationInputControlPoints;
 
             public ShaderSource PixelStageSurfaceShaders;
             public ShaderSource PixelStageStreamInitializer;
@@ -282,6 +283,7 @@ namespace Stride.Rendering.Materials
                                     materialInfo.DomainStageStreamInitializer = material.Parameters.Get(MaterialKeys.DomainStageStreamInitializer);
 
                                     materialInfo.TessellationShader = material.Parameters.Get(MaterialKeys.TessellationShader);
+                                    materialInfo.TessellationInputControlPoints = material.Parameters.Get(MaterialKeys.TessellationInputControlPoints);
 
                                     materialInfo.PixelStageSurfaceShaders = material.Parameters.Get(MaterialKeys.PixelStageSurfaceShaders);
                                     materialInfo.PixelStageStreamInitializer = material.Parameters.Get(MaterialKeys.PixelStageStreamInitializer);
@@ -311,7 +313,11 @@ namespace Stride.Rendering.Materials
 
                         // Tessellation
                         if (materialInfo.TessellationShader != null)
+                        {
                             renderEffect.EffectValidator.ValidateParameter(MaterialKeys.TessellationShader, materialInfo.TessellationShader);
+                            if (materialInfo.TessellationInputControlPoints != 0)
+                                renderEffect.EffectValidator.ValidateParameter(MaterialKeys.TessellationInputControlPoints, materialInfo.TessellationInputControlPoints);
+                        }
 
                         // PS
                         if (materialInfo.PixelStageSurfaceShaders != null)
