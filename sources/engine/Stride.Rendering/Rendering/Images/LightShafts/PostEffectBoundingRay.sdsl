@@ -39,6 +39,7 @@ module PostEffectBoundingRay<int TSampleCount>
         return float4(lightAcc.xxx, 1.0f);
     }
 
+    [Replaces(SpriteBase)]
     override void PSMain()
     {
         // minmax.x = min

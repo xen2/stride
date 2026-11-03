@@ -141,7 +141,7 @@ public static class SDSLErrorMessages
     public const string SDSL0244 = "SDSL0244: {0} has lower precedence than {1}: {2} computes {3} first. Add parentheses to make it clear.";
     public const string SDSL0245 = "SDSL0245: {0}.sdsl declares {1} and no class named {0}. A class is found by its file name: rename the file or the class.";
     public const string SDSL0218 = "SDSL0218: phase {0} added by {1} to {2} has no place: {2} has no phase {3}.";
-    public const string SDSL0216 = "SDSL0216: {0}.{1} doesn't call base, so {2} never run in this effect. Call base to keep them.";
+    public const string SDSL0216 = "SDSL0216: {0}.{1} doesn't call base, so {2} never run in this effect. Write [Replaces({3})] on it, or call base.";
     public const string SDSL0246 = "SDSL0246: {0} overrides {1} of {2}, which is not an extension point. If you own {2}, add [Replace], [Pipeline] or [Around] to the first definition of {1}. If you don't, write patch {2}.{1} instead of override.";
 
     // Partial structs

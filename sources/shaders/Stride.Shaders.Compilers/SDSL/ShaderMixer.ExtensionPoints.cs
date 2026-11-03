@@ -16,8 +16,8 @@ namespace Stride.Shaders.Compilers.SDSL;
 public partial class ShaderMixer
 {
     /// <summary>
-    /// Effect compiled at asset build from a wiring file. A contributor that drops others is then a warning (SDSL0216), and
-    /// information in a mix built at run time, where replacing engine code is often the point.
+    /// Effect compiled at asset build from a wiring file. A contributor that drops others without saying so is then an error
+    /// (SDSL0216), and information in a mix built at run time, where replacing engine code is often the point.
     /// </summary>
     public bool IsWiredEffect { get; set; }
 
@@ -589,20 +589,26 @@ public partial class ShaderMixer
             if (group.ExtensionPoint == null || FindDropped(group, globalContext) is not var (by, dropped))
                 continue;
 
-            // The target syntax has to say it. The compat form stays what it always was.
+            var names = string.Join(", ", dropped.Select(x => ShaderNames.WithoutGenerics(x.ShaderName)));
+
+            // The target syntax always has to say it, and the compat form has to in a wired effect
             if (group.Extends.Contains(group.Methods.Find(x => x.Shader == by).MethodId))
             {
-                var names = string.Join(", ", dropped.Select(x => ShaderNames.WithoutGenerics(x.ShaderName)));
                 log.Error(string.Format(SDSLErrorMessages.SDSL0136, by.ShaderName, group.Name, names, names));
                 result = false;
                 continue;
             }
 
-            var message = string.Format(SDSLErrorMessages.SDSL0216, by.ShaderName, group.Name, string.Join(", ", dropped.Select(x => x.ShaderName)));
+            var message = string.Format(SDSLErrorMessages.SDSL0216, by.ShaderName, group.Name, string.Join(", ", dropped.Select(x => x.ShaderName)), names);
             if (IsWiredEffect)
-                log.Warning(message);
+            {
+                log.Error(message);
+                result = false;
+            }
             else
+            {
                 log.Info(message);
+            }
         }
         return result;
     }

@@ -211,15 +211,27 @@ public class ExtendSyntaxTests : IDisposable
     }
 
     [Fact]
-    public void ATheCompatFormStaysAWarning()
+    public void TheCompatFormIsAnErrorInAWiredEffect()
     {
         WriteModule("Inside", "extend Owner.Wrap in Inner { return next() + 1; }");
         WriteModule("Dropper", "[Phase(Outer)] override float Wrap() { return 2; }");
 
         var (ok, log, _) = Mix(true, "Test.Inside", "Test.Dropper");
 
+        Assert.False(ok, log);
+        Assert.Contains("Error: SDSL0216", log);
+    }
+
+    [Fact]
+    public void TheCompatFormIsInformationInAMixBuiltAtRunTime()
+    {
+        WriteModule("Inside", "extend Owner.Wrap in Inner { return next() + 1; }");
+        WriteModule("Dropper", "[Phase(Outer)] override float Wrap() { return 2; }");
+
+        var (ok, log, _) = Mix(false, "Test.Inside", "Test.Dropper");
+
         Assert.True(ok, log);
-        Assert.Contains("Warning: SDSL0216", log);
+        Assert.Contains("Info: SDSL0216", log);
     }
 
     [Fact]
