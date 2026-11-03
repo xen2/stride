@@ -1,4 +1,3 @@
-using CommunityToolkit.HighPerformance;
 using Stride.Shaders.Core;
 using Stride.Shaders.Parsing.SDSL;
 using Stride.Shaders.Parsing.SDSL.AST;
@@ -16,22 +15,16 @@ public partial class ShaderMixer
     /// Expands inheritance (including implicit and transitive ones) and compositions, recursively. Each node gets all its classes;
     /// the module parts of the classes used in compositions are placed in the root afterwards (<see cref="CollectModules"/>).
     /// </summary>
-    private ShaderMixinInstantiation EvaluateInheritanceAndCompositions(IExternalShaderLoader shaderLoader, SpirvContext context, ShaderMixinSource? parent, ShaderSource shaderSource, string? compositionPath = null, ShaderMixinSource? rootMixinSource = null, Dictionary<string, ShaderMixinInstantiation[]>? rootCompositions = null)
+    private ShaderMixinInstantiation EvaluateInheritanceAndCompositions(IExternalShaderLoader shaderLoader, SpirvContext context, ShaderMacro[] effectMacros, ShaderSource shaderSource, string? compositionPath = null, ShaderMixinSource? rootMixinSource = null, Dictionary<string, ShaderMixinInstantiation[]>? rootCompositions = null)
     {
         var mixinList = new List<ShaderClassInstantiation>();
 
-        Span<ShaderMacro> macros = (shaderSource, parent) switch
-        {
-            (ShaderMixinSource mixinSource, _) => mixinSource.Macros.AsSpan(),
-            (_, not null) => parent.Macros.AsSpan(),
-            _ => Span<ShaderMacro>.Empty,
-        };
+        Span<ShaderMacro> macros = effectMacros;
 
         var shaderMixinSource = shaderSource switch
         {
-            ShaderMixinSource mixinSource2 => mixinSource2,
-            // With the macros it is compiled with, which its default compositions get too
-            ShaderClassSource classSource => new ShaderMixinSource { Mixins = { classSource }, Macros = [.. macros] },
+            ShaderMixinSource mixinSource => mixinSource,
+            ShaderClassSource classSource => new ShaderMixinSource { Mixins = { classSource } },
             _ => throw new NotSupportedException($"Unsupported shader source type: {shaderSource.GetType().Name}"),
         };
 
@@ -65,14 +58,13 @@ public partial class ShaderMixer
                 throw new InvalidOperationException(string.Format(Parsing.SDSLErrorMessages.SDSL0119, Parsing.ShaderNames.ShortNameWithGenerics(mixin.ToClassNameWithGenerics()), ReadableCompositionPath(compositionPath)));
         }
 
-        var macrosArray = macros.ToArray();
         foreach (var shaderName in mixinList)
         {
             var shaderBuffers = shaderName.Buffer ?? throw new InvalidOperationException($"Shader buffers not loaded for {shaderName.ClassName}");
 
-            ProcessCompositions(shaderLoader, context, shaderBuffers, shaderName.ClassName, shaderMixinSource, compositions, compositionPath, rootMixinSource, rootCompositions);
+            ProcessCompositions(shaderLoader, context, effectMacros, shaderBuffers, shaderName.ClassName, shaderMixinSource, compositions, compositionPath, rootMixinSource, rootCompositions);
 
-            shaderName.ModuleIdentity = ModuleIdentity(shaderLoader, shaderName, macrosArray);
+            shaderName.ModuleIdentity = ModuleIdentity(shaderLoader, shaderName, effectMacros);
             if (compositionPath != null && HasModulePart(shaderName))
             {
                 shaderName.CompositionPath = compositionPath;
@@ -143,7 +135,7 @@ public partial class ShaderMixer
     /// <summary>
     /// Discovers composition variables in a shader buffer and recursively evaluates them.
     /// </summary>
-    private void ProcessCompositions(IExternalShaderLoader shaderLoader, SpirvContext context, ShaderBuffers shader, string shaderClassName, ShaderMixinSource shaderMixinSource, Dictionary<string, ShaderMixinInstantiation[]> compositions, string? compositionPath, ShaderMixinSource rootMixinSource, Dictionary<string, ShaderMixinInstantiation[]> rootCompositions)
+    private void ProcessCompositions(IExternalShaderLoader shaderLoader, SpirvContext context, ShaderMacro[] effectMacros, ShaderBuffers shader, string shaderClassName, ShaderMixinSource shaderMixinSource, Dictionary<string, ShaderMixinInstantiation[]> compositions, string? compositionPath, ShaderMixinSource rootMixinSource, Dictionary<string, ShaderMixinInstantiation[]> rootCompositions)
     {
         foreach (var (variableName, isModule, pointer) in CompositionVariables(shader))
         {
@@ -160,12 +152,11 @@ public partial class ShaderMixer
             if (isModule && valueCompositions.ContainsKey(variableName))
                 continue;
 
-            // Use the composition from ShaderMixinSource if specified, otherwise use the default type, with the macros of the
-            // node it is in (it is not in the tree, so it didn't get them from PropagateMacrosRecursively)
+            // Use the composition from ShaderMixinSource if specified, otherwise use the default type
             if (!valueSource.Compositions.TryGetValue(variableName, out var compositionMixin))
             {
                 if (pointer.BaseType is ShaderSymbol shaderSymbol)
-                    compositionMixin = new ShaderMixinSource { Mixins = { new ShaderClassSource(shaderSymbol.Name) }, Macros = [.. valueSource.Macros] };
+                    compositionMixin = new ShaderMixinSource { Mixins = { new ShaderClassSource(shaderSymbol.Name) } };
                 else if (pointer.BaseType is ArrayType { BaseType: ShaderSymbol })
                     compositionMixin = new ShaderArraySource();
                 else
@@ -176,12 +167,12 @@ public partial class ShaderMixer
             {
                 var variableCompositions = new List<ShaderMixinInstantiation>();
                 for (int index = 0; index < shaderArraySource.Values.Count; index++)
-                    variableCompositions.Add(EvaluateInheritanceAndCompositions(shaderLoader, context, valueSource, shaderArraySource.Values[index], ChildCompositionPath(valuePath, $"{variableName}[{index}]"), rootMixinSource, rootCompositions));
+                    variableCompositions.Add(EvaluateInheritanceAndCompositions(shaderLoader, context, effectMacros, shaderArraySource.Values[index], ChildCompositionPath(valuePath, $"{variableName}[{index}]"), rootMixinSource, rootCompositions));
                 valueCompositions[variableName] = [.. variableCompositions];
             }
             else
             {
-                var variableComposition = EvaluateInheritanceAndCompositions(shaderLoader, context, valueSource, compositionMixin, ChildCompositionPath(valuePath, variableName), rootMixinSource, rootCompositions);
+                var variableComposition = EvaluateInheritanceAndCompositions(shaderLoader, context, effectMacros, compositionMixin, ChildCompositionPath(valuePath, variableName), rootMixinSource, rootCompositions);
                 valueCompositions[variableName] = [variableComposition];
             }
         }
@@ -194,41 +185,4 @@ public partial class ShaderMixer
 
     // For messages: the root's slot first, as written in an effect ("environmentLights[0].diffuseMarcher.Marcher" for the path above)
     private static string ReadableCompositionPath(string compositionPath) => string.Join('.', compositionPath.Split('.').Reverse());
-
-    private void PropagateMacrosRecursively(ShaderSource child, ShaderMixinSource? parent = null)
-    {
-        var existingMacros = new HashSet<string>();
-        if (child is ShaderMixinSource mixinChild)
-        {
-            foreach (var macro in mixinChild.Macros)
-            {
-                existingMacros.Add(macro.Name);
-            }
-            if (parent != null)
-            {
-                foreach (var macro in parent.Macros)
-                {
-                    if (!existingMacros.Contains(macro.Name))
-                        mixinChild.AddMacro(macro.Name, macro.Definition);
-                }
-            }
-
-            // Recurse
-            foreach (var mixin in mixinChild.Mixins)
-            {
-                PropagateMacrosRecursively(mixin, mixinChild);
-            }
-            foreach (var composition in mixinChild.Compositions)
-            {
-                PropagateMacrosRecursively(composition.Value, mixinChild);
-            }
-        }
-        else if (child is ShaderArraySource arrayChild)
-        {
-            foreach (var mixin in arrayChild)
-            {
-                PropagateMacrosRecursively(mixin, parent);
-            }
-        }
-    }
 }

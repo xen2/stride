@@ -25,8 +25,6 @@ namespace Stride.Shaders
         {
             Mixins = new List<ShaderClassCode>();
             Compositions = new Core.Collections.SortedList<string, ShaderSource>();
-            Macros = new List<ShaderMacro>();
-            Linkage = new List<ShaderLinkageRule>();
         }
 
         /// <summary>
@@ -62,36 +60,6 @@ namespace Stride.Shaders
         public Core.Collections.SortedList<string, ShaderSource> Compositions { get; set; }
 
         /// <summary>
-        /// Gets or sets the macros.
-        /// </summary>
-        /// <value>The macros.</value>
-        [DataMember(30)]
-        public List<ShaderMacro> Macros { get; set; }
-
-        /// <summary>
-        /// Gets or sets the linkage rules of the effect: orders, bindings and phases of its extension points.
-        /// </summary>
-        /// <remarks>
-        /// Not serialized: compiled assets hold mixins in binary form, and their build cache doesn't see a change of that form. Only a
-        /// tree built by an effect has rules, so what needs them adds them itself: the hash of a compiled effect and the remote compiler.
-        /// </remarks>
-        [DataMemberIgnore]
-        public List<ShaderLinkageRule> Linkage { get; set; }
-
-        /// <summary>
-        /// Adds a linkage rule to this mixin.
-        /// </summary>
-        /// <param name="kind">What the rule says.</param>
-        /// <param name="owner">The class of the first definition of the method.</param>
-        /// <param name="method">The name of the method.</param>
-        /// <param name="phase">The phase, or null.</param>
-        /// <param name="names">The names of the rule.</param>
-        public void AddLinkageRule(ShaderLinkageKind kind, string owner, string method, string phase, params string[] names)
-        {
-            Linkage.Add(new ShaderLinkageRule { Kind = kind, Owner = owner, Method = method, Phase = phase, Names = [.. names] });
-        }
-
-        /// <summary>
         /// Adds a composition to this mixin.
         /// </summary>
         /// <param name="name">The name.</param>
@@ -119,16 +87,6 @@ namespace Stride.Shaders
         }
 
         /// <summary>
-        /// Adds a macro to this mixin.
-        /// </summary>
-        /// <param name="name">The name.</param>
-        /// <param name="value">The value.</param>
-        public void AddMacro(string name, object value)
-        {
-            Macros.Add(new ShaderMacro(name, value));
-        }
-
-        /// <summary>
         /// Clones from the specified <see cref="ShaderMixinSource"/>.
         /// </summary>
         /// <param name="parent">The parent mixin to clone from.</param>
@@ -139,8 +97,6 @@ namespace Stride.Shaders
                 throw new ArgumentNullException("parent", $"Cannot clone mixin [{Name}] from a null parent");
 
             Mixins.AddRange(parent.Mixins);
-            Macros.AddRange(parent.Macros);
-            Linkage.AddRange(parent.Linkage);
             foreach (var shaderBasic in parent.Compositions)
             {
                 Compositions[shaderBasic.Key] = shaderBasic.Value;
@@ -159,8 +115,6 @@ namespace Stride.Shaders
 
             foreach (var mixin in parent.Mixins)
                 Mixins.Add((ShaderClassCode)mixin.Clone());
-            Macros.AddRange(parent.Macros);
-            Linkage.AddRange(parent.Linkage);
             foreach (var shaderBasic in parent.Compositions)
             {
                 Compositions[shaderBasic.Key] = (ShaderSource)shaderBasic.Value.Clone();
@@ -183,8 +137,6 @@ namespace Stride.Shaders
             // Doesn't check for Parent for Children
             return
                 Mixins.SequenceEqualAllowNull(other.Mixins) &&
-                Macros.SequenceEqualAllowNull(other.Macros) &&
-                Linkage.SequenceEqualAllowNull(other.Linkage) &&
                 Compositions.SequenceEqualAllowNull(other.Compositions);
         }
         public override int GetHashCode()
@@ -194,11 +146,7 @@ namespace Stride.Shaders
                 int hashCode = 0;
                 foreach (var current in Mixins)
                     hashCode = (hashCode * 397) ^ (current?.GetHashCode() ?? 0);
-                foreach (var current in Macros)
-                    hashCode = (hashCode * 397) ^ current.GetHashCode();
                 foreach (var current in Compositions)
-                    hashCode = (hashCode * 397) ^ current.GetHashCode();
-                foreach (var current in Linkage)
                     hashCode = (hashCode * 397) ^ current.GetHashCode();
                 return hashCode;
             }
@@ -209,8 +157,6 @@ namespace Stride.Shaders
             var newMixin = (ShaderMixinSource)MemberwiseClone();
             newMixin.Compositions = Compositions == null ? null : ToSortedList(Compositions.Select(x => new KeyValuePair<string, ShaderSource>(x.Key, (ShaderSource)x.Value.Clone())));
             newMixin.Mixins = Mixins == null ? null : Mixins.Select(x => (ShaderClassCode)x.Clone()).ToList();
-            newMixin.Macros = Macros == null ? null : new List<ShaderMacro>(Macros.ToArray());
-            newMixin.Linkage = Linkage == null ? null : new List<ShaderLinkageRule>(Linkage);
             return newMixin;
         }
 
@@ -254,12 +200,6 @@ namespace Stride.Shaders
                 result.Append("]");
             }
             return result.ToString();
-        }
-
-        internal bool ShouldSerializeMacros()
-        {
-            // If collection is non-null and empty, skip serialization
-            return Macros == null || Macros.Count != 0;
         }
 
         internal bool ShouldSerializeMixins()

@@ -546,6 +546,152 @@ public class TestCodeUpgrade
         Assert.DoesNotContain("t.IsSRgb()()", result);
     }
 
+    private const string EffectApiSource = """
+        namespace Stride.Shaders
+        {
+            public class ShaderSource { }
+            public class ShaderClassCode : ShaderSource { }
+            public class ShaderClassSource : ShaderClassCode { }
+            public class ShaderMixinGeneratorSource : ShaderSource { }
+            public class ShaderMixinSource : ShaderSource
+            {
+                public string Name { get; set; }
+                public void AddMacro(string name, object value) { }
+            }
+            public class ShaderMixinContext { }
+            public interface IShaderMixinBuilder { void Generate(ShaderMixinSource mixin, ShaderMixinContext context); }
+            public static class ShaderMixinManager { public static ShaderMixinSource Generate(string name, object parameters) => null; }
+        }
+        namespace Stride.Shaders.Compiler
+        {
+            public interface IEffectCompiler { object Compile(ShaderSource source, object parameters); }
+            public class EffectCompilerBase : IEffectCompiler
+            {
+                public object Compile(ShaderSource source, object parameters) => null;
+                public virtual object Compile(ShaderMixinSource mixinTree, object effectParameters, object compilerParameters) => null;
+            }
+        }
+
+        """;
+
+    private static readonly CodeUpgrade[] EffectSourceUpgrades =
+    [
+        Rewrite(
+            BuilderMacroToContext(),
+            CompileTakesEffectSource(),
+            GeneratedEffectMemberToRoot()),
+        CompilerOverridesTakeEffectSource(),
+    ];
+
+    [Fact]
+    public async Task AMacroOfTheMixinOfABuilderGoesOnTheContext()
+    {
+        var source = EffectApiSource + """
+            namespace Game
+            {
+                using Stride.Shaders;
+                class Builder : IShaderMixinBuilder
+                {
+                    public void Generate(ShaderMixinSource mixin, ShaderMixinContext ctx)
+                    {
+                        mixin.AddMacro("A", 1);
+                        var other = new ShaderMixinSource();
+                        other.AddMacro("B", 2);
+                    }
+                }
+                class Other
+                {
+                    public void Generate(ShaderMixinSource mixin, ShaderMixinContext ctx) => mixin.AddMacro("C", 3);
+                }
+            }
+            """;
+
+        var result = await ApplyAsync(source, EffectSourceUpgrades);
+
+        Assert.Contains("ctx.AddMacro(\"A\", 1);", result);
+        Assert.Contains("other.AddMacro(\"B\", 2);", result);
+        Assert.Contains("mixin.AddMacro(\"C\", 3);", result);
+    }
+
+    [Fact]
+    public async Task ACompiledMixinOrClassBecomesAnEffect()
+    {
+        var source = EffectApiSource + """
+            namespace Game
+            {
+                using Stride.Shaders;
+                using Stride.Shaders.Compiler;
+                class Usage
+                {
+                    void Run(IEffectCompiler compiler, EffectCompilerBase chain, ShaderMixinSource mixin, ShaderClassSource shaderClass, ShaderSource any, ShaderMixinGeneratorSource generator)
+                    {
+                        compiler.Compile(mixin, null);
+                        chain.Compile(shaderClass, null);
+                        compiler.Compile(any, null);
+                        compiler.Compile(generator, null);
+                        compiler.Compile(ShaderMixinManager.Generate("E", null), null);
+                    }
+                }
+            }
+            """;
+
+        var result = await ApplyAsync(source, EffectSourceUpgrades);
+
+        Assert.Contains("compiler.Compile(new Stride.Shaders.EffectSource(mixin), null);", result);
+        Assert.Contains("chain.Compile(new Stride.Shaders.EffectSource(shaderClass), null);", result);
+        Assert.Contains("compiler.Compile(any, null);", result);
+        Assert.Contains("compiler.Compile(generator, null);", result);
+        Assert.Contains("compiler.Compile(ShaderMixinManager.Generate(\"E\", null), null);", result);
+    }
+
+    [Fact]
+    public async Task AMemberOfAGeneratedEffectIsOnItsRoot()
+    {
+        var source = EffectApiSource + """
+            namespace Game
+            {
+                using Stride.Shaders;
+                class Usage
+                {
+                    string Direct() => ShaderMixinManager.Generate("E", null).Name;
+                    ShaderMixinSource Kept() => ShaderMixinManager.Generate("E", null);
+                }
+            }
+            """;
+
+        var result = await ApplyAsync(source, EffectSourceUpgrades);
+
+        Assert.Contains("ShaderMixinManager.Generate(\"E\", null).Root.Name;", result);
+        Assert.Contains("ShaderMixinSource Kept() => ShaderMixinManager.Generate(\"E\", null);", result);
+        Assert.Equal(result, await ApplyAsync(result, EffectSourceUpgrades));
+    }
+
+    [Fact]
+    public async Task AnOverrideOfCompileTakesAnEffect()
+    {
+        var source = EffectApiSource + """
+            namespace Game
+            {
+                using Stride.Shaders;
+                using Stride.Shaders.Compiler;
+                class Chain : EffectCompilerBase
+                {
+                    public override object Compile(ShaderMixinSource mixinTree, object effectParameters, object compilerParameters)
+                    {
+                        var name = mixinTree.Name;
+                        return base.Compile(mixinTree, effectParameters, compilerParameters);
+                    }
+                }
+            }
+            """;
+
+        var result = await ApplyAsync(source, EffectSourceUpgrades);
+
+        Assert.Contains("public override object Compile(Stride.Shaders.EffectSource mixinTree, object effectParameters", result);
+        Assert.Contains("var name = mixinTree.Root.Name;", result);
+        Assert.Contains("return base.Compile(mixinTree, effectParameters, compilerParameters);", result);
+    }
+
     [Fact]
     public async Task ArgumentRemoveDropsOnlyAValueWithNoWork()
     {

@@ -46,14 +46,14 @@ namespace Stride.Shaders.Compiler
         }
 
         /// <inheritdoc/>
-        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
+        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(EffectSource effect, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
         {
-            return CompileAsync(mixinTree, effectParameters);
+            return CompileAsync(effect, effectParameters);
         }
 
-        private async Task<EffectBytecodeCompilerResult> CompileAsync(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters)
+        private async Task<EffectBytecodeCompilerResult> CompileAsync(EffectSource effect, EffectCompilerParameters effectParameters)
         {
-            return await remoteEffectCompilerClient.Compile(mixinTree, effectParameters);
+            return await remoteEffectCompilerClient.Compile(effect, effectParameters);
         }
     }
 }

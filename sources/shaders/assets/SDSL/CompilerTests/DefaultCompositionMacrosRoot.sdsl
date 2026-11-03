@@ -1,6 +1,6 @@
 namespace Stride.Shaders.Tests;
 
-// Value has no value in the mixin tree: the mixer composes its default shader, which must see the macros of this node
+// Value has no value in the mixin tree: the mixer composes its default shader, which must see the macros of the effect
 shader DefaultCompositionMacrosRoot
 {
     stream float4 ColorTarget : SV_Target0;

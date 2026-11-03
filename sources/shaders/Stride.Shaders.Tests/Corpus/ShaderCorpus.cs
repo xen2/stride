@@ -97,14 +97,14 @@ static class ShaderCorpus
     {
         var items = new List<CorpusItem>();
         foreach (var entry in ReadEntries())
-            items.Add(new CorpusItem(entry.Id, entry.EffectName, entry.Profile, null, () => entry.Mixin));
+            items.Add(new CorpusItem(entry.Id, entry.EffectName, entry.Profile, null, () => entry.Effect));
         foreach (var file in Directory.EnumerateFiles(RenderTestsDirectory, "*.sdsl").Order(StringComparer.Ordinal))
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
             var name = Stride.Shaders.Parsing.ShaderFileDeclarations.StorageName(File.ReadAllText(file), fileName);
             items.Add(new CorpusItem($"RenderTests.{fileName}", name, GraphicsProfile.Level_11_0, file, () => ShaderMixinManager.Contains(name)
                 ? ShaderMixinManager.Generate(name, new CompilerParameters())
-                : new ShaderMixinSource { Name = name, Mixins = { new ShaderClassSource(name) } }));
+                : new EffectSource(new ShaderClassSource(name))));
         }
         return items;
     }
@@ -149,18 +149,19 @@ static class ShaderCorpus
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            var mixin = new ShaderMixinSource();
-            mixin.DeepCloneFrom(item.CreateMixin());
-            mixin.Name = item.EffectName;
+            var source = item.CreateEffect();
+            var effect = new EffectSource(source.Root);
+            effect.Macros.AddRange(source.Macros);
+            effect.Linkage.AddRange(source.Linkage);
             // RenderTests are compiled without macros, like RenderingTests does
             if (item.SourceFile == null)
-                EffectCompiler.AddPlatformMacros(mixin, new EffectCompilerParameters { Platform = platform, Profile = item.Profile });
+                EffectCompiler.AddPlatformMacros(effect, new EffectCompilerParameters { Platform = platform, Profile = item.Profile });
 
             // Registers every shader of the file, under the macros the mixer looks them up with
             if (item.SourceFile != null)
-                loader.LoadExternalBuffer(item.EffectName, mixin.Macros.ToArray(), out _, out _, out _);
+                loader.LoadExternalBuffer(item.EffectName, effect.Macros.ToArray(), out _, out _, out _);
 
-            success = mixer.MergeSDSL(mixin, EffectCompiler.GetMixerOptions(platform), log, out bytecode, out reflection, out _, out _);
+            success = mixer.MergeSDSL(effect, EffectCompiler.GetMixerOptions(platform), log, out bytecode, out reflection, out _, out _);
         }
         catch (Exception e)
         {
@@ -296,7 +297,7 @@ static class ShaderCorpus
     }
 }
 
-sealed record CorpusItem(string Id, string EffectName, GraphicsProfile Profile, string? SourceFile, Func<ShaderMixinSource> CreateMixin);
+sealed record CorpusItem(string Id, string EffectName, GraphicsProfile Profile, string? SourceFile, Func<EffectSource> CreateEffect);
 
 /// <summary>
 /// Normalized output of one corpus entry for one platform; <see cref="Error"/> is set instead when it doesn't compile.

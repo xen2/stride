@@ -43,9 +43,9 @@ namespace Stride.Shaders.Compiler
             }
         }
 
-        public static void Record(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters)
+        public static void Record(EffectSource effect, EffectCompilerParameters effectParameters)
         {
-            if (string.IsNullOrEmpty(CaptureDirectory) || NotRecording.Value || string.IsNullOrEmpty(mixinTree.Name))
+            if (string.IsNullOrEmpty(CaptureDirectory) || NotRecording.Value || string.IsNullOrEmpty(effect.Name))
                 return;
 
             try
@@ -55,7 +55,7 @@ namespace Stride.Shaders.Compiler
                     ?? Source
                     ?? Assembly.GetEntryAssembly()?.GetName().Name
                     ?? Process.GetCurrentProcess().ProcessName;
-                var entry = new ShaderCorpusEntry(mixinTree.Name, effectParameters.Profile, mixinTree);
+                var entry = new ShaderCorpusEntry(effect.Name, effectParameters.Profile, effect);
                 entry.Sources.Add(tag);
 
                 // One file per permutation and tag: processes never write the same file, and merging the folder gives each
@@ -81,7 +81,7 @@ namespace Stride.Shaders.Compiler
             catch (Exception e)
             {
                 // Capture is a debug aid, it must never fail a compile
-                Debug.WriteLine($"Shader corpus capture failed for {mixinTree.Name}: {e.Message}");
+                Debug.WriteLine($"Shader corpus capture failed for {effect.Name}: {e.Message}");
             }
         }
     }

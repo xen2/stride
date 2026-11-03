@@ -10,7 +10,10 @@ namespace Stride.Shaders.Compiler
     {
         public ShaderMixinSource MixinTree { get; set; }
 
-        /// <summary>The linkage rules of <see cref="MixinTree"/>, which its binary form doesn't have.</summary>
+        /// <summary>The macros of the effect.</summary>
+        public List<ShaderMacro> Macros { get; set; }
+
+        /// <summary>The linkage rules of the effect.</summary>
         public List<ShaderLinkageRule> Linkage { get; set; }
         
         public EffectCompilerParameters EffectParameters { get; set; }

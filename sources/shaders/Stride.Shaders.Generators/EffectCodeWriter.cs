@@ -767,7 +767,7 @@ public class EffectCodeWriter : ShaderWriter
                         }
                     }
 
-                    Write("mixin.AddMacro(");
+                    Write("context.AddMacro(");
                     VisitNode(macroName);
                     Write(", ");
                     VisitNode(macroValue);
@@ -828,7 +828,7 @@ public class EffectCodeWriter : ShaderWriter
         var names = rule.Keyword == "phase" ? rule.Names : rule.Names.Select(ResolveClassName);
 
         WriteLinkLine(rule);
-        Write($"mixin.AddLinkageRule(global::Stride.Shaders.ShaderLinkageKind.{kind}, {SymbolDisplay.FormatLiteral(owner, true)}, {SymbolDisplay.FormatLiteral(rule.Path[methodIndex], true)}, {phase}");
+        Write($"context.AddLinkageRule(global::Stride.Shaders.ShaderLinkageKind.{kind}, {SymbolDisplay.FormatLiteral(owner, true)}, {SymbolDisplay.FormatLiteral(rule.Path[methodIndex], true)}, {phase}");
         foreach (var name in names)
             Write($", {SymbolDisplay.FormatLiteral(name, true)}");
         WriteLine(");");

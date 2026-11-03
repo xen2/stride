@@ -5,6 +5,6 @@
 using Stride.Rendering;
 using Stride.Shaders;
 
-foreach (var mixin in ShaderMixinManager.Generate("ShaderPipe.PipeEffect", new ParameterCollection()).Mixins)
+foreach (var mixin in ShaderMixinManager.Generate("ShaderPipe.PipeEffect", new ParameterCollection()).Root.Mixins)
     System.Console.WriteLine($"MIXIN {mixin.ClassName}");
 return 0;

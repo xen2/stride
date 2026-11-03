@@ -75,9 +75,7 @@ public partial class RenderingTests
 
         // Compiler shader
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/ComputeTests"));
-        var shaderSource = ShaderMixinManager.Contains(TestShader.FullName(shaderName))
-            ? new ShaderMixinGeneratorSource(TestShader.FullName(shaderName))
-            : (ShaderSource)new ShaderClassSource(TestShader.FullName(shaderName));
+        var shaderSource = TestShader.Effect(shaderName);
 
         // Force file to be parsed and all its shaders registered
         // (since there are multiple shader/effects in a simple file, simply using the effect would not go through normal load and it wouldn't know about the shaders in the file)
@@ -278,9 +276,7 @@ public partial class RenderingTests
 
         // Compiler shader
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/RenderTests"));
-        var shaderSource = ShaderMixinManager.Contains(TestShader.FullName(shaderName))
-            ? new ShaderMixinGeneratorSource(TestShader.FullName(shaderName))
-            : (ShaderSource)new ShaderClassSource(TestShader.FullName(shaderName));
+        var shaderSource = TestShader.Effect(shaderName);
 
         // Force file to be parsed and all its shaders registered
         // (since there are multiple shader/effects in a simple file, simply using the effect would not go through normal load and it wouldn't know about the shaders in the file)
@@ -371,9 +367,7 @@ public partial class RenderingTests
 
         // Compile shader
         var shaderMixer = new ShaderMixer(new ShaderLoader("./assets/SDSL/StreamOutTests"));
-        var shaderSource = ShaderMixinManager.Contains(TestShader.FullName(shaderName))
-            ? new ShaderMixinGeneratorSource(TestShader.FullName(shaderName))
-            : (ShaderSource)new ShaderClassSource(TestShader.FullName(shaderName));
+        var shaderSource = TestShader.Effect(shaderName);
 
         shaderMixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
 

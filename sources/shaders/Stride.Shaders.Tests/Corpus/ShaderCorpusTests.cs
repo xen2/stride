@@ -69,7 +69,7 @@ public partial class ShaderCorpusTests
         var stored = ShaderCorpus.ReadEntries()
             .Where(x => written.ContainsKey(ShaderNames.ShortName(x.EffectName)))
             .GroupBy(x => ShaderNames.ShortName(x.EffectName))
-            .ToDictionary(x => x.Key, x => x.SelectMany(y => y.Mixin.Linkage).Select(RuleText).ToHashSet());
+            .ToDictionary(x => x.Key, x => x.SelectMany(y => y.Effect.Linkage).Select(RuleText).ToHashSet());
 
         Assert.NotEmpty(stored);
         foreach (var (effect, rules) in stored)

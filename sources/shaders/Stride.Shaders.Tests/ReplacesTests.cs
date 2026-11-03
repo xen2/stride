@@ -30,7 +30,7 @@ public class ReplacesTests : IDisposable
 
     private void Write(string name, string code) => File.WriteAllText(Path.Combine(sourceDir.FullName, $"{name}.sdsl"), code);
 
-    private (bool Ok, string Log, string Explanation) Mix(ShaderSource source)
+    private (bool Ok, string Log, string Explanation) Mix(ShaderMixinSource source)
     {
         var loader = new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL");
         foreach (var (original, replacer) in replacers)
@@ -40,7 +40,7 @@ public class ReplacesTests : IDisposable
         bool ok;
         try
         {
-            ok = mixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+            ok = mixer.MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
         }
         catch (InvalidOperationException e)
         {
@@ -224,11 +224,11 @@ public class ReplacesTests : IDisposable
 
     private static (ObjectId EffectId, EffectBytecode Bytecode) CompileRoot(EffectCompiler compiler, GraphicsPlatform platform)
     {
-        var results = compiler.Compile(new ShaderClassSource("Lib.Root"), new CompilerParameters { EffectParameters = EffectCompilerParameters.Default with { Platform = platform } });
+        var results = compiler.Compile(new EffectSource(new ShaderClassSource("Lib.Root")), new CompilerParameters { EffectParameters = EffectCompilerParameters.Default with { Platform = platform } });
         Assert.False(results.HasErrors, string.Join(Environment.NewLine, results.Messages.Select(x => x.Text)));
         var completed = results.Bytecode.WaitForResult();
         Assert.False(completed.CompilationLog.HasErrors, string.Join(Environment.NewLine, completed.CompilationLog.Messages.Select(x => x.Text)));
-        return (ShaderMixinObjectId.Compute(new ShaderMixinSource { Name = "Lib.Root", Mixins = { new ShaderClassSource("Lib.Root") } }, EffectCompilerParameters.Default, compiler.GetReplacementsHash()), completed.Bytecode);
+        return (ShaderMixinObjectId.Compute(new EffectSource(new ShaderClassSource("Lib.Root")), EffectCompilerParameters.Default, compiler.GetReplacementsHash()), completed.Bytecode);
     }
 
     public static TheoryData<GraphicsPlatform> Platforms()
@@ -268,7 +268,7 @@ public class ReplacesTests : IDisposable
         var tree = new ShaderMixinSource { Name = "Effect", Mixins = { new ShaderClassSource("Lib.X") } };
 
         Assert.Equal(ObjectId.Empty, ShaderMixinObjectId.ComputeReplacements([]));
-        Assert.Equal(ShaderMixinObjectId.Compute(tree, EffectCompilerParameters.Default), ShaderMixinObjectId.Compute(tree, EffectCompilerParameters.Default, ShaderMixinObjectId.ComputeReplacements([])));
+        Assert.Equal(ShaderMixinObjectId.Compute(new EffectSource(tree), EffectCompilerParameters.Default), ShaderMixinObjectId.Compute(new EffectSource(tree), EffectCompilerParameters.Default, ShaderMixinObjectId.ComputeReplacements([])));
     }
 
     // The build and the game list them in different orders

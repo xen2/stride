@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -15,6 +16,16 @@ namespace Stride.Shaders
     /// </summary>
     public class ShaderMixinContext
     {
+        /// <summary>
+        /// The message of a macro set inside a composition: its name, and the composition.
+        /// </summary>
+        public const string MacroInCompositionMessage = "SDSL0149: macro {0} is set inside the composition {1}. A macro belongs to the whole effect: set it at the top level of the effect. In a composition, use a generic for a value, or a separate class for a different shape.";
+
+        /// <summary>
+        /// The message of a linkage rule inside a composition: the rule, and the composition.
+        /// </summary>
+        public const string LinkageRuleInCompositionMessage = "SDSL0151: linkage rule {0} is inside the composition {1}. A linkage rule belongs to the whole effect: write it at the top level of the effect.";
+
         private readonly ParameterCollection compilerParameters;
         private readonly Stack<ParameterCollection> parameterCollections = new Stack<ParameterCollection>();
         private readonly Dictionary<string, IShaderMixinBuilder> registeredBuilders;
@@ -23,20 +34,20 @@ namespace Stride.Shaders
 
         private string compositionString = null;
 
-        private readonly ShaderMixinSource currentMixinSourceTree;
+        private readonly EffectSource effect;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ShaderMixinContext" /> class.
         /// </summary>
-        /// <param name="mixinTree">The mixin tree.</param>
+        /// <param name="effect">The effect being built.</param>
         /// <param name="compilerParameters">The default property container.</param>
         /// <param name="registeredBuilders">The registered builders.</param>
         /// <exception cref="System.ArgumentNullException">compilerParameters
         /// or
         /// registeredBuilders</exception>
-        public ShaderMixinContext(ShaderMixinSource mixinTree, ParameterCollection compilerParameters, Dictionary<string, IShaderMixinBuilder> registeredBuilders)
+        public ShaderMixinContext(EffectSource effect, ParameterCollection compilerParameters, Dictionary<string, IShaderMixinBuilder> registeredBuilders)
         {
-            if (mixinTree == null) throw new ArgumentNullException("mixinTree");
+            if (effect == null) throw new ArgumentNullException("effect");
             if (compilerParameters == null)
                 throw new ArgumentNullException("compilerParameters");
 
@@ -44,7 +55,7 @@ namespace Stride.Shaders
                 throw new ArgumentNullException("registeredBuilders");
 
             // TODO: use a copy of the compilerParameters?
-            this.currentMixinSourceTree = mixinTree;
+            this.effect = effect;
             this.compilerParameters = compilerParameters;
             this.registeredBuilders = registeredBuilders;
             this.parameterCollections = new Stack<ParameterCollection>();
@@ -77,9 +88,42 @@ namespace Stride.Shaders
         {
             get
             {
-                return currentMixinSourceTree;
+                return effect.Root;
             }
         }
+
+        /// <summary>
+        /// Adds a macro to the effect being built.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <param name="value">The value.</param>
+        /// <exception cref="System.InvalidOperationException">Inside a composition: a macro belongs to the whole effect.</exception>
+        public void AddMacro(string name, object value)
+        {
+            if (compositionIndices.Count > 0)
+                throw new InvalidOperationException(string.Format(MacroInCompositionMessage, name, CompositionPath));
+
+            effect.AddMacro(name, value);
+        }
+
+        /// <summary>
+        /// Adds a linkage rule to the effect being built.
+        /// </summary>
+        /// <param name="kind">What the rule says.</param>
+        /// <param name="owner">The class of the first definition of the method.</param>
+        /// <param name="method">The name of the method.</param>
+        /// <param name="phase">The phase, or null.</param>
+        /// <param name="names">The names of the rule.</param>
+        /// <exception cref="System.InvalidOperationException">Inside a composition: a linkage rule belongs to the whole effect.</exception>
+        public void AddLinkageRule(ShaderLinkageKind kind, string owner, string method, string phase, params string[] names)
+        {
+            if (compositionIndices.Count > 0)
+                throw new InvalidOperationException(string.Format(LinkageRuleInCompositionMessage, ShaderLinkageRule.Create(kind, owner, method, phase, names).ToStatement(), CompositionPath));
+
+            effect.AddLinkageRule(kind, owner, method, phase, names);
+        }
+
+        private string CompositionPath => string.Join('.', compositionString.Split('.').Reverse());
 
         public void Discard()
         {

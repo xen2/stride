@@ -37,7 +37,7 @@ public class SameShortNameTests : IDisposable
     private EffectBytecode Compile(string root, GraphicsPlatform platform)
     {
         var parameters = new CompilerParameters { EffectParameters = EffectCompilerParameters.Default with { Platform = platform } };
-        var results = compiler.Compile(new ShaderClassSource(TestShader.FullName(root)), parameters);
+        var results = compiler.Compile(new EffectSource(new ShaderClassSource(TestShader.FullName(root))), parameters);
         Assert.False(results.HasErrors, string.Join(Environment.NewLine, results.Messages.Select(m => m.Text)));
         var completed = results.Bytecode.WaitForResult();
         Assert.False(completed.CompilationLog.HasErrors, string.Join(Environment.NewLine, completed.CompilationLog.Messages.Select(m => m.Text)));
