@@ -6,7 +6,8 @@ using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
-using Stride.Core.Serialization;
+using Stride.Core.IO;
+using Stride.Core.Storage;
 using Stride.Rendering;
 using Stride.Shaders.Parsing;
 using Stride.Shaders.Parsing.SDFX;
@@ -152,7 +153,7 @@ public class EffectLinkageTests
 
     private static string Unique(string name) => $"LinkageTests{Guid.NewGuid():N}.{name}";
 
-    private static string[] Classes(string effect) => ShaderMixinManager.Generate(effect, new ParameterCollection()).Mixins.Select(x => x.ClassName).ToArray();
+    private static string[] Classes(string effect) => ShaderMixinManager.Generate(effect, new ParameterCollection()).Root.Mixins.Select(x => x.ClassName).ToArray();
 
     [Fact]
     public void ALayerAddsToTheEffect()
@@ -469,22 +470,48 @@ public class EffectLinkageTests
         Assert.DoesNotContain(effect.Name, game.Generated);
     }
 
-    // Compiled assets hold mixins in binary form, and their build cache doesn't see a change of that form
-    [Fact]
-    public void LinkageIsNotInTheBinaryFormOfAMixin()
-    {
-        var plain = new ShaderMixinSource { Mixins = { new ShaderClassSource("A") } };
-        var withRule = new ShaderMixinSource { Mixins = { new ShaderClassSource("A") } };
-        withRule.UnbindPhases("Owner", "Run", "A");
+    private static ShaderMixinContext Context(EffectSource effect) => new(effect, new ParameterCollection(), []);
 
-        static byte[] Write(ShaderMixinSource mixin)
+    [Fact]
+    public void ABlockAtTheTopLevelGoesOnTheEffect()
+    {
+        var effect = new EffectSource(new ShaderMixinSource());
+        var context = Context(effect);
+
+        context.UnbindPhases("Owner", "Run", "A");
+        context.PushComposition(effect.Root, "Slot", new ShaderMixinSource());
+        context.PopComposition();
+        context.ExtendShader("X").Method("Owner.Run").Phase("B");
+
+        Assert.Equal(["extend shader Owner { [Unbind(Phases = { A })] Run; }", "extend shader X { [Phase(B)] Owner.Run; }"], effect.Linkage.Select(x => x.ToStatement()));
+    }
+
+    [Theory]
+    [InlineData("MixinOrder", "extend shader Owner { [MixinOrder(X, Y)] Run; }")]
+    [InlineData("Unbind", "extend shader Owner { [Unbind(Mixins = { X })] Run; }")]
+    [InlineData("Phase", "extend shader X { [Phase(Lib.W, After = A)] Owner.Run; }")]
+    [InlineData("Neighbours", "extend shader X { [MixinOrder(After = A)] Owner.Run; }")]
+    public void ABlockInACompositionIsAnError(string attribute, string statement)
+    {
+        var effect = new EffectSource(new ShaderMixinSource());
+        var context = Context(effect);
+        var slot = new ShaderMixinSource();
+
+        context.PushComposition(effect.Root, "Slot", slot);
+        context.PushCompositionArray(slot, "Layers", new ShaderMixinSource());
+        var error = Assert.Throws<InvalidOperationException>(() =>
         {
-            using var bytes = new MemoryStream();
-            var writer = new BinarySerializationWriter(bytes);
-            writer.Write(mixin);
-            return bytes.ToArray();
-        }
-        Assert.Equal(Write(plain), Write(withRule));
+            switch (attribute)
+            {
+                case "MixinOrder": context.MixinOrder("Owner", "Run", "X", "Y"); break;
+                case "Unbind": context.UnbindMixins("Owner", "Run", "X"); break;
+                case "Phase": context.ExtendShader("X").Method("Owner.Run").Phase("Lib.W", after: "A"); break;
+                default: context.ExtendShader("X").Method("Owner.Run").MixinOrderAfter("A"); break;
+            }
+        });
+
+        Assert.StartsWith($"SDSL0151: the block {statement} is inside the composition Slot.Layers[0].", error.Message);
+        Assert.Empty(effect.Linkage);
     }
 
     [Theory]
@@ -499,7 +526,7 @@ public class EffectLinkageTests
     [InlineData("Owner.Run", "Unbind", "[Unbind] goes on a method of the class")]
     public void AWrongCallIsAClearError(string method, string attribute, string message)
     {
-        var effect = new ShaderMixinSource();
+        var effect = new EffectSource(new ShaderMixinSource());
         var member = effect.ExtendShader("X").Method(method);
         var error = Assert.Throws<ArgumentException>(() =>
         {
@@ -523,12 +550,29 @@ public class EffectLinkageTests
     [Fact]
     public void AMethodNamesItsOwnerAndItsOverload()
     {
-        var effect = new ShaderMixinSource();
+        var effect = new EffectSource(new ShaderMixinSource());
         effect.ExtendShader("X").Method("Some.Owner.Run(float3, int)").Phase("A");
 
         var rule = Assert.Single(effect.Linkage);
         Assert.Equal(("X", "Some.Owner", "Run", "float3,int"), (rule.Shader, rule.Owner, rule.Method, rule.Parameters));
         Assert.Equal("extend shader X { [Phase(A)] Some.Owner.Run(float3,int); }", rule.ToStatement());
+    }
+
+    [Fact]
+    public void ABlockOfAMixedEffectGoesOnTheEffect()
+    {
+        var effect = ShaderMixinManager.Generate(TestShader.FullName("EffectLinkageMixedPart"), new ParameterCollection());
+
+        Assert.Equal([ShaderLinkageKind.MixinOrder, ShaderLinkageKind.Unbind], effect.Linkage.Select(x => x.Kind));
+        Assert.All(effect.Linkage, x => Assert.Matches(@"^EffectLinkagePlaces\.sdfx, line \d+$", x.Source));
+    }
+
+    [Fact]
+    public void ABlockOfAComposedEffectIsAnError()
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => ShaderMixinManager.Generate(TestShader.FullName("EffectLinkageComposedPart"), new ParameterCollection()));
+
+        Assert.StartsWith("SDSL0151: the block extend shader Owner { [Unbind(Phases = { Late })] Run; } is inside the composition Layer.", error.Message);
     }
 
     private sealed class Effect : IShaderMixinBuilder
@@ -555,15 +599,30 @@ public class EffectLinkageTests
         Assert.EndsWith("(layer 1)", effect.Linkage[1].ToString());
     }
 
+    // The compiler adds the platform macros to a copy of the effect. A block about a phase that doesn't exist only fails if it gets to the mixer.
+    [Fact]
+    public void TheCompilerGivesTheLinkageToTheMixer()
+    {
+        using var provider = new FileSystemProvider($"/linkage-{Guid.NewGuid():N}", AppContext.BaseDirectory);
+        using var compiler = new Stride.Shaders.Compiler.EffectCompiler(provider);
+        compiler.SourceDirectories.Add("assets/SDSL/CompilerTests");
+        var effect = new EffectSource(new ShaderClassSource(TestShader.FullName("EffectLinkageOwner")));
+        effect.UnbindPhases("EffectLinkageOwner", "Run", "Missing");
+
+        var result = compiler.Compile(effect, Stride.Shaders.Compiler.EffectCompilerParameters.Default, new Stride.Shaders.Compiler.CompilerParameters(), ObjectId.New()).WaitForResult();
+
+        Assert.Contains("SDSL0254", string.Join(Environment.NewLine, result.CompilationLog.Messages.Select(x => x.Text)));
+    }
+
     // A compiled effect is cached by this hash, and the effect log keys an effect with it (EffectCompileCommand): two effects that differ
     // only by a block, or by the level of a block, are two effects. Where a block is written is not part of it.
     [Fact]
     public void TheBlocksArePartOfTheHashOfACompiledEffect()
     {
         var parameters = Stride.Shaders.Compiler.EffectCompilerParameters.Default;
-        ShaderMixinSource Effect(Action<ShaderMixinSource> blocks)
+        EffectSource Effect(Action<EffectSource> blocks)
         {
-            var effect = new ShaderMixinSource { Mixins = { new ShaderClassSource("A") } };
+            var effect = new EffectSource(new ShaderClassSource("A"));
             blocks(effect);
             return effect;
         }
@@ -584,11 +643,10 @@ public class EffectLinkageTests
     [Fact]
     public void TheCorpusKeepsTheLinkageOfAnEntry()
     {
-        var mixin = new ShaderMixinSource { Mixins = { new ShaderClassSource("A") } };
-        var plain = new Stride.Shaders.Compiler.ShaderCorpusEntry("Effect", Stride.Graphics.GraphicsProfile.Level_11_0, mixin);
+        var plain = new Stride.Shaders.Compiler.ShaderCorpusEntry("Effect", Stride.Graphics.GraphicsProfile.Level_11_0, new EffectSource(new ShaderClassSource("A")));
         var plainId = plain.Id;
 
-        var withRule = new ShaderMixinSource { Mixins = { new ShaderClassSource("A") } };
+        var withRule = new EffectSource(new ShaderClassSource("A"));
         withRule.UnbindPhases("Owner", "Run", "A");
         withRule.UnbindMixins("Owner", "Run", "X");
         withRule.MixinOrder("Owner", "Run(float3)", "X", "Y");
@@ -597,24 +655,22 @@ public class EffectLinkageTests
         var entry = new Stride.Shaders.Compiler.ShaderCorpusEntry("Effect", Stride.Graphics.GraphicsProfile.Level_11_0, withRule);
         var read = Stride.Shaders.Compiler.ShaderCorpusEntry.FromJson(Stride.Shaders.Compiler.ShaderCorpusEntry.ToJson(entry));
 
-        Assert.Equal(withRule.Linkage, read.Mixin.Linkage);
+        Assert.Equal(withRule.Linkage, read.Effect.Linkage);
         Assert.Equal(plainId, entry.Id);
     }
 
-    // The cache of compiled effects has to see them
     [Fact]
-    public void LinkageIsPartOfWhatAMixinIs()
+    public void LinkageIsPartOfWhatAnEffectIs()
     {
-        var first = new ShaderMixinSource();
-        var second = new ShaderMixinSource();
+        var first = new EffectSource(new ShaderMixinSource());
+        var second = new EffectSource(new ShaderMixinSource());
         Assert.Equal(first, second);
 
         first.UnbindPhases("Owner", "Run", "A");
         Assert.NotEqual(first, second);
-        Assert.Equal(first, (ShaderMixinSource)first.Clone());
 
-        second.DeepCloneFrom(first);
-        Assert.Equal(first, second);
-        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+        var clone = first.Clone();
+        Assert.Equal(first, clone);
+        Assert.Equal(first.GetHashCode(), clone.GetHashCode());
     }
 }

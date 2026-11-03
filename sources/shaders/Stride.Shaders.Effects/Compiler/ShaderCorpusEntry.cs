@@ -13,25 +13,25 @@ using Stride.Graphics;
 namespace Stride.Shaders.Compiler
 {
     /// <summary>
-    /// One permutation of the shader corpus: the mixin tree given to the shader mixer, before the platform and profile macros
+    /// One permutation of the shader corpus: the effect given to the shader mixer, before the platform and profile macros
     /// are added. Stored as JSON so it can be committed and diffed, see <see cref="ReadFile"/> / <see cref="WriteFile"/>.
     /// </summary>
     public sealed class ShaderCorpusEntry
     {
         private string? hash;
 
-        public ShaderCorpusEntry(string effectName, GraphicsProfile profile, ShaderMixinSource mixin)
+        public ShaderCorpusEntry(string effectName, GraphicsProfile profile, EffectSource effect)
         {
             EffectName = effectName;
             Profile = profile;
-            Mixin = mixin;
+            Effect = effect;
         }
 
         public string EffectName { get; }
 
         public GraphicsProfile Profile { get; }
 
-        public ShaderMixinSource Mixin { get; }
+        public EffectSource Effect { get; }
 
         /// <summary>
         /// Where this permutation was seen (effect log path, capture tag). Not part of <see cref="Hash"/>.
@@ -102,11 +102,11 @@ namespace Stride.Shaders.Compiler
                 writer.WriteEndArray();
             }
             writer.WritePropertyName("mixin");
-            WriteSource(writer, entry.Mixin);
-            if (includeDetails && entry.Mixin.Linkage.Count > 0)
+            WriteSource(writer, entry.Effect.Root, entry.Effect.Macros);
+            if (includeDetails && entry.Effect.Linkage.Count > 0)
             {
                 writer.WriteStartArray("linkage");
-                foreach (var rule in entry.Mixin.Linkage)
+                foreach (var rule in entry.Effect.Linkage)
                 {
                     writer.WriteStartObject();
                     writer.WriteString("kind", rule.Kind.ToString());
@@ -135,16 +135,23 @@ namespace Stride.Shaders.Compiler
 
         private static ShaderCorpusEntry ReadEntry(JsonElement element)
         {
-            var mixin = (ShaderMixinSource)ReadSource(element.GetProperty("mixin"));
+            var root = element.GetProperty("mixin");
+            var mixin = (ShaderMixinSource)ReadSource(root, isRoot: true);
             var effectName = element.GetProperty("effect").GetString()!;
             mixin.Name = effectName;
+            var effect = new EffectSource(mixin);
+            if (root.TryGetProperty("macros", out var macros))
+            {
+                foreach (var macro in macros.EnumerateArray())
+                    effect.Macros.Add(new ShaderMacro(macro[0].GetString()!, macro[1].GetString()!));
+            }
             if (element.TryGetProperty("linkage", out var linkage))
             {
                 foreach (var rule in linkage.EnumerateArray())
                 {
                     string? Text(string name) => rule.TryGetProperty(name, out var value) ? value.GetString() : null;
                     List<string> Names(string name) => rule.TryGetProperty(name, out var value) ? value.EnumerateArray().Select(x => x.GetString()!).ToList() : [];
-                    mixin.Linkage.Add(new ShaderLinkageRule
+                    effect.Linkage.Add(new ShaderLinkageRule
                     {
                         Kind = Enum.Parse<ShaderLinkageKind>(Text("kind")!),
                         Shader = Text("shader")!,
@@ -161,7 +168,7 @@ namespace Stride.Shaders.Compiler
                     });
                 }
             }
-            var entry = new ShaderCorpusEntry(effectName, Enum.Parse<GraphicsProfile>(element.GetProperty("profile").GetString()!), mixin);
+            var entry = new ShaderCorpusEntry(effectName, Enum.Parse<GraphicsProfile>(element.GetProperty("profile").GetString()!), effect);
             if (element.TryGetProperty("sources", out var sources))
             {
                 foreach (var source in sources.EnumerateArray())
@@ -171,8 +178,8 @@ namespace Stride.Shaders.Compiler
         }
 
         // Format: a class without generics is a string, other classes are { class, generics?, code? },
-        // a mixin is { mixins, compositions?, macros? } and a composition array is a JSON array.
-        private static void WriteSource(Utf8JsonWriter writer, ShaderSource source)
+        // a mixin is { mixins, compositions? } and a composition array is a JSON array. The root mixin also holds the macros of the effect.
+        private static void WriteSource(Utf8JsonWriter writer, ShaderSource source, List<ShaderMacro>? effectMacros = null)
         {
             switch (source)
             {
@@ -215,10 +222,10 @@ namespace Stride.Shaders.Compiler
                         }
                         writer.WriteEndObject();
                     }
-                    if (mixinSource.Macros.Count > 0)
+                    if (effectMacros is { Count: > 0 })
                     {
                         writer.WriteStartArray("macros");
-                        foreach (var macro in mixinSource.Macros)
+                        foreach (var macro in effectMacros)
                         {
                             writer.WriteStartArray();
                             writer.WriteStringValue(macro.Name);
@@ -234,7 +241,7 @@ namespace Stride.Shaders.Compiler
             }
         }
 
-        private static ShaderSource ReadSource(JsonElement element)
+        private static ShaderSource ReadSource(JsonElement element, bool isRoot = false)
         {
             switch (element.ValueKind)
             {
@@ -253,6 +260,8 @@ namespace Stride.Shaders.Compiler
                         return new ShaderClassString(className.GetString()!, code.GetString()!) { GenericArguments = generics };
                     return new ShaderClassSource(className.GetString()!) { GenericArguments = generics };
                 case JsonValueKind.Object:
+                    if (!isRoot && element.TryGetProperty("macros", out _))
+                        throw new InvalidDataException("A mixin inside a composition holds macros in the shader corpus: macros belong to the whole effect");
                     var mixinSource = new ShaderMixinSource();
                     foreach (var mixin in element.GetProperty("mixins").EnumerateArray())
                         mixinSource.Mixins.Add((ShaderClassCode)ReadSource(mixin));
@@ -260,11 +269,6 @@ namespace Stride.Shaders.Compiler
                     {
                         foreach (var composition in compositions.EnumerateObject())
                             mixinSource.Compositions.Add(composition.Name, ReadSource(composition.Value));
-                    }
-                    if (element.TryGetProperty("macros", out var macros))
-                    {
-                        foreach (var macro in macros.EnumerateArray())
-                            mixinSource.Macros.Add(new ShaderMacro(macro[0].GetString()!, macro[1].GetString()!));
                     }
                     return mixinSource;
                 default:

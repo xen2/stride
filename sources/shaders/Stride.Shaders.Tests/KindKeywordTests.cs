@@ -27,7 +27,7 @@ public class KindKeywordTests : IDisposable
         var log = new LoggerResult();
         var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL") { WarningsAsErrors = false });
         var source = new ShaderMixinSource { Mixins = { new ShaderClassSource("Test.Entry"), new ShaderClassSource($"Test.{name}") } };
-        var ok = mixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+        var ok = mixer.MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
         return (ok, string.Join("\n", log.Messages.Select(x => x.ToString())));
     }
 

@@ -267,11 +267,18 @@ namespace Stride.Rendering
 
             if (compilerResult is null)
             {
-                var source = isSdfx
-                    ? new ShaderMixinGeneratorSource(effectName)
-                    : (ShaderSource) new ShaderClassSource(effectName);
-
-                compilerResult = compiler.Compile(source, compilerParameters);
+                try
+                {
+                    compilerResult = isSdfx
+                        ? compiler.Compile(new ShaderMixinGeneratorSource(effectName), compilerParameters)
+                        : compiler.Compile(new EffectSource(new ShaderClassSource(effectName)), compilerParameters);
+                }
+                catch (Exception e)
+                {
+                    // A mistake in an effect, such as SDSL0149, throws from its generator. A render feature catches it and draws a fallback, so the log is all a user gets
+                    Log.Error($"Could not generate effect [{effectName}]: {e.Message}");
+                    throw;
+                }
 
                 EffectUsed?.Invoke(new EffectCompileRequest(effectName, new CompilerParameters(compilerParameters)), compilerResult);
 

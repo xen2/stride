@@ -94,7 +94,7 @@ public class EmbeddedEffectTests
 
                     var source = new ShaderMixinSource { Name = effect.Name };
                     source.Mixins.Add(ParseShader(effect.Shader));
-                    var result = compiler.Compile(source, parameters.EffectParameters, parameters, ObjectId.Empty).WaitForResult();
+                    var result = compiler.Compile(new EffectSource(source), parameters.EffectParameters, parameters, ObjectId.Empty).WaitForResult();
                     Assert.True(result.Bytecode != null, $"{effect.Shader} ({platform}): {string.Join(Environment.NewLine, result.CompilationLog.Messages.Select(m => m.Text))}");
 
                     var writer = new StringWriter();

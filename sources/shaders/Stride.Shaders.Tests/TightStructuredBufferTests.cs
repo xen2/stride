@@ -64,7 +64,7 @@ public class TightStructuredBufferTests
         var mixin = new ShaderMixinSource { Name = "TightLayoutMarker" };
         mixin.Mixins.Add(new ShaderClassSource(TestShader.FullName("TightLayoutMarker")));
         var effectParameters = Stride.Shaders.Compiler.EffectCompilerParameters.Default with { Platform = Stride.Graphics.GraphicsPlatform.Vulkan };
-        var result = compiler.Compile(mixin, effectParameters, new Stride.Shaders.Compiler.CompilerParameters(), Stride.Core.Storage.ObjectId.New()).WaitForResult();
+        var result = compiler.Compile(new EffectSource(mixin), effectParameters, new Stride.Shaders.Compiler.CompilerParameters(), Stride.Core.Storage.ObjectId.New()).WaitForResult();
         Assert.False(result.CompilationLog.HasErrors, string.Join(Environment.NewLine, result.CompilationLog.Messages.Select(m => m.Text)));
 
         using var stream = new MemoryStream();

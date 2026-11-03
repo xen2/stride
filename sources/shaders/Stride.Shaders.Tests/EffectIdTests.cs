@@ -25,8 +25,8 @@ public class EffectIdTests
     {
         var parameters = EffectCompilerParameters.Default;
 
-        Assert.Equal(ShaderMixinObjectId.Compute(Tree(5000), parameters), ShaderMixinObjectId.Compute(Tree(5000), parameters));
-        Assert.NotEqual(ShaderMixinObjectId.Compute(Tree(5000), parameters), ShaderMixinObjectId.Compute(Tree(5000, "Other"), parameters));
+        Assert.Equal(ShaderMixinObjectId.Compute(new EffectSource(Tree(5000)), parameters), ShaderMixinObjectId.Compute(new EffectSource(Tree(5000)), parameters));
+        Assert.NotEqual(ShaderMixinObjectId.Compute(new EffectSource(Tree(5000)), parameters), ShaderMixinObjectId.Compute(new EffectSource(Tree(5000, "Other")), parameters));
     }
 
     [Theory]
@@ -52,6 +52,6 @@ public class EffectIdTests
         var builder = new ObjectIdBuilder();
         builder.Write(new ReadOnlySpan<byte>(bytes.GetBuffer(), 0, (int)bytes.Length));
 
-        Assert.Equal(builder.ComputeHash(), ShaderMixinObjectId.Compute(tree, parameters));
+        Assert.Equal(builder.ComputeHash(), ShaderMixinObjectId.Compute(new EffectSource(tree), parameters));
     }
 }

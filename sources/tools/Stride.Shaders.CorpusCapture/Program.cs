@@ -78,7 +78,7 @@ foreach (var list in embeddedLists)
         mixin.Mixins.Add(generics < 0
             ? new ShaderClassSource(shader)
             : new ShaderClassSource(shader[..generics], shader[(generics + 1)..^1].Split(',', StringSplitOptions.TrimEntries)));
-        var entry = new ShaderCorpusEntry(name, profile, mixin);
+        var entry = new ShaderCorpusEntry(name, profile, new EffectSource(mixin));
         entry.Sources.Add(list);
         Add(entry);
     }

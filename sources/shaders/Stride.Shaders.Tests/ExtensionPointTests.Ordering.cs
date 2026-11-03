@@ -214,7 +214,7 @@ public partial class ExtensionPointTests
     {
         var source = new ShaderMixinSource { Mixins = { new ShaderClassSource("Stride.Rendering.SpriteSuperSampler"), new ShaderClassSource("Stride.Rendering.Images.ImageScalerShader") } };
 
-        var (ok, log, explanation) = Mix(false, source);
+        var (ok, log, explanation) = Mix(false, new EffectSource(source));
 
         Assert.True(ok, log);
         var block = Block(explanation, "Shading");

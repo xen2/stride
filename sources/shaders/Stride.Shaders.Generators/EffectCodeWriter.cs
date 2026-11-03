@@ -772,7 +772,7 @@ public class EffectCodeWriter : ShaderWriter
                         }
                     }
 
-                    Write("mixin.AddMacro(");
+                    Write("context.AddMacro(");
                     VisitNode(macroName);
                     Write(", ");
                     VisitNode(macroValue);

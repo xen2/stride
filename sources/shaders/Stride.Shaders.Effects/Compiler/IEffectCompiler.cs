@@ -14,11 +14,19 @@ namespace Stride.Shaders.Compiler
     public interface IEffectCompiler : IDisposable
     {
         /// <summary>
-        /// Compiles the specified shader source.
+        /// Compiles the specified effect.
         /// </summary>
-        /// <param name="shaderSource">The shader source.</param>
+        /// <param name="effect">The effect.</param>
         /// <param name="compilerParameters">The compiler parameters.</param>
         /// <returns>Result of the compilation.</returns>
-        CompilerResults Compile(ShaderSource shaderSource, CompilerParameters compilerParameters);
+        CompilerResults Compile(EffectSource effect, CompilerParameters compilerParameters);
+
+        /// <summary>
+        /// Generates the specified effect from the compiler parameters, then compiles it.
+        /// </summary>
+        /// <param name="effectGenerator">The name of the effect to generate.</param>
+        /// <param name="compilerParameters">The compiler parameters.</param>
+        /// <returns>Result of the compilation.</returns>
+        CompilerResults Compile(ShaderMixinGeneratorSource effectGenerator, CompilerParameters compilerParameters);
     }
 }

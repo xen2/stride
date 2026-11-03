@@ -179,6 +179,13 @@ namespace Stride.Assets
                 Rewrite(
                     ArgumentRemove(VoxelMarchTypes, "GetMarchingShader", "attrID"),
                     ArgumentRemove(VoxelMarchTypes, "ApplyAttributeSamplers", "attrID")),
+
+                // 4.5: macros belong to the whole effect, which EffectSource holds next to the tree of shaders.
+                Rewrite(
+                    BuilderMacroToContext(),
+                    CompileTakesEffectSource(),
+                    GeneratedEffectMemberToRoot()),
+                CompilerOverridesTakeEffectSource(),
             ]);
 
             // 4.5: a key name written as text no longer matches, and nothing says so.

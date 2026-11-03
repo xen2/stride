@@ -183,18 +183,18 @@ namespace Stride.Shaders
         }
 
         /// <summary>
-        /// Generates a <see cref="ShaderMixinSource" /> for the specified names and parameters.
+        /// Generates an <see cref="EffectSource" /> for the specified names and parameters.
         /// </summary>
         /// <param name="sdfxEffectName">The name.</param>
         /// <param name="properties">The properties.</param>
-        /// <returns>The result of the mixin.</returns>
+        /// <returns>The effect.</returns>
         /// <exception cref="System.ArgumentNullException">
         /// sdfxEffectName
         /// or
         /// properties
         /// </exception>
         /// <exception cref="System.ArgumentException">sdfxEffectName</exception>
-        public static ShaderMixinSource Generate(string sdfxEffectName, ParameterCollection properties)
+        public static EffectSource Generate(string sdfxEffectName, ParameterCollection properties)
         {
             if (sdfxEffectName == null) throw new ArgumentNullException("sdfxEffectName");
 
@@ -220,17 +220,17 @@ namespace Stride.Shaders
             }
 
             // TODO cache mixin context and avoid to recreate one (check if if thread concurrency could occur here)
-            var mixinTree = new ShaderMixinSource() { Name = string.IsNullOrEmpty(childEffectName) ? rootEffectName : $"{rootEffectName}.{childEffectName}" };
-            var context = new ShaderMixinContext(mixinTree, properties, builders) { ChildEffectName = childEffectName };
+            var effect = new EffectSource(new ShaderMixinSource { Name = string.IsNullOrEmpty(childEffectName) ? rootEffectName : $"{rootEffectName}.{childEffectName}" });
+            var context = new ShaderMixinContext(effect, properties, builders) { ChildEffectName = childEffectName };
             try
             {
-                builder.Generate(mixinTree, context);
+                builder.Generate(effect.Root, context);
             }
             catch (ShaderMixinDiscardException)
             {
                 // We don't rethrow as this exception is on purpose to early exit/escape from a shader mixin
             }
-            return mixinTree;
+            return effect;
         }
 
         // The longest registered name is the root, the rest is the child. Takes the lock of RegisteredBuilders.

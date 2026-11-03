@@ -87,7 +87,7 @@ namespace Stride.Shaders.Compiler
             return socketMessageLayer;
         }
 
-        public async Task<EffectBytecodeCompilerResult> Compile(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters)
+        public async Task<EffectBytecodeCompilerResult> Compile(EffectSource effect, EffectCompilerParameters effectParameters)
         {
             // Make sure we are connected
             // TODO: Handle reconnections, etc...
@@ -95,8 +95,9 @@ namespace Stride.Shaders.Compiler
 
             var shaderCompilerAnswer = (RemoteEffectCompilerEffectAnswer)await socketMessageLayer.SendReceiveAsync(new RemoteEffectCompilerEffectRequest
             {
-                MixinTree = mixinTree,
-                Linkage = mixinTree.Linkage,
+                MixinTree = effect.Root,
+                Macros = effect.Macros,
+                Linkage = effect.Linkage,
                 EffectParameters = effectParameters,
             });
 
