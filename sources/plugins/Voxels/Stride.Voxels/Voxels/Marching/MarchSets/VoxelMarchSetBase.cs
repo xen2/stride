@@ -32,9 +32,9 @@ namespace Stride.Rendering.Voxels
             Marcher.ApplyMarchingParameters(parameters);
             parameters.Set(OffsetKey, Offset);
         }
-        public virtual void ApplyAttributeSamplers(VoxelAttribute attribute, int attrID, VoxelViewContext viewContext, ParameterCollection parameters)
+        public virtual void ApplyAttributeSamplers(VoxelAttribute attribute, VoxelViewContext viewContext, ParameterCollection parameters)
         {
-            Marcher.ApplyAttributeSamplers(attribute, attrID, viewContext, parameters);
+            Marcher.ApplyAttributeSamplers(attribute, viewContext, parameters);
         }
     }
 }

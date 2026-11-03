@@ -158,6 +158,20 @@ namespace Stride.Assets
 
                 // 4.5: strings that name an engine shader, an effect or the key of a shader member take the full name.
                 ShaderNames(EngineShaderClasses.Current),
+
+                // 4.5: voxel marchers always read their first attribute sampler, so the index is gone from their calls.
+                Rewrite(new[]
+                {
+                    "Stride.Rendering.Voxels.IVoxelMarchMethod",
+                    "Stride.Rendering.Voxels.IVoxelMarchSet",
+                    "Stride.Rendering.Voxels.VoxelMarchBeam",
+                    "Stride.Rendering.Voxels.VoxelMarchCone",
+                    "Stride.Rendering.Voxels.VoxelMarchConePerMipmap",
+                    "Stride.Rendering.Voxels.VoxelMarchSetBase",
+                    "Stride.Rendering.Voxels.VoxelMarchSetHemisphere6",
+                    "Stride.Rendering.Voxels.VoxelMarchSetHemisphere12",
+                    "Stride.Rendering.Voxels.VoxelMarchSetRandomHemisphere",
+                }.SelectMany(type => new[] { ArgumentRemove(type, "GetMarchingShader", "attrID"), ArgumentRemove(type, "ApplyAttributeSamplers", "attrID") }).ToArray()),
             ]);
 
             // Structural csproj migrations, gated by the version each change landed at. Run against the

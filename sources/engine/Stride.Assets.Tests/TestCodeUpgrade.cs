@@ -498,6 +498,42 @@ public class TestCodeUpgrade
     }
 
     [Fact]
+    public async Task ArgumentRemoveDropsOnlyAValueWithNoWork()
+    {
+        var source = """
+            namespace TestNs
+            {
+                interface IMarcher
+                {
+                    string Shader(int attrID, string samplers);
+                }
+                class Other
+                {
+                    public string Shader(int attrID, string samplers) => samplers;
+                }
+                class Usage
+                {
+                    const int First = 0;
+                    int Next() => 1;
+                    string A(IMarcher m) => m.Shader(0, "a");
+                    string B(IMarcher m) => m?.Shader(attrID: First, samplers: "b");
+                    string C(IMarcher m) => m.Shader(samplers: "c", attrID: 0);
+                    string D(IMarcher m) => m.Shader(Next(), "d");
+                    string E(Other o) => o.Shader(0, "e");
+                }
+            }
+            """;
+
+        var result = await ApplyAsync(source, Rewrite(ArgumentRemove("TestNs.IMarcher", "Shader", "attrID")));
+
+        Assert.Contains("m.Shader(\"a\")", result);
+        Assert.Contains("m?.Shader(samplers: \"b\")", result);
+        Assert.Contains("m.Shader(samplers: \"c\")", result);
+        Assert.Contains("m.Shader(Next(), \"d\")", result);
+        Assert.Contains("o.Shader(0, \"e\")", result);
+    }
+
+    [Fact]
     public async Task MethodToPropertyUnwrapsOnlyTheMatchingSymbol()
     {
         var source = """

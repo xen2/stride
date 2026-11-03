@@ -447,6 +447,7 @@ VoxelAnisotropicPairedWriter_Float4	0	shader	-	-	VoxelLayout_Float4,NormalStream
 VoxelAnisotropicSampler	0	shader	-	-	IVoxelSampler,Texturing		Stride.Rendering.Voxels.VoxelAnisotropicSampler	maxBrightness		
 VoxelAnisotropicWriter_Float4	0	shader	-	-	VoxelLayout_Float4,NormalStream		Stride.Rendering.VoxelAnisotropicWriter_Float4	DirectOutput,maxBrightnessInv		
 VoxelAttribute	0	shader	compose	-			Stride.Rendering.VoxelAttribute			
+VoxelAttributeBufferOffset	1	shader	-	-	VoxelAttribute		Stride.Rendering.VoxelAttributeBufferOffset			
 VoxelAttributeDirectionalCoverageSampler	0	shader	-	-	IVoxelSampler,Texturing		Stride.Rendering.Voxels.VoxelAttributeDirectionalCoverageSampler			
 VoxelAttributeDirectionalCoverageShader	0	shader	-	-	VoxelAttribute,ShaderBaseStream,NormalStream,DataPacking		Stride.Rendering.VoxelAttributeDirectionalCoverageShader	DirectOutput		
 VoxelAttributeEmissionOpacityShader	0	shader	-	-	VoxelAttribute,ShaderBaseStream		Stride.Rendering.VoxelAttributeEmissionOpacityShader			
@@ -463,7 +464,7 @@ VoxelIsotropicSampler	0	shader	-	-	IVoxelSampler,Texturing		Stride.Rendering.Vox
 VoxelIsotropicWriter_Float4	0	shader	-	-	VoxelLayout_Float4		Stride.Rendering.VoxelIsotropicWriter_Float4	DirectOutput,maxBrightnessInv		
 VoxelLayout_Float4	0	shader	compose	-	NormalStream		Stride.Rendering.VoxelLayout_Float4			
 VoxelMarchBeam	3	shader	-	-	VoxelMarchMethod,VoxelRadiusMarchMethod,MarchAttributes		Stride.Rendering.VoxelMarchBeam			
-VoxelMarchCone	4	shader	-	-	VoxelMarchMethod,VoxelRadiusMarchMethod,MarchAttributes		Stride.Rendering.VoxelMarchCone			
+VoxelMarchCone	5	shader	-	-	VoxelMarchMethod,VoxelRadiusMarchMethod,MarchAttributes		Stride.Rendering.VoxelMarchCone			
 VoxelMarchConeEditMode	0	shader	-	-	VoxelMarchMethod,VoxelRadiusMarchMethod,MarchAttributes		Stride.Rendering.VoxelMarchConeEditMode	coneRatio,fast,offset,stepScale,steps		
 VoxelMarchConePerMipmap	1	shader	-	-	VoxelMarchMethod,MarchAttributes		Stride.Rendering.VoxelMarchConePerMipmap	coneRatioInv,offset		
 VoxelMarchMethod	0	shader	compose	-			Stride.Rendering.VoxelMarchMethod			
@@ -485,7 +486,9 @@ VoxelModifierApplierSolidifyAnisotropicPaired	1	shader	-	-	VoxelModifierApplierA
 VoxelModifierApplierSolidifyIsotropic	1	shader	-	-	VoxelModifierApplierIsotropic,LocalSamples		Stride.Rendering.VoxelModifierApplierSolidifyIsotropic			
 VoxelPositionStream	0	module	-	-			Stride.Rendering.VoxelPositionStream			
 VoxelRadiusMarchMethod	0	shader	compose	-			Stride.Rendering.VoxelRadiusMarchMethod			
-VoxelStorageClipmapShader	0	shader	-	-	VoxelStorageShader,Texturing,ShaderBaseStream,Transformation		Stride.Rendering.VoxelStorageClipmapShader	clipMapCount,clipMapResolution,clipOffset,clipPos,clipScale,fragmentsBuffer,perClipMapOffsetScale,storageUints		
+VoxelStorageClipmapAllShader	0	shader	-	-	VoxelStorageClipmapShader		Stride.Rendering.VoxelStorageClipmapAllShader			
+VoxelStorageClipmapShader	0	shader	-	-	VoxelStorageShader,Texturing,ShaderBaseStream,Transformation	ToClipSpace(float3);FirstVoxelOfClip(int3)	Stride.Rendering.VoxelStorageClipmapShader	clipMapCount,clipMapResolution,clipOffset,clipPos,clipScale,fragmentsBuffer,perClipMapOffsetScale,storageUints		
+VoxelStorageClipmapSingleShader	0	shader	-	-	VoxelStorageClipmapShader		Stride.Rendering.VoxelStorageClipmapSingleShader			
 VoxelStorageShader	0	shader	compose	-	VoxelPositionStream,PositionStream4,ShaderBaseStream		Stride.Rendering.VoxelStorageShader			
 VoxelStorageTextureClipmapShader	4	shader	-	-	VoxelStorageTextureShader,Texturing		Stride.Rendering.VoxelStorageTextureClipmapShader	LinearBorderSampler3D,LinearBorderSampler3D_NearestMip,clipMaps,mipMaps,perMapOffsetScale		
 VoxelStorageTextureShader	0	shader	compose	-			Stride.Rendering.VoxelStorageTextureShader			
@@ -494,7 +497,7 @@ VoxelVisualizationViewShader	0	shader	-	-	ImageEffectShader		Stride.Rendering.Vo
 VoxelizationMethod	0	shader	compose	-	VoxelPositionStream,PositionStream4,ShaderBaseStream		Stride.Rendering.VoxelizationMethod			
 VoxelizationMethodDominantAxis	0	shader	-	-	VoxelizationMethod,Math,Transformation,ShaderBaseStream,NormalStream,PositionStream4,VoxelPositionStream		Stride.Rendering.Voxels.VoxelizationMethodDominantAxis			
 VoxelizationMethodSingleAxis	0	shader	-	-	VoxelizationMethod,Math,Transformation,ShaderBaseStream,NormalStream,PositionStream4,VoxelPositionStream		Stride.Rendering.Voxels.VoxelizationMethodSingleAxis			
-VoxelizeToFragments	0	shader	-	-	MaterialPixelStream,MaterialPixelShadingStream,Math,Transformation,ShaderBase,Texturing,NormalStream,PositionStream4,VoxelPositionStream		Stride.Rendering.Voxels.VoxelizeToFragments		PSMain,VSMain	
+VoxelizeToFragments	0	shader	-	-	ShadingBase,MaterialPixelStream,MaterialPixelShadingStream,Math,Transformation,ShaderBase,NormalUpdate,Texturing,NormalStream,PositionStream4,VoxelPositionStream		Stride.Rendering.Voxels.VoxelizeToFragments		PSMain,VSMain	
 AdditiveLightEffect	0	effect	-	-			Stride.Rendering.Images.AdditiveLightEffect	
 AmbientOcclusionBlurEffect	0	effect	-	-			Stride.Rendering.Images.AmbientOcclusionBlurEffect	
 AmbientOcclusionRawAOEffect	0	effect	-	-			Stride.Rendering.Images.AmbientOcclusionRawAOEffect	

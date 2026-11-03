@@ -5,9 +5,6 @@ namespace Stride.Rendering;
 
 shader VoxelMarchConePerMipmap<int steps> : VoxelMarchMethod, MarchAttributes
 {
-    #ifndef AttributeID
-        #define AttributeID 0
-    #endif
     cbuffer PerView.Lighting
     {
         float offset;
@@ -15,7 +12,7 @@ shader VoxelMarchConePerMipmap<int steps> : VoxelMarchMethod, MarchAttributes
     }
     override float4 March(float3 rayPos, float3 rayDir)
     {
-        float voxelSize = AttributeSamplers[AttributeID].VoxelSize();
+        float voxelSize = AttributeSamplers[0].VoxelSize();
         rayPos += rayDir * voxelSize * offset;
         float dist = voxelSize * coneRatioInv;
         float size = 0;
@@ -24,7 +21,7 @@ shader VoxelMarchConePerMipmap<int steps> : VoxelMarchMethod, MarchAttributes
         {
             float3 pos = rayPos + rayDir * dist;
 
-            light += AttributeSamplers[AttributeID].SampleByMipNearestMip(pos, -rayDir, size) * saturate(1.0 - light.a);
+            light += AttributeSamplers[0].SampleByMipNearestMip(pos, -rayDir, size) * saturate(1.0 - light.a);
 
             dist *= 2;
             size += 1;
@@ -32,5 +29,5 @@ shader VoxelMarchConePerMipmap<int steps> : VoxelMarchMethod, MarchAttributes
         return light;
     }
 
-    override float StepSize() { return AttributeSamplers[AttributeID].VoxelSize(); }
+    override float StepSize() { return AttributeSamplers[0].VoxelSize(); }
 };
