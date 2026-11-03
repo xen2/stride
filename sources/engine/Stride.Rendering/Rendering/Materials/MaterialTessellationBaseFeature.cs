@@ -91,7 +91,7 @@ namespace Stride.Rendering.Materials
             if (tessellationShader == null)
                 return;
 
-            tessellationShader.Macros.Add(new ShaderMacro("InputControlPointCount", 12));
+            context.Parameters.Set(MaterialKeys.TessellationInputControlPoints, 12);
         }
     }
 }

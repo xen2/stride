@@ -27,6 +27,10 @@ namespace Stride.Rendering.Compositing
 
         public ShaderMixinSource ShaderSource { get; private set; }
 
+        public int RenderTargetCountMacro { get; private set; }
+
+        public int MultisampleCountMacro { get; private set; }
+
         //public RenderOutputDescription Output { get; private set; }
 
         internal RenderOutputValidator(RenderStage renderStage)
@@ -92,7 +96,7 @@ namespace Stride.Rendering.Compositing
 
                 // Recalculate shader sources
                 ShaderSource = new ShaderMixinSource();
-                ShaderSource.Macros.Add(new ShaderMacro("STRIDE_RENDER_TARGET_COUNT", renderTargets.Count));
+                RenderTargetCountMacro = renderTargets.Count;
                 for (var index = 0; index < renderTargets.Count; index++)
                 {
                     var renderTarget = renderTargets[index];
@@ -100,7 +104,7 @@ namespace Stride.Rendering.Compositing
                         ShaderSource.Compositions.Add($"ShadingColor{index}", renderTarget.Semantic.ShaderClass);
                 }
 
-                ShaderSource.Macros.Add(new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", (int)multisampleCount));
+                MultisampleCountMacro = (int)multisampleCount;
             }
 
             renderStage.Output.RenderTargetCount = renderTargets.Count;
@@ -129,7 +133,8 @@ namespace Stride.Rendering.Compositing
             {
                 // Recalculate shader sources
                 ShaderSource = new ShaderMixinSource();
-                ShaderSource.Macros.Add(new ShaderMacro("STRIDE_MULTISAMPLE_COUNT", (int)multisampleCount));
+                RenderTargetCountMacro = 0;
+                MultisampleCountMacro = (int)multisampleCount;
             }
 
             renderStage.Output = renderOutput;
