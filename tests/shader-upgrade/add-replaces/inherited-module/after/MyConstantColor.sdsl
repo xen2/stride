@@ -1,0 +1,19 @@
+module MyConstantColor
+{
+    import ShaderBase;
+    import Transformation;
+    import PositionStream4;
+
+    [Color]
+    float4 Color;
+
+    override void VSMain()
+    {
+        streams.ShadingPosition = mul(streams.Position, WorldViewProjection);
+    }
+
+    override void PSMain()
+    {
+        streams.ColorTarget = Color;
+    }
+};

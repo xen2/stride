@@ -1,0 +1,13 @@
+shader MyConstantTexture : MyConstantColor, Texturing
+{
+    override stage void VSMain()
+    {
+        streams.ShadingPosition = mul(streams.Position, WorldViewProjection);
+    }
+
+    override stage void PSMain()
+    {
+        // base.PSMain();
+        streams.ColorTarget = Texture0.Sample(LinearSampler, streams.TexCoord) * Color;
+    }
+};

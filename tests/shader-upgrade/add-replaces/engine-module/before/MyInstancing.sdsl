@@ -1,0 +1,14 @@
+shader MyInstancing : ShaderBase, PositionStream4, TransformationInstancing
+{
+    StructuredBuffer<float4> InstanceColors;
+
+    stage override void VSMain()
+    {
+        streams.ShadingPosition = mul(streams.Position, WorldViewProjection);
+    }
+
+    stage override void PSMain()
+    {
+        streams.ColorTarget = InstanceColors[streams.InstanceID];
+    }
+};

@@ -1,0 +1,9 @@
+// It keeps what it inherited
+shader MyCallsBase : MyBase
+{
+    override stage void PSMain()
+    {
+        base.PSMain();
+        streams.ColorTarget *= 2;
+    }
+};
