@@ -43,7 +43,7 @@ public class RenderFeatureTests : RenderFeatureTestBase
 {
     public enum BackgroundMode { None, Cubemap3D, Cubemap2D }
 
-    public enum VoxelMode { None, Default, Variant, ModifiersIsotropic, ModifiersAnisotropic, ModifiersAnisotropicPaired }
+    public enum VoxelMode { None, Default, Variant, AllClipmaps, ModifiersIsotropic, ModifiersAnisotropic, ModifiersAnisotropicPaired }
 
     public enum TessellationMode { None, Mesh, Skinned }
 
@@ -355,6 +355,13 @@ public class RenderFeatureTests : RenderFeatureTestBase
                 volume.VoxelizationMethod = new VoxelizationMethodSingleAxis();
                 emissionOpacity.VoxelLayout = new VoxelLayoutAnisotropic();
                 voxelLight.DiffuseMarcher = new VoxelMarchSetRandomHemisphere();
+            }
+            else if (Voxels == VoxelMode.AllClipmaps)
+            {
+                // Two clips: the storer renders a single clip on its own
+                volume.AproximateVoxelSize = 0.0625f;
+                volume.Storage = new VoxelStorageClipmaps { ClipResolution = VoxelStorageClipmaps.Resolutions.x64, UpdatesPerFrame = VoxelStorageClipmaps.UpdateMethods.AllClipmapsGeometryShader };
+                voxelLight.SpecularMarcher = new VoxelMarchCone(9, 1.0f, 1.0f) { Fast = true };
             }
             else if (Voxels != VoxelMode.Default)
             {
@@ -748,6 +755,13 @@ public class RenderFeatureTests : RenderFeatureTestBase
         public bool HasChanged => false;
 
         public override ShaderSource GenerateShaderSource(ShaderGeneratorContext context, MaterialComputeColorKeys baseKeys) => new ShaderClassSource("Stride.Rendering.LightProbes.ComputeSphericalHarmonics", 5);
+    }
+
+    [SkippableFact]
+    public void VoxelGlobalIlluminationAllClipmaps()
+    {
+        Skip.If(Platform.Type is PlatformType.macOS or PlatformType.iOS, VoxelGlobalIlluminationUnsupported);
+        RunGameTest(new RenderFeatureTests { Voxels = VoxelMode.AllClipmaps, Screenshot = false, TestName = nameof(VoxelGlobalIlluminationAllClipmaps) });
     }
 
     [SkippableFact]

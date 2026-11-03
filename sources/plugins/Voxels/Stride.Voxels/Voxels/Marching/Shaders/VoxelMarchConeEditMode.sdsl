@@ -5,9 +5,6 @@ namespace Stride.Rendering;
 
 shader VoxelMarchConeEditMode : VoxelMarchMethod, VoxelRadiusMarchMethod, MarchAttributes
 {
-    #ifndef AttributeID
-        #define AttributeID 0
-    #endif
     cbuffer PerView.Lighting
     {
         int steps;
@@ -23,7 +20,7 @@ shader VoxelMarchConeEditMode : VoxelMarchMethod, VoxelRadiusMarchMethod, MarchA
     override float4 MarchRadius(float3 rayPos, float3 rayDir, float radiusScale)
     {
         float finalRatio = coneRatio.x * radiusScale;
-        float voxelSize = AttributeSamplers[AttributeID].VoxelSize();
+        float voxelSize = AttributeSamplers[0].VoxelSize();
 
         float dist = voxelSize / max(1,finalRatio);
 
@@ -36,15 +33,15 @@ shader VoxelMarchConeEditMode : VoxelMarchMethod, VoxelRadiusMarchMethod, MarchA
             float3 pos = rayPos + rayDir * dist;
 
             if (fast)
-                light += AttributeSamplers[AttributeID].SampleNearestMip(pos, -rayDir, diameter) * saturate(1.0 - light.a);
+                light += AttributeSamplers[0].SampleNearestMip(pos, -rayDir, diameter) * saturate(1.0 - light.a);
             else
-                light += AttributeSamplers[AttributeID].Sample(pos, -rayDir, diameter) * saturate(1.0 - light.a);
+                light += AttributeSamplers[0].Sample(pos, -rayDir, diameter) * saturate(1.0 - light.a);
 
             dist += diameter * stepScale;
         }
         return light;
     }
     
-    override float StepSize() { return AttributeSamplers[AttributeID].VoxelSize(); }
-    override float StepSizeRadius(float radiusScale) { return radiusScale * AttributeSamplers[AttributeID].VoxelSize(); }
+    override float StepSize() { return AttributeSamplers[0].VoxelSize(); }
+    override float StepSizeRadius(float radiusScale) { return radiusScale * AttributeSamplers[0].VoxelSize(); }
 };

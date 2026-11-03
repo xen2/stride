@@ -5,24 +5,29 @@ namespace Stride.Rendering.Voxels
     /// <summary>
     /// Voxelization, projects to axis of largest area and writes fragments to buffer
     /// </summary>
-    shader VoxelizeToFragments : MaterialPixelStream, MaterialPixelShadingStream
+    shader VoxelizeToFragments : ShadingBase, MaterialPixelStream, MaterialPixelShadingStream
     {
         import Math;
         import Transformation;
         import ShaderBase;
+        import NormalUpdate;
         import Texturing;
         import NormalStream;
         import PositionStream4;
         import VoxelPositionStream;
 
         compose VoxelStorageShader Storage;
+
+        // Input and shading only run for the fragments that are stored, and this is the only one that can tell
+        [Drops(Phases = { Input, Shade })]
         override module void PSMain()
         {
             Storage.PrepareFragments();
             streams.IsFrontFace = true;
             if (Storage.MightStoreFragments())
             {
-                base.PSMain();
+                GenerateNormal_PS();
+                streams.ColorTarget = this.Shading();
                 Storage.StoreFragments();
                 streams.ColorTarget = float4(0,0,0,0);
             }

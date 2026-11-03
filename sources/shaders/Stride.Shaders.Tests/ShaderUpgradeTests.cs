@@ -692,6 +692,17 @@ public class ShaderUpgradeTests
         Assert.Equal(files["E.sdfx"], ShaderUpgrader.Upgrade(new Dictionary<string, string> { ["E.sdfx"] = files["E.sdfx"] }, engine: null).Files["E.sdfx"]);
     }
 
+    // Rewritten by hand: their choices moved from macros to classes and generics
+    static readonly string[] RewrittenByHand =
+    [
+        "sources/plugins/Voxels/Stride.Voxels/Voxels/Marching/Shaders/VoxelMarchBeam.sdsl",
+        "sources/plugins/Voxels/Stride.Voxels/Voxels/Marching/Shaders/VoxelMarchCone.sdsl",
+        "sources/plugins/Voxels/Stride.Voxels/Voxels/Marching/Shaders/VoxelMarchConeEditMode.sdsl",
+        "sources/plugins/Voxels/Stride.Voxels/Voxels/Marching/Shaders/VoxelMarchConePerMipmap.sdsl",
+        "sources/plugins/Voxels/Stride.Voxels/Voxels/Voxelization/VoxelStorage/Shaders/VoxelStorageClipmapShader.sdsl",
+        "sources/plugins/Voxels/Stride.Voxels/Voxels/Voxelization/VoxelizeToFragments.sdsl",
+    ];
+
     // The engine shaders of that commit, upgraded, are today's engine shaders apart from the edits made by hand
     [Fact]
     public void EngineBeforeModulesUpgradesToToday()
@@ -703,7 +714,7 @@ public class ShaderUpgradeTests
         var today = ReadShaders(EngineRoots);
         var upgraded = ShaderUpgrader.Upgrade(old, engine: null).Files;
         var differences = new List<string>();
-        foreach (var path in today.Keys.Intersect(upgraded.Keys).Order(StringComparer.Ordinal))
+        foreach (var path in today.Keys.Intersect(upgraded.Keys).Except(RewrittenByHand).Order(StringComparer.Ordinal))
         {
             var text = upgraded[path].ReplaceLineEndings("\n");
             foreach (var (upgradedText, todayText) in ManualEdits.GetValueOrDefault(path) ?? [])

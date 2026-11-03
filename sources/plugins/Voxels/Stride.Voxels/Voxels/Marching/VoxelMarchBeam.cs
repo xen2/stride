@@ -25,11 +25,10 @@ namespace Stride.Rendering.Voxels
             StepScale = stepScale;
             BeamDiameter = diameter;
         }
-        public ShaderSource GetMarchingShader(int attrID, ShaderSourceCollection attributeSamplers)
+        public ShaderSource GetMarchingShader(ShaderSourceCollection attributeSamplers)
         {
             var mixin = new ShaderMixinSource();
             mixin.Mixins.Add(new ShaderClassSource(VoxelMarchBeamKeys.ShaderName, Steps, StepScale, BeamDiameter));
-            mixin.Macros.Add(new ShaderMacro("AttributeID", attrID));
             foreach (var sampler in attributeSamplers)
                 mixin.AddCompositionToArray("AttributeSamplers", sampler);
             return mixin;
@@ -43,9 +42,9 @@ namespace Stride.Rendering.Voxels
         public void ApplyMarchingParameters(ParameterCollection parameters)
         {
         }
-        public void ApplyAttributeSamplers(VoxelAttribute attribute, int attrID, VoxelViewContext viewContext, ParameterCollection parameters)
+        public void ApplyAttributeSamplers(VoxelAttribute attribute, VoxelViewContext viewContext, ParameterCollection parameters)
         {
-            attribute.UpdateSamplingLayout($"AttributeSamplers[{attrID}].{compositionName}");
+            attribute.UpdateSamplingLayout($"AttributeSamplers[0].{compositionName}");
             attribute.ApplySamplingParameters(viewContext, parameters);
         }
     }

@@ -109,28 +109,15 @@ namespace Stride.Rendering.Voxels
             }
         }
 
-        ShaderClassSource storage = new ShaderClassSource(VoxelStorageClipmapShaderKeys.ShaderName);
+        ShaderClassSource storageSingle = new ShaderClassSource(VoxelStorageClipmapSingleShaderKeys.ShaderName);
+        ShaderClassSource storageAll = new ShaderClassSource(VoxelStorageClipmapAllShaderKeys.ShaderName);
 
         public ShaderSource GetVoxelizationShader(VoxelizationPass pass, ProcessedVoxelVolume data)
         {
-            bool singleClip = UpdatesOneClipPerFrame();
             ShaderSource VoxelizationMethodSource = pass.method.GetVoxelizationShader();
             ShaderMixinSource cachedMixin = new ShaderMixinSource();
-            cachedMixin.Mixins.Add(storage);
+            cachedMixin.Mixins.Add(UpdatesOneClipPerFrame() ? storageSingle : storageAll);
             cachedMixin.AddComposition("method", VoxelizationMethodSource);
-            if (singleClip)
-            {
-                cachedMixin.AddMacro("singleClip", true);
-            }
-
-            string IndirectStoreMacro = "";
-            for (int i = 0; i < pass.AttributesIndirect.Count; i++)
-            {
-                string iStr = i.ToString();
-                IndirectStoreMacro += $"AttributesIndirect[{iStr}].IndirectWrite(fragmentsBuffer, writeindex + {pass.AttributesIndirect[i].BufferOffset});\n";
-            }
-
-            cachedMixin.AddMacro("IndirectStoreMacro", IndirectStoreMacro);
 
             foreach (var attr in pass.AttributesTemp)
             {
@@ -142,7 +129,15 @@ namespace Stride.Rendering.Voxels
             }
             foreach (var attr in pass.AttributesIndirect)
             {
-                cachedMixin.AddCompositionToArray("AttributesIndirect", attr.GetVoxelizationShader());
+                // The attribute writes at its own place in the fragments of a voxel
+                var attribute = attr.GetVoxelizationShader() switch
+                {
+                    ShaderMixinSource mixin => mixin,
+                    ShaderClassCode shaderClass => new ShaderMixinSource { Mixins = { shaderClass } },
+                    var other => throw new InvalidOperationException($"{attr.GetType().Name} gives a {other?.GetType().Name}, which can't take a buffer offset"),
+                };
+                attribute.Mixins.Add(new ShaderClassSource(VoxelAttributeBufferOffsetKeys.ShaderName, attr.BufferOffset));
+                cachedMixin.AddCompositionToArray("AttributesIndirect", attribute);
             }
 
             return cachedMixin;
