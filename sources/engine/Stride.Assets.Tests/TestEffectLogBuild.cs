@@ -65,6 +65,7 @@ namespace Stride.Assets.Tests
 
             Assert.Equal(BuildResultCode.BuildError, result);
             Assert.Contains(log.Messages, x => x.Type == LogMessageType.Error && x.Text.Contains("SDSL0216: Dropper.PSMain doesn't call base, so Step never run in this effect. Write [Drops(Mixins = { Step })] on it, or call base."));
+            Assert.Contains(log.Messages, x => x.Type == LogMessageType.Error && x.Text.Contains("This entry of an effect log failed. If the error above is about your shaders, fix it. If the log is older than the engine, delete it and record it again."));
         }
 
         [Theory]

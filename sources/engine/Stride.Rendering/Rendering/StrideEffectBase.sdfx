@@ -150,6 +150,10 @@ namespace Stride.Rendering
         if(extensionTessellationShader != null)
         {
             mixin (extensionTessellationShader);
+            if (MaterialKeys.TessellationInputControlPoints != 0)
+            {
+                mixin macro InputControlPointCount = MaterialKeys.TessellationInputControlPoints;
+            }
 
             var extensionDomainStageSurfaceShaders = MaterialKeys.DomainStageSurfaceShaders;
             if(extensionDomainStageSurfaceShaders != null)
@@ -185,6 +189,14 @@ namespace Stride.Rendering
         if (targetExtensions != null)
         {
             mixin (targetExtensions);
+        }
+        if (StrideEffectBaseKeys.RenderTargetCount != 0)
+        {
+            mixin macro STRIDE_RENDER_TARGET_COUNT = StrideEffectBaseKeys.RenderTargetCount;
+        }
+        if (StrideEffectBaseKeys.MultisampleCount != 0)
+        {
+            mixin macro STRIDE_MULTISAMPLE_COUNT = StrideEffectBaseKeys.MultisampleCount;
         }
    };
 }
