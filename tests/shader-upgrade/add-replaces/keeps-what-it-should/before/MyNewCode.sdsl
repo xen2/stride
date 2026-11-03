@@ -1,0 +1,10 @@
+// Written for 4.5: the import is the author's, so SDSL0216 is theirs to answer
+module MyNewCode
+{
+    import MyBase;
+
+    override void PSMain()
+    {
+        streams.ColorTarget = 4;
+    }
+};

@@ -25,6 +25,9 @@ internal sealed class ShaderUpgradeClass
 
     public List<string> Parents { get; init; } = [];
 
+    /// <summary>Project and dependency classes: the <see cref="Parents"/> written with <c>import</c>.</summary>
+    public HashSet<string> Imports { get; init; } = [];
+
     /// <summary>Engine classes: the full name.</summary>
     public string? FullName { get; init; }
 
@@ -48,6 +51,12 @@ internal sealed class ShaderUpgradeClass
 
     /// <summary>The methods whose first definition here declares a kind: name and signature.</summary>
     public HashSet<(string Name, string Signature)> DeclaredKinds { get; } = [];
+
+    /// <summary>The module methods this class overrides or extends, by name.</summary>
+    public HashSet<string> Contributions { get; } = [];
+
+    /// <summary>The overrides that state their place themselves: <c>[Phase]</c>, <c>[MixinOrder]</c> or <c>[Drops]</c>.</summary>
+    public HashSet<(string Name, string Signature)> PlacedOverrides { get; } = [];
 
     /// <summary>Classes named before a <c>.</c> in the code (static references), with the text written for them.</summary>
     public Dictionary<string, string> StaticReferences { get; } = [];
@@ -289,6 +298,36 @@ internal sealed class ShaderUpgradeProject
     public bool IsModuleAfterUpgrade(string name) => Classes.TryGetValue(name, out var shaderClass) && (shaderClass.IsModule || BecomesModule(name));
 
     /// <summary>
+    /// The modules that an override of an extension point in <paramref name="shaderClass"/> inherited and that contribute to the
+    /// same point. Before modules, an override with no <c>base</c> replaced them by inheritance. Once they are imported, it drops them (SDSL0216).
+    /// An <c>import</c> written in a class of the project is not inheritance: that code was written for modules, and its author decides.
+    /// </summary>
+    public List<string> InheritedContributors(ShaderUpgradeClass shaderClass, string method, string signature)
+    {
+        var inherited = new HashSet<string>();
+        Collect(shaderClass);
+        return inherited.Any(IsPoint)
+            ? inherited.Where(x => IsModuleAfterUpgrade(x) && Contributes(x)).Order(StringComparer.Ordinal).ToList()
+            : [];
+
+        void Collect(ShaderUpgradeClass current)
+        {
+            foreach (var parent in current.Parents.Where(x => !IsProjectClass(current) || !current.Imports.Contains(x)))
+            {
+                if (inherited.Add(parent) && Classes.TryGetValue(parent, out var parentClass))
+                    Collect(parentClass);
+            }
+        }
+
+        // It has a kind, or the add-kinds step gives it one
+        bool IsPoint(string name) => Classes.TryGetValue(name, out var owner) && (owner.DeclaredKinds.Contains((method, signature))
+            || IsProjectClass(owner) && owner.Methods.Any(x => x.Name == method && x.Signature == signature && !x.IsOverride && !x.IsAbstract && (x.IsModule || BecomesModule(name))));
+
+        bool Contributes(string name) => Classes.TryGetValue(name, out var contributor) && (contributor.Contributions.Contains(method)
+            || BecomesModule(name) && contributor.Methods.Any(x => x.Name == method && x.IsOverride && !x.IsAbstract));
+    }
+
+    /// <summary>
     /// The class declaring a method that is not an override, looking at <paramref name="name"/> then its parents in order.
     /// </summary>
     public ShaderUpgradeClass? MethodOwner(string name, string method)
@@ -338,6 +377,7 @@ internal sealed class ShaderUpgradeProject
                 Parents = declaration.Mixins.Select(x => BaseName(x.Name))
                     .Concat(declaration.Elements.OfType<ShaderImport>().Select(x => BaseName(x.Module.Name)))
                     .ToList(),
+                Imports = declaration.Elements.OfType<ShaderImport>().Select(x => BaseName(x.Module.Name)).ToHashSet(),
                 Keys = declaration.Elements.OfType<ShaderMember>().Concat(declaration.Elements.OfType<ShaderBuffer>().SelectMany(x => x.Members))
                     .Where(x => !x.IsCompose && x.TypeModifier != TypeModifier.Const && x.StreamKind == StreamKind.None && x.StorageClass is not (StorageClass.Static or StorageClass.GroupShared))
                     .Select(x => x.Name.Name)
@@ -371,6 +411,10 @@ internal sealed class ShaderUpgradeProject
                             shaderClass.Patches.Add(method.Name.Name);
                         if (method.Kinds.Count > 0)
                             shaderClass.DeclaredKinds.Add((method.Name.Name, signature));
+                        if (method.Attributes?.OfType<AnyShaderAttribute>().Any(x => x.Name.Name is "Phase" or "MixinOrder" or "Drops") == true)
+                            shaderClass.PlacedOverrides.Add((method.Name.Name, signature));
+                        if ((method.IsStaged || declaration.IsModule) && !method.IsAbstract && (method.IsOverride || method.Extend is { IsPatch: false }))
+                            shaderClass.Contributions.Add(method.Name.Name);
                         shaderClass.Methods.Add((method.Name.Name, method.IsStaged || declaration.IsModule, method.IsOverride, method.IsAbstract, signature, method.Body?.Info.Text.ToString() ?? ""));
                         break;
                 }

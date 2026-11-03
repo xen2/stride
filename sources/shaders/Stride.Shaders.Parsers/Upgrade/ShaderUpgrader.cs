@@ -35,6 +35,9 @@ public static partial class ShaderUpgrader
         "add-override",
         // 4.5: module code of a class used in compositions can only call module methods
         "module-helpers",
+        // 4.5: an override that replaced an inherited class says so once that class is imported (SDSL0216); before module-units, which
+        // writes the imports, because an import already in the code means the author decided
+        "add-replaces",
         // 4.5: classes with no instance part that other classes import are `module X`, imported with `import X;`
         "module-units",
         // 4.5: an override of a module method needs a kind on its first definition (SDSL0246)
@@ -91,6 +94,9 @@ public static partial class ShaderUpgrader
                     break;
                 case "module-helpers":
                     Apply(texts, project => MarkModuleHelpers(project, texts, notes), engine, notes, dependencyTexts);
+                    break;
+                case "add-replaces":
+                    Apply(texts, project => AddReplaces(project, texts), engine, notes, dependencyTexts);
                     break;
                 case "module-units":
                     Apply(texts, project => ConvertModules(project, texts, notes), engine, notes, dependencyTexts);
@@ -365,11 +371,54 @@ public static partial class ShaderUpgrader
         return sources;
     }
 
+    /// <summary>
+    /// An override with no <c>base</c> replaced what it inherited, and a class that becomes a module is imported, not inherited: the override
+    /// gets <c>[Drops]</c>, which does what the older version did. Two classes that are only mixed together aren't related here, so
+    /// nothing changes for them: only their author knows what the override means.
+    /// </summary>
+    private static Dictionary<string, ShaderSourceText> AddReplaces(ShaderUpgradeProject project, Dictionary<string, string> texts)
+    {
+        var sources = new Dictionary<string, ShaderSourceText>();
+        foreach (var shaderClass in project.ProjectClasses)
+        {
+            foreach (var method in shaderClass.Methods.Where(x => x.IsOverride && !x.IsAbstract && (x.IsModule || project.BecomesModule(shaderClass.Name)) && !shaderClass.PlacedOverrides.Contains((x.Name, x.Signature))))
+            {
+                var replaced = project.InheritedContributors(shaderClass, method.Name, method.Signature);
+                if (replaced.Count == 0)
+                    continue;
+
+                var source = Source(sources, texts, shaderClass.Path!);
+                foreach (var classText in source.FindClass(shaderClass.Name))
+                {
+                    // Also from a helper of the class, which reaches the same chain
+                    if (source.CodeMatches($@"(?<![\w.])base\s*\.\s*{Regex.Escape(method.Name)}\s*\(", classText.Open, classText.Close).Any())
+                        continue;
+
+                    foreach (var declaration in MethodDeclarations(source, classText, method.Name, "Drops"))
+                    {
+                        if (DeclaredSignature(source.Text, declaration) == method.Signature)
+                            InsertAttribute(source, declaration, $"Drops(Mixins = {{ {string.Join(", ", replaced)} }})");
+                    }
+                }
+            }
+        }
+        return sources;
+    }
+
     // After the modifiers of the declaration at start
     private static int ReturnType(string text, int start)
     {
         var modifiers = Regex.Match(text[start..], @"\A(?:(?:module|static)\s+)*");
         return start + modifiers.Length;
+    }
+
+    // On its own line before the declaration, at its indentation
+    private static void InsertAttribute(ShaderSourceText source, int declaration, string attribute)
+    {
+        var lineStart = source.Text.LastIndexOf('\n', declaration - 1) + 1;
+        var indent = source.Text[lineStart..declaration];
+        var newline = source.Text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        source.Insert(declaration, $"[{attribute}]{newline}{(string.IsNullOrWhiteSpace(indent) ? indent : "")}");
     }
 
     /// <summary>

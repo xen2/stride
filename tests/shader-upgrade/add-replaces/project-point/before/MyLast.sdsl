@@ -1,0 +1,4 @@
+shader MyLast : MyStep
+{
+    stage override float Pick() { return 3; }
+};

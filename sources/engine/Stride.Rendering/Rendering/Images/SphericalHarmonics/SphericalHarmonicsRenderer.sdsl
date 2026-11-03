@@ -16,6 +16,7 @@ namespace Stride.Rendering.Images
         [Color] module float3 SHCoefficients[CoefficientsCount];
 
         // Shading of the sprite
+        [Drops(Mixins = { SpriteBase })]
         module override void PSMain()
         {
             float3 ColorTargets[6];

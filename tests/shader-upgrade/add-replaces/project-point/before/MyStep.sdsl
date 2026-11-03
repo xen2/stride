@@ -1,0 +1,4 @@
+shader MyStep : MyOwner
+{
+    stage override float Pick() { return 2; }
+};

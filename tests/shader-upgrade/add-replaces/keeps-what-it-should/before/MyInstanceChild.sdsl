@@ -1,0 +1,8 @@
+[Root]
+shader MyInstanceChild : MyInstanceParent
+{
+    override stage void PSMain()
+    {
+        streams.ColorTarget = Amount * 2;
+    }
+};

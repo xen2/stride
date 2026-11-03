@@ -587,6 +587,53 @@ public class ShaderUpgradeTests
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
     }
 
+    // What the step writes is what an effect of the asset build needs: the same classes without it don't compile
+    [Theory]
+    [InlineData("inherited-module", "MyConstantTexture", "[Drops(Mixins = { MyConstantColor })]", "SDSL0216")]
+    [InlineData("engine-module", "MyInstancing", "[Drops(Mixins = { TransformationBase })]", "SDSL0216")]
+    [InlineData("project-point", "MyLast", "[Drops(Mixins = { MyStep })]", "SDSL0136")]
+    public void UpgradedReplacesCompilesInAnAssetBuild(string fixture, string shader, string written, string withoutIt)
+    {
+        var after = Path.Combine(FixturesDirectory, "add-replaces", fixture, "after");
+        Assert.Contains(written, File.ReadAllText(Path.Combine(after, $"{shader}.sdsl")), StringComparison.Ordinal);
+
+        var (ok, log) = Mix(after);
+        Assert.True(ok, log);
+
+        var without = Directory.CreateTempSubdirectory("add-replaces-").FullName;
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(after))
+                File.WriteAllText(Path.Combine(without, Path.GetFileName(file)), File.ReadAllText(file).Replace(written, ""));
+            var (withoutOk, withoutLog) = Mix(without);
+            Assert.False(withoutOk, withoutLog);
+            Assert.Contains(withoutIt, withoutLog);
+        }
+        finally
+        {
+            Directory.Delete(without, recursive: true);
+        }
+
+        (bool Ok, string Log) Mix(string directory)
+        {
+            var log = new Stride.Core.Diagnostics.LoggerResult();
+            var source = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("ShaderBase")), new ShaderClassSource(TestShader.FullName(shader)) } };
+            var mixer = new ShaderMixer(new ShaderLoader(directory, "./assets/Stride/SDSL")) { IsAssetBuild = true };
+            var ok = mixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+            return (ok, string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
+        }
+    }
+
+    // Found by the add-replaces rule on the old engine: no effect of the corpus holds it, and the harness mixes it with no generic value
+    [Fact]
+    public void SphericalHarmonicsRendererCompilesInAnAssetBuild()
+    {
+        var log = new Stride.Core.Diagnostics.LoggerResult();
+        var source = new ShaderMixinSource { Mixins = { new ShaderClassSource("Stride.Rendering.Images.SphericalHarmonicsRenderer", 3) } };
+        var mixer = new ShaderMixer(new ShaderLoader("./assets/Stride/SDSL")) { IsAssetBuild = true };
+        Assert.True(mixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _), string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
+    }
+
     // Master before the `module` work (A13a): engine shaders still written with `stage`
     const string EngineBeforeModules = "195392b6d9";
 
@@ -661,7 +708,8 @@ public class ShaderUpgradeTests
             var text = upgraded[path].ReplaceLineEndings("\n");
             foreach (var (upgradedText, todayText) in ManualEdits.GetValueOrDefault(path) ?? [])
                 text = text.Replace(upgradedText, todayText);
-            // The kinds the upgrade writes are not the ones the engine chose by hand
+            // The kinds and the replacements the upgrade writes are not the ones the engine chose by hand
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"^[ \t]*\[Drops\([^)\n]*\)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline);
             text = WithoutCallSyntax(WithoutEngineNamespaceLines(WithoutKinds(text)));
             // [Root], [Pure] and the kinds, phases and orders of extension points are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
             var expected = WithoutCallSyntax(WithoutEngineNamespaceLines(WithoutKinds(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|(Phases|Phase|MixinOrder|Drops)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline))));

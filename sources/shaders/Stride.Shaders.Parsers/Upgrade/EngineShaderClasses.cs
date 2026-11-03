@@ -6,7 +6,7 @@ namespace Stride.Shaders.Parsing.Upgrade;
 
 /// <summary>
 /// The engine shader classes and effects as the upgrade of a project needs them: kind (module, shader or effect), compose type,
-/// <c>[Root]</c>, parents, abstract methods, full name, generated keys. When a project is upgraded, the engine shaders on disk are those of its old version, so this list of the
+/// <c>[Root]</c>, parents, abstract methods, full name, generated keys, contributions, extension points. When a project is upgraded, the engine shaders on disk are those of its old version, so this list of the
 /// current engine is embedded instead (<c>EngineShaders.txt</c>, checked against the engine sources by a test).
 /// </summary>
 public sealed class EngineShaderClasses
@@ -133,8 +133,9 @@ public sealed class EngineShaderClasses
 
     /// <summary>
     /// Reads the format of <see cref="Write"/>: one class per line, <c>name, generic parameter count, module|shader|effect, compose|-,
-    /// root|-, parents, abstract methods, full name, generated keys</c> separated by tabs; <c>#</c> starts a comment line. An abstract method is
-    /// <c>Name(parameter types)</c>, several separated by <c>;</c>.
+    /// root|-, parents, abstract methods, full name, generated keys, contributions, extension points</c> separated by tabs; <c>#</c> starts a comment
+    /// line. An abstract method or an extension point is <c>Name(parameter types)</c>, several separated by <c>;</c>. A contribution is the name of a
+    /// module method the class overrides or extends.
     /// </summary>
     public static EngineShaderClasses Parse(string text)
     {
@@ -167,6 +168,13 @@ public sealed class EngineShaderClasses
                 var open = method.IndexOf('(');
                 shaderClass.Methods.Add((method[..open], shaderClass.IsModule, IsOverride: false, IsAbstract: true, method[(open + 1)..^1], ""));
             }
+            foreach (var contribution in columns.Length > 9 && columns[9].Length > 0 ? columns[9].Split(',') : [])
+                shaderClass.Contributions.Add(contribution);
+            foreach (var point in columns.Length > 10 && columns[10].Length > 0 ? columns[10].Split(';') : [])
+            {
+                var open = point.IndexOf('(');
+                shaderClass.DeclaredKinds.Add((point[..open], point[(open + 1)..^1]));
+            }
             result.Classes.Add(shaderClass);
         }
         return result;
@@ -185,12 +193,12 @@ public sealed class EngineShaderClasses
             throw new InvalidOperationException($"Engine shaders can't be read:\n{string.Join("\n", notes)}");
 
         var result = new StringBuilder();
-        result.Append("# Engine shader classes for the shader source upgrade (ShaderUpgrader): name, generic parameter count, module|shader|effect, compose|-, root|- ([Root]), parents, abstract methods, full name, generated keys.\n");
+        result.Append("# Engine shader classes for the shader source upgrade (ShaderUpgrader): name, generic parameter count, module|shader|effect, compose|-, root|- ([Root]), parents, abstract methods, full name, generated keys, contributions, extension points.\n");
         result.Append("# Generated from the engine .sdsl files by the explicit test ShaderUpgradeTests.UpdateEngineShaderClasses.\n");
         foreach (var shaderClass in project.ProjectClasses.OrderBy(x => x.Name, StringComparer.Ordinal))
         {
             var fullName = declarations.FirstOrDefault(x => !x.IsEffect && x.Name == shaderClass.Name).FullName ?? shaderClass.Name;
-            result.Append($"{shaderClass.Name}\t{shaderClass.GenericParameterCount}\t{(shaderClass.IsModule ? "module" : "shader")}\t{(project.IsComposeType(shaderClass.Name) ? "compose" : "-")}\t{(shaderClass.IsRoot ? "root" : "-")}\t{string.Join(",", shaderClass.Parents)}\t{string.Join(";", shaderClass.Methods.Where(x => x.IsAbstract).Select(x => $"{x.Name}({x.Signature})"))}\t{fullName}\t{string.Join(",", shaderClass.Keys.Order(StringComparer.Ordinal))}\n");
+            result.Append($"{shaderClass.Name}\t{shaderClass.GenericParameterCount}\t{(shaderClass.IsModule ? "module" : "shader")}\t{(project.IsComposeType(shaderClass.Name) ? "compose" : "-")}\t{(shaderClass.IsRoot ? "root" : "-")}\t{string.Join(",", shaderClass.Parents)}\t{string.Join(";", shaderClass.Methods.Where(x => x.IsAbstract).Select(x => $"{x.Name}({x.Signature})"))}\t{fullName}\t{string.Join(",", shaderClass.Keys.Order(StringComparer.Ordinal))}\t{string.Join(",", shaderClass.Contributions.Order(StringComparer.Ordinal))}\t{string.Join(";", shaderClass.DeclaredKinds.Select(x => $"{x.Name}({x.Signature})").Order(StringComparer.Ordinal))}\n");
         }
         foreach (var effect in declarations.Where(x => x.IsEffect).DistinctBy(x => x.Name).OrderBy(x => x.Name, StringComparer.Ordinal))
             result.Append($"{effect.Name}\t0\teffect\t-\t-\t\t\t{effect.FullName}\t\n");

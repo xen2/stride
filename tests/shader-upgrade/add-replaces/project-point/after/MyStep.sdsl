@@ -1,0 +1,6 @@
+module MyStep
+{
+    import MyOwner;
+
+    extend MyOwner.Pick() { return 2; }
+};
