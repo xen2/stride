@@ -138,39 +138,39 @@ namespace Stride.Shaders.Compiler
         /// <summary>
         /// Adds the graphics API and profile macros that every effect is compiled with.
         /// </summary>
-        public static void AddPlatformMacros(ShaderMixinSource shaderMixinSource, EffectCompilerParameters effectParameters)
+        public static void AddPlatformMacros(EffectSource effect, EffectCompilerParameters effectParameters)
         {
             // Generate platform-specific macros
             switch (effectParameters.Platform)
             {
                 case GraphicsPlatform.Direct3D11:
-                    shaderMixinSource.AddMacro("STRIDE_GRAPHICS_API_DIRECT3D", 1);
-                    shaderMixinSource.AddMacro("STRIDE_GRAPHICS_API_DIRECT3D11", 1);
+                    effect.AddMacro("STRIDE_GRAPHICS_API_DIRECT3D", 1);
+                    effect.AddMacro("STRIDE_GRAPHICS_API_DIRECT3D11", 1);
                     break;
                 case GraphicsPlatform.Direct3D12:
-                    shaderMixinSource.AddMacro("STRIDE_GRAPHICS_API_DIRECT3D", 1);
-                    shaderMixinSource.AddMacro("STRIDE_GRAPHICS_API_DIRECT3D12", 1);
+                    effect.AddMacro("STRIDE_GRAPHICS_API_DIRECT3D", 1);
+                    effect.AddMacro("STRIDE_GRAPHICS_API_DIRECT3D12", 1);
                     break;
                 case GraphicsPlatform.Vulkan:
-                    shaderMixinSource.AddMacro("STRIDE_GRAPHICS_API_VULKAN", 1);
+                    effect.AddMacro("STRIDE_GRAPHICS_API_VULKAN", 1);
                     break;
                 default:
                     throw new NotSupportedException();
             }
 
             // Generate profile-specific macros
-            shaderMixinSource.AddMacro("STRIDE_GRAPHICS_PROFILE", (int)effectParameters.Profile);
-            shaderMixinSource.AddMacro("GRAPHICS_PROFILE_LEVEL_9_1", (int)GraphicsProfile.Level_9_1);
-            shaderMixinSource.AddMacro("GRAPHICS_PROFILE_LEVEL_9_2", (int)GraphicsProfile.Level_9_2);
-            shaderMixinSource.AddMacro("GRAPHICS_PROFILE_LEVEL_9_3", (int)GraphicsProfile.Level_9_3);
-            shaderMixinSource.AddMacro("GRAPHICS_PROFILE_LEVEL_10_0", (int)GraphicsProfile.Level_10_0);
-            shaderMixinSource.AddMacro("GRAPHICS_PROFILE_LEVEL_10_1", (int)GraphicsProfile.Level_10_1);
-            shaderMixinSource.AddMacro("GRAPHICS_PROFILE_LEVEL_11_0", (int)GraphicsProfile.Level_11_0);
-            shaderMixinSource.AddMacro("GRAPHICS_PROFILE_LEVEL_11_1", (int)GraphicsProfile.Level_11_1);
-            shaderMixinSource.AddMacro("GRAPHICS_PROFILE_LEVEL_11_2", (int)GraphicsProfile.Level_11_2);
+            effect.AddMacro("STRIDE_GRAPHICS_PROFILE", (int)effectParameters.Profile);
+            effect.AddMacro("GRAPHICS_PROFILE_LEVEL_9_1", (int)GraphicsProfile.Level_9_1);
+            effect.AddMacro("GRAPHICS_PROFILE_LEVEL_9_2", (int)GraphicsProfile.Level_9_2);
+            effect.AddMacro("GRAPHICS_PROFILE_LEVEL_9_3", (int)GraphicsProfile.Level_9_3);
+            effect.AddMacro("GRAPHICS_PROFILE_LEVEL_10_0", (int)GraphicsProfile.Level_10_0);
+            effect.AddMacro("GRAPHICS_PROFILE_LEVEL_10_1", (int)GraphicsProfile.Level_10_1);
+            effect.AddMacro("GRAPHICS_PROFILE_LEVEL_11_0", (int)GraphicsProfile.Level_11_0);
+            effect.AddMacro("GRAPHICS_PROFILE_LEVEL_11_1", (int)GraphicsProfile.Level_11_1);
+            effect.AddMacro("GRAPHICS_PROFILE_LEVEL_11_2", (int)GraphicsProfile.Level_11_2);
 
             // In .sdsl, class has been renamed to shader to avoid ambiguities with HLSL
-            shaderMixinSource.AddMacro("class", "shader");
+            effect.AddMacro("class", "shader");
         }
 
         public static ShaderMixer.Options GetMixerOptions(GraphicsPlatform platform) => new(
@@ -181,7 +181,7 @@ namespace Stride.Shaders.Compiler
             // Vulkan and D3D12 (spirv_to_dxil) read the SPIR-V layout; D3D11 packs the HLSL like Direct3D already
             Direct3DStructuredBufferLayout: platform is GraphicsPlatform.Vulkan or GraphicsPlatform.Direct3D12);
 
-        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId mixinObjectId)
+        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(EffectSource effect, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId mixinObjectId)
         {
             var log = new LoggerResult();
 
@@ -193,18 +193,15 @@ namespace Stride.Shaders.Compiler
                 d3dCompilerLoaded = true;
             }
 
-            var shaderMixinSource = mixinTree;
-            var fullEffectName = mixinTree.Name;
+            var fullEffectName = effect.Name;
 
-            // Make a copy of shaderMixinSource. Use deep clone since shaderMixinSource can be altered during compilation (e.g. macros)
-            var shaderMixinSourceCopy = new ShaderMixinSource();
-            shaderMixinSourceCopy.DeepCloneFrom(shaderMixinSource);
-            shaderMixinSource = shaderMixinSourceCopy;
-
-            AddPlatformMacros(shaderMixinSource, effectParameters);
+            var effectWithPlatform = new EffectSource(effect.Root);
+            effectWithPlatform.Macros.AddRange(effect.Macros);
+            effectWithPlatform.Linkage.AddRange(effect.Linkage);
+            AddPlatformMacros(effectWithPlatform, effectParameters);
 
             var shaderMixer = new ShaderMixer(GetFileShaderLoader()) { IsAssetBuild = IsAssetBuild };
-            if (!shaderMixer.MergeSDSL(shaderMixinSource, GetMixerOptions(effectParameters.Platform), log, out var spirvBytecode, out var effectReflection, out var usedHashSources, out var entryPoints))
+            if (!shaderMixer.MergeSDSL(effectWithPlatform, GetMixerOptions(effectParameters.Platform), log, out var spirvBytecode, out var effectReflection, out var usedHashSources, out var entryPoints))
                 return new EffectBytecodeCompilerResult(null, log);
 
             // Optional SPIR-V validation (requires spirv-val from Vulkan SDK)
@@ -446,7 +443,7 @@ namespace Stride.Shaders.Compiler
                     builder.AppendLine("// ShaderSource in C# that generated this EffectBytecode. You can copy-psate it to reproduce it easily in a unit test.");
                     builder.AppendLine("// Note: Other slightly different ShaderSource inputs might produce the same EffectBytecode, only first one is saved here.");
                     builder.Append("var shaderSource = ");
-                    builder.AppendLine(mixinTree.ToCode());
+                    builder.AppendLine(effect.ToCode());
                     builder.AppendLine("***************************");
 
 

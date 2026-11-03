@@ -1,0 +1,25 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.Shaders.Tests
+{
+    effect EffectLinkagePart
+    {
+        unbind Owner.Run.Late;
+        mixin PartShader;
+    };
+
+    // Mixed: the rule is on the effect
+    effect EffectLinkageMixedPart
+    {
+        order Owner.Run.Early: First, Second;
+        mixin EffectLinkagePart;
+    };
+
+    // Composed: the rule is in a composition
+    effect EffectLinkageComposedPart
+    {
+        mixin BaseShader;
+        mixin compose Layer = EffectLinkagePart;
+    };
+}

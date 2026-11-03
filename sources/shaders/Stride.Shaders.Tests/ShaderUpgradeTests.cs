@@ -553,7 +553,7 @@ public class ShaderUpgradeTests
             Compositions = { ["Surface"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("MyStormDisplacement")) } } },
         };
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
+        Assert.True(new ShaderMixer(loader).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
     }
 
@@ -568,7 +568,7 @@ public class ShaderUpgradeTests
             Compositions = { ["Color"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("MyThreadColor")) } } },
         };
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
+        Assert.True(new ShaderMixer(loader).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
     }
 
@@ -583,7 +583,7 @@ public class ShaderUpgradeTests
             Compositions = { ["Color"] = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("MyBrightColor")) } } },
         };
         var log = new Stride.Core.Diagnostics.LoggerResult();
-        Assert.True(new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _),
+        Assert.True(new ShaderMixer(loader).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
     }
 
@@ -619,7 +619,7 @@ public class ShaderUpgradeTests
             var log = new Stride.Core.Diagnostics.LoggerResult();
             var source = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.FullName("ShaderBase")), new ShaderClassSource(TestShader.FullName(shader)) } };
             var mixer = new ShaderMixer(new ShaderLoader(directory, "./assets/Stride/SDSL")) { IsAssetBuild = true };
-            var ok = mixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+            var ok = mixer.MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
             return (ok, string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
         }
     }
@@ -631,7 +631,7 @@ public class ShaderUpgradeTests
         var log = new Stride.Core.Diagnostics.LoggerResult();
         var source = new ShaderMixinSource { Mixins = { new ShaderClassSource("Stride.Rendering.Images.SphericalHarmonicsRenderer", 3) } };
         var mixer = new ShaderMixer(new ShaderLoader("./assets/Stride/SDSL")) { IsAssetBuild = true };
-        Assert.True(mixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _), string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
+        Assert.True(mixer.MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _), string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
     }
 
     // Master before the `module` work (A13a): engine shaders still written with `stage`

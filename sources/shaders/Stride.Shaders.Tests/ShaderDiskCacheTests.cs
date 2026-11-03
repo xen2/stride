@@ -657,7 +657,7 @@ public class ShaderDiskCacheTests : IDisposable
     private static string Mix(CountingLoader loader, ShaderMixinSource source)
     {
         var log = new LoggerResult();
-        Assert.True(new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
+        Assert.True(new ShaderMixer(loader).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out var bytecode, out _, out _, out _),
             string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
         return Spv.Dis(SpirvBytecode.CreateFromSpan(bytecode), DisassemblerFlags.Name);
     }

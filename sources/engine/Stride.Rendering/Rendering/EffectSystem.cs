@@ -267,11 +267,9 @@ namespace Stride.Rendering
 
             if (compilerResult is null)
             {
-                var source = isSdfx
-                    ? new ShaderMixinGeneratorSource(effectName)
-                    : (ShaderSource) new ShaderClassSource(effectName);
-
-                compilerResult = compiler.Compile(source, compilerParameters);
+                compilerResult = isSdfx
+                    ? compiler.Compile(new ShaderMixinGeneratorSource(effectName), compilerParameters)
+                    : compiler.Compile(new EffectSource(new ShaderClassSource(effectName)), compilerParameters);
 
                 EffectUsed?.Invoke(new EffectCompileRequest(effectName, new CompilerParameters(compilerParameters)), compilerResult);
 

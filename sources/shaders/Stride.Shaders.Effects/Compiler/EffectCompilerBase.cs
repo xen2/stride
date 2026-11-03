@@ -122,42 +122,24 @@ namespace Stride.Shaders.Compiler
             }
         }
 
-        public CompilerResults Compile(ShaderSource shaderSource, CompilerParameters compilerParameters)
+        /// <inheritdoc/>
+        public CompilerResults Compile(ShaderMixinGeneratorSource effectGenerator, CompilerParameters compilerParameters)
         {
-            ShaderMixinSource mixinToCompile;
-            var shaderMixinGeneratorSource = shaderSource as ShaderMixinGeneratorSource;
+            return Compile(ShaderMixinManager.Generate(effectGenerator.Name, compilerParameters), compilerParameters);
+        }
 
-            if (shaderMixinGeneratorSource != null)
-            {
-                mixinToCompile = ShaderMixinManager.Generate(shaderMixinGeneratorSource.Name, compilerParameters);
-            }
-            else
-            {
-                mixinToCompile = shaderSource as ShaderMixinSource;
-                var shaderClassSource = shaderSource as ShaderClassCode;
+        /// <inheritdoc/>
+        public CompilerResults Compile(EffectSource effect, CompilerParameters compilerParameters)
+        {
+            if (string.IsNullOrEmpty(effect.Name))
+                throw new ArgumentException("An effect must have a name", nameof(effect));
 
-                if (shaderClassSource != null)
-                {
-                    mixinToCompile = new ShaderMixinSource { Name = shaderClassSource.ClassName };
-                    mixinToCompile.Mixins.Add(shaderClassSource);
-                }
-
-                if (mixinToCompile == null)
-                {
-                    throw new ArgumentException("Unsupported ShaderSource type [{0}]. Supporting only ShaderMixinSource/sdfx, ShaderClassSource", "shaderSource");
-                }
-                if (string.IsNullOrEmpty(mixinToCompile.Name))
-                {
-                    throw new ArgumentException("ShaderMixinSource must have a name", "shaderSource");
-                }
-            }
-
-            ShaderCorpusCapture.Record(mixinToCompile, compilerParameters.EffectParameters);
+            ShaderCorpusCapture.Record(effect, compilerParameters.EffectParameters);
 
             // Compile the whole mixin tree
-            var compilerResults = new CompilerResults { Module = $"EffectCompile [{mixinToCompile.Name}]" };
-            var effectInputHash = ShaderMixinObjectId.Compute(mixinToCompile, compilerParameters.EffectParameters, GetReplacementsHash());
-            var bytecode = Compile(mixinToCompile, effectParameters: compilerParameters.EffectParameters, compilerParameters, effectInputHash);
+            var compilerResults = new CompilerResults { Module = $"EffectCompile [{effect.Name}]" };
+            var effectInputHash = ShaderMixinObjectId.Compute(effect, compilerParameters.EffectParameters, GetReplacementsHash());
+            var bytecode = Compile(effect, effectParameters: compilerParameters.EffectParameters, compilerParameters, effectInputHash);
 
             // Since bytecode.Result is a struct, we check if any of its member has been set to know if it's valid
             if (bytecode.Result.CompilationLog is not null || bytecode.Task is not null)
@@ -170,15 +152,15 @@ namespace Stride.Shaders.Compiler
         }
 
         /// <summary>
-        /// Compiles the ShaderMixinSource into a platform bytecode.
+        /// Compiles the effect into a platform bytecode.
         /// </summary>
-        /// <param name="mixinTree">The mixin tree.</param>
+        /// <param name="effect">The effect.</param>
         /// <param name="effectParameters"></param>
         /// <param name="compilerParameters"></param>
         /// <param name="effectInputHash">The hash of the effect inputs.</param>
         /// <returns>The platform-dependent bytecode.</returns>
         public abstract TaskOrResult<EffectBytecodeCompilerResult> Compile(
-            ShaderMixinSource mixinTree,
+            EffectSource effect,
             EffectCompilerParameters effectParameters,
             CompilerParameters compilerParameters,
             ObjectId effectInputHash);

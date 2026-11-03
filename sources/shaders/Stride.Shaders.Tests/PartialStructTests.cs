@@ -304,7 +304,7 @@ public class PartialStructTests : IDisposable
         bool ok;
         try
         {
-            ok = mixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+            ok = mixer.MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
         }
         catch (InvalidOperationException e)
         {

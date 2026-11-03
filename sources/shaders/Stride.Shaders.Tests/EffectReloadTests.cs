@@ -138,10 +138,10 @@ public class EffectReloadTests : IDisposable
     {
         public List<ObjectId> Ids { get; } = [];
 
-        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(ShaderMixinSource mixinTree, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
+        public override TaskOrResult<EffectBytecodeCompilerResult> Compile(EffectSource effect, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId effectInputHash)
         {
             Ids.Add(effectInputHash);
-            return base.Compile(mixinTree, effectParameters, compilerParameters, effectInputHash);
+            return base.Compile(effect, effectParameters, compilerParameters, effectInputHash);
         }
     }
 
@@ -153,8 +153,8 @@ public class EffectReloadTests : IDisposable
         var ids = new EffectIds(compiler);
         var parameters = new CompilerParameters { EffectParameters = EffectCompilerParameters.Default with { Platform = GraphicsPlatform.Vulkan } };
 
-        ids.Compile(new ShaderClassSource(TestShader.FullName(FullName)), parameters);
-        ids.Compile(new ShaderMixinSource { Name = FullName, Mixins = { new ShaderClassSource(TestShader.FullName(FullName)) } }, parameters);
+        ids.Compile(new EffectSource(new ShaderClassSource(TestShader.FullName(FullName))), parameters);
+        ids.Compile(new EffectSource(new ShaderMixinSource { Name = FullName, Mixins = { new ShaderClassSource(TestShader.FullName(FullName)) } }), parameters);
 
         Assert.Equal(2, ids.Ids.Count);
         Assert.Equal(ids.Ids[0], ids.Ids[1]);
@@ -226,7 +226,7 @@ public class EffectReloadTests : IDisposable
         {
             EffectParameters = EffectCompilerParameters.Default with { Platform = GraphicsPlatform.Vulkan },
         };
-        var results = cache.Compile(new ShaderClassSource(shaderName), parameters);
+        var results = cache.Compile(new EffectSource(new ShaderClassSource(shaderName)), parameters);
         Assert.True(results.Bytecode.WaitForResult().CompilationLog.HasErrors);
     }
 
@@ -242,7 +242,7 @@ public class EffectReloadTests : IDisposable
         {
             EffectParameters = EffectCompilerParameters.Default with { Platform = GraphicsPlatform.Vulkan },
         };
-        var results = cache.Compile(new ShaderClassSource(fullName ?? shaderName), parameters);
+        var results = cache.Compile(new EffectSource(new ShaderClassSource(fullName ?? shaderName)), parameters);
         Assert.False(results.HasErrors, string.Join(Environment.NewLine, results.Messages.Select(m => m.Text)));
 
         var completed = results.Bytecode.WaitForResult();

@@ -172,6 +172,13 @@ namespace Stride.Assets
                     "Stride.Rendering.Voxels.VoxelMarchSetHemisphere12",
                     "Stride.Rendering.Voxels.VoxelMarchSetRandomHemisphere",
                 }.SelectMany(type => new[] { ArgumentRemove(type, "GetMarchingShader", "attrID"), ArgumentRemove(type, "ApplyAttributeSamplers", "attrID") }).ToArray()),
+
+                // 4.5: macros belong to the whole effect, which EffectSource holds next to the tree of shaders.
+                Rewrite(
+                    BuilderMacroToContext(),
+                    CompileTakesEffectSource(),
+                    GeneratedEffectMemberToRoot()),
+                CompilerOverridesTakeEffectSource(),
             ]);
 
             // Structural csproj migrations, gated by the version each change landed at. Run against the

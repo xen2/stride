@@ -33,6 +33,26 @@ namespace Stride.Shaders
     public sealed class ShaderLinkageRule : IEquatable<ShaderLinkageRule>
     {
         /// <summary>
+        /// Creates a rule, with the names its kind needs.
+        /// </summary>
+        /// <exception cref="ArgumentException">Too few names for this kind of rule.</exception>
+        public static ShaderLinkageRule Create(ShaderLinkageKind kind, string owner, string method, string phase, params string[] names)
+        {
+            var (needed, what) = kind switch
+            {
+                ShaderLinkageKind.Phase => (2, "the phases after and before it, empty when not given"),
+                ShaderLinkageKind.Bind => (1, "the class to bind"),
+                ShaderLinkageKind.Order => (1, "the classes to order"),
+                ShaderLinkageKind.Unbind when phase == null => (1, "the class to unbind"),
+                _ => (0, ""),
+            };
+            if (names.Length < needed)
+                throw new ArgumentException($"A linkage rule {kind} about {owner}.{method} takes {what}, but it has {names.Length} of {needed} names.", nameof(names));
+
+            return new ShaderLinkageRule { Kind = kind, Owner = owner, Method = method, Phase = phase, Names = [.. names] };
+        }
+
+        /// <summary>
         /// Gets or sets what the rule says.
         /// </summary>
         [DataMember(0)]
@@ -74,5 +94,17 @@ namespace Stride.Shaders
 
         /// <inheritdoc/>
         public override string ToString() => $"{Kind} {Owner}.{Method}.{Phase}: {string.Join(", ", Names)}";
+
+        /// <summary>
+        /// Gives the rule as an effect writes it, for a message.
+        /// </summary>
+        public string ToStatement() => Kind switch
+        {
+            ShaderLinkageKind.Order => $"order {Owner}.{Method}.{Phase}: {string.Join(", ", Names)}",
+            ShaderLinkageKind.Bind => $"bind {Owner}.{Method}.{Phase} = {string.Join(", ", Names)}",
+            ShaderLinkageKind.Unbind when Phase == null => $"unbind {Owner}.{Method} = {string.Join(", ", Names)}",
+            ShaderLinkageKind.Unbind => $"unbind {Owner}.{Method}.{Phase}",
+            _ => $"phase {Owner}.{Method}.{Phase}{(Names[0].Length > 0 ? $" after {Names[0]}" : "")}{(Names[1].Length > 0 ? $" before {Names[1]}" : "")}",
+        };
     }
 }

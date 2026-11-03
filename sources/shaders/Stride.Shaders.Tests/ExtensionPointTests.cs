@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using Stride.Core.Diagnostics;
+using Stride.Rendering;
 using Stride.Shaders.Compilers.SDSL;
 
 namespace Stride.Shaders.Parsers.Tests;
@@ -57,20 +58,25 @@ public class ExtensionPointTests : IDisposable
 
     private (bool Ok, string Log, string Explanation) Mix(bool isAssetBuild, params string[] classes) => Mix(isAssetBuild, _ => { }, classes);
 
-    private (bool Ok, string Log, string Explanation) Mix(bool isAssetBuild, Action<ShaderMixinSource> linkage, params string[] classes)
+    private (bool Ok, string Log, string Explanation) Mix(bool isAssetBuild, Action<EffectSource> linkage, params string[] classes)
     {
-        Write("Entry", Entry);
         var source = new ShaderMixinSource { Mixins = { new ShaderClassSource("Test.Entry") } };
         foreach (var name in classes)
             source.Mixins.Add(new ShaderClassSource(name));
-        linkage(source);
+        var effect = new EffectSource(source);
+        linkage(effect);
+        return Mix(isAssetBuild, effect);
+    }
 
+    private (bool Ok, string Log, string Explanation) Mix(bool isAssetBuild, EffectSource effect)
+    {
+        Write("Entry", Entry);
         var log = new LoggerResult();
         var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL") { WarningsAsErrors = false }) { CollectExplanation = true, IsAssetBuild = isAssetBuild };
         bool ok;
         try
         {
-            ok = mixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+            ok = mixer.MergeSDSL(effect, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
         }
         catch (InvalidOperationException e)
         {
@@ -687,7 +693,7 @@ public class ExtensionPointTests : IDisposable
 
         var log = new LoggerResult();
         var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL") { WarningsAsErrors = false }) { CollectExplanation = true };
-        var ok = mixer.MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+        var ok = mixer.MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
         return (ok, string.Join(Environment.NewLine, log.Messages.Select(x => $"{x.Type}: {x.Text}")), mixer.Explanation ?? "");
     }
 
@@ -1010,7 +1016,60 @@ public class ExtensionPointTests : IDisposable
         Assert.Contains("SDSL0141", log);
     }
 
-    private (bool Ok, string Log, string Explanation) MixCatching(Action<ShaderMixinSource> linkage, params string[] classes) => Mix(false, linkage, classes);
+    private (bool Ok, string Log, string Explanation) MixCatching(Action<EffectSource> linkage, params string[] classes) => Mix(false, linkage, classes);
+
+    private sealed class UnbindsPhaseA : IShaderMixinBuilder
+    {
+        public void Generate(ShaderMixinSource mixin, ShaderMixinContext context) => context.AddLinkageRule(ShaderLinkageKind.Unbind, "Test.Owner", "Run", "A");
+    }
+
+    private sealed class MixesEntryAndStep(string part, bool compose) : IShaderMixinBuilder
+    {
+        public void Generate(ShaderMixinSource mixin, ShaderMixinContext context)
+        {
+            mixin.Mixins.Add(new ShaderClassSource("Test.Entry"));
+            mixin.Mixins.Add(new ShaderClassSource("Test.Step"));
+            if (!compose)
+            {
+                context.Mixin(mixin, part);
+                return;
+            }
+            var node = new ShaderMixinSource();
+            context.PushComposition(mixin, "Slot", node);
+            context.Mixin(node, part);
+            context.PopComposition();
+        }
+    }
+
+    private static string RegisterEffectWithLinkageRule(bool compose)
+    {
+        var id = Guid.NewGuid().ToString("N");
+        ShaderMixinManager.Register($"Part{id}", new UnbindsPhaseA());
+        ShaderMixinManager.Register($"Outer{id}", new MixesEntryAndStep($"Part{id}", compose));
+        return $"Outer{id}";
+    }
+
+    [Fact]
+    public void ALinkageRuleOfAMixedEffectIsAboutTheWholeEffect()
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+
+        var (ok, log, explanation) = Mix(false, ShaderMixinManager.Generate(RegisterEffectWithLinkageRule(compose: false), new ParameterCollection()));
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Equal("module method Run() -> void = Owner", block[0]);
+        Assert.Contains("not bound by the effect: Step", block);
+    }
+
+    [Fact]
+    public void ALinkageRuleOfAComposedEffectIsAnError()
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => ShaderMixinManager.Generate(RegisterEffectWithLinkageRule(compose: true), new ParameterCollection()));
+
+        Assert.StartsWith("SDSL0151: linkage rule unbind Test.Owner.Run.A is inside the composition Slot.", error.Message);
+    }
 
     [Fact]
     public void ALinkageRuleAboutAPointThatIsNotInTheEffectIsIgnored()

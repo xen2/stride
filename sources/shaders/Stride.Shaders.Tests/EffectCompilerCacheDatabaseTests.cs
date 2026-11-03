@@ -71,7 +71,7 @@ public class EffectCompilerCacheDatabaseTests : IDisposable
         {
             EffectParameters = EffectCompilerParameters.Default with { Platform = GraphicsPlatform.Vulkan },
         };
-        return cache.Compile(new ShaderClassSource(shaderName), parameters);
+        return cache.Compile(new EffectSource(new ShaderClassSource(shaderName)), parameters);
     }
 
     private static void AssertCompiled(CompilerResults results)

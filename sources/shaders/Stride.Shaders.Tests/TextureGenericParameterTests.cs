@@ -66,7 +66,7 @@ public class TextureGenericParameterTests : IDisposable
         var source = new ShaderMixinSource { Mixins = { new ShaderClassSource(TestShader.Written(name), genericValue) } };
 
         var log = new LoggerResult();
-        var ok = new ShaderMixer(loader).MergeSDSL(source, new ShaderMixer.Options(true), log, out _, out _, out _, out _);
+        var ok = new ShaderMixer(loader).MergeSDSL(new EffectSource(source), new ShaderMixer.Options(true), log, out _, out _, out _, out _);
 
         return (ok, string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)));
     }

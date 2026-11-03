@@ -27,13 +27,13 @@ public class ShaderMixinManagerNameTests
 
         Assert.True(ShaderMixinManager.Contains(root));
         Assert.True(ShaderMixinManager.Contains($"{root}.Child"));
-        var mixin = ShaderMixinManager.Generate($"{root}.Child", new ParameterCollection());
+        var mixin = ShaderMixinManager.Generate($"{root}.Child", new ParameterCollection()).Root;
         Assert.Equal($"{root}.Child", mixin.Name);
         Assert.Equal("Child", ((ShaderClassSource)mixin.Mixins[0]).ClassName);
 
         // A registered name wins over the name it would be a child of
         ShaderMixinManager.Register($"{root}.Child", new SecondBuilder());
-        Assert.Equal("Second", ((ShaderClassSource)ShaderMixinManager.Generate($"{root}.Child", new ParameterCollection()).Mixins[0]).ClassName);
+        Assert.Equal("Second", ((ShaderClassSource)ShaderMixinManager.Generate($"{root}.Child", new ParameterCollection()).Root.Mixins[0]).ClassName);
     }
 
     [Fact]

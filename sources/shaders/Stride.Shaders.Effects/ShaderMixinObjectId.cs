@@ -35,26 +35,26 @@ namespace Stride.Shaders
         }
 
         /// <summary>
-        /// Computes a hash <see cref="ObjectId"/> for the specified mixin.
+        /// Computes a hash <see cref="ObjectId"/> for the specified effect.
         /// </summary>
-        /// <param name="mixin">The mixin.</param>
+        /// <param name="effect">The effect.</param>
         /// <param name="effectCompilerParameters">The effect compiler parameters.</param>
         /// <returns>EffectObjectIds.</returns>
-        public static ObjectId Compute(ShaderMixinSource mixin, EffectCompilerParameters effectCompilerParameters)
-            => Compute(mixin, effectCompilerParameters, ObjectId.Empty);
+        public static ObjectId Compute(EffectSource effect, EffectCompilerParameters effectCompilerParameters)
+            => Compute(effect, effectCompilerParameters, ObjectId.Empty);
 
         /// <summary>
-        /// Computes a hash <see cref="ObjectId"/> for the specified mixin, in a project with these replacements.
+        /// Computes a hash <see cref="ObjectId"/> for the specified effect, in a project with these replacements.
         /// </summary>
-        /// <param name="mixin">The mixin.</param>
+        /// <param name="effect">The effect.</param>
         /// <param name="effectCompilerParameters">The compiler parameters.</param>
         /// <param name="replacements">The result of <see cref="ComputeReplacements"/>. A replacer changes the code of an effect but not its tree.</param>
-        public static ObjectId Compute(ShaderMixinSource mixin, EffectCompilerParameters effectCompilerParameters, ObjectId replacements)
+        public static ObjectId Compute(EffectSource effect, EffectCompilerParameters effectCompilerParameters, ObjectId replacements)
         {
             lock (generatorLock)
             {
                 generator ??= new ShaderMixinObjectId();
-                return generator.ComputeInternal(mixin, effectCompilerParameters, replacements);
+                return generator.ComputeInternal(effect, effectCompilerParameters, replacements);
             }
         }
 
@@ -91,14 +91,16 @@ namespace Stride.Shaders
             }
         }
 
-        private ObjectId ComputeInternal(ShaderMixinSource mixin, EffectCompilerParameters effectCompilerParameters, ObjectId replacements)
+        private ObjectId ComputeInternal(EffectSource effect, EffectCompilerParameters effectCompilerParameters, ObjectId replacements)
         {
             digestStream.Reset();
             writer.Write(EffectBytecode.MagicHeader); // Write the effect bytecode magic header
             writer.Write(ShaderCompilerVersion.Shader);
             writer.Write(ShaderCompilerVersion.Effect);
-            writer.Write(mixin);
-            foreach (var rule in mixin.Linkage)
+            writer.Write(effect.Root);
+            foreach (var macro in effect.Macros)
+                writer.Write(macro.Name + "=" + macro.Definition);
+            foreach (var rule in effect.Linkage)
                 writer.Write(rule.ToString());
 
             writer.Write(effectCompilerParameters.Platform);

@@ -80,7 +80,6 @@ namespace Stride.Assets.Effect
 
             // Get main effect name (before the first dot)
             var isXkfx = ShaderMixinManager.Contains(effectName);
-            var source = isXkfx ? new ShaderMixinGeneratorSource(effectName) : (ShaderSource)new ShaderClassSource(effectName);
 
             int permutationCount;
             lock (PermutationCount)
@@ -92,7 +91,9 @@ namespace Stride.Assets.Effect
             commandContext.Logger.Verbose($"Trying permutation #{permutationCount} for effect [{effectName}]: \n{compilerParameters.ToStringPermutationsDetailed()}");
 
             // The permutations of an effect log are old data, not shader corpus captures
-            var compilerResults = ShaderCorpusCapture.WithoutRecording(() => compiler.Compile(source, compilerParameters));
+            var compilerResults = ShaderCorpusCapture.WithoutRecording(() => isXkfx
+                ? compiler.Compile(new ShaderMixinGeneratorSource(effectName), compilerParameters)
+                : compiler.Compile(new EffectSource(new ShaderClassSource(effectName)), compilerParameters));
 
             // Copy logs and if there are errors, exit directly
             compilerResults.CopyTo(commandContext.Logger);
