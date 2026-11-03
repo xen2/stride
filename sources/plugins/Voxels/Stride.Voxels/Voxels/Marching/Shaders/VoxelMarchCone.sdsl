@@ -3,12 +3,8 @@
 
 namespace Stride.Rendering;
 
-shader VoxelMarchCone<int steps, float stepScale, float coneRatio, float offset> : VoxelMarchMethod, VoxelRadiusMarchMethod, MarchAttributes
+shader VoxelMarchCone<int steps, float stepScale, float coneRatio, float offset, bool fast> : VoxelMarchMethod, VoxelRadiusMarchMethod, MarchAttributes
 {
-    #ifndef sampleFunction
-        #define sampleFunction Sample
-        #define AttributeID 0
-    #endif
     override float4 March(float3 rayPos, float3 rayDir)
     {
         return MarchRadius(rayPos, rayDir, 1.0);
@@ -16,7 +12,7 @@ shader VoxelMarchCone<int steps, float stepScale, float coneRatio, float offset>
     override float4 MarchRadius(float3 rayPos, float3 rayDir, float radiusScale)
     {
         float finalRatio = coneRatio.x * radiusScale;
-        float voxelSize = AttributeSamplers[AttributeID].VoxelSize();
+        float voxelSize = AttributeSamplers[0].VoxelSize();
         
         float dist = voxelSize / max(1,finalRatio);
 
@@ -28,12 +24,15 @@ shader VoxelMarchCone<int steps, float stepScale, float coneRatio, float offset>
             float diameter = max(voxelSize, finalRatio * dist);
             float3 pos = rayPos + rayDir * dist;
 
-            light += AttributeSamplers[AttributeID].sampleFunction(pos, -rayDir, diameter) * saturate(1.0 - light.a);
+            if (fast)
+                light += AttributeSamplers[0].SampleNearestMip(pos, -rayDir, diameter) * saturate(1.0 - light.a);
+            else
+                light += AttributeSamplers[0].Sample(pos, -rayDir, diameter) * saturate(1.0 - light.a);
 
             dist += diameter * stepScale;
         }
         return light;
     }
-    override float StepSize() { return AttributeSamplers[AttributeID].VoxelSize(); }
-    override float StepSizeRadius(float radiusScale) { return radiusScale * AttributeSamplers[AttributeID].VoxelSize(); }
+    override float StepSize() { return AttributeSamplers[0].VoxelSize(); }
+    override float StepSizeRadius(float radiusScale) { return radiusScale * AttributeSamplers[0].VoxelSize(); }
 };

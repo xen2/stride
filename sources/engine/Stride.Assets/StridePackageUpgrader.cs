@@ -43,6 +43,19 @@ namespace Stride.Assets
 
         public static readonly Guid UpdatePlatformsTemplateId = new Guid("446B52D3-A6A8-4274-A357-736ADEA87321");
 
+        private static readonly string[] VoxelMarchTypes =
+        [
+            "Stride.Rendering.Voxels.IVoxelMarchMethod",
+            "Stride.Rendering.Voxels.IVoxelMarchSet",
+            "Stride.Rendering.Voxels.VoxelMarchBeam",
+            "Stride.Rendering.Voxels.VoxelMarchCone",
+            "Stride.Rendering.Voxels.VoxelMarchConePerMipmap",
+            "Stride.Rendering.Voxels.VoxelMarchSetBase",
+            "Stride.Rendering.Voxels.VoxelMarchSetHemisphere6",
+            "Stride.Rendering.Voxels.VoxelMarchSetHemisphere12",
+            "Stride.Rendering.Voxels.VoxelMarchSetRandomHemisphere",
+        ];
+
         /// <summary>
         /// Rewrites every <c>Stride.*</c> <c>PackageReference</c> in the csproj at
         /// <paramref name="csprojPath"/> to <see cref="CurrentVersion"/>. Standalone — no
@@ -161,6 +174,11 @@ namespace Stride.Assets
             [
                 // 4.5: strings that name an engine shader, an effect or the key of a shader member take the full name.
                 ShaderNames(EngineShaderClasses.Current),
+
+                // 4.5: voxel marchers always read their first attribute sampler, so the index is gone from their calls.
+                Rewrite(
+                    ArgumentRemove(VoxelMarchTypes, "GetMarchingShader", "attrID"),
+                    ArgumentRemove(VoxelMarchTypes, "ApplyAttributeSamplers", "attrID")),
             ]);
 
             // 4.5: a key name written as text no longer matches, and nothing says so.
