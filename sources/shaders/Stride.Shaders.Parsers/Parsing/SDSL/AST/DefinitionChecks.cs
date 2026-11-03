@@ -63,6 +63,30 @@ internal static class DefinitionChecks
     }
 
     /// <summary>
+    /// <c>streams.X</c> in a class that inherits or imports two streams named X (SDSL0152): they are separate fields, and the
+    /// name reaches only the first. A stream the class declares itself hides the inherited ones. A class reached twice is one
+    /// entry of the list, and two streams with one semantic and one type are one field (<c>VariableMerger</c>).
+    /// </summary>
+    public static void CheckStreamName(SymbolTable table, Identifier name)
+    {
+        if (name.ResolvedSymbol is not { Id.Storage: Storage.Stream, OwnerType: { } owner } symbol || table.CurrentShader is not { } shader || owner == shader)
+            return;
+        foreach (var inherited in shader.InheritedShaders)
+        {
+            if (inherited == owner)
+                continue;
+            foreach (var (other, _) in inherited.Variables)
+            {
+                if (other.Id.Name != name.Name || other.Id.Storage != Storage.Stream
+                    || (symbol.Semantic != null && other.Semantic == symbol.Semantic && other.Type == symbol.Type))
+                    continue;
+                table.AddError(new(name.Info, string.Format(SDSLErrorMessages.SDSL0152, shader.ShortName, name.Name, owner, inherited)));
+                return;
+            }
+        }
+    }
+
+    /// <summary>
     /// The module rules are checked in shaders that are not root-only: module code has one copy per effect, so it can't use
     /// the members of one instance. A module has only module code, and a root-only shader is the effect's only instance.
     /// </summary>

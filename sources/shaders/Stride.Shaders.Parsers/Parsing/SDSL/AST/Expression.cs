@@ -1379,13 +1379,18 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
                         result = IdentifierBase.EmitSymbol(builder, context, importedVariable, false, result.Id);
                         break;
                     }
+                case (PointerType { BaseType: StreamsType }, GenericIdentifier streamClass):
+                    throw new StatementCompileException(new(streamClass.Info, string.Format(SDSLErrorMessages.SDSL0153, Info.Text.Span.Trim().ToString(), streamClass.Name.Name)));
                 case (PointerType { BaseType: StreamsType s } p, Identifier streamVar):
                     if (compiler == null)
                     {
+                        if (table.TryResolveSymbol(streamVar.Name, out var known) ? known.Id.Kind == SymbolKind.Shader : table.ResolveClassName(streamVar.Name, streamVar.Info) != null)
+                            throw new StatementCompileException(new(streamVar.Info, string.Format(SDSLErrorMessages.SDSL0153, Info.Text.Span.Trim().ToString(), streamVar.Name)));
                         streamVar.AllowStreamVariables = true;
                         streamVar.ProcessSymbol(table);
                         if (streamVar.Type is not PointerType)
                             throw new InvalidOperationException($"Use of undeclared stream variable '{streamVar.Name}'");
+                        DefinitionChecks.CheckStreamName(table, streamVar);
                         accessor.Type = (PointerType)streamVar.Type with { StorageClass = p.StorageClass };
                         break;
                     }

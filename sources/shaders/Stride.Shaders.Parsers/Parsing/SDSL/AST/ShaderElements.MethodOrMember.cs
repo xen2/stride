@@ -301,7 +301,7 @@ public sealed partial class ShaderMember(
                 },
                 IsStage: IsStaged
             );
-        Symbol = new Symbol(sid, Type, 0, OwnerType: table.CurrentShader!);
+        Symbol = new Symbol(sid, Type, 0, OwnerType: table.CurrentShader!, Semantic: Semantic?.Name);
         table.CurrentShader!.Variables.Add((Symbol, IsStaged ? Specification.VariableFlagsMask.Stage : Specification.VariableFlagsMask.None));
 
         CompiledValue?.ProcessSymbol(table, memberType);
