@@ -980,7 +980,7 @@ public class ShaderDefinitionCheckTests : IDisposable
     // SDSL0152: streams.X in a class that reaches two different streams named X. It is reported on the use: a class that only
     // inherits both harms nothing, each parent uses its own field.
     [Theory]
-    [InlineData("StA, StB", "float Get() { return streams.tmp; }", "Error: StCheck.sdsl(5,34): SDSL0152: StCheck sees two streams named tmp, declared by StA and StB. They are separate fields, and streams.tmp means the one of StA (the first inherited or imported). Rename one of them.")]
+    [InlineData("StA, StB", "float Get() { return streams.tmp; }", "Error: StCheck.sdsl(5,34): SDSL0152: StCheck sees two streams named tmp, declared by StA and StB. They are separate fields, and streams.tmp means the one of StA (the class's own, else the first inherited or imported). Rename one of them.")]
     [InlineData("StB, StA", "void Set() { streams.tmp = 1; }", "(5,26): SDSL0152: StCheck sees two streams named tmp, declared by StB and StA.")]
     [InlineData("StA, StB", "float Get() { Streams copy = streams; return copy.tmp; }", "(5,55): SDSL0152: StCheck sees two streams named tmp, declared by StA and StB.")]
     [InlineData("StMid", "float Get() { return streams.tmp; }", "(5,34): SDSL0152: StCheck sees two streams named tmp, declared by StA and StB.")]
@@ -999,8 +999,6 @@ public class ShaderDefinitionCheckTests : IDisposable
     [InlineData("StGenSem1<ST_A>, StGenSem2<ST_A>", "float Get() { return streams.tmp; }", null)]
     // Two names and one semantic: one field, and each name reaches one declaration
     [InlineData("StSem1, StOtherName", "float Get() { return streams.tmp + streams.other; }", null)]
-    // A stream the class declares itself hides the inherited one
-    [InlineData("StA", "stream float tmp; float Get() { return streams.tmp; }", null)]
     public void StreamNameReachedTwice(string parents, string body, string? expected)
     {
         WriteStreamClasses();
@@ -1038,8 +1036,60 @@ public class ShaderDefinitionCheckTests : IDisposable
         Assert.Contains("StModule", log);
     }
 
+    // SDSL0152 on a stream the class declares with the name of one it reaches. It is reported on the declaration, with or
+    // without a use: the class hides the other field.
+    [Theory]
+    [InlineData("StA", "stream float tmp;", "(5,18): SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StA. They are separate fields, and streams.tmp means the one of StCheck (the class's own, else the first inherited or imported). Rename one of them.")]
+    [InlineData("StA", "stream float tmp; float Get() { return streams.tmp; }", "(5,18): SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StA.")]
+    [InlineData("StMid", "stream float tmp;", "(5,18): SDSL0152: StCheck sees two streams named tmp, declared by StCheck and ")]
+    // Another semantic, or the same one on another type: two fields
+    [InlineData("StSem1", "stream float tmp;", "SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StSem1.")]
+    [InlineData("StA", "stream float tmp : ST_A;", "SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StA.")]
+    [InlineData("StSem1", "stream float tmp : ST_OTHER;", "SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StSem1.")]
+    [InlineData("StSem1", "stream float4 tmp : ST_VALUE;", "SDSL0152: StCheck sees two streams named tmp, declared by StCheck and StSem1.")]
+    // One semantic and one type: one field
+    [InlineData("StSem1", "stream float tmp : ST_VALUE; float Get() { return streams.tmp; }", null)]
+    [InlineData("StGenSem1<ST_A>", "stream float tmp : ST_A; float Get() { return streams.tmp; }", null)]
+    // Another name
+    [InlineData("StA", "stream float other; float Get() { return streams.tmp + streams.other; }", null)]
+    public void StreamDeclaredWithTheNameOfOneItReaches(string parents, string body, string? expected)
+    {
+        WriteStreamClasses();
+        Write("StCheck", $$"""
+            namespace Stride.Shaders.Tests;
+
+            shader StCheck : {{parents}}
+            {
+                {{body}}
+            }
+            """);
+
+        var (ok, log) = Compile("StCheck");
+        AssertMistake(expected, "SDSL0152", ok, log);
+    }
+
     [Fact]
-    public void StreamHiddenByAParentIsReachedTwiceInItsChild()
+    public void StreamDeclaredWithTheNameOfAnImportedOne()
+    {
+        WriteStreamClasses();
+        Write("StCheck", """
+            namespace Stride.Shaders.Tests;
+
+            shader StCheck
+            {
+                import StModule;
+                stream float tmp;
+            }
+            """);
+
+        var (ok, log) = Compile("StCheck");
+        Assert.False(ok);
+        Assert.Contains("(6,18): SDSL0152: StCheck sees two streams named tmp, declared by StCheck and ", log);
+        Assert.Contains("StModule", log);
+    }
+
+    [Fact]
+    public void StreamHiddenByAParentStopsItsChild()
     {
         WriteStreamClasses();
         Write("StHides", "namespace Stride.Shaders.Tests; shader StHides : StA { stream float tmp; }");
@@ -1054,7 +1104,26 @@ public class ShaderDefinitionCheckTests : IDisposable
 
         var (ok, log) = Compile("StCheck");
         Assert.False(ok);
-        Assert.Contains("(5,34): SDSL0152: StCheck sees two streams named tmp, declared by StA and StHides.", log);
+        Assert.Contains("SDSL0152: StHides sees two streams named tmp, declared by StHides and StA.", log);
+    }
+
+    // The semantic is a generic of the class, and the parent gets that generic: one field whatever the value
+    [Fact]
+    public void StreamDeclaredWithASemanticFromAGenericOfTheClass()
+    {
+        WriteStreamClasses();
+        Write("StOpen", """
+            namespace Stride.Shaders.Tests;
+
+            shader StOpen<Semantic S> : StGenSem1<S>
+            {
+                stream float tmp : S;
+                float Get() { return streams.tmp; }
+            }
+            """);
+
+        var (ok, log) = Compile("StOpen");
+        Assert.True(ok, log);
     }
 
     // A semantic from a generic of the class being compiled: one value for both parents, so one field
