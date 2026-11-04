@@ -205,6 +205,8 @@ Hierarchy:
                         Id: 52f13394-f393-49e7-98b1-356161a493f4
                         Model: f576f6eb-4550-4684-ad23-2b93f72f17d7:Models/Character
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     725fa3168f7c22738b4755b40da6230e: !ParticlesSample.AnimationStart,ParticlesSample.Game
                         Id: 873057af-b46e-4a32-9778-a0645e6f4e25
                         Animations:
@@ -227,6 +229,8 @@ Hierarchy:
                         Id: 585194b8-aa8e-4a8e-b2ef-f91d3c039ea6
                         Model: 9a60e886-acea-482a-98b1-dd0d90ed6568:Models/standCurved
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 1b92f0e7-d75d-4623-826d-c7c1c14489f8
                 Name: Entity
@@ -447,6 +451,8 @@ Hierarchy:
                         Id: 6861216c-888e-4d59-9520-9b237962d0fd
                         Model: 9a60e886-acea-482a-98b1-dd0d90ed6568:Models/standCurved
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 3aedbca9-d0a2-4833-a577-22f967ba13ee
                 Name: Ambient light
@@ -482,6 +488,8 @@ Hierarchy:
                         Id: 1a8e7205-6de3-4f8c-a100-4390ee4b877f
                         Model: 9a60e886-acea-482a-98b1-dd0d90ed6568:Models/standCurved
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 5acf4055-9e3a-4c1b-98aa-5d8bd93884c8
                 Name: PrefabRibbon
@@ -510,6 +518,8 @@ Hierarchy:
                         Id: 290734a2-3a02-4bc5-8764-4b8d8a2423db
                         Model: dc419cbf-4eb2-4983-b5c7-305511f0399f:Models/SwordModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     3484b61b27bf614ab0b977eb151c6e42: !ModelNodeLinkComponent
                         Id: 1bb68434-bf27-4a61-b0b9-77eb151c6e42
                         Target: null
@@ -535,6 +545,8 @@ Hierarchy:
                         Id: 3f881799-8298-4ef2-a59c-4d9489c30713
                         Model: f576f6eb-4550-4684-ad23-2b93f72f17d7:Models/Character
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     b16435397d9cb4ffc46d4bc1748ccb1a: !ParticlesSample.AnimationStart,ParticlesSample.Game
                         Id: b57770c0-2dc1-4c7e-8d14-ae4813c3f360
                         Animations:
@@ -578,6 +590,8 @@ Hierarchy:
                         Id: 49dc94c2-96a8-4e09-a299-0e67218f59fb
                         Model: 9a60e886-acea-482a-98b1-dd0d90ed6568:Models/standCurved
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 8a3b8daa-0d73-4522-beea-89bcd38b6c7a
                 Name: LeftShoulder
@@ -1087,6 +1101,8 @@ Hierarchy:
                         Id: b0d20304-974c-4131-8d7e-411794a05011
                         Model: dc419cbf-4eb2-4983-b5c7-305511f0399f:Models/SwordModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     3484b61b27bf614ab0b977eb151c6e42: !ModelNodeLinkComponent
                         Id: 1621cbec-b33e-45f7-a92e-c8e5d763014d
                         Target: null
@@ -1112,6 +1128,8 @@ Hierarchy:
                         Id: 01e84022-7e73-43e7-bf34-ab8143707458
                         Model: f576f6eb-4550-4684-ad23-2b93f72f17d7:Models/Character
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     b0bcfb70271f0963d284080b54b876ae: !ParticlesSample.AnimationStart,ParticlesSample.Game
                         Id: aa9eb17f-9040-4101-bf17-7692d6f407cf
                         Animations:
@@ -1142,6 +1160,8 @@ Hierarchy:
                         Id: 3bd3cb01-f657-4a27-b41b-bcaff4f58271
                         Model: f576f6eb-4550-4684-ad23-2b93f72f17d7:Models/Character
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     fa48a3a39209ae53db0df3e4276eb79a: !ParticlesSample.AnimationStart,ParticlesSample.Game
                         Id: 23c0d5ef-fc4d-4181-8422-5e2446fc08bb
                         Animations:
@@ -1214,6 +1234,8 @@ Hierarchy:
                         Id: 4d2d7c9c-016d-4c29-8b49-e92a9f2f0dff
                         Model: dc419cbf-4eb2-4983-b5c7-305511f0399f:Models/SwordModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     3484b61b27bf614ab0b977eb151c6e42: !ModelNodeLinkComponent
                         Id: be5dd917-745f-44fd-b26f-ce990b11109b
                         Target: null

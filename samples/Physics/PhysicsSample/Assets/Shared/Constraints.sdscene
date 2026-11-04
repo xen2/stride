@@ -62,6 +62,8 @@ Hierarchy:
                         Id: 4ac89f6f-764b-453c-abf0-67d063c01c0d
                         Model: bbff2b2d-985f-4986-9c34-f08cdeff8669:Models/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 909c7c74-e1e9-4d9e-aa61-207f1d6367d0
                 Name: cube
@@ -95,6 +97,8 @@ Hierarchy:
                         Id: 4e9685dc-f8f8-45a3-a770-01253a1194aa
                         Model: 140faeee-f1b9-4f29-91a2-14b11ae22718:Models/Cube
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: a47eeb82-2121-4fd6-b28a-8ec906ba83e1
                 Name: Directional light

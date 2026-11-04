@@ -201,5 +201,7 @@ Hierarchy:
                         Id: 036205d7-8a24-4194-a484-27af5acff6e0
                         Model: cfb9a357-ac8d-4b98-b49b-923308cf386d:Models/mannequinModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     24fb76771c4b9b4c8f325d42d5db7699: !AnimatedModel.RotateEntity,AnimatedModel.Game
                         Id: 7776fb24-4b1c-4c9b-8f32-5d42d5db7699

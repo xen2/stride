@@ -121,6 +121,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 54296566-3557-4b24-a050-097255e092f8
                         CanSleep: true
@@ -176,6 +178,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 17f1b31a-5502-4ee5-95d2-956ca910fa70
                         CanSleep: true
@@ -231,6 +235,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: b959dfc3-d898-417e-80ac-8c100988a979
                         CanSleep: true
@@ -297,6 +303,8 @@ Hierarchy:
                         Model: 898b8f2c-6cd6-4320-9dad-418fdb30e20d:/PrototypingBlocks/Models/Ramp1x1_2x2
                         Materials:
                             74dc3e7c6e633f46a3801edd86a197dd~0: 08b6f010-a274-4180-83c4-0f2c0920774b:/PrototypingBlocks/Materials/GridMTStairs
+                        Morphs:
+                            Weights: {}
                     dc14c0a2cfc23c4888d690b32f62969d: !StaticColliderComponent
                         Id: a2c014dc-c2cf-483c-88d6-90b32f62969d
                         CanSleep: true
@@ -341,6 +349,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: f09a2974-5742-46e7-be4d-cca2e071c23f
                         CanSleep: true
@@ -388,6 +398,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 3c492d37-fe67-4269-95f0-76d95208754c
                         CanSleep: true
@@ -455,6 +467,8 @@ Hierarchy:
                         Model: 15707c44-e178-4460-b5ac-3012ce507687:/PrototypingBlocks/Models/Pillar0x5x0
                         Materials:
                             375be21b17b931489b7075f15158cba7~0: ad74e5da-cb10-46b7-9c34-3d65a478df12:/PrototypingBlocks/Materials/GridMTHazard
+                        Morphs:
+                            Weights: {}
                     23c28da116b69348aa23606dcc7b416f: !StaticColliderComponent
                         Id: a18dc223-b616-4893-aa23-606dcc7b416f
                         CollisionGroup: StaticFilter
@@ -491,6 +505,8 @@ Hierarchy:
                         Model: 6582abd6-3c78-4242-96be-4fe6e77c056e:/PrototypingBlocks/Models/Wall0x2x2Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     7788b92a4ec3be43bb9617ff231cfb59: !StaticColliderComponent
                         Id: 2ab98877-c34e-43be-bb96-17ff231cfb59
                         CanSleep: true
@@ -541,6 +557,8 @@ Hierarchy:
                         Model: 2cb2f455-2bc0-40c0-bd1c-ed5f5ec5a851:/PrototypingBlocks/Models/Floor1x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9fd04a146701174387ebf7ca57fcecc3: !StaticColliderComponent
                         Id: 144ad09f-0167-4317-87eb-f7ca57fcecc3
                         CanSleep: true
@@ -587,6 +605,8 @@ Hierarchy:
                         Id: fe1d907c-1cd2-4286-83aa-0639481520b1
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 73de92e8-e7aa-4180-aa74-ca19b0b9f867
                         CanSleep: true
@@ -657,6 +677,8 @@ Hierarchy:
                         Model: 898b8f2c-6cd6-4320-9dad-418fdb30e20d:/PrototypingBlocks/Models/Ramp1x1_2x2
                         Materials:
                             74dc3e7c6e633f46a3801edd86a197dd~0: 08b6f010-a274-4180-83c4-0f2c0920774b:/PrototypingBlocks/Materials/GridMTStairs
+                        Morphs:
+                            Weights: {}
                     dc14c0a2cfc23c4888d690b32f62969d: !StaticColliderComponent
                         Id: 6ed4e0ab-4c58-4925-b052-6e34dc93502c
                         CanSleep: true
@@ -701,6 +723,8 @@ Hierarchy:
                         Model: b64f7b95-0e8e-40bb-9b75-21e092f6abc5:/PrototypingBlocks/Models/Floor3x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     8f2d709e00a8674d8f31b62fda1f5a47: !StaticColliderComponent
                         Id: 9e702d8f-a800-4d67-8f31-b62fda1f5a47
                         CanSleep: true
@@ -736,6 +760,8 @@ Hierarchy:
                         Model: 2cb2f455-2bc0-40c0-bd1c-ed5f5ec5a851:/PrototypingBlocks/Models/Floor1x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9fd04a146701174387ebf7ca57fcecc3: !StaticColliderComponent
                         Id: 892c06ef-5773-4743-adf7-77a158eb6e5a
                         CanSleep: true
@@ -771,6 +797,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 5f1832a9-3c11-49a0-a01e-74e629877ac4
                         CanSleep: true
@@ -826,6 +854,8 @@ Hierarchy:
                         Model: a597a15e-9dec-4895-84be-99240208b6d2:/PrototypingBlocks/Models/Table2x2x2
                         Materials:
                             ecd1b81c86e9114d86fcdf436455648f~0: c1d40f25-8760-420b-8e26-ef8a2b999678:/PrototypingBlocks/Materials/GridMTArc
+                        Morphs:
+                            Weights: {}
                     e8d6d181aa1dab4fa7353dbc6a807bd7: !StaticColliderComponent
                         Id: 81d1d6e8-1daa-4fab-a735-3dbc6a807bd7
                         CollisionGroup: StaticFilter
@@ -893,6 +923,8 @@ Hierarchy:
                         Model: ea5bbb6a-d2b7-4181-81e1-5d9708a7782a:/PrototypingBlocks/Models/Wall0x2x2
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     e15b531c136aed41902227e77c631556: !StaticColliderComponent
                         Id: 1c535be1-6a13-41ed-9022-27e77c631556
                         CanSleep: true
@@ -1027,6 +1059,8 @@ Hierarchy:
                         Id: 4440411f-760b-4501-8190-864c5e6c6c52
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: c661c522-41a5-4d0b-9ac3-fb3f5071ff14
                         CanSleep: true
@@ -1062,6 +1096,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: bd37a442-2e25-4b5e-a47a-9d5a3a9a2b5c
                         CanSleep: true
@@ -1117,6 +1153,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 9acb378e-62f8-4010-957f-666a0edbf166
                         CanSleep: true
@@ -1163,6 +1201,8 @@ Hierarchy:
                         Model: b64f7b95-0e8e-40bb-9b75-21e092f6abc5:/PrototypingBlocks/Models/Floor3x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     8f2d709e00a8674d8f31b62fda1f5a47: !StaticColliderComponent
                         Id: a137ff96-d80a-4635-8a0b-8106b367f422
                         CanSleep: true
@@ -1197,6 +1237,8 @@ Hierarchy:
                         Id: 69dfab6c-6f86-4d62-827f-b1ad8e2fca70
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 5ab75031-6540-482b-9d62-46a7c9bb6bd9
                         CanSleep: true
@@ -1244,6 +1286,8 @@ Hierarchy:
                         Model: a597a15e-9dec-4895-84be-99240208b6d2:/PrototypingBlocks/Models/Table2x2x2
                         Materials:
                             ecd1b81c86e9114d86fcdf436455648f~0: c1d40f25-8760-420b-8e26-ef8a2b999678:/PrototypingBlocks/Materials/GridMTArc
+                        Morphs:
+                            Weights: {}
                     e8d6d181aa1dab4fa7353dbc6a807bd7: !StaticColliderComponent
                         Id: d479b8a4-027a-42b4-a259-04a7ea2cbcd1
                         CollisionGroup: StaticFilter
@@ -1350,6 +1394,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 953442e3-0585-4bcc-9eef-65eaefcfda9f
                         CanSleep: true
@@ -1417,6 +1463,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 408f4e6a-e40d-4699-b8f5-4a89c967a253
                         CanSleep: true
@@ -1484,6 +1532,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 3438e73d-9b64-481e-a954-9c4af937703d
                         CanSleep: true
@@ -1574,6 +1624,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 918ca6ef-0293-4e5b-9536-ae3559e346ed
                         CanSleep: true
@@ -1608,6 +1660,8 @@ Hierarchy:
                         Id: 1772fd73-e089-475c-a591-2585ca6d1631
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 3780dbf8-8f91-490a-ae3d-1fd56b57725a
                         CanSleep: true
@@ -1643,6 +1697,8 @@ Hierarchy:
                         Model: 924c9ca7-d8b3-4966-bc05-086bb500ff85:/PrototypingBlocks/Models/Gate2x3x1
                         Materials:
                             ecd1b81c86e9114d86fcdf436455648f~0: c1d40f25-8760-420b-8e26-ef8a2b999678:/PrototypingBlocks/Materials/GridMTArc
+                        Morphs:
+                            Weights: {}
                     87e4f56b172adb4f897ce1addcb0ec93: !StaticColliderComponent
                         Id: 6bf5e487-2a17-4fdb-897c-e1addcb0ec93
                         CanSleep: true
@@ -1688,6 +1744,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 5352d98f-1d49-4c6e-94bf-7fcc264dd741
                         CanSleep: true
@@ -1723,6 +1781,8 @@ Hierarchy:
                         Model: 15707c44-e178-4460-b5ac-3012ce507687:/PrototypingBlocks/Models/Pillar0x5x0
                         Materials:
                             375be21b17b931489b7075f15158cba7~0: ad74e5da-cb10-46b7-9c34-3d65a478df12:/PrototypingBlocks/Materials/GridMTHazard
+                        Morphs:
+                            Weights: {}
                     23c28da116b69348aa23606dcc7b416f: !StaticColliderComponent
                         Id: 174a9be6-32f8-42c1-9b29-168c3bcd0457
                         CollisionGroup: StaticFilter
@@ -1782,6 +1842,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 277bd0c1-e4fe-4fa7-8dfa-efd80a0e0895
                         CanSleep: true
@@ -1817,6 +1879,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 35a39e3c-5673-4aef-9e9a-aa26c7195510
                         CanSleep: true
@@ -1884,6 +1948,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: edabcde3-56f3-4e5f-b03d-f5882495826c
                         CanSleep: true
@@ -1985,6 +2051,8 @@ Hierarchy:
                         Id: 1e634afc-ee1e-49b0-944b-db400d868ac5
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 4fc284d3-d5db-4872-a601-0b4659a66b38
                         CanSleep: true
@@ -2032,6 +2100,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 02c3fa23-7540-4a7b-b658-469c06ca49e9
                         CanSleep: true
@@ -2079,6 +2149,8 @@ Hierarchy:
                         Model: da028d29-e641-4020-8977-dafaaf656ad4:/PrototypingBlocks/Models/Stairs1x1x2
                         Materials:
                             74dc3e7c6e633f46a3801edd86a197dd~0: 08b6f010-a274-4180-83c4-0f2c0920774b:/PrototypingBlocks/Materials/GridMTStairs
+                        Morphs:
+                            Weights: {}
                     01635891d64e2c4d98af82259f64e540: !StaticColliderComponent
                         Id: 91586301-4ed6-4d2c-98af-82259f64e540
                         CanSleep: true
@@ -2135,6 +2207,8 @@ Hierarchy:
                         Model: 6582abd6-3c78-4242-96be-4fe6e77c056e:/PrototypingBlocks/Models/Wall0x2x2Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     7788b92a4ec3be43bb9617ff231cfb59: !StaticColliderComponent
                         Id: ccfe3d2e-5928-4249-95d5-8dd2ca8aefd7
                         CanSleep: true
@@ -2185,6 +2259,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: f59fc413-2a02-4d34-a85b-b0219908c83b
                         CanSleep: true
@@ -2243,6 +2319,8 @@ Hierarchy:
                         Model: e55d79be-700a-44db-a70f-8512c67dd07d:/PrototypingBlocks/Models/Ramp1x1x1
                         Materials:
                             74dc3e7c6e633f46a3801edd86a197dd~0: 08b6f010-a274-4180-83c4-0f2c0920774b:/PrototypingBlocks/Materials/GridMTStairs
+                        Morphs:
+                            Weights: {}
                     ef71e33350ba7041a0b72c62a58ca295: !StaticColliderComponent
                         Id: 33e371ef-ba50-4170-a0b7-2c62a58ca295
                         CanSleep: true
@@ -2275,6 +2353,8 @@ Hierarchy:
                         Model: a6a24fab-caf5-4344-8bc0-e29860ea3dbd:/PrototypingBlocks/Models/Wall0x1x2
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     2035050297cb7942b2b1f5e2f2ca07b5: !StaticColliderComponent
                         Id: 02053520-cb97-4279-b2b1-f5e2f2ca07b5
                         CanSleep: true
@@ -2309,6 +2389,8 @@ Hierarchy:
                         Id: 9f39fcc4-fe24-478b-a958-c61dd41cd03b
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: b5f5bb7d-2f0c-45dc-ac11-84f2ba21b754
                         CanSleep: true
@@ -2377,6 +2459,8 @@ Hierarchy:
                         Id: 2c90a40f-c257-42de-8808-e383912863ea
                         Model: f68ea240-695a-4de5-9884-60d77544fcd6:/mannequinModel/Models/mannequinModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     978eabfaac453f4d9375495d32bc299f: !ThirdPersonPlatformer.Player.AnimationController,ThirdPersonPlatformer.Game
                         Id: faab8e97-45ac-4d3f-9375-495d32bc299f
                         AnimationComponent: ref!! c0b24758-fcad-47f3-a100-f94d96c5d325
@@ -2406,6 +2490,8 @@ Hierarchy:
                         Model: 922930df-514b-4eb5-8274-e427eecc434f:/PrototypingBlocks/Models/Box2x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     6b416dc1a6679e41858a68dcecd16bc7: !StaticColliderComponent
                         Id: c16d416b-67a6-419e-858a-68dcecd16bc7
                         CanSleep: true
@@ -2441,6 +2527,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 5dabd597-3eb4-42da-aad2-d6076efc8c99
                         CanSleep: true
@@ -2496,6 +2584,8 @@ Hierarchy:
                         Model: a597a15e-9dec-4895-84be-99240208b6d2:/PrototypingBlocks/Models/Table2x2x2
                         Materials:
                             ecd1b81c86e9114d86fcdf436455648f~0: c1d40f25-8760-420b-8e26-ef8a2b999678:/PrototypingBlocks/Materials/GridMTArc
+                        Morphs:
+                            Weights: {}
                     e8d6d181aa1dab4fa7353dbc6a807bd7: !StaticColliderComponent
                         Id: 3751d0e0-8c28-4d82-90f2-1f515b724553
                         CollisionGroup: StaticFilter
@@ -2563,6 +2653,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 6e1ec7ea-60d4-42c9-b35c-2b29b4bd8173
                         CanSleep: true
@@ -2641,6 +2733,8 @@ Hierarchy:
                         Model: b64f7b95-0e8e-40bb-9b75-21e092f6abc5:/PrototypingBlocks/Models/Floor3x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     8f2d709e00a8674d8f31b62fda1f5a47: !StaticColliderComponent
                         Id: 1df24360-65b1-4c44-aecd-5421006b4676
                         CanSleep: true
@@ -2676,6 +2770,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 09b6be2e-15d6-40c0-b3d0-7aef42f63e6b
                         CanSleep: true
@@ -2768,6 +2864,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: ecf4fbcf-e656-4771-8d28-29f0f2dfd3a7
                         CanSleep: true
@@ -2825,6 +2923,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: a216531e-fec7-4442-930e-db3d85c33b1e
                         CanSleep: true
@@ -3003,6 +3103,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: acfa9407-563c-4c9a-a6df-e636df60f82e
                         CanSleep: true
@@ -3081,6 +3183,8 @@ Hierarchy:
                         Model: 2cb2f455-2bc0-40c0-bd1c-ed5f5ec5a851:/PrototypingBlocks/Models/Floor1x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9fd04a146701174387ebf7ca57fcecc3: !StaticColliderComponent
                         Id: 45866688-1d29-4551-a372-2245481643ab
                         CanSleep: true
@@ -3151,6 +3255,8 @@ Hierarchy:
                         Model: 2cb2f455-2bc0-40c0-bd1c-ed5f5ec5a851:/PrototypingBlocks/Models/Floor1x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9fd04a146701174387ebf7ca57fcecc3: !StaticColliderComponent
                         Id: 461464f6-d057-4acc-a262-8d7470285063
                         CanSleep: true
@@ -3186,6 +3292,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: d7955314-682f-4ff9-911c-1f0d7e463215
                         CanSleep: true
@@ -3232,6 +3340,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 37348d8e-50d3-4de6-b4c4-d0c465ac318c
                         CanSleep: true
@@ -3267,6 +3377,8 @@ Hierarchy:
                         Model: da028d29-e641-4020-8977-dafaaf656ad4:/PrototypingBlocks/Models/Stairs1x1x2
                         Materials:
                             74dc3e7c6e633f46a3801edd86a197dd~0: 08b6f010-a274-4180-83c4-0f2c0920774b:/PrototypingBlocks/Materials/GridMTStairs
+                        Morphs:
+                            Weights: {}
                     01635891d64e2c4d98af82259f64e540: !StaticColliderComponent
                         Id: b644615c-5a6f-4ceb-a7e2-f9ed9615954f
                         CanSleep: true
@@ -3363,6 +3475,8 @@ Hierarchy:
                         Model: 2cb2f455-2bc0-40c0-bd1c-ed5f5ec5a851:/PrototypingBlocks/Models/Floor1x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9fd04a146701174387ebf7ca57fcecc3: !StaticColliderComponent
                         Id: ff47b7d3-5d84-42ae-b9b7-b517bc08edf0
                         CanSleep: true
@@ -3410,6 +3524,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 6178248c-bddc-438d-9b25-fe2e833a2f30
                         CanSleep: true
@@ -3445,6 +3561,8 @@ Hierarchy:
                         Model: 15707c44-e178-4460-b5ac-3012ce507687:/PrototypingBlocks/Models/Pillar0x5x0
                         Materials:
                             375be21b17b931489b7075f15158cba7~0: ad74e5da-cb10-46b7-9c34-3d65a478df12:/PrototypingBlocks/Materials/GridMTHazard
+                        Morphs:
+                            Weights: {}
                     23c28da116b69348aa23606dcc7b416f: !StaticColliderComponent
                         Id: 7ced58bf-3c98-4564-a709-fb7f9a0a20f1
                         CollisionGroup: StaticFilter
@@ -3491,6 +3609,8 @@ Hierarchy:
                         Id: 321ed111-12f2-4a55-a270-14c7f14c4cfd
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 2e982832-0530-47b5-9283-d6305fd224f7
                         CanSleep: true
@@ -3526,6 +3646,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: b9924740-a3c9-4023-9b2f-b9e4852260e6
                         CanSleep: true
@@ -3581,6 +3703,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 53fe6bf5-6bf3-472e-80d9-bcf82e4c6477
                         CanSleep: true
@@ -3682,6 +3806,8 @@ Hierarchy:
                         Model: a597a15e-9dec-4895-84be-99240208b6d2:/PrototypingBlocks/Models/Table2x2x2
                         Materials:
                             ecd1b81c86e9114d86fcdf436455648f~0: c1d40f25-8760-420b-8e26-ef8a2b999678:/PrototypingBlocks/Materials/GridMTArc
+                        Morphs:
+                            Weights: {}
                     e8d6d181aa1dab4fa7353dbc6a807bd7: !StaticColliderComponent
                         Id: 2dbf6a3e-5ac9-4d9e-b4b9-6254492082a7
                         CollisionGroup: StaticFilter
@@ -3749,6 +3875,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: d610bdd5-9f9c-461b-9f05-bab1f584a48a
                         CanSleep: true
@@ -3784,6 +3912,8 @@ Hierarchy:
                         Model: 15707c44-e178-4460-b5ac-3012ce507687:/PrototypingBlocks/Models/Pillar0x5x0
                         Materials:
                             375be21b17b931489b7075f15158cba7~0: ad74e5da-cb10-46b7-9c34-3d65a478df12:/PrototypingBlocks/Materials/GridMTHazard
+                        Morphs:
+                            Weights: {}
                     23c28da116b69348aa23606dcc7b416f: !StaticColliderComponent
                         Id: 4b6500db-3457-409b-b809-bb4880219109
                         CollisionGroup: StaticFilter
@@ -3820,6 +3950,8 @@ Hierarchy:
                         Model: 6f70f12f-e8d9-467e-a4e7-7489cf967274:/PrototypingBlocks/Models/Floor2x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9b0dc84c029fed4caf8b86b095c216e6: !StaticColliderComponent
                         Id: 4cc80d9b-9f02-4ced-af8b-86b095c216e6
                         CanSleep: true
@@ -3914,6 +4046,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 57357e79-ff09-4f76-80a6-b4c43ec7d607
                         CanSleep: true
@@ -3949,6 +4083,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 6c95345d-9fac-46d7-9d6b-1f2dac493d96
                         CanSleep: true
@@ -4027,6 +4163,8 @@ Hierarchy:
                         Model: 01019ffb-11d0-42cb-a5c1-ce55f20e5042:/PrototypingBlocks/Models/Gate1x2x1
                         Materials:
                             ecd1b81c86e9114d86fcdf436455648f~0: c1d40f25-8760-420b-8e26-ef8a2b999678:/PrototypingBlocks/Materials/GridMTArc
+                        Morphs:
+                            Weights: {}
                     c0e71cc466335b44b7cda9387da726a1: !StaticColliderComponent
                         Id: c41ce7c0-3366-445b-b7cd-a9387da726a1
                         CanSleep: true
@@ -4083,6 +4221,8 @@ Hierarchy:
                         Model: 6f70f12f-e8d9-467e-a4e7-7489cf967274:/PrototypingBlocks/Models/Floor2x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9b0dc84c029fed4caf8b86b095c216e6: !StaticColliderComponent
                         Id: c8720537-f52f-4749-9d7d-c379653858c8
                         CanSleep: true
@@ -4118,6 +4258,8 @@ Hierarchy:
                         Model: b64f7b95-0e8e-40bb-9b75-21e092f6abc5:/PrototypingBlocks/Models/Floor3x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     8f2d709e00a8674d8f31b62fda1f5a47: !StaticColliderComponent
                         Id: 16f3a933-c531-4236-8d7a-805ff8204232
                         CanSleep: true
@@ -4164,6 +4306,8 @@ Hierarchy:
                         Model: a597a15e-9dec-4895-84be-99240208b6d2:/PrototypingBlocks/Models/Table2x2x2
                         Materials:
                             ecd1b81c86e9114d86fcdf436455648f~0: c1d40f25-8760-420b-8e26-ef8a2b999678:/PrototypingBlocks/Materials/GridMTArc
+                        Morphs:
+                            Weights: {}
                     e8d6d181aa1dab4fa7353dbc6a807bd7: !StaticColliderComponent
                         Id: c5e55d6c-69be-459c-bfc7-0ae37d855e8b
                         CollisionGroup: StaticFilter
@@ -4231,6 +4375,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: be09b879-2467-43a3-87b8-661a1bce6331
                         CanSleep: true
@@ -4285,6 +4431,8 @@ Hierarchy:
                         Id: 933c37e9-3586-460d-8f78-f07b6bbdb3a4
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 25182bac-0ce3-40ad-b564-1d2f83733407
                         CanSleep: true
@@ -4320,6 +4468,8 @@ Hierarchy:
                         Model: 2cb2f455-2bc0-40c0-bd1c-ed5f5ec5a851:/PrototypingBlocks/Models/Floor1x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9fd04a146701174387ebf7ca57fcecc3: !StaticColliderComponent
                         Id: 7fc0374d-5a3d-4ccd-b2d5-8834d7ed65a9
                         CanSleep: true
@@ -4366,6 +4516,8 @@ Hierarchy:
                         Model: a0e0c032-4635-45cc-9d48-35525b89f1bb:/PrototypingBlocks/Models/Box3x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     d85b2b6e072fba4f9eac30a89cde96ea: !StaticColliderComponent
                         Id: 6e2b5bd8-2f07-4fba-9eac-30a89cde96ea
                         CanSleep: true
@@ -4423,6 +4575,8 @@ Hierarchy:
                         Model: 898b8f2c-6cd6-4320-9dad-418fdb30e20d:/PrototypingBlocks/Models/Ramp1x1_2x2
                         Materials:
                             74dc3e7c6e633f46a3801edd86a197dd~0: 08b6f010-a274-4180-83c4-0f2c0920774b:/PrototypingBlocks/Materials/GridMTStairs
+                        Morphs:
+                            Weights: {}
                     dc14c0a2cfc23c4888d690b32f62969d: !StaticColliderComponent
                         Id: e09073a0-0fba-48d3-b497-be22fad00057
                         CanSleep: true
@@ -4466,6 +4620,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: b5454fc7-86ee-41ba-9115-384dccccfe2e
                         CanSleep: true
@@ -4521,6 +4677,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 1808effc-63ca-4d49-a068-903aaed254f3
                         CanSleep: true
@@ -4576,6 +4734,8 @@ Hierarchy:
                         Model: b64f7b95-0e8e-40bb-9b75-21e092f6abc5:/PrototypingBlocks/Models/Floor3x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     8f2d709e00a8674d8f31b62fda1f5a47: !StaticColliderComponent
                         Id: 937b526b-9a48-4f34-9278-f9661af9fdfd
                         CanSleep: true
@@ -4652,6 +4812,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 12a6ec85-7a3b-4222-9681-e7391b0731bf
                         CanSleep: true
@@ -4687,6 +4849,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 4b892b80-9c66-472d-b3e6-cb8a1389e521
                         CanSleep: true
@@ -4743,6 +4907,8 @@ Hierarchy:
                         Id: 04f73509-697a-49e9-a4af-9140e71f0bcc
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 3694923e-ea37-48b5-a2c9-3199940ef21c
                         CanSleep: true
@@ -4813,6 +4979,8 @@ Hierarchy:
                         Id: f4f75b96-19b6-4be2-8cc8-8fb49b2f92d6
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 4e2c5abe-48eb-47b6-9975-855c87fc240e
                         CanSleep: true
@@ -4848,6 +5016,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 01100dac-f51b-4b4c-8ef3-48728a97c08b
                         CanSleep: true
@@ -4883,6 +5053,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 1c4c4b2c-1fd2-4c33-bff5-756953651862
                         CanSleep: true
@@ -4918,6 +5090,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: a21a1c57-109a-4e5f-9d99-86a544c2b93f
                         CanSleep: true
@@ -4952,6 +5126,8 @@ Hierarchy:
                         Id: 439d601f-31f1-449b-95aa-59169db4c699
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 7b4efaa8-94f0-4eda-a359-a28c22569a29
                         CanSleep: true
@@ -4987,6 +5163,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: e7c78410-e0af-4218-8bb6-4bec3a361090
                         CanSleep: true
@@ -5033,6 +5211,8 @@ Hierarchy:
                         Model: 898b8f2c-6cd6-4320-9dad-418fdb30e20d:/PrototypingBlocks/Models/Ramp1x1_2x2
                         Materials:
                             74dc3e7c6e633f46a3801edd86a197dd~0: 08b6f010-a274-4180-83c4-0f2c0920774b:/PrototypingBlocks/Materials/GridMTStairs
+                        Morphs:
+                            Weights: {}
                     dc14c0a2cfc23c4888d690b32f62969d: !StaticColliderComponent
                         Id: 2c28e220-7c91-46e4-86e2-d0f867a2cb2c
                         CanSleep: true
@@ -5159,6 +5339,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 105eef1e-030f-4f90-83c5-1474e0cbec42
                         CanSleep: true
@@ -5251,6 +5433,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: a0c1e986-55d0-4d25-b204-b59735102a5d
                         CanSleep: true
@@ -5305,6 +5489,8 @@ Hierarchy:
                         Id: ad80f2dd-3c84-47e7-902a-37c30981424b
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 3f35c9c1-5233-4fc8-b97c-17b33b56adc3
                         CanSleep: true
@@ -5339,6 +5525,8 @@ Hierarchy:
                         Id: 14833d18-e676-45a7-9ee8-76b9dbb40345
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: a3b0a368-9326-40d9-9bef-20ae00d49b9d
                         CanSleep: true
@@ -5374,6 +5562,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: a0420d89-8e6e-43ab-b4ec-9e34217cb915
                         CanSleep: true
@@ -5429,6 +5619,8 @@ Hierarchy:
                         Model: 6f70f12f-e8d9-467e-a4e7-7489cf967274:/PrototypingBlocks/Models/Floor2x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9b0dc84c029fed4caf8b86b095c216e6: !StaticColliderComponent
                         Id: 8d4c73df-b5f7-4005-9f86-2c50882f4591
                         CanSleep: true
@@ -5464,6 +5656,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 824a611f-2322-4d65-85d3-f82afae7358b
                         CanSleep: true
@@ -5499,6 +5693,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 5297af04-852d-4e79-8c46-136656ec5b06
                         CanSleep: true
@@ -5534,6 +5730,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: f0845a4c-d1ff-407b-b665-c188b907d344
                         CanSleep: true
@@ -5588,6 +5786,8 @@ Hierarchy:
                         Id: 7e64871e-da32-474d-8e42-e98e9f0a0435
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 6b4866eb-f232-4674-9311-c18c36fa557f
                         CanSleep: true
@@ -5623,6 +5823,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 01da733a-f446-44bd-a907-43d1b06738f0
                         CanSleep: true
@@ -5658,6 +5860,8 @@ Hierarchy:
                         Model: a0e0c032-4635-45cc-9d48-35525b89f1bb:/PrototypingBlocks/Models/Box3x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     d85b2b6e072fba4f9eac30a89cde96ea: !StaticColliderComponent
                         Id: 652d826f-2c1c-4791-952c-34effb9ff691
                         CanSleep: true
@@ -5693,6 +5897,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: ffc4eaf4-afa1-4294-bdff-d4d4ec8061db
                         CanSleep: true
@@ -5728,6 +5934,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: b7d97827-3130-4e18-84ea-121001f9cee6
                         CanSleep: true
@@ -5783,6 +5991,8 @@ Hierarchy:
                         Model: 6f70f12f-e8d9-467e-a4e7-7489cf967274:/PrototypingBlocks/Models/Floor2x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9b0dc84c029fed4caf8b86b095c216e6: !StaticColliderComponent
                         Id: 93c44bb4-949c-4ae1-97e9-772e83e673d8
                         CanSleep: true
@@ -5818,6 +6028,8 @@ Hierarchy:
                         Model: a597a15e-9dec-4895-84be-99240208b6d2:/PrototypingBlocks/Models/Table2x2x2
                         Materials:
                             ecd1b81c86e9114d86fcdf436455648f~0: c1d40f25-8760-420b-8e26-ef8a2b999678:/PrototypingBlocks/Materials/GridMTArc
+                        Morphs:
+                            Weights: {}
                     e8d6d181aa1dab4fa7353dbc6a807bd7: !StaticColliderComponent
                         Id: a1ee67d3-15ed-44b0-a650-8da0fcbe6ef4
                         CollisionGroup: StaticFilter
@@ -5885,6 +6097,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 39a18fac-28df-4c08-98ca-29566ec55912
                         CanSleep: true
@@ -5951,6 +6165,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 39ba4806-e7e7-48b3-bc50-7302e3d8e48c
                         CanSleep: true
@@ -5986,6 +6202,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: f35c0e73-5c42-4a6c-9c47-d60fc90ee842
                         CanSleep: true
@@ -6033,6 +6251,8 @@ Hierarchy:
                         Model: 15707c44-e178-4460-b5ac-3012ce507687:/PrototypingBlocks/Models/Pillar0x5x0
                         Materials:
                             375be21b17b931489b7075f15158cba7~0: ad74e5da-cb10-46b7-9c34-3d65a478df12:/PrototypingBlocks/Materials/GridMTHazard
+                        Morphs:
+                            Weights: {}
                     23c28da116b69348aa23606dcc7b416f: !StaticColliderComponent
                         Id: f2c72be9-a92c-4927-bbf9-52f77af15628
                         CollisionGroup: StaticFilter
@@ -6069,6 +6289,8 @@ Hierarchy:
                         Model: 922930df-514b-4eb5-8274-e427eecc434f:/PrototypingBlocks/Models/Box2x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     6b416dc1a6679e41858a68dcecd16bc7: !StaticColliderComponent
                         Id: cabe14b1-49e6-489e-82b8-1f1dc08e02ab
                         CanSleep: true
@@ -6104,6 +6326,8 @@ Hierarchy:
                         Model: 2cb2f455-2bc0-40c0-bd1c-ed5f5ec5a851:/PrototypingBlocks/Models/Floor1x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9fd04a146701174387ebf7ca57fcecc3: !StaticColliderComponent
                         Id: 8a60fa34-4a51-47ee-8ddf-ba23d01c6317
                         CanSleep: true
@@ -6139,6 +6363,8 @@ Hierarchy:
                         Model: da028d29-e641-4020-8977-dafaaf656ad4:/PrototypingBlocks/Models/Stairs1x1x2
                         Materials:
                             74dc3e7c6e633f46a3801edd86a197dd~0: 08b6f010-a274-4180-83c4-0f2c0920774b:/PrototypingBlocks/Materials/GridMTStairs
+                        Morphs:
+                            Weights: {}
                     01635891d64e2c4d98af82259f64e540: !StaticColliderComponent
                         Id: 87f536d2-e2a7-4987-95ef-a37a6ecd9a80
                         CanSleep: true
@@ -6171,6 +6397,8 @@ Hierarchy:
                         Model: ea5bbb6a-d2b7-4181-81e1-5d9708a7782a:/PrototypingBlocks/Models/Wall0x2x2
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     e15b531c136aed41902227e77c631556: !StaticColliderComponent
                         Id: 82f9bd74-22e7-468b-bc25-0dcfee100da4
                         CanSleep: true
@@ -6206,6 +6434,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: e07d90b6-3c47-4350-a50a-e7532b16ef83
                         CanSleep: true
@@ -6261,6 +6491,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: e97e4492-090e-4345-8c1d-c75457d38e72
                         CanSleep: true
@@ -6350,6 +6582,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 9b92109a-d32d-4d07-80fc-eda1fa89158f
                         CanSleep: true
@@ -6395,6 +6629,8 @@ Hierarchy:
                         Id: af3d9fb3-96a3-48db-8cd3-eb72dd34fb9e
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 20ed5723-799f-4e28-bcd4-99f1548fc258
                         CanSleep: true
@@ -6452,6 +6688,8 @@ Hierarchy:
                         Id: 8c8772c1-21d5-471a-a708-5c6e0325e94d
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 0d53372b-73a6-4e22-8ce3-984e918303dc
                         CanSleep: true
@@ -6511,6 +6749,8 @@ Hierarchy:
                         Model: 922930df-514b-4eb5-8274-e427eecc434f:/PrototypingBlocks/Models/Box2x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     6b416dc1a6679e41858a68dcecd16bc7: !StaticColliderComponent
                         Id: f5736fc6-db53-404f-b339-7a4c15f1fb4c
                         CanSleep: true
@@ -6591,6 +6831,8 @@ Hierarchy:
                         Model: 6f70f12f-e8d9-467e-a4e7-7489cf967274:/PrototypingBlocks/Models/Floor2x0x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     9b0dc84c029fed4caf8b86b095c216e6: !StaticColliderComponent
                         Id: 657e4a56-0193-4231-88d3-9a5ce0ec5452
                         CanSleep: true
@@ -6684,6 +6926,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 45779592-f65f-4c27-bb9a-2da85bb67d90
                         CanSleep: true
@@ -6763,6 +7007,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: e7db03bc-64b0-4d10-a89c-87d235f5a150
                         CanSleep: true
@@ -6818,6 +7064,8 @@ Hierarchy:
                         Model: a0e0c032-4635-45cc-9d48-35525b89f1bb:/PrototypingBlocks/Models/Box3x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     d85b2b6e072fba4f9eac30a89cde96ea: !StaticColliderComponent
                         Id: 5606ad57-1775-49a6-ba34-2db5a5a978b6
                         CanSleep: true
@@ -6853,6 +7101,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: f040b869-f1f2-4591-905c-89ab720ac5a2
                         CanSleep: true
@@ -6984,6 +7234,8 @@ Hierarchy:
                         Model: da028d29-e641-4020-8977-dafaaf656ad4:/PrototypingBlocks/Models/Stairs1x1x2
                         Materials:
                             74dc3e7c6e633f46a3801edd86a197dd~0: 08b6f010-a274-4180-83c4-0f2c0920774b:/PrototypingBlocks/Materials/GridMTStairs
+                        Morphs:
+                            Weights: {}
                     01635891d64e2c4d98af82259f64e540: !StaticColliderComponent
                         Id: 92f36000-3392-425c-8402-62e4392781b1
                         CanSleep: true
@@ -7051,6 +7303,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: 6bc623e9-bd36-453e-a4c1-48e4deb80c20
                         CanSleep: true
@@ -7120,6 +7374,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: f8713e19-07e6-40a1-9478-750bf80a1368
                         CanSleep: true
@@ -7189,6 +7445,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 600177fe-f3c4-4cbc-a87c-655cb2e54144
                         CanSleep: true
@@ -7244,6 +7502,8 @@ Hierarchy:
                         Model: 66d4458f-7fd8-452c-bb3c-c89eca9d666a:/PrototypingBlocks/Models/Wall0x2x5Window
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     666529545735244ba050097255e092f8: !StaticColliderComponent
                         Id: 63713754-c3ce-4cf2-a990-43e8370d321b
                         CanSleep: true
@@ -7299,6 +7559,8 @@ Hierarchy:
                         Model: 924c9ca7-d8b3-4966-bc05-086bb500ff85:/PrototypingBlocks/Models/Gate2x3x1
                         Materials:
                             ecd1b81c86e9114d86fcdf436455648f~0: c1d40f25-8760-420b-8e26-ef8a2b999678:/PrototypingBlocks/Materials/GridMTArc
+                        Morphs:
+                            Weights: {}
                     87e4f56b172adb4f897ce1addcb0ec93: !StaticColliderComponent
                         Id: 6abb30b3-a4a6-4a29-a52d-07e523fbc75d
                         CanSleep: true
@@ -7344,6 +7606,8 @@ Hierarchy:
                         Model: 922930df-514b-4eb5-8274-e427eecc434f:/PrototypingBlocks/Models/Box2x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     6b416dc1a6679e41858a68dcecd16bc7: !StaticColliderComponent
                         Id: 57781ba6-102f-439e-a645-c7a9d641f9e0
                         CanSleep: true
@@ -7379,6 +7643,8 @@ Hierarchy:
                         Model: 96e9623a-d160-4e9d-b153-dce865e0dcd5:/PrototypingBlocks/Models/Wall0x2x5
                         Materials:
                             ec9522ed2e91694abd8663b5b8ada228~0: af6015d0-0e5d-4189-b6e0-96810ff58e48:/PrototypingBlocks/Materials/GridMTWall
+                        Morphs:
+                            Weights: {}
                     74299af04257e746be4dcca2e071c23f: !StaticColliderComponent
                         Id: bab8d89e-6009-430d-9f86-93cd88fa21a0
                         CanSleep: true
@@ -7436,6 +7702,8 @@ Hierarchy:
                         Model: 15707c44-e178-4460-b5ac-3012ce507687:/PrototypingBlocks/Models/Pillar0x5x0
                         Materials:
                             375be21b17b931489b7075f15158cba7~0: ad74e5da-cb10-46b7-9c34-3d65a478df12:/PrototypingBlocks/Materials/GridMTHazard
+                        Morphs:
+                            Weights: {}
                     23c28da116b69348aa23606dcc7b416f: !StaticColliderComponent
                         Id: 852c7c0e-cc27-410c-8080-c966a2d80dd8
                         CollisionGroup: StaticFilter
@@ -7472,6 +7740,8 @@ Hierarchy:
                         Model: 15707c44-e178-4460-b5ac-3012ce507687:/PrototypingBlocks/Models/Pillar0x5x0
                         Materials:
                             375be21b17b931489b7075f15158cba7~0: ad74e5da-cb10-46b7-9c34-3d65a478df12:/PrototypingBlocks/Materials/GridMTHazard
+                        Morphs:
+                            Weights: {}
                     23c28da116b69348aa23606dcc7b416f: !StaticColliderComponent
                         Id: 4d76d3b0-35cc-4605-bb92-aaa1ba4d7606
                         CollisionGroup: StaticFilter

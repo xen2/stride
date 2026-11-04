@@ -41,3 +41,5 @@ Hierarchy:
                         Id: 619893f8-b3c2-449c-94f0-61673c9dfdcd
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}

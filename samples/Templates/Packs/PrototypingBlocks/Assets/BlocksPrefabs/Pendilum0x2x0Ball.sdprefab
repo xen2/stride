@@ -21,6 +21,8 @@ Hierarchy:
                         Model: a4db3eeb-2715-4e8f-bba0-452eb7ca2d47:Models/Pendilum0x2x0Ball
                         Materials:
                             375be21b17b931489b7075f15158cba7~0: ad74e5da-cb10-46b7-9c34-3d65a478df12:Materials/GridMTHazard
+                        Morphs:
+                            Weights: {}
                     15332955af647b4bbc35c45c75d70935: !StaticColliderComponent
                         Id: 55293315-64af-4b7b-bc35-c45c75d70935
                         CollisionGroup: StaticFilter
@@ -31,6 +33,7 @@ Hierarchy:
                         CcdMotionThreshold: 0.0
                         CcdSweptSphereRadius: 0.0
                         IsTrigger: false
+                        AlwaysUpdateNaviMeshCache: false
                         ColliderShapes:
                             f25e17f1e10a734e961b31e0b3404c31: !CylinderColliderShapeDesc
                                 Height: 2.0

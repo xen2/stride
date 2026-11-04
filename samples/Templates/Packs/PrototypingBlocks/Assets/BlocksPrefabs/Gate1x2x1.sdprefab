@@ -21,6 +21,8 @@ Hierarchy:
                         Model: 01019ffb-11d0-42cb-a5c1-ce55f20e5042:Models/Gate1x2x1
                         Materials:
                             ecd1b81c86e9114d86fcdf436455648f~0: c1d40f25-8760-420b-8e26-ef8a2b999678:Materials/GridMTArc
+                        Morphs:
+                            Weights: {}
                     c0e71cc466335b44b7cda9387da726a1: !StaticColliderComponent
                         Id: c41ce7c0-3366-445b-b7cd-a9387da726a1
                         CanSleep: true
@@ -30,6 +32,7 @@ Hierarchy:
                         CcdMotionThreshold: 0.0
                         CcdSweptSphereRadius: 0.0
                         IsTrigger: false
+                        AlwaysUpdateNaviMeshCache: false
                         ColliderShapes:
                             6789a1372377624a80df8c1d66d47bd0: !BoxColliderShapeDesc
                                 Is2D: false

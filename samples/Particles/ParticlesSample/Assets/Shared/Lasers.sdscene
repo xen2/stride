@@ -98,6 +98,8 @@ Hierarchy:
                         Id: 060c74f7-f272-4ffe-8c06-82955d99d22e
                         Model: 3a57fc61-9428-47be-b916-1d1a3bd4495d:LaserAssets/RedTube
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 74316bd3-3393-4654-850c-00837f64bac9:LaserAssets/LaserPrefab
                 BasePartId: a3ccc846-034e-409a-ac44-0626a1898680
@@ -291,6 +293,8 @@ Hierarchy:
                         Id: 1b0896b3-be6a-4b97-a751-8fad96ed31ae
                         Model: 476b6aa7-94ee-468a-84df-93877dbdb88e:Models/ProceduralModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 1f576934-655a-4878-8388-3ff907555fdb
@@ -341,6 +345,8 @@ Hierarchy:
                         Id: 0237ef3f-dca7-44d4-8b84-58b2ee51b8c0
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e479bb1aeeefad42b8d6c82c459c0472: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 1abb79e4-efee-42ad-b8d6-c82c459c0472
                         TimeFactor: 1.0
@@ -372,6 +378,8 @@ Hierarchy:
                         Id: 34e3e0cb-ae56-4f1e-a6f8-0ace08e86947
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e479bb1aeeefad42b8d6c82c459c0472: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 4c53ab05-68fd-43fb-9666-de94d7dfac93
                         TimeFactor: 1.0
@@ -393,6 +401,8 @@ Hierarchy:
                         Id: 847e71e8-4473-49af-adfd-83a907b83827
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e4801ae0073f02418593e38382cafa83: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: e01a80e4-3f07-4102-8593-e38382cafa83
                         TimeFactor: 0.65
@@ -414,6 +424,8 @@ Hierarchy:
                         Id: bb18a562-a78b-4db6-ad17-a646b90e3045
                         Model: d49979c4-92be-430c-bb5a-294bdc6b1665:Materials/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 5ba92d2f-47e3-4da2-a07f-bb1ca2ee1ff6
@@ -653,6 +665,8 @@ Hierarchy:
                         Id: da747f38-69ca-4ff6-bfe6-81879ce7b492
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     f8123cfc0fcc2948afd19f08fadd32c8: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: fc3c12f8-cc0f-4829-afd1-9f08fadd32c8
                         TimeFactor: 0.8
@@ -819,6 +833,8 @@ Hierarchy:
                         Id: 5a86b169-7dde-4036-b28e-1b5f54bb4b9b
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     f8123cfc0fcc2948afd19f08fadd32c8: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 66fb94ed-f54e-43d0-bb62-c89b13f49885
                         TimeFactor: 0.8
@@ -840,6 +856,8 @@ Hierarchy:
                         Id: 0cffba86-9833-4ca9-ba72-9ae03b4e8b7c
                         Model: dd5840dc-2183-4a8d-8609-4c5f81fc42ae:Models/Stand
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 3ff67fb4-5b1d-4f59-814a-366e12ce3146
                 Name: Sphere
@@ -854,6 +872,8 @@ Hierarchy:
                         Id: 9f602431-ce90-40d8-bbdf-046c7544342d
                         Model: d49979c4-92be-430c-bb5a-294bdc6b1665:Materials/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 5ba92d2f-47e3-4da2-a07f-bb1ca2ee1ff6
@@ -887,6 +907,8 @@ Hierarchy:
                         Id: 34f70455-ba93-47c9-9029-b04d21cf07f5
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e4801ae0073f02418593e38382cafa83: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: a0271d12-3065-4cfb-9c0c-ac180d84b39b
                         TimeFactor: 0.65
@@ -919,6 +941,8 @@ Hierarchy:
                         Id: dd20db83-2ce5-4ee3-9749-851936dfaca9
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e479bb1aeeefad42b8d6c82c459c0472: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 6e2d6c48-2f8f-4f19-9fd0-fab296a9dd6d
                         TimeFactor: 1.0
@@ -1117,6 +1141,8 @@ Hierarchy:
                         Id: a9ac9d27-5ed9-4df3-a178-f357f2fd2696
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e479bb1aeeefad42b8d6c82c459c0472: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 8cbe9b90-2d74-408f-8795-d32e3ecb644c
                         TimeFactor: 1.0
@@ -1329,6 +1355,8 @@ Hierarchy:
                         Id: 727f15df-d2dd-4108-94dd-9fef5261e10a
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e479bb1aeeefad42b8d6c82c459c0472: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 40230c5b-823a-4e5c-b906-6a0ec139859a
                         TimeFactor: 1.0
@@ -1350,6 +1378,8 @@ Hierarchy:
                         Id: 00963d32-ebcb-47fe-8153-9c94182f4e53
                         Model: dd5840dc-2183-4a8d-8609-4c5f81fc42ae:Models/Stand
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 5ac873be-fd16-4593-a59e-ed80ab2940a8
                 Name: Entity (2)
@@ -1393,6 +1423,8 @@ Hierarchy:
                         Id: 9c979533-778b-49cf-9f88-a9cf69f0b837
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e479bb1aeeefad42b8d6c82c459c0472: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 0c8e1850-0be2-46b9-9725-0ee96740753c
                         TimeFactor: 1.0
@@ -1414,6 +1446,8 @@ Hierarchy:
                         Id: 270bf07a-8c6f-4955-a07a-63ca77db6023
                         Model: e6716a5e-47ef-4eca-a079-45655587b48f:LaserAssets/BlueTube
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 74316bd3-3393-4654-850c-00837f64bac9:LaserAssets/LaserPrefab
                 BasePartId: 1fa0ec17-12a1-4c34-ae03-423318c62744
@@ -1553,6 +1587,8 @@ Hierarchy:
                         Id: 7400a753-6e82-475a-b5a1-e41ff21dffca
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     f8123cfc0fcc2948afd19f08fadd32c8: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 8e400bc8-38e5-4c00-b112-4f0f6034d43c
                         TimeFactor: 0.8
@@ -1574,6 +1610,8 @@ Hierarchy:
                         Id: 2ba71c11-e0f2-4349-a630-338d7f99298b
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e4801ae0073f02418593e38382cafa83: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: b4fd8ad9-09c2-41ef-88e9-6a656efd0558
                         TimeFactor: 0.65
@@ -1610,6 +1648,8 @@ Hierarchy:
                         Id: 6b077efc-cb15-41b9-8c28-53ecff014230
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     f8123cfc0fcc2948afd19f08fadd32c8: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 4795e73b-ebf1-448f-8e16-308b817492b7
                         TimeFactor: 0.8
@@ -1665,6 +1705,8 @@ Hierarchy:
                         Id: 2511807a-ec04-4f1f-8b5d-2bd64d82f441
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e4801ae0073f02418593e38382cafa83: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: aebd2f1b-7762-4798-b7c8-25823e5b0ff1
                         TimeFactor: 0.65
@@ -2035,6 +2077,8 @@ Hierarchy:
                         Id: 7dbc4402-863b-4033-ab81-0edc8891ffdd
                         Model: d49979c4-92be-430c-bb5a-294bdc6b1665:Materials/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 5ba92d2f-47e3-4da2-a07f-bb1ca2ee1ff6
@@ -2073,6 +2117,8 @@ Hierarchy:
                         Id: 1d0b4b6c-befb-4ca6-ab27-68b13e6ed2aa
                         Model: dd5840dc-2183-4a8d-8609-4c5f81fc42ae:Models/Stand
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 8697e719-8369-441f-a1e8-271dc4dd5688
                 Name: Laser Beam
@@ -2279,6 +2325,8 @@ Hierarchy:
                         Id: 085006c0-1c23-4969-9d5f-a7fb595e8d82
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e4801ae0073f02418593e38382cafa83: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 58b13ee0-5954-4be1-873d-1cd12ca58cf9
                         TimeFactor: 0.65
@@ -2300,6 +2348,8 @@ Hierarchy:
                         Id: 747a49d2-9332-4f2f-8ddc-35b8ac762d92
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e4801ae0073f02418593e38382cafa83: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: b364cf93-a131-49a9-98d9-17b66d0514f8
                         TimeFactor: 0.65
@@ -2371,6 +2421,8 @@ Hierarchy:
                         Id: e7f93c2c-3a48-4bca-9cd2-567295b418c7
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e479bb1aeeefad42b8d6c82c459c0472: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: c195cd5d-b571-4709-ac70-e8937ca09b5a
                         TimeFactor: 1.0
@@ -2406,6 +2458,8 @@ Hierarchy:
                         Id: 7a9336a1-1295-4513-84c9-4cbbce17cc62
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e4801ae0073f02418593e38382cafa83: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 813331f7-bae9-4ed3-891d-a0e039df421b
                         TimeFactor: 0.65
@@ -2427,6 +2481,8 @@ Hierarchy:
                         Id: 88e18ae4-b5e4-433e-b05f-27f5f7474947
                         Model: d49979c4-92be-430c-bb5a-294bdc6b1665:Materials/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 5ba92d2f-47e3-4da2-a07f-bb1ca2ee1ff6
@@ -2460,6 +2516,8 @@ Hierarchy:
                         Id: 724f27ea-7137-439f-982c-4b30640650d1
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e4801ae0073f02418593e38382cafa83: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: b83db1c4-6894-4a0e-9e62-151a7ea828e2
                         TimeFactor: 0.65
@@ -2481,6 +2539,8 @@ Hierarchy:
                         Id: 67fe90b0-2e7d-4c0f-95ef-7bb931e98143
                         Model: d49979c4-92be-430c-bb5a-294bdc6b1665:Materials/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 5ba92d2f-47e3-4da2-a07f-bb1ca2ee1ff6
@@ -2531,6 +2591,8 @@ Hierarchy:
                         Id: 09ab1ab0-e914-48ca-9d0e-3aa9f8a57d7b
                         Model: d49979c4-92be-430c-bb5a-294bdc6b1665:Materials/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 5ba92d2f-47e3-4da2-a07f-bb1ca2ee1ff6
@@ -2716,6 +2778,8 @@ Hierarchy:
                         Id: 9d77f258-166f-451f-a1f5-bd2f6f63ce4b
                         Model: 476b6aa7-94ee-468a-84df-93877dbdb88e:Models/ProceduralModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 1f576934-655a-4878-8388-3ff907555fdb
@@ -2734,6 +2798,8 @@ Hierarchy:
                         Id: 6f84a304-062b-4e6b-9eb4-4e266c44e781
                         Model: d49979c4-92be-430c-bb5a-294bdc6b1665:Materials/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 5ba92d2f-47e3-4da2-a07f-bb1ca2ee1ff6
@@ -2752,6 +2818,8 @@ Hierarchy:
                         Id: b54c294b-2f01-4925-b4c4-cb9afe4cdd8e
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     f8123cfc0fcc2948afd19f08fadd32c8: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: bbfa38ec-8795-4b2e-9c07-78ef8f78abda
                         TimeFactor: 0.8
@@ -2788,6 +2856,8 @@ Hierarchy:
                         Id: 90e54e9f-4bcf-462f-ba48-81e1381225a9
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     f8123cfc0fcc2948afd19f08fadd32c8: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 6fb93588-d3cd-4016-bf30-d89a56ee0918
                         TimeFactor: 0.8
@@ -2834,6 +2904,8 @@ Hierarchy:
                         Id: d3917836-ca2b-4653-b57f-e2439b155aa8
                         Model: d49979c4-92be-430c-bb5a-294bdc6b1665:Materials/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 5ba92d2f-47e3-4da2-a07f-bb1ca2ee1ff6
@@ -2852,6 +2924,8 @@ Hierarchy:
                         Id: e5244b3e-1771-4fc7-9b55-23c9086fe363
                         Model: 0628b61c-a92c-4836-bd45-988da11c6aac:LaserAssets/GreenTube
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 74316bd3-3393-4654-850c-00837f64bac9:LaserAssets/LaserPrefab
                 BasePartId: c9ad1043-e5d2-440c-8df2-f7d5a7913c6a
@@ -3003,6 +3077,8 @@ Hierarchy:
                         Id: a66c8dc0-d3c7-42f2-9d28-cee8947ba4c4
                         Model: 476b6aa7-94ee-468a-84df-93877dbdb88e:Models/ProceduralModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 1f576934-655a-4878-8388-3ff907555fdb
@@ -3021,6 +3097,8 @@ Hierarchy:
                         Id: 8f2f35d3-7402-4314-b3a5-cbd314f9b61f
                         Model: d49979c4-92be-430c-bb5a-294bdc6b1665:Materials/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 5ba92d2f-47e3-4da2-a07f-bb1ca2ee1ff6
@@ -3039,6 +3117,8 @@ Hierarchy:
                         Id: 993a7879-d267-4632-aad2-d83723989e93
                         Model: dd5840dc-2183-4a8d-8609-4c5f81fc42ae:Models/Stand
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: c7c16bcf-f4dc-431c-a127-b9f6a2ab08f5
                 Name: ArcTarget
@@ -3098,6 +3178,8 @@ Hierarchy:
                         Id: 42adf338-e733-46bf-9fef-8a9d41b80219
                         Model: dd5840dc-2183-4a8d-8609-4c5f81fc42ae:Models/Stand
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: cebe733a-e4ab-4aae-92a6-a2ab2edf6145
                 Name: NextScene
@@ -3146,6 +3228,8 @@ Hierarchy:
                         Id: 157a4b16-dbd0-4001-826c-b4f791d25427
                         Model: 476b6aa7-94ee-468a-84df-93877dbdb88e:Models/ProceduralModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 1f576934-655a-4878-8388-3ff907555fdb
@@ -3181,6 +3265,8 @@ Hierarchy:
                         Id: b4276e2a-0129-4aa2-8466-c159d594f8df
                         Model: 476b6aa7-94ee-468a-84df-93877dbdb88e:Models/ProceduralModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 311ff46f-bf71-4dd0-aa39-230dbf355536:Prefab
                 BasePartId: 1f576934-655a-4878-8388-3ff907555fdb
@@ -3199,6 +3285,8 @@ Hierarchy:
                         Id: 64a106f5-df3c-491f-8bce-c41fb3679afc
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     f8123cfc0fcc2948afd19f08fadd32c8: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 4863c702-6040-40d1-aae4-6d7bb995f0b5
                         TimeFactor: 0.8
@@ -3220,6 +3308,8 @@ Hierarchy:
                         Id: ba4024fc-f048-4fbc-8999-e74fb9400c62
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     f8123cfc0fcc2948afd19f08fadd32c8: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 0d74f98b-815f-43ff-b59b-cfac19592c68
                         TimeFactor: 0.8
@@ -3241,6 +3331,8 @@ Hierarchy:
                         Id: f89b0de5-514a-4aa1-ba23-a1761dade4c3
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e479bb1aeeefad42b8d6c82c459c0472: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 420375ac-e8ba-4dda-847a-0eff377af8c1
                         TimeFactor: 1.0
@@ -3277,6 +3369,8 @@ Hierarchy:
                         Id: 0a0a5042-7662-422d-9cb5-4d30373f0e43
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e479bb1aeeefad42b8d6c82c459c0472: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: bf519b3a-b0de-4b78-85c9-bb76d8ad3669
                         TimeFactor: 1.0
@@ -3967,6 +4061,8 @@ Hierarchy:
                         Id: 0de8583f-50eb-4ddf-817f-f8f1eb7136eb
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     f8123cfc0fcc2948afd19f08fadd32c8: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 1c7a51ed-e8dd-44a1-aa88-c07a87777ca7
                         TimeFactor: 0.8
@@ -4003,6 +4099,8 @@ Hierarchy:
                         Id: d7515d62-3115-4a09-866f-f0dd600d195b
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e4801ae0073f02418593e38382cafa83: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 1ae45fa7-07de-4ace-9c65-50dc8672d85b
                         TimeFactor: 0.65

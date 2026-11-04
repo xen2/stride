@@ -596,6 +596,8 @@ Hierarchy:
                         Id: 44294176-c511-406b-aa5d-0798967ef1d4
                         Model: 0fb6c306-2953-47bc-86ff-3e79cfec1836:Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 8be4d1c8-abc9-4afe-8117-a4489f4e88d6
                 Name: Camera

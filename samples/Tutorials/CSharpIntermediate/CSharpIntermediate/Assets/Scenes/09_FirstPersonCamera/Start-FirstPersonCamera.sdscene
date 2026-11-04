@@ -41,6 +41,8 @@ Hierarchy:
                         Id: 38e6af0f-fc2c-40a6-b1d8-31732e414f95
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 4e57d39e-a713-4e97-94ca-a561512c3e0c
                         CanSleep: true
@@ -76,6 +78,8 @@ Hierarchy:
                         Id: 0108a7ce-d950-4a4e-b075-95cad8c0019b
                         Model: 0750fa0b-63d1-48cb-b1e2-2ab83137a27f:Models/Ground
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: c9926fc9-6589-40e8-a42d-22106e39343a
@@ -113,6 +117,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:/PrototypingBlocks/Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: aae0982b-facc-4a31-b3da-c7e327c6697e
                         CanSleep: true
@@ -164,6 +170,8 @@ Hierarchy:
                         Id: 3198052c-19a9-43ad-aa53-6d290d6dbc95
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 9b6f272d-3e12-4976-ba23-a337e72391aa
                         CanSleep: true
@@ -199,6 +207,8 @@ Hierarchy:
                         Id: dd9b6292-bad2-40aa-b09d-d01fc100c8c5
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 9c198729-2d84-4682-9306-de336cf782de
                         CanSleep: true
@@ -234,6 +244,8 @@ Hierarchy:
                         Id: a3773dbf-9c4c-4c0d-afa3-2f02516f8d87
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: ff26b680-9e80-463d-b4e8-f2729f75e75a
                         CanSleep: true
@@ -270,6 +282,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:/PrototypingBlocks/Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 7fa678c9-31ae-40c3-9c8c-09646a29cd06
                         CanSleep: true
@@ -304,6 +318,8 @@ Hierarchy:
                         Id: 41b9482d-f7eb-4ad2-8ef5-08747d96f6c8
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: fef57993-8d27-4e79-9dd4-9c0f7368427e
@@ -323,6 +339,8 @@ Hierarchy:
                         Id: 2f956543-1fcd-485c-bff1-483c3b60d58b
                         Model: 0750fa0b-63d1-48cb-b1e2-2ab83137a27f:Models/Ground
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: e173cb28-86d4-4c4d-bde7-6302d0d62821
@@ -436,6 +454,8 @@ Hierarchy:
                         Id: 6a62d9ea-64b4-46e4-8e59-a281d0e3de3c
                         Model: 3bebe6b9-2b1c-43d6-9d5d-936e861187f9:Models/Cylinder
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Folder: Ground
             Entity:
                 Id: 34c118d8-7306-4248-bf7f-4c716f1c6c39
@@ -451,6 +471,8 @@ Hierarchy:
                         Id: d3f55ab6-3f11-45b1-909d-48fec0e401b6
                         Model: 0750fa0b-63d1-48cb-b1e2-2ab83137a27f:Models/Ground
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: f1ced593-eb7f-4621-a893-58716765e6fd
@@ -469,6 +491,8 @@ Hierarchy:
                         Id: c40fb0cd-e1d5-4ecf-b339-e769f876e2f5
                         Model: 3bebe6b9-2b1c-43d6-9d5d-936e861187f9:Models/Cylinder
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Folder: Walls
             Entity:
                 Id: 37bc8710-ce69-47fa-89d1-bcb76664cac5
@@ -500,6 +524,8 @@ Hierarchy:
                         Id: e37162a2-0332-46de-ae35-bd70eb592f5e
                         Model: 0750fa0b-63d1-48cb-b1e2-2ab83137a27f:Models/Ground
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: f7cf8e94-8c8c-49ad-ae01-c4f6b757a16a
@@ -518,6 +544,8 @@ Hierarchy:
                         Id: 6b118076-42ab-48d2-9f36-2f9647b2fe61
                         Model: 32c1ef96-e4a0-49a2-b286-b932c6d43f49:/mannequinModel/Models/MachinegunModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: 45e5b999-26cb-4b1d-a795-ce9587684765
@@ -538,6 +566,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:/PrototypingBlocks/Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: d3757886-f131-4127-9c9b-c8aa47799901
                         CanSleep: true
@@ -572,6 +602,8 @@ Hierarchy:
                         Id: c3e883df-9d1e-41cc-9a69-a6a44fd09592
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: feeb4fd8-22ae-42c3-a0e9-7182c92afe27
                         CanSleep: true
@@ -606,6 +638,8 @@ Hierarchy:
                         Id: fbb24319-2691-422c-9b23-350815c5e22a
                         Model: 74b88cdd-45d9-494f-b463-cd0c478df1e8:/mannequinModel/Models/SwordModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: 458fecff-cd6e-44cb-8416-e25954af5138
@@ -640,6 +674,8 @@ Hierarchy:
                         Id: 62d7e227-901a-4afa-9e42-d5c52f6b0329
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: ecb34195-85e2-4cbb-b96d-6fffdbcc63e7
                         CanSleep: true
@@ -675,6 +711,8 @@ Hierarchy:
                         Id: cfa2ed50-ecd6-4799-8098-5eaf2f81e119
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 7f1a6e95-5657-46bc-9ba8-613ba596639a
                         CanSleep: true
@@ -710,6 +748,8 @@ Hierarchy:
                         Model: 922930df-514b-4eb5-8274-e427eecc434f:/PrototypingBlocks/Models/Box2x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     6b416dc1a6679e41858a68dcecd16bc7: !StaticColliderComponent
                         Id: cf9c4058-833e-4cc7-a249-f83b68ac0b81
                         CanSleep: true
@@ -747,6 +787,8 @@ Hierarchy:
                             aac48e089700b5666f7834876488d4a7~0: e4a8b81d-08ea-4561-92cc-ef5a7fef6a7d:/SamplesAssetPackage/Materials/DullSilver
                             052f7ac2d72b1c7dc1e7f4f61043a136~1: c6f9218e-ae58-4d4d-9bb5-c83f722b9977:/SamplesAssetPackage/Materials/DarkStone
                             086eef7c07d069c1f14a417bee475279~2: e4a8b81d-08ea-4561-92cc-ef5a7fef6a7d:/SamplesAssetPackage/Materials/DullSilver
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: 1c9a5abc-8191-4536-b49f-a38c5313e5d9
@@ -783,6 +825,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:/PrototypingBlocks/Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: ac3143ff-95fa-4d3d-bf3f-09ea04e6545d
                         CanSleep: true
@@ -818,6 +862,8 @@ Hierarchy:
                         Id: 14f61809-5833-4735-a4af-903eb56d203d
                         Model: 0750fa0b-63d1-48cb-b1e2-2ab83137a27f:Models/Ground
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: 6566caf9-1fbf-46cb-b440-b5c3f1ab06b2
@@ -836,6 +882,8 @@ Hierarchy:
                         Id: 5f9badf5-1cca-4da5-abdc-0777d5a8cfd9
                         Model: d6eb9b8a-c70a-4d55-8da5-9dc32528d6bd:/SamplesAssetPackage/Models/MaterialModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: 6d51050a-1062-452f-abd0-5810d7a53325
@@ -855,6 +903,8 @@ Hierarchy:
                         Id: 35ed93fc-0728-4dd3-8b95-c130f55bd7c1
                         Model: 0750fa0b-63d1-48cb-b1e2-2ab83137a27f:Models/Ground
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: 99b86c5a-d67f-42f3-83bd-915f1c9cb8d5
@@ -890,6 +940,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:/PrototypingBlocks/Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 9f4b89c0-06dd-4acf-9690-28b0b370a8e4
                         CanSleep: true
@@ -925,6 +977,8 @@ Hierarchy:
                         Id: 7e6bb06f-25ad-4b5d-9970-0112ff5992c8
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 02fce235-f692-4b5d-9dfb-4e83cdb272b1
                         CanSleep: true
@@ -975,6 +1029,8 @@ Hierarchy:
                         Id: 9c2a3e22-c0cd-4e95-a9b7-de4282fea3c8
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: b4822478-a0d3-4d30-b190-6ebdfb037bc3
                         CanSleep: true
@@ -1025,6 +1081,8 @@ Hierarchy:
                         Id: f759c90b-005c-48cd-8136-10ecf1efd1c8
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 8825d48c-0086-4af4-b0d1-292ccb941a0f
                         CanSleep: true
@@ -1181,6 +1239,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:/PrototypingBlocks/Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 98f81e3c-f47f-4d4d-b42d-87966f2415d0
                         CanSleep: true
@@ -1217,6 +1277,8 @@ Hierarchy:
                         Model: 922930df-514b-4eb5-8274-e427eecc434f:/PrototypingBlocks/Models/Box2x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     6b416dc1a6679e41858a68dcecd16bc7: !StaticColliderComponent
                         Id: 5b054ac8-c554-425f-9803-282470ac48dc
                         CanSleep: true
@@ -1253,6 +1315,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:/PrototypingBlocks/Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 14de92ae-6ca5-4847-86bd-bc1adbc4b283
                         CanSleep: true
@@ -1288,6 +1352,8 @@ Hierarchy:
                         Id: 06ce8501-adc2-4eb4-8ece-ae685b97ce24
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 839b719f-56dd-4d23-9a2c-bf32e989df3d
                         CanSleep: true
@@ -1322,6 +1388,8 @@ Hierarchy:
                         Id: 5de80aea-058f-4874-b1f4-84fd58ac3392
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 4c013e1f-aeb4-43d1-9e3c-190289d52c96
                         CanSleep: true
@@ -1404,6 +1472,8 @@ Hierarchy:
                         Id: bbfaa0a2-6a12-4b21-95f5-6c9b00bffa16
                         Model: 3bebe6b9-2b1c-43d6-9d5d-936e861187f9:Models/Cylinder
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Folder: Walls
             Entity:
                 Id: a7e5d291-939a-49b8-9a99-68c3e75a4351
@@ -1452,6 +1522,8 @@ Hierarchy:
                         Id: a26a829b-2713-4bba-aceb-4bbde1de081f
                         Model: 0750fa0b-63d1-48cb-b1e2-2ab83137a27f:Models/Ground
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: 620cdb9e-e123-43c0-abe9-8108caa46663
@@ -1500,6 +1572,8 @@ Hierarchy:
                         Id: d59a30d1-d20e-4851-a6c9-1f0fb7432f86
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: f1ae4214-0a16-4d41-a2c7-8c02080f15b0
                         CanSleep: true
@@ -1553,6 +1627,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:/PrototypingBlocks/Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 876f4734-4eda-4df9-883d-1b3b896e89de
                         CanSleep: true
@@ -1588,6 +1664,8 @@ Hierarchy:
                         Id: 2273d87a-4202-4ae8-9380-b448d02d9372
                         Model: 0750fa0b-63d1-48cb-b1e2-2ab83137a27f:Models/Ground
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: 3c1bd1d8-ed0e-4ba4-9d7b-ab06016be6f2
@@ -1606,6 +1684,8 @@ Hierarchy:
                         Id: 03e97023-4b82-421b-9bda-9e3c39faed78
                         Model: d0a8736e-23e3-4463-b0bb-66efd2b9ff1c:/SamplesAssetPackage/Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: 22edceae-5cb9-472d-8ebf-fe09eef1e3cc
@@ -1642,6 +1722,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:/PrototypingBlocks/Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 0c2287ed-af2b-4513-90d8-39c2a83bf0a4
                         CanSleep: true
@@ -1677,6 +1759,8 @@ Hierarchy:
                         Id: 1e818689-d98d-4a95-80f6-1b165fa544c0
                         Model: 0750fa0b-63d1-48cb-b1e2-2ab83137a27f:Models/Ground
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: 9d288c6a-c0b3-4c71-bf15-d7007aa9a7e8
@@ -1727,6 +1811,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:/PrototypingBlocks/Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 69c7f504-7039-4752-937e-9a0d967bcec5
                         CanSleep: true
@@ -1761,6 +1847,8 @@ Hierarchy:
                         Id: 60e940b1-60cd-44b5-a2b3-efef3c02484b
                         Model: f381ed79-1e17-4ddd-b99b-eb700b626f42:/PrototypingBlocks/Models/Ladder0x2x0handle
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 56ef43aa-df99-4225-970c-d8fc613fcd3b:Prefabs/DefaultScenery
                 BasePartId: bdef49b0-5148-4bde-9d44-94d32a87c137
@@ -1780,6 +1868,8 @@ Hierarchy:
                         Id: 927aa0fc-304d-46c1-873d-5499cdd20d70
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: 4b56bd6f-5573-42bb-a230-49ff6ab59dd6
                         CanSleep: true
@@ -1815,6 +1905,8 @@ Hierarchy:
                         Id: 506e00c0-9c6c-47ed-8ef5-90a2c08973ce
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: a9d5eb2e-6e82-4c31-a26e-08dddb3fbc0d
                         CanSleep: true
@@ -1874,6 +1966,8 @@ Hierarchy:
                         Model: 922930df-514b-4eb5-8274-e427eecc434f:/PrototypingBlocks/Models/Box2x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     6b416dc1a6679e41858a68dcecd16bc7: !StaticColliderComponent
                         Id: 93bd0096-c3c2-4a47-ab93-67700143ad50
                         CanSleep: true
@@ -1910,6 +2004,8 @@ Hierarchy:
                         Model: 922930df-514b-4eb5-8274-e427eecc434f:/PrototypingBlocks/Models/Box2x1x1
                         Materials:
                             1f66d7610cd6dc4c9b32d800d312e162~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:/PrototypingBlocks/Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     6b416dc1a6679e41858a68dcecd16bc7: !StaticColliderComponent
                         Id: f67cc06d-ac0d-4d5f-8d2b-cbaef2c7605e
                         CanSleep: true
@@ -1984,6 +2080,8 @@ Hierarchy:
                         Id: e8ded654-909d-4b12-8e20-05424e5b3adc
                         Model: 120c36db-8a04-4dfd-aa11-85d9b46d5143:Models/Cone
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: f79b2d06-0b95-42c8-8ec0-d890110511b4
                 Name: Box4x2x1
@@ -1998,6 +2096,8 @@ Hierarchy:
                         Id: 70c2d037-04c2-419a-8980-ef6fc4a1ff22
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: ab8c7700-3490-48e3-9f1d-63674f6ff1df
                         CanSleep: true
@@ -2049,6 +2149,8 @@ Hierarchy:
                         Id: 6e3508b7-fcc4-436a-ad3b-aa2320f780a8
                         Model: null
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: ad6be0c9-d68c-4cf0-848b-99e399d7e516
                         CanSleep: true

@@ -20,3 +20,5 @@ Hierarchy:
                         Id: f266e591-fa6d-4c3a-818f-992a59ab8a0b
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}

@@ -56,8 +56,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic*: true
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: !InstanceComponent
@@ -146,6 +146,8 @@ Hierarchy:
                         Model: 6c7dc99e-7ba4-469d-8bd7-838e95b78342:Models/Cone
                         Materials:
                             93d768bb43cb750b4273d21353e24a00~0: 01e72cab-d817-455d-8707-f6721c30562f:Materials/QRMatR
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 4daf65e9-7de9-4d66-9648-d571c613d5c2
                 Name*: BepuBorderL
@@ -173,8 +175,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic*: true
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: !InstanceComponent
@@ -196,6 +198,8 @@ Hierarchy:
                         Model: 6c7dc99e-7ba4-469d-8bd7-838e95b78342:Models/Cone
                         Materials:
                             6b7660b4e75aade38aa4e3752bc9f4ad~0: 6a57f19f-d1bd-4260-8089-d569ae312679:Materials/QRMatB
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 6ff0c913-081a-44cf-ae47-b31d76a53e32
                 Name: SpawnPoint
@@ -221,6 +225,8 @@ Hierarchy:
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials:
                             b79bec1fb6ad662e7cdc338f94d9fd84~0: 02d8a19e-db6e-44b4-8861-64bdd38b05c5:Materials/QRMat
+                        Morphs:
+                            Weights: {}
                     51794937bd906df995ecb923037f8f67: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
                         Id: db7b2be3-34c2-4669-9085-21e5b900299e
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -316,6 +322,8 @@ Hierarchy:
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials:
                             a4372207e9cfb015a5973f7fcb15a3a8~0: 02d8a19e-db6e-44b4-8861-64bdd38b05c5:Materials/QRMat
+                        Morphs:
+                            Weights: {}
                     8b6177e0e71e252f50babaf34a820d3f: !InstancingComponent
                         Id: 07d89da4-4f97-41b4-a347-7eeb9c895d5f
                         Type: !InstancingEntityTransform {}
@@ -347,8 +355,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic*: true
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: !InstanceComponent
@@ -418,6 +426,8 @@ Hierarchy:
                         Model: 6c7dc99e-7ba4-469d-8bd7-838e95b78342:Models/Cone
                         Materials:
                             4b7476ce466bddb096388de22ed58ff5~0: 00e4f2d4-0cc2-422b-8926-e9b8be03984c:Materials/QRMatG
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: dbad87be-3782-4b23-9676-1aed6deaa639
                 Name*: BepuBorderR
@@ -445,8 +455,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic*: true
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: !InstanceComponent
@@ -479,8 +489,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic*: true
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: !InstanceComponent
@@ -513,8 +523,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic*: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: !InstanceComponent

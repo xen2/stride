@@ -25,6 +25,8 @@ Hierarchy:
                         Id: 4e60c2e3-0662-4158-ac5a-3faeebb4c346
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 24a65d39-df51-45e9-a100-e2f435f06dcb
                 Name: Camera

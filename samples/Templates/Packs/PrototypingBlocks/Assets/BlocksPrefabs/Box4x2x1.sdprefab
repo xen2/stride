@@ -21,6 +21,8 @@ Hierarchy:
                         Model: 8716437c-7a19-4a59-840a-3f3e91214205:Models/Box4x2x1
                         Materials:
                             97cb539b4d6079458c5ef344e58d8e55~0: 9366d8fb-3605-4070-abaa-7bb7f1cdfbc1:Materials/GridMTPlatform
+                        Morphs:
+                            Weights: {}
                     793d2ad2924e3a48a2a869b11f5df718: !StaticColliderComponent
                         Id: d22a3d79-4e92-483a-a2a8-69b11f5df718
                         CanSleep: true
@@ -30,6 +32,7 @@ Hierarchy:
                         CcdMotionThreshold: 0.0
                         CcdSweptSphereRadius: 0.0
                         IsTrigger: false
+                        AlwaysUpdateNaviMeshCache: false
                         ColliderShapes:
                             16348c7905caf14d82d3668b90f0c07b: !BoxColliderShapeDesc
                                 Is2D: false

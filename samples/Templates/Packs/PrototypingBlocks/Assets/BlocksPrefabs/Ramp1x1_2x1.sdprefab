@@ -21,6 +21,8 @@ Hierarchy:
                         Model: c262e230-382e-451b-8392-6c1441e58792:Models/Ramp1x1_2x1
                         Materials:
                             74dc3e7c6e633f46a3801edd86a197dd~0: 08b6f010-a274-4180-83c4-0f2c0920774b:Materials/GridMTStairs
+                        Morphs:
+                            Weights: {}
                     46971390e65cf2498096105180d7a739: !StaticColliderComponent
                         Id: 90139746-5ce6-49f2-8096-105180d7a739
                         CanSleep: true
@@ -30,6 +32,7 @@ Hierarchy:
                         CcdMotionThreshold: 0.0
                         CcdSweptSphereRadius: 0.0
                         IsTrigger: false
+                        AlwaysUpdateNaviMeshCache: false
                         ColliderShapes:
                             7c0427666547c848a3b4892e63c539a5: !ColliderShapeAssetDesc
                                 Shape: 974ee62e-4d36-4005-a27f-da07b6ae36a7:CollisionMeshes/Ramp1x1_2x1

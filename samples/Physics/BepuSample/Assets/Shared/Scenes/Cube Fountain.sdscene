@@ -79,6 +79,8 @@ Hierarchy:
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials:
                             a4372207e9cfb015a5973f7fcb15a3a8~0: 02d8a19e-db6e-44b4-8861-64bdd38b05c5:Materials/QRMat
+                        Morphs:
+                            Weights: {}
                     8b6177e0e71e252f50babaf34a820d3f: !InstancingComponent
                         Id: 7b575973-f575-4c46-ad83-7e80a3655acc
                         Type: !InstancingEntityTransform {}
@@ -96,6 +98,8 @@ Hierarchy:
                         Id: f092cb31-b02b-40c2-9e5f-a2c832a52f9e
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     35cc099f52862d462cf32a4e641a3953: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
                         Id: 805641b3-f967-41df-b273-a1063faecd6b
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics

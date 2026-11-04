@@ -217,6 +217,8 @@ Hierarchy:
                         IsShadowCaster: false
                         Materials:
                             8f46c33571e26d4bb19356e1ee060013~0: 4de4aa42-6f84-472f-8b50-7f4d8229723a:HighlightMaterial
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 7f250db2-af29-4e4e-b6e2-4906b671660f
                 Name: PunchCollision
@@ -328,6 +330,8 @@ Hierarchy:
                         Id: 4ab656cb-fceb-42ac-b714-b2df6cc2a11c
                         Model: f68ea240-695a-4de5-9884-60d77544fcd6:/mannequinModel/Models/mannequinModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     978eabfaac453f4d9375495d32bc299f: !TopDownRPG.Player.AnimationController,TopDownRPG.Game
                         Id: 02134ed9-2d03-4e40-adc3-0cc966234728
                         AnimationComponent: ref!! 04aca6c6-5637-4c54-8ea5-1b1da75d2d90

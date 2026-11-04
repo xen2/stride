@@ -20,3 +20,5 @@ Hierarchy:
                         Id: 6f373ea3-e953-47e8-9fa0-c9930d4e4f14
                         Model: 4cdaddcf-d059-4bcd-908a-0016149e2f1e:Models/plateB
                         Materials: {}
+                        Morphs:
+                            Weights: {}

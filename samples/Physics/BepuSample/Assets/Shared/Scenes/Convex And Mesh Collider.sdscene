@@ -63,6 +63,8 @@ Hierarchy:
                         Id: a2b25f4f-0977-4a26-9d7f-528a0c584f57
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     b24e6f17befd60f29fbb2c7b6bb740bd: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
                         Id: bf04da26-8d14-4977-8652-f825ec67644b
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -93,6 +95,8 @@ Hierarchy:
                         Model: 5176fc28-79cc-43cb-b63a-64c353d78899:Models/bridge
                         Materials:
                             37439bd1ca6e9765847ffa07f178b50e~0: 02d8a19e-db6e-44b4-8861-64bdd38b05c5:Materials/QRMat
+                        Morphs:
+                            Weights: {}
                     a61ed9913de89b33f908f399bb797e7a: !Stride.BepuPhysics.BodyComponent,Stride.BepuPhysics
                         Id: 9c384156-5813-4753-b8d3-668783b839ef
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.MeshCollider,Stride.BepuPhysics
@@ -107,8 +111,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
         -   Entity:
@@ -169,6 +173,8 @@ Hierarchy:
                         Id: 6d778a37-85fb-4ac0-a5dc-f36de5703345
                         Model: edb51e97-9eed-406f-a82c-e8157436456b:Models/SciFi031_unityfan777
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     6c6e738690230cb357bc6a7d193b3b5d: !Stride.BepuPhysics.BodyComponent,Stride.BepuPhysics
                         Id: e6d3aad3-d50a-4530-ad50-2c777597a867
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -186,8 +192,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
         -   Entity:
@@ -206,6 +212,8 @@ Hierarchy:
                         Materials:
                             896d342a02d524b28d3a30b1b63195d0~0: 6a57f19f-d1bd-4260-8089-d569ae312679:Materials/QRMatB
                             662d82b5c3b080ce82abc57939239817~1: 6a57f19f-d1bd-4260-8089-d569ae312679:Materials/QRMatB
+                        Morphs:
+                            Weights: {}
                     c6f6b5494ec1b33d07116d6bc7e4d13f: !Stride.BepuPhysics.BodyComponent,Stride.BepuPhysics
                         Id: 3b7024e6-a5db-4aaf-b630-c58b1e2780bd
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -223,8 +231,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
         -   Entity:
@@ -258,6 +266,8 @@ Hierarchy:
                         Materials:
                             b5330a6b01f889d72e378d43ee7f5913~0: 01e72cab-d817-455d-8707-f6721c30562f:Materials/QRMatR
                             e1fde20fec8c37dfcd862bc055bd12da~1: 01e72cab-d817-455d-8707-f6721c30562f:Materials/QRMatR
+                        Morphs:
+                            Weights: {}
                     dc93ec7834e278e3a0378c18e2c91c9d: !Stride.BepuPhysics.BodyComponent,Stride.BepuPhysics
                         Id: 7fc5c406-3821-4ead-89e7-0cbcbf912835
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.MeshCollider,Stride.BepuPhysics
@@ -272,8 +282,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
         -   Entity:
@@ -291,6 +301,8 @@ Hierarchy:
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials:
                             a4372207e9cfb015a5973f7fcb15a3a8~0: 02d8a19e-db6e-44b4-8861-64bdd38b05c5:Materials/QRMat
+                        Morphs:
+                            Weights: {}
                     8b6177e0e71e252f50babaf34a820d3f: !InstancingComponent
                         Id: 111e74c1-c110-46d9-982e-12db7994528e
                         Type: !InstancingEntityTransform {}

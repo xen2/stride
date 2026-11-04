@@ -24,6 +24,8 @@ Hierarchy:
                         Id: 5fcd6a69-60f9-4a7f-a871-cf0219d6650b
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e0beca31326612052db3b4c09aa5d3cb: !CSharpBeginner.Code.LerpDemo,CSharpBeginner.Game
                         Id: f02fdc23-0f1f-48ab-a3fd-638768d10efa
                         AnimationTimer: 3.0

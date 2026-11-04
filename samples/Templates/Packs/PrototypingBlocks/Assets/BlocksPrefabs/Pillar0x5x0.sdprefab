@@ -21,6 +21,8 @@ Hierarchy:
                         Model: 15707c44-e178-4460-b5ac-3012ce507687:Models/Pillar0x5x0
                         Materials:
                             375be21b17b931489b7075f15158cba7~0: ad74e5da-cb10-46b7-9c34-3d65a478df12:Materials/GridMTHazard
+                        Morphs:
+                            Weights: {}
                     23c28da116b69348aa23606dcc7b416f: !StaticColliderComponent
                         Id: a18dc223-b616-4893-aa23-606dcc7b416f
                         CollisionGroup: StaticFilter
@@ -31,6 +33,7 @@ Hierarchy:
                         CcdMotionThreshold: 0.0
                         CcdSweptSphereRadius: 0.0
                         IsTrigger: false
+                        AlwaysUpdateNaviMeshCache: false
                         ColliderShapes:
                             0c11aab71bdaff448b0974b597a6f84f: !BoxColliderShapeDesc
                                 Is2D: false

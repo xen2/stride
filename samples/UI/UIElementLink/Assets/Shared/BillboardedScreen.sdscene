@@ -207,6 +207,8 @@ Hierarchy:
                         Id: d676a1e3-287f-44e1-bccf-44d85bbd6588
                         Model: 55733c87-8e99-4d26-8eac-32a172399d18:Knight/knight
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     09aab9e5eda4fca6b98cb5345e47b2c5: !UIElementLink.AnimationStart,UIElementLink.Game
                         Id: a0729174-95e1-4bfc-bcc1-ccd891e83fbe
                         Animations:
@@ -246,3 +248,5 @@ Hierarchy:
                         Id: fd224e85-5f77-4126-b662-a616b9d8ef3d
                         Model: be1aa9c8-4b3f-48d4-a759-d3b28603cb41:ProceduralModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}

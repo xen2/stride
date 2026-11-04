@@ -26,6 +26,8 @@ Hierarchy:
                         Id: 471a12dc-fa0c-4ede-b211-cdd54bd77bb9
                         Model: 74b88cdd-45d9-494f-b463-cd0c478df1e8:/mannequinModel/Models/SwordModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 355518a5-d044-4304-806f-3f3a9233ce4e
                 Name: Camera

@@ -44,3 +44,5 @@ Hierarchy:
                         Id: 25b6a499-09c6-4311-8f88-2cfb1100888d
                         Model: ad7e799e-d4fa-4bc2-8e00-49bf70e31434:Models/Ball
                         Materials: {}
+                        Morphs:
+                            Weights: {}

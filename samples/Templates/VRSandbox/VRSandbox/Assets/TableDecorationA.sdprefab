@@ -46,3 +46,5 @@ Hierarchy:
                         Id: b014770b-ba49-4704-9665-5d21423c7879
                         Model: d6eb9b8a-c70a-4d55-8da5-9dc32528d6bd:/SamplesAssetPackage/Models/MaterialModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}

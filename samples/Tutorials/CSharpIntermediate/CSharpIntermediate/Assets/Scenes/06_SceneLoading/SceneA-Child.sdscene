@@ -27,6 +27,8 @@ Hierarchy:
                         Id: 08c59e3b-faa1-418b-bc8d-15ad95155f3f
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 571ea878-511d-4c3e-8f5d-d5b18960fe3a
                 Name: BoxF
@@ -41,6 +43,8 @@ Hierarchy:
                         Id: ba919469-4f23-494a-a334-dda7e7c74903
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 669fd594-d421-478d-ae0c-919cabe0a670
                 Name: BoxA
@@ -55,6 +59,8 @@ Hierarchy:
                         Id: 91383478-2b6f-4243-b23f-6e57a7eeff86
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: ad055f7f-c837-4c0b-9d1d-c5fc7e4cc2a9
                 Name: BoxB
@@ -69,6 +75,8 @@ Hierarchy:
                         Id: ef5acf8e-da0e-43d2-b7f7-b1271dc57ed9
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: d78503e7-9cc8-4722-b4d9-92daee16f739
                 Name: BoxE
@@ -83,6 +91,8 @@ Hierarchy:
                         Id: 5785374e-6f17-4819-8db2-83b8f134b374
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: dc050b73-16b0-4e08-a640-9dffbc18c32f
                 Name: BoxC
@@ -97,3 +107,5 @@ Hierarchy:
                         Id: ccf6aa8d-af9f-47eb-8444-979b72991e93
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}

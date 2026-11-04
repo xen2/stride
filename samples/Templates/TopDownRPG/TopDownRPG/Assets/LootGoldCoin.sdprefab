@@ -55,6 +55,8 @@ Hierarchy:
                         Id: 48b3ee76-ae56-4880-8daf-19410ab51cf5
                         Model: 43497f30-bb62-46d4-8a9c-6dedead0cad8:/SamplesAssetPackage/Models/CoinGold
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     5d7c980f639f67459b68a76d9fcdd82c: !TopDownRPG.Gameplay.Trigger,TopDownRPG.Game
                         Id: 0f987c5d-9f63-4567-9b68-a76d9fcdd82c
                         TriggerCondition: StartOnly

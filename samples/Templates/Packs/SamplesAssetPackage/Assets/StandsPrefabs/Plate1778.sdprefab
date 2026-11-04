@@ -20,3 +20,5 @@ Hierarchy:
                         Id: 287cfafb-6201-4aa2-95d5-58b49701fccc
                         Model: 89a24148-b30e-4429-a72a-ab0f6492a5b7:Models/plateC
                         Materials: {}
+                        Morphs:
+                            Weights: {}

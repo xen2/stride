@@ -93,6 +93,8 @@ Hierarchy:
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials:
                             a4372207e9cfb015a5973f7fcb15a3a8~0: 02d8a19e-db6e-44b4-8861-64bdd38b05c5:Materials/QRMat
+                        Morphs:
+                            Weights: {}
                     8b6177e0e71e252f50babaf34a820d3f: !InstancingComponent
                         Id: ccc91ddb-b1aa-4126-b9fa-d46997c95559
                         Type: !InstancingEntityTransform {}
@@ -110,6 +112,8 @@ Hierarchy:
                         Id: 7fe72b74-2765-4871-98db-6b544167f449
                         Model: 162f79e0-18f6-4043-bb0d-65ab268481b5:Models/GeoSphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     ef0c89f5a9951932140f4465284129f3: !Stride.BepuPhysics.BodyComponent,Stride.BepuPhysics
                         Id: 8a37cf38-2dba-4ef9-82d0-eb44f31ee0bc
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -127,8 +131,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: true
                         Gravity: false
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
         -   Entity:
@@ -145,6 +149,8 @@ Hierarchy:
                         Id: ef9a25cc-d718-4f42-9170-63467e31521d
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     9b02325abe5e89252f5c96388fa2c028: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
                         Id: 81071c6e-dbf1-4952-8e85-0310011f1f60
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -188,8 +194,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: true
                         Gravity: false
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: !InstanceComponent
@@ -234,6 +240,8 @@ Hierarchy:
                         Id: c4736d6c-b998-48a7-8fde-b08c54bc7d69
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     73a79944ce55bfe1b50a617c3f1e74d8: !Stride.BepuPhysics.BodyComponent,Stride.BepuPhysics
                         Id: db0a5a8e-e568-4664-8c2c-3268845c17b5
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -251,8 +259,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
         -   Entity:
@@ -304,6 +312,8 @@ Hierarchy:
                         Id: 1056d98a-d913-4188-bb62-e7e4f886e288
                         Model: e605b0eb-9e73-4f87-ba69-4aed6d80c7c9:Models/Capsule
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e78e78eee42a366bc4e686d231a44adf: !Stride.BepuPhysics.BodyComponent,Stride.BepuPhysics
                         Id: 95368871-f71c-4e1c-889c-b4e4a0a86f8e
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -322,8 +332,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
         -   Entity:
@@ -340,6 +350,8 @@ Hierarchy:
                         Id: fa517b53-c0e0-4cba-a472-d44de7c722ee
                         Model: 162f79e0-18f6-4043-bb0d-65ab268481b5:Models/GeoSphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     ef0c89f5a9951932140f4465284129f3: !Stride.BepuPhysics.BodyComponent,Stride.BepuPhysics
                         Id: 532d017b-3047-4c4c-b903-8d7165a24b2c
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -357,8 +369,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: true
                         Gravity: false
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
         -   Entity:
@@ -419,8 +431,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: !InstanceComponent
@@ -506,6 +518,8 @@ Hierarchy:
                         Id: d4e647ec-8eed-4a53-9f44-c64f0a44abc9
                         Model: e605b0eb-9e73-4f87-ba69-4aed6d80c7c9:Models/Capsule
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e78e78eee42a366bc4e686d231a44adf: !Stride.BepuPhysics.BodyComponent,Stride.BepuPhysics
                         Id: 2b3ed244-f030-49bb-9cc2-88d8f361105f
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -524,8 +538,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
         -   Entity:
@@ -542,6 +556,8 @@ Hierarchy:
                         Id: eeb60654-9d7b-49b5-b661-732b4ab883b5
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     d37a671bb17f102a3d4895239972117d: !Stride.BepuPhysics.BodyComponent,Stride.BepuPhysics
                         Id: 2bd19aab-9faa-4976-b8e7-ebff7aefbbd7
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -559,7 +575,7 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: true
                         Gravity: false
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32

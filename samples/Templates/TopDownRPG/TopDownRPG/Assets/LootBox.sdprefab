@@ -21,6 +21,8 @@ Hierarchy:
                         Id: 271da092-aab6-492e-b6f4-555de61f78e4
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     9ff39e9a53a90d49bb7faec06f6d32ca: !StaticColliderComponent
                         Id: 9a9ef39f-a953-490d-bb7f-aec06f6d32ca
                         CollisionGroup: CustomFilter2

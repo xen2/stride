@@ -29,6 +29,8 @@ Hierarchy:
                         Id: 26b8316e-ce11-418a-a915-008b56fdae67
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: dbb78a7c-8d1b-4794-9d0e-8580f234e08c
                         CollisionGroup: CustomFilter1
@@ -61,6 +63,8 @@ Hierarchy:
                         Id: 6c28e661-40f6-4c8a-b689-7c1b41442d49
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 73060625-2c87-4906-aa6a-0be1a5c0472f
                         CollisionGroup: CustomFilter1
@@ -134,6 +138,8 @@ Hierarchy:
                         Id: 47136cfb-8a04-4fca-adac-48e3dad37b0e
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 60802ef8-a1ca-49cf-a085-05d2b2a4c4db
                         CollisionGroup: CustomFilter1
@@ -166,6 +172,8 @@ Hierarchy:
                         Id: e258e790-0ebb-4af4-9aa2-94e264f096f0
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     9ff39e9a53a90d49bb7faec06f6d32ca: !StaticColliderComponent
                         Id: d81ea934-fdbf-487c-9a48-8eb7c072388f
                         CollisionGroup: CustomFilter2
@@ -210,6 +218,8 @@ Hierarchy:
                         Id: c163bef5-9a8a-4f81-a4a7-7ae62a0612a4
                         Model: ee4e1a2b-82a5-4f40-9c2b-1c239dea039a:/PrototypingBlocks/Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e892de73aae78041aa74ca19b0b9f867: !StaticColliderComponent
                         Id: 1ead02c4-c3dd-4ff7-97de-ad52032c838a
                         CollisionGroup: CustomFilter1

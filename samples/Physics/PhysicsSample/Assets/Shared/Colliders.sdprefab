@@ -58,6 +58,8 @@ Hierarchy:
                         Id: 619893f8-b3c2-449c-94f0-61673c9dfdcd
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: 27a46512-0945-43e6-b3a1-43f3c17ccd84
                         TriggerEntity: null
@@ -98,6 +100,8 @@ Hierarchy:
                         Id: 08f942b4-3c24-49a3-94e1-46007f0328f9
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: d6609453-5a3c-4e5e-8a52-bb319dedaada
                         TriggerEntity: null
@@ -160,6 +164,8 @@ Hierarchy:
                         Id: d8a4386a-f50c-419a-826c-7c7ca2c7ab35
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: fa05e2e3-9a39-4c38-bb81-65a81ffe2db1
                         TriggerEntity: null
@@ -211,6 +217,8 @@ Hierarchy:
                         Id: e9adc7b9-13f6-43d1-8cd7-7eb87d54042f
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: 64cc69d5-60ea-4232-90be-886ca11deac5
                         TriggerEntity: null
@@ -251,6 +259,8 @@ Hierarchy:
                         Id: 0f9f99b9-190d-4282-9dbc-f51c1d950ad6
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: d27831a7-0044-494d-ae5d-cf4adf2ebce3
                         TriggerEntity: null
@@ -291,6 +301,8 @@ Hierarchy:
                         Id: a1779b26-e991-4c20-b5a0-299edb9e76a5
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: b30958cd-51eb-46c6-bd69-33c267488d2f
                         TriggerEntity: null
@@ -353,6 +365,8 @@ Hierarchy:
                         Id: 6c366f61-4528-49e9-92bd-a74253557464
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: e89e70f6-a20b-48cb-bcea-93b3c4eba77f
                         TriggerEntity: null
@@ -426,6 +440,8 @@ Hierarchy:
                         Id: 7a95510a-65ce-4e34-9188-416ca407eb26
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: f98c391c-c6ee-497e-9511-a207b6d529b2
                         TriggerEntity: null
@@ -466,6 +482,8 @@ Hierarchy:
                         Id: 95143454-89e0-48e0-9789-dd50f6e5ab61
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: 8adb4cbf-bc16-4520-a366-f2f30ab24b63
                         TriggerEntity: null

@@ -38,6 +38,8 @@ Hierarchy:
                         Id: c648682d-f2e1-4f54-a539-1aea5ebb194e
                         Model: c8901469-88c0-43e1-bffe-f1fe2dc02aea:bg_b02
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 375a70a7-8bd1-42c8-ba80-db8ccd698c28
                 Name: Background_b00
@@ -56,6 +58,8 @@ Hierarchy:
                         Id: d8bd2c66-de1a-4726-a300-0f466a57be4f
                         Model: 82360e61-196c-4c07-9fae-af7ee4f265a1:bg_b00
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 422d91bc-cfe1-439e-a2d1-631886e95537
                 Name: Obstacle1
@@ -73,6 +77,8 @@ Hierarchy:
                         Id: be1256b4-b088-4acc-ada8-d30b58cc85ea
                         Model: e19ec8c3-699e-4a5f-ad09-9f5e750b9b0d:obj00
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 4af9a192-21ff-4f1b-9c09-e7d80dae4e0a
                 Name: Background_b01
@@ -94,6 +100,8 @@ Hierarchy:
                         Id: c7a1aec3-b9bd-4c13-9e74-a68360b9d3d9
                         Model: f0088b04-5990-4dd4-9824-77fcf8a8a62c:bg_b01
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 732ee867-c723-4583-9f6a-b071c59a7fab
                 Name: LevelBlocks
@@ -138,6 +146,8 @@ Hierarchy:
                         Id: 43a25a44-5e1d-48d6-b78f-81a1ea4a3af4
                         Model: a966e37f-0bb7-4a02-9630-d871321a615d:bg_b03
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: be0f7749-0809-4e50-931b-13570ea885ca
                 Name: Ambient light
@@ -174,6 +184,8 @@ Hierarchy:
                         Id: 099013f0-1d70-4ca0-a5ec-13ca1c1fe3eb
                         Model: b731fd7d-df09-4059-9cc5-57ba50d0f3f6:bg_b04
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: d594e60f-c93c-4ae2-add6-8f2fa6b7c170
                 Name: Background_a00
@@ -192,6 +204,8 @@ Hierarchy:
                         Id: dcac60d0-b2d2-43f3-b50a-f03c4aa5e47e
                         Model: 3047da8a-bf85-4cdd-99ef-89c2b19c3c04:bg_a00
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: e322652e-175e-4563-9135-82ddef7c8973
                 Name: Obstacle2
@@ -216,3 +230,5 @@ Hierarchy:
                         Id: c7fb9db5-e936-49c2-b7e0-06243640beb6
                         Model: f81db4ee-5929-42c9-9008-2cd624296caa:obj01
                         Materials: {}
+                        Morphs:
+                            Weights: {}

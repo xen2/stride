@@ -33,6 +33,8 @@ Hierarchy:
                         Id: 270bf07a-8c6f-4955-a07a-63ca77db6023
                         Model: e6716a5e-47ef-4eca-a079-45655587b48f:LaserAssets/BlueTube
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: a3ccc846-034e-409a-ac44-0626a1898680
                 Name: RedTube
@@ -47,6 +49,8 @@ Hierarchy:
                         Id: 060c74f7-f272-4ffe-8c06-82955d99d22e
                         Model: 3a57fc61-9428-47be-b916-1d1a3bd4495d:LaserAssets/RedTube
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: c9ad1043-e5d2-440c-8df2-f7d5a7913c6a
                 Name: GreenTube
@@ -61,3 +65,5 @@ Hierarchy:
                         Id: e5244b3e-1771-4fc7-9b55-23c9086fe363
                         Model: 0628b61c-a92c-4836-bd45-988da11c6aac:LaserAssets/GreenTube
                         Materials: {}
+                        Morphs:
+                            Weights: {}

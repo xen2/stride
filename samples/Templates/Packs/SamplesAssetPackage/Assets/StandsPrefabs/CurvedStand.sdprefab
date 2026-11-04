@@ -20,3 +20,5 @@ Hierarchy:
                         Id: 58efc91e-4c45-4193-91e2-f7b9a5848857
                         Model: 5c759e03-f13d-4962-b8f2-4ff82e154629:Models/standCurved
                         Materials: {}
+                        Morphs:
+                            Weights: {}

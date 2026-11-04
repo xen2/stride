@@ -41,6 +41,8 @@ Hierarchy:
                         Id: 1b0896b3-be6a-4b97-a751-8fad96ed31ae
                         Model: 476b6aa7-94ee-468a-84df-93877dbdb88e:Models/ProceduralModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 20fa78cf-b09c-4b6f-ba71-ce651aa8180d
                 Name: MetalRing
@@ -55,6 +57,8 @@ Hierarchy:
                         Id: 0237ef3f-dca7-44d4-8b84-58b2ee51b8c0
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e4801ae0073f02418593e38382cafa83: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: e01a80e4-3f07-4102-8593-e38382cafa83
                         TimeFactor: 0.65
@@ -110,6 +114,8 @@ Hierarchy:
                         Id: bb18a562-a78b-4db6-ad17-a646b90e3045
                         Model: d49979c4-92be-430c-bb5a-294bdc6b1665:Materials/Sphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 735bf6ce-0f55-46ee-8a86-44b04c0c814d
                 Name: MetalRing
@@ -124,6 +130,8 @@ Hierarchy:
                         Id: 61ffe044-d4f5-4726-954e-c842e2431d5a
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     e479bb1aeeefad42b8d6c82c459c0472: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: 1abb79e4-efee-42ad-b8d6-c82c459c0472
                         TimeFactor: 1.0
@@ -141,6 +149,8 @@ Hierarchy:
                         Id: 84899c6e-d282-478e-8d57-84877024530a
                         Model: 38020c21-659c-4fce-8738-8c55b1622152:Models/MetalRing
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     f8123cfc0fcc2948afd19f08fadd32c8: !ParticlesSample.RotationScript,ParticlesSample.Game
                         Id: fc3c12f8-cc0f-4829-afd1-9f08fadd32c8
                         TimeFactor: 0.8

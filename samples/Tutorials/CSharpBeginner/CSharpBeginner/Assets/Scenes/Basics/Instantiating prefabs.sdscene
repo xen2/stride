@@ -41,6 +41,8 @@ Hierarchy:
                         Id: a8aa52c4-7ba5-4865-8a57-67db2eb3859b
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 48c608e4-7e9c-4ced-824a-64698151274e:Prefabs/Pile of boxes
                 BasePartId: 8c97da7a-4bbe-46cd-82dc-a284092aa87d
@@ -89,6 +91,8 @@ Hierarchy:
                         Id: 06fe7f8c-0b9e-4e21-8181-d440ca41e1ac
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 48c608e4-7e9c-4ced-824a-64698151274e:Prefabs/Pile of boxes
                 BasePartId: 34bedf8d-2a34-4da0-b990-51f1e8f71c3d
@@ -107,6 +111,8 @@ Hierarchy:
                         Id: cde4d508-d90a-4c06-99a1-62354641ca91
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 48c608e4-7e9c-4ced-824a-64698151274e:Prefabs/Pile of boxes
                 BasePartId: 1616b3e2-836f-443c-b07e-7b065c1bb4d2
@@ -126,6 +132,8 @@ Hierarchy:
                         Id: 5373e0a6-99b6-48af-8e4a-4aa98b6a7258
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 48c608e4-7e9c-4ced-824a-64698151274e:Prefabs/Pile of boxes
                 BasePartId: 1616b3e2-836f-443c-b07e-7b065c1bb4d2
@@ -144,6 +152,8 @@ Hierarchy:
                         Id: 42f68c27-7d45-4958-b02e-868985f52191
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 48c608e4-7e9c-4ced-824a-64698151274e:Prefabs/Pile of boxes
                 BasePartId: 71702f06-c005-40f5-b711-312985cbbfda
@@ -162,6 +172,8 @@ Hierarchy:
                         Id: 1b26ed53-2315-4515-abbf-90d95b375473
                         Model: e288f24b-258b-4875-85bb-a696a7445a7c:/SamplesAssetPackage/Models/BoxF
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 48c608e4-7e9c-4ced-824a-64698151274e:Prefabs/Pile of boxes
                 BasePartId: 9f4984c2-8f4c-4f55-a4bd-902e8d387b20

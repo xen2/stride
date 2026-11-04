@@ -22,3 +22,5 @@ Hierarchy:
                         Materials:
                             9a2c16f1050f7948b75e25f0c55d6ff8~0: e4a8b81d-08ea-4561-92cc-ef5a7fef6a7d:Materials/DullSilver
                             5e8fbcffa5b98942bd011dcf2d7925c1~1: b5937f37-8fa5-4c0c-9a21-9d563ee1bffc:Materials/RedCoating
+                        Morphs:
+                            Weights: {}

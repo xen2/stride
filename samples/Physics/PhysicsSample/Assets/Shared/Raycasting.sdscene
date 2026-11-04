@@ -83,6 +83,8 @@ Hierarchy:
                         Id: 619893f8-b3c2-449c-94f0-61673c9dfdcd
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 81d2f7ea-8b18-44ab-96fd-6a0383065606:CubePrefab
                 BasePartId: 7bab5198-56f2-4bda-8979-f5b7022b951a
@@ -122,6 +124,8 @@ Hierarchy:
                         Id: 9e984391-02ba-454b-b1bc-ca4b3ae4ce77
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 81d2f7ea-8b18-44ab-96fd-6a0383065606:CubePrefab
                 BasePartId: 7bab5198-56f2-4bda-8979-f5b7022b951a
@@ -161,6 +165,8 @@ Hierarchy:
                         Id: 82d2e014-7f68-457e-be33-ec8980d8562e
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 81d2f7ea-8b18-44ab-96fd-6a0383065606:CubePrefab
                 BasePartId: 7bab5198-56f2-4bda-8979-f5b7022b951a

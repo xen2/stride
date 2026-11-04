@@ -95,6 +95,8 @@ Hierarchy:
                         Id: 619893f8-b3c2-449c-94f0-61673c9dfdcd
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: 27a46512-0945-43e6-b3a1-43f3c17ccd84
                         TriggerEntity*: ref!! cfe82ef3-b615-435c-a9b6-15793dca565d
@@ -196,6 +198,8 @@ Hierarchy:
                         Id: c359792b-982b-4ddb-a503-3fcb591313dd
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: d4b3e59f-154f-4762-8964-c27a35deae02
                         TriggerEntity*: ref!! cfe82ef3-b615-435c-a9b6-15793dca565d
@@ -237,6 +241,8 @@ Hierarchy:
                         Id: 5c9108d4-628d-4aba-bc30-09fb941ef880
                         Model: 9fab8da2-f2c8-4586-9435-20d8fad479e2:Player
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 506132c5-335d-4bdf-87ea-6048269cdfbe
                 Name: KinematicCrate (5)
@@ -285,6 +291,8 @@ Hierarchy:
                         Id: 67737096-09b6-4269-a9fe-af34f6b6cffe
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: e96dbd0e-3cb0-4ff0-a7b3-1f8682b83f00
                         TriggerEntity*: ref!! cfe82ef3-b615-435c-a9b6-15793dca565d
@@ -376,6 +384,8 @@ Hierarchy:
                         Id: ee0d6490-adb2-4133-9d5e-bb2c1e45121c
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: 75e33397-8bf0-4214-8f3b-8f7c462fdde9
                         TriggerEntity*: ref!! cfe82ef3-b615-435c-a9b6-15793dca565d
@@ -416,6 +426,8 @@ Hierarchy:
                         Id: f8ee20aa-b21d-4d19-87a9-e89b2858527d
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: 78a884b0-37d2-420d-b530-0063d6ae73f5
                         TriggerEntity*: ref!! cfe82ef3-b615-435c-a9b6-15793dca565d
@@ -525,6 +537,8 @@ Hierarchy:
                         Id: 25b6a499-09c6-4311-8f88-2cfb1100888d
                         Model: ad7e799e-d4fa-4bc2-8e00-49bf70e31434:Models/Ball
                         Materials: {}
+                        Morphs:
+                            Weights: {}
             Base:
                 BasePartAsset: 2603278e-1a16-4d57-a24c-563472a5b86b:BallPrefab
                 BasePartId: c016fcd8-5ab1-4212-9784-954709ca481d
@@ -593,6 +607,8 @@ Hierarchy:
                         Id: 3c730cd9-bd7f-467e-8e70-2bd627b9dc00
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: c4b8a366-d8b5-4541-aa01-c5102e86c8da
                         TriggerEntity*: ref!! cfe82ef3-b615-435c-a9b6-15793dca565d
@@ -634,6 +650,8 @@ Hierarchy:
                         Model: bd2fa89a-6eb0-41d8-a979-b2d0e53de6b6:Models/ProceduralModel
                         Materials:
                             9ce0cdb239a6ac4992e9428e0988691e~0: cf9193b2-993a-4329-b6de-983ae136628a:Materials/TriggerMat
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: dbc36769-8ddf-4bbe-9fdb-1ee586963d23
                 Name: crate
@@ -667,6 +685,8 @@ Hierarchy:
                         Id: 991c1f68-c1e6-4fe9-b3b0-b7769531513c
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: 142c27b5-02dd-418b-a50c-0f166f853663
                         TriggerEntity*: ref!! cfe82ef3-b615-435c-a9b6-15793dca565d
@@ -707,6 +727,8 @@ Hierarchy:
                         Id: 4bb9512a-d9a2-42b4-9c7b-d4c75ec34fe5
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: 6f1102bb-b6d2-4a4e-aead-8477c3ff247c
                         TriggerEntity*: ref!! cfe82ef3-b615-435c-a9b6-15793dca565d
@@ -747,6 +769,8 @@ Hierarchy:
                         Id: 6b934a09-793a-45b3-b060-91427abf3021
                         Model: e51b50db-d4e0-45c1-bf2e-47440aab2217:Models/BoxE
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     1265a4274509e643b3a143f3c17ccd84: !PhysicsSample.AutoResetRigidbody,PhysicsSample.Game
                         Id: 22508d91-adba-4948-8392-1b0b4540fe93
                         TriggerEntity*: ref!! cfe82ef3-b615-435c-a9b6-15793dca565d
@@ -798,3 +822,5 @@ Hierarchy:
                         Id: 0074137e-ede2-49a7-9b82-35359ec18a1a
                         Model: 6993a85b-a9ab-4c74-89d3-5643c2d48cba:Models/Ground
                         Materials: {}
+                        Morphs:
+                            Weights: {}

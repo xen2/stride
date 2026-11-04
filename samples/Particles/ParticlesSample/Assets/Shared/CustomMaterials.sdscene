@@ -380,3 +380,5 @@ Hierarchy:
                         Id: 42b7bbbf-fed2-4217-b389-57dd3f1b20e8
                         Model: 0fb6c306-2953-47bc-86ff-3e79cfec1836:Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}

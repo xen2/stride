@@ -236,6 +236,8 @@ Hierarchy:
                         Id: 742475e5-41df-4a38-af89-8a9dcdd07c07
                         Model: 0fb6c306-2953-47bc-86ff-3e79cfec1836:Models/GridBase10x10
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: cc977217-0d7c-4e20-b6b9-7bf3de36c2a0
                 Name: NextScene

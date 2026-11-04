@@ -42,6 +42,8 @@ Hierarchy:
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials:
                             dd7b292dea132447c896f651e0b0bc8c~0: ca5e832c-0dc0-42e8-bd85-fcb24bfd34f1:Materials/Green
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 5e6211ae-959f-4c8b-9f39-e939b55bac21
                 Name: Child0
@@ -57,6 +59,8 @@ Hierarchy:
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials:
                             c0ce33837f830b3a2b3943378dfa3152~0: 619de649-4998-4996-bd74-085eaffdbbeb:Materials/Yellow
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 736e896f-c76d-4d2e-97da-f5403c81ed83
                 Name: Child1
@@ -75,6 +79,8 @@ Hierarchy:
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials:
                             247ee65b7c567fa41323ad3f52a29d73~0: 619de649-4998-4996-bd74-085eaffdbbeb:Materials/Yellow
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: a96ff7c1-f612-40be-b936-dba94f49f15b
                 Name: Parent
@@ -91,6 +97,8 @@ Hierarchy:
                         Id: 60e9ce47-a7f9-4167-960e-6be77ab17fe0
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     9f1676a2a824b45f5575ebc1c5eb3e1f: !CSharpBeginner.Code.ChildEntitiesDemo,CSharpBeginner.Game
                         Id: c6c77c73-1fe4-4698-9447-cd10d9097371
         -   Entity:
@@ -108,6 +116,8 @@ Hierarchy:
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials:
                             dd7b292dea132447c896f651e0b0bc8c~0: ca5e832c-0dc0-42e8-bd85-fcb24bfd34f1:Materials/Green
+                        Morphs:
+                            Weights: {}
         -   Folder: null
             Entity:
                 Id: cc17fd52-cedf-4d3b-9c2c-4fa242ce14c6
@@ -124,3 +134,5 @@ Hierarchy:
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials:
                             dd7b292dea132447c896f651e0b0bc8c~0: ca5e832c-0dc0-42e8-bd85-fcb24bfd34f1:Materials/Green
+                        Morphs:
+                            Weights: {}

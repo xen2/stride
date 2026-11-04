@@ -40,6 +40,8 @@ Hierarchy:
                         Id: 8182a6b5-3db5-4bfc-8735-831133e03931
                         Model: 920f4445-c00d-474f-b8c0-33b385d58b8f:character_00
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 2ff8aac2-706b-4d4e-b6c9-22e2f8f2c31f
                 Name: Ambient light

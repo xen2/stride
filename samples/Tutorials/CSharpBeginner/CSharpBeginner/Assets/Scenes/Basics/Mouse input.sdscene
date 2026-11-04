@@ -46,6 +46,8 @@ Hierarchy:
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials:
                             d520ca585d4faf100775350f15a43bf3~0: 619de649-4998-4996-bd74-085eaffdbbeb:Materials/Yellow
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 30e33c30-2e4e-4897-bc5d-b0f4eaa6cf45
                 Name: Green Teapot
@@ -61,6 +63,8 @@ Hierarchy:
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials:
                             a7caa81c4d9afdde1e7b7968d7c4ea8a~0: ca5e832c-0dc0-42e8-bd85-fcb24bfd34f1:Materials/Green
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 4bea4ea9-3407-4416-9b60-cf16883dfbe8
                 Name: Mouse input
@@ -91,6 +95,8 @@ Hierarchy:
                         Id: f28eb869-bffe-4d43-abb5-2554103f65ba
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Folder: null
             Entity:
                 Id: d6a8c956-30ba-46eb-8c24-a2a4a21592aa
@@ -107,3 +113,5 @@ Hierarchy:
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials:
                             a7caa81c4d9afdde1e7b7968d7c4ea8a~0: 7134c638-e559-4cee-9099-4a3da6653a70:Materials/Pink
+                        Morphs:
+                            Weights: {}

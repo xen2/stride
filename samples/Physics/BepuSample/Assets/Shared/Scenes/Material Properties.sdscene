@@ -42,8 +42,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     66feb47e5333be0ef77f0d74d21d70b3: !ModelComponent
@@ -51,6 +51,8 @@ Hierarchy:
                         Model: b6d1945f-0ef8-4c8a-ae07-329c17dde5dd:Models/Capsule_05_035
                         Materials:
                             99f00747999587f6986df091de16c466~0: 01e72cab-d817-455d-8707-f6721c30562f:Materials/QRMatR
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Folder: LowRecoveryBlue
@@ -63,6 +65,8 @@ Hierarchy:
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials:
                             2c3b2357069d2f8a58f970af5ee3eb90~0: 6a57f19f-d1bd-4260-8089-d569ae312679:Materials/QRMatB
+                        Morphs:
+                            Weights: {}
                     9af7d6d7a90cd79c4137e14aa6777939: !TransformComponent
                         Id: 53046372-4319-4e1d-bc07-81d767b6ac6e
                         Position: {X: 0.0, Y: 5.0, Z: -10.0}
@@ -86,8 +90,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
@@ -121,8 +125,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     66feb47e5333be0ef77f0d74d21d70b3: !ModelComponent
@@ -130,6 +134,8 @@ Hierarchy:
                         Model: b6d1945f-0ef8-4c8a-ae07-329c17dde5dd:Models/Capsule_05_035
                         Materials:
                             3f228c9529ee2898c9808f28134f3138~0: 00e4f2d4-0cc2-422b-8926-e9b8be03984c:Materials/QRMatG
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Entity:
@@ -176,6 +182,8 @@ Hierarchy:
                         Id: becd82ae-b7d6-4185-9f81-babb1ac191e7
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     9af7d6d7a90cd79c4137e14aa6777939: !TransformComponent
                         Id: 3b219d44-2efd-4e8e-8650-71b89fcf3ad1
                         Position: {X: 0.0, Y: 5.0, Z: 0.0}
@@ -199,8 +207,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
@@ -233,8 +241,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     b0830b8d5c59dbb0b8daae785c67e71b: !ModelComponent
@@ -242,6 +250,8 @@ Hierarchy:
                         Model: 162f79e0-18f6-4043-bb0d-65ab268481b5:Models/GeoSphere
                         Materials:
                             7d73a0e1116ee483dc5876c6ad4b1f86~0: 00e4f2d4-0cc2-422b-8926-e9b8be03984c:Materials/QRMatG
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Entity:
@@ -283,6 +293,8 @@ Hierarchy:
                         Id: fe0ec3f1-b5b2-4b91-93a7-a5e76d122bdc
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     6fd758a46aa4160bf1036f318e2dd73e: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
                         Id: 696c6712-7284-4d7c-addc-2999872a5eb0
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
@@ -327,8 +339,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     66feb47e5333be0ef77f0d74d21d70b3: !ModelComponent
@@ -336,6 +348,8 @@ Hierarchy:
                         Model: b6d1945f-0ef8-4c8a-ae07-329c17dde5dd:Models/Capsule_05_035
                         Materials:
                             9ad5a2dddc489f2c6d840f99da177742~0: 6a57f19f-d1bd-4260-8089-d569ae312679:Materials/QRMatB
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Folder: Default
@@ -367,14 +381,16 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     9ce36a86273c51904994abd3986c418a: !ModelComponent
                         Id: b243d047-cc50-4e22-84bf-87ea636dd1bb
                         Model: 08ddafab-062e-40f9-9467-c24ed4fac70b:Models/Cylinder
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Entity:
@@ -451,14 +467,16 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     b0830b8d5c59dbb0b8daae785c67e71b: !ModelComponent
                         Id: 5bbca541-8566-4c10-9e42-f231957d8410
                         Model: 162f79e0-18f6-4043-bb0d-65ab268481b5:Models/GeoSphere
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Folder: LowRecoveryBlue
@@ -489,8 +507,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     b0830b8d5c59dbb0b8daae785c67e71b: !ModelComponent
@@ -498,6 +516,8 @@ Hierarchy:
                         Model: 162f79e0-18f6-4043-bb0d-65ab268481b5:Models/GeoSphere
                         Materials:
                             c7889db017f3d1810b21e736f6b6d7f4~0: 6a57f19f-d1bd-4260-8089-d569ae312679:Materials/QRMatB
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Folder: HighFrictionRed
@@ -510,6 +530,8 @@ Hierarchy:
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials:
                             54cc3ab5b9d6a2a9bb34625952a8e324~0: 01e72cab-d817-455d-8707-f6721c30562f:Materials/QRMatR
+                        Morphs:
+                            Weights: {}
                     9af7d6d7a90cd79c4137e14aa6777939: !TransformComponent
                         Id: 34ace4d0-ef86-4475-8ffd-ff60954c53e3
                         Position: {X: 0.0, Y: 5.0, Z: -5.0}
@@ -533,8 +555,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
@@ -589,14 +611,16 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     66feb47e5333be0ef77f0d74d21d70b3: !ModelComponent
                         Id: 7af5dd1e-092f-423e-bee5-cbdccdfdd141
                         Model: b6d1945f-0ef8-4c8a-ae07-329c17dde5dd:Models/Capsule_05_035
                         Materials: {}
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Folder: LowRecoveryBlue
@@ -628,8 +652,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     9ce36a86273c51904994abd3986c418a: !ModelComponent
@@ -637,6 +661,8 @@ Hierarchy:
                         Model: 08ddafab-062e-40f9-9467-c24ed4fac70b:Models/Cylinder
                         Materials:
                             de91457b362a371fefd24e4802fabfb7~0: 6a57f19f-d1bd-4260-8089-d569ae312679:Materials/QRMatB
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Folder: HighFrictionRed
@@ -668,8 +694,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     9ce36a86273c51904994abd3986c418a: !ModelComponent
@@ -677,6 +703,8 @@ Hierarchy:
                         Model: 08ddafab-062e-40f9-9467-c24ed4fac70b:Models/Cylinder
                         Materials:
                             c5f4490f1365f0a6349f5f276fd91c4e~0: 01e72cab-d817-455d-8707-f6721c30562f:Materials/QRMatR
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Folder: MasksGreen
@@ -689,6 +717,8 @@ Hierarchy:
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials:
                             c0212928d7dee7b7dabba672b36d9cbb~0: 00e4f2d4-0cc2-422b-8926-e9b8be03984c:Materials/QRMatG
+                        Morphs:
+                            Weights: {}
                     9af7d6d7a90cd79c4137e14aa6777939: !TransformComponent
                         Id: 4cb479f0-5894-44a3-9ab8-c6d192c6e6d3
                         Position: {X: 0.0, Y: 5.0, Z: -15.0}
@@ -712,8 +742,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
@@ -747,8 +777,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     9ce36a86273c51904994abd3986c418a: !ModelComponent
@@ -756,6 +786,8 @@ Hierarchy:
                         Model: 08ddafab-062e-40f9-9467-c24ed4fac70b:Models/Cylinder
                         Materials:
                             428a540fa3c4bd8a6304f2b6693b4039~0: 00e4f2d4-0cc2-422b-8926-e9b8be03984c:Materials/QRMatG
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Folder: HighFrictionRed
@@ -786,8 +818,8 @@ Hierarchy:
                         ContactEventHandler: null
                         Kinematic: false
                         Gravity: true
-                        InterpolationMode: None
                         ContinuousDetectionMode: Discrete
+                        InterpolationMode: None
                         SleepThreshold: 0.01
                         MinimumTimestepCountUnderThreshold: 32
                     b0830b8d5c59dbb0b8daae785c67e71b: !ModelComponent
@@ -795,6 +827,8 @@ Hierarchy:
                         Model: 162f79e0-18f6-4043-bb0d-65ab268481b5:Models/GeoSphere
                         Materials:
                             54147cf5c590a33e3e2df6d7a4cff44b~0: 01e72cab-d817-455d-8707-f6721c30562f:Materials/QRMatR
+                        Morphs:
+                            Weights: {}
                     ee265d38d262240aee035149906d46c5: ~(Deleted)
                     fe417a7f83004f72593133d581ddcc78: ~(Deleted)
         -   Entity:
@@ -812,6 +846,8 @@ Hierarchy:
                         Model: 8d18384d-04f1-4190-878b-ddd4665eacdf:Models/CubeModel
                         Materials:
                             a4372207e9cfb015a5973f7fcb15a3a8~0: 02d8a19e-db6e-44b4-8861-64bdd38b05c5:Materials/QRMat
+                        Morphs:
+                            Weights: {}
                     8b6177e0e71e252f50babaf34a820d3f: !InstancingComponent
                         Id: fc114bd5-5497-4e62-82c3-1f2de47d71bf
                         Type: !InstancingEntityTransform {}

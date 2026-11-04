@@ -28,6 +28,8 @@ Hierarchy:
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials:
                             a7caa81c4d9afdde1e7b7968d7c4ea8a~0: ca5e832c-0dc0-42e8-bd85-fcb24bfd34f1:Materials/Green
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: 07e70be2-580e-445f-b994-0dcb7152ba77
                 Name: Camera
@@ -74,6 +76,8 @@ Hierarchy:
                         Id: dbe89cae-45b0-426a-b641-aa8fc2e437aa
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials: {}
+                        Morphs:
+                            Weights: {}
         -   Entity:
                 Id: c29e99d3-a22d-40cd-a186-47f86e45368f
                 Name: Yellow Teapot
@@ -89,3 +93,5 @@ Hierarchy:
                         Model: 9a3a7dbc-7b08-478a-aab2-19afe1d6ce1c:Models/Teapot
                         Materials:
                             d520ca585d4faf100775350f15a43bf3~0: 619de649-4998-4996-bd74-085eaffdbbeb:Materials/Yellow
+                        Morphs:
+                            Weights: {}
