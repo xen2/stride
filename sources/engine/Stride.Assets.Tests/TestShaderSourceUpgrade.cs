@@ -40,24 +40,26 @@ public class TestShaderSourceUpgrade : IDisposable
         return fullPath;
     }
 
-    private LoggerResult Upgrade(params string[] assetFolders)
+    private LoggerResult Upgrade(params string[] assetFolders) => UpgradeFrom("4.4.1.0", assetFolders);
+
+    private LoggerResult UpgradeFrom(string version, params string[] assetFolders)
     {
         var package = new Package { Meta = { Name = "Game" }, FullPath = Path.Combine(directory, "Game", "Game.sdpkg") };
         foreach (var folder in assetFolders)
             package.AssetFolders.Add(new AssetFolder(folder));
         _ = new SolutionProject(package, Guid.NewGuid(), Write("Game/Game.csproj", "<Project />"));
 
-        var dependency = new PackageDependency("Stride.Engine", new PackageVersionRange(new PackageVersion("4.4.1.0")));
+        var dependency = new PackageDependency("Stride.Engine", new PackageVersionRange(new PackageVersion(version)));
         var log = new LoggerResult();
         Assert.True(new ShaderUpgrader().UpgradeBeforeAssembliesLoaded(new PackageLoadParameters(), new PackageSession(), log, package, dependency, null));
         return log;
     }
 
-    // A standard project keeps its data in ../Assets/Shared and its effect log names engine shaders
+    // A standard project keeps its data in ../Assets/Shared and its compositor names engine effects
     [Fact]
     public void TheAssetFoldersOfThePackageAreUpgraded()
     {
-        var log = Write("Assets/Shared/EffectCompileLog.sdeffectlog", "EffectName: StrideForwardShadingEffect\n");
+        var compositor = Write("Assets/Shared/Compositor.sdgfxcomp", "EffectName: StrideForwardShadingEffect\n");
         var scene = Write("Assets/Shared/Scene.sdscene", "    MixinReference: Own\n");
         var effect = Write("Game/Effects/Own.sdsl", "namespace Game.Effects; shader Own { stage float Value; };\n");
         var inAssets = Write("Assets/Shared/InAssets.sdsl", "shader InAssets { stage float Value; };\n");
@@ -65,7 +67,7 @@ public class TestShaderSourceUpgrade : IDisposable
 
         Upgrade("../Assets/Shared", "Effects", "NoSuchFolder");
 
-        Assert.Equal("EffectName: Stride.Rendering.StrideForwardShadingEffect\n", File.ReadAllText(log));
+        Assert.Equal("EffectName: Stride.Rendering.StrideForwardShadingEffect\n", File.ReadAllText(compositor));
         Assert.Equal("    MixinReference: Game.Effects.Own\n", File.ReadAllText(scene));
         Assert.Contains("module float Value;", File.ReadAllText(effect));
         Assert.Contains("module float Value;", File.ReadAllText(inAssets));
@@ -73,22 +75,45 @@ public class TestShaderSourceUpgrade : IDisposable
     }
 
     [Fact]
-    public void AKeyNamedInAnAssetFolderTakesTheFullNameOfItsClass()
+    public void AnUpgradeDeletesTheEffectLogsAndKeepsACopy()
     {
-        var log = Write("Assets/Shared/EffectCompileLog.sdeffectlog", "UsedParameters:\n    Own.Value: 1\n");
-        Write("Game/Effects/Own.sdsl", "namespace Game.Effects; shader Own { float Value; };\n");
+        const string text = "EffectName: StrideForwardShadingEffect\n";
+        var inAssets = Write("Assets/Shared/EffectCompileLog.sdeffectlog", text);
+        var inProject = Write("Game/Other.sdeffectlog", text);
+        var log = new LoggerResult();
+        var backup = new UpgradeBackup(directory, new DateTime(2026, 11, 5));
 
-        Upgrade("../Assets/Shared");
+        ShaderSourceUpgrade.Run([Path.Combine(directory, "Game"), Path.Combine(directory, "Assets", "Shared")], backup, log);
 
-        Assert.Equal("UsedParameters:\n    Game.Effects.Own.Value: 1\n", File.ReadAllText(log));
+        Assert.False(File.Exists(inAssets));
+        Assert.False(File.Exists(inProject));
+        Assert.Equal(text, File.ReadAllText(Path.Combine(directory, ".stride-backup-20261105-000000", "Assets", "Shared", "EffectCompileLog.sdeffectlog")));
+        Assert.Equal(text, File.ReadAllText(Path.Combine(directory, ".stride-backup-20261105-000000", "Game", "Other.sdeffectlog")));
+        var messages = log.Messages.Where(x => x.Type == LogMessageType.Warning && x.Text.Contains("Record used effects", StringComparison.Ordinal)).ToList();
+        Assert.Contains(messages, x => x.Text.Contains(Path.GetFullPath(inAssets), StringComparison.Ordinal));
+        Assert.Contains(messages, x => x.Text.Contains(Path.GetFullPath(inProject), StringComparison.Ordinal));
+    }
+
+    // A log recorded on this version stays when the project upgrades later
+    [Theory]
+    [InlineData("4.5.1.0")]
+    [InlineData("4.5.2.0")]
+    public void AProjectPastTheGateKeepsItsEffectLog(string version)
+    {
+        const string text = "EffectName: Stride.Rendering.StrideForwardShadingEffect\n";
+        var file = Write("Assets/EffectCompileLog.sdeffectlog", text);
+
+        UpgradeFrom(version, "../Assets");
+
+        Assert.Equal(text, File.ReadAllText(file));
     }
 
     [Fact]
     public void AFileThatIsNotYamlStaysAndTheOthersAreUpgraded()
     {
         const string text = "EffectName: 'StrideForwardShadingEffect\n";
-        var broken = Write("Assets/A.sdeffectlog", text);
-        var valid = Write("Assets/B.sdeffectlog", "EffectName: StrideForwardShadingEffect\n");
+        var broken = Write("Assets/A.sdgfxcomp", text);
+        var valid = Write("Assets/B.sdgfxcomp", "EffectName: StrideForwardShadingEffect\n");
 
         var log = Upgrade("../Assets");
 
@@ -104,13 +129,13 @@ public class TestShaderSourceUpgrade : IDisposable
     public void TheBytesOfAFileAroundANameStay(bool byteOrderMark)
     {
         var encoding = new UTF8Encoding(byteOrderMark);
-        var file = Write("Assets/Log.sdeffectlog", "");
-        File.WriteAllText(file, "# \U0001F3A8 comment\r\n---\r\n!EffectCompileRequest\r\nEffectName: StrideForwardShadingEffect # \U0001F3A8\r\n", encoding);
+        var file = Write("Assets/Compositor.sdgfxcomp", "");
+        File.WriteAllText(file, "# \U0001F3A8 comment\r\n---\r\n!GraphicsCompositorAsset\r\nEffectName: StrideForwardShadingEffect # \U0001F3A8\r\n", encoding);
 
         Upgrade("../Assets");
 
         Assert.Equal(
-            [.. encoding.GetPreamble(), .. new UTF8Encoding(false).GetBytes("# \U0001F3A8 comment\r\n---\r\n!EffectCompileRequest\r\nEffectName: Stride.Rendering.StrideForwardShadingEffect # \U0001F3A8\r\n")],
+            [.. encoding.GetPreamble(), .. new UTF8Encoding(false).GetBytes("# \U0001F3A8 comment\r\n---\r\n!GraphicsCompositorAsset\r\nEffectName: Stride.Rendering.StrideForwardShadingEffect # \U0001F3A8\r\n")],
             File.ReadAllBytes(file));
     }
 
