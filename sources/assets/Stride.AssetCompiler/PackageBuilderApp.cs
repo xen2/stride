@@ -392,7 +392,7 @@ namespace Stride.AssetCompiler
                     // Reconcile and save whatever loaded — IUnloadable round-trips its original YAML, so nothing
                     // is lost — and let the exit code below still report the errors.
                     if (sessionResult.HasErrors)
-                        options.Logger.Warning("The session loaded with errors; upgrading and saving the assets that loaded. Fix the errors and re-run for a complete upgrade.");
+                        options.Logger.Warning("The session loaded with errors; upgrading and saving the assets that loaded. Fix the errors, then build.");
 
                     ReconcileBases(sessionResult.Session, options.Logger);
 
