@@ -1,0 +1,63 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+using Stride.Rendering.Materials;
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// The one place where streams meet the structs of the material code. The light loop and the environment lights read
+    /// streams, so the surface is written to them too.
+    /// </summary>
+    shader TestBedStreamBridge : MaterialPixelShadingStream
+    {
+        import Texturing;
+        import PositionStream4;
+        import NormalStream;
+        import LightStream;
+        import ShadowStream;
+        import TestBedSurface;
+        import TestBedStandardModel;
+
+        SurfaceInput ReadSurfaceInput()
+        {
+            SurfaceInput input = (SurfaceInput)0;
+            input.positionWS = streams.PositionWS.xyz;
+            input.uv[0] = streams.TexCoord;
+            input.uv[1] = streams.TexCoord1;
+            input.uvDdx[0] = ddx(streams.TexCoord);
+            input.uvDdx[1] = ddx(streams.TexCoord1);
+            input.uvDdy[0] = ddy(streams.TexCoord);
+            input.uvDdy[1] = ddy(streams.TexCoord1);
+            return input;
+        }
+
+        void WriteSurface(Surface s)
+        {
+            streams.matNormal = s.normalTS;
+            streams.matDiffuse = float4(DiffuseColor(s), s.alpha);
+            streams.matSpecular = SpecularColor(s);
+            streams.matGlossiness = 1.0 - s.roughness;
+            streams.matAmbientOcclusion = s.occlusion;
+        }
+
+        LightSample ReadLightSample()
+        {
+            LightSample light;
+            light.directionWS = streams.lightDirectionWS;
+            light.color = streams.lightColor;
+            light.attenuation = streams.lightAttenuation;
+            light.shadow = streams.shadowColor;
+            return light;
+        }
+
+        EnvironmentSample ReadEnvironmentSample(float3 specularWeight)
+        {
+            EnvironmentSample environment;
+            environment.irradiance = streams.envLightDiffuseColor;
+            environment.prefiltered = streams.envLightSpecularColor;
+            environment.specularWeight = specularWeight;
+            return environment;
+        }
+    };
+}

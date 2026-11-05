@@ -1,0 +1,63 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// Evaluates the layers of a material: each layer is a full set of slots, blended over the layers below with a mask.
+    /// </summary>
+    module TestBedLayers
+    {
+        import NormalUtil;
+        import TestBedSurface;
+        import TestBedRecords;
+        import TestBedMaterialTable;
+        import TestBedSlots;
+
+        Surface EvaluateLayer(LayerRecord layer, SurfaceInput input)
+        {
+            float4 baseColor = EvaluateSlot(SlotRecords[layer.slotOffset + LayerSlotBaseColor], input);
+
+            Surface s = (Surface)0;
+            s.albedo = baseColor.rgb;
+            s.alpha = baseColor.a;
+            s.normalTS = EvaluateSlot(SlotRecords[layer.slotOffset + LayerSlotNormal], input).xyz * 2.0 - 1.0;
+            s.roughness = EvaluateSlot(SlotRecords[layer.slotOffset + LayerSlotRoughness], input).r;
+            s.metalness = EvaluateSlot(SlotRecords[layer.slotOffset + LayerSlotMetalness], input).r;
+            s.occlusion = EvaluateSlot(SlotRecords[layer.slotOffset + LayerSlotOcclusion], input).r;
+            s.emissive = EvaluateSlot(SlotRecords[layer.slotOffset + LayerSlotEmissive], input).rgb;
+            return s;
+        }
+
+        float3 BlendNormal(float3 below, float3 above, float mask)
+        {
+            float3 middle = BlendRNM(below, above);
+            return mask < 0.5 ? lerp(below, middle, mask / 0.5) : lerp(middle, above, (mask - 0.5) * 2.0);
+        }
+
+        Surface BlendLayer(Surface below, Surface above, float mask)
+        {
+            Surface s = below;
+            s.albedo = lerp(below.albedo, above.albedo, mask);
+            s.alpha = lerp(below.alpha, above.alpha, mask);
+            s.normalTS = BlendNormal(below.normalTS, above.normalTS, mask);
+            s.roughness = lerp(below.roughness, above.roughness, mask);
+            s.metalness = lerp(below.metalness, above.metalness, mask);
+            s.occlusion = lerp(below.occlusion, above.occlusion, mask);
+            s.emissive = lerp(below.emissive, above.emissive, mask);
+            return s;
+        }
+
+        Surface EvaluateMaterial(MaterialRecord material, SurfaceInput input)
+        {
+            Surface s = EvaluateLayer(LayerRecords[material.layerOffset], input);
+            for (uint i = 1; i < material.layerCount; i++)
+            {
+                LayerRecord layer = LayerRecords[material.layerOffset + i];
+                float mask = EvaluateSlot(SlotRecords[layer.maskSlot], input).r;
+                s = BlendLayer(s, EvaluateLayer(layer, input), mask);
+            }
+            return s;
+        }
+    };
+}

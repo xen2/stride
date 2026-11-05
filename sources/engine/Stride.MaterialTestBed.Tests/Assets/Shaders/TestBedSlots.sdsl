@@ -1,0 +1,100 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// Tier 1 slots: constant x sample(texture) [op] sample(detail) x detailWeight + bias. A texture index selects one of the
+    /// textures of the material.
+    /// </summary>
+    module TestBedSlots
+    {
+        import TestBedSurface;
+        import TestBedRecords;
+
+        rgroup PerMaterial
+        {
+            Texture2D SlotTexture0;
+            Texture2D SlotTexture1;
+            Texture2D SlotTexture2;
+            Texture2D SlotTexture3;
+            Texture2D SlotTexture4;
+            Texture2D SlotTexture5;
+            Texture2D SlotTexture6;
+            Texture2D SlotTexture7;
+        }
+
+        SamplerState SlotSamplerLinearWrap
+        {
+            Filter = MIN_MAG_MIP_LINEAR;
+            AddressU = Wrap;
+            AddressV = Wrap;
+        };
+
+        SamplerState SlotSamplerAnisotropicWrap
+        {
+            Filter = ANISOTROPIC;
+            MaxAnisotropy = 8;
+            AddressU = Wrap;
+            AddressV = Wrap;
+        };
+
+        float4 SampleTexture(Texture2D slotTexture, uint samplerId, float2 uv, float2 uvDdx, float2 uvDdy)
+        {
+            if (samplerId == SamplerAnisotropicWrap)
+                return slotTexture.SampleGrad(SlotSamplerAnisotropicWrap, uv, uvDdx, uvDdy);
+            return slotTexture.SampleGrad(SlotSamplerLinearWrap, uv, uvDdx, uvDdy);
+        }
+
+        float4 SampleSlotTexture(int textureIndex, uint samplerId, float2 uv, float2 uvDdx, float2 uvDdy)
+        {
+            switch (textureIndex)
+            {
+                case 0: return SampleTexture(SlotTexture0, samplerId, uv, uvDdx, uvDdy);
+                case 1: return SampleTexture(SlotTexture1, samplerId, uv, uvDdx, uvDdy);
+                case 2: return SampleTexture(SlotTexture2, samplerId, uv, uvDdx, uvDdy);
+                case 3: return SampleTexture(SlotTexture3, samplerId, uv, uvDdx, uvDdy);
+                case 4: return SampleTexture(SlotTexture4, samplerId, uv, uvDdx, uvDdy);
+                case 5: return SampleTexture(SlotTexture5, samplerId, uv, uvDdx, uvDdy);
+                case 6: return SampleTexture(SlotTexture6, samplerId, uv, uvDdx, uvDdy);
+                default: return SampleTexture(SlotTexture7, samplerId, uv, uvDdx, uvDdy);
+            }
+        }
+
+        float4 SelectChannel(float4 value, uint channel)
+        {
+            switch (channel)
+            {
+                case SlotChannelR: return value.rrrr;
+                case SlotChannelG: return value.gggg;
+                case SlotChannelB: return value.bbbb;
+                case SlotChannelA: return value.aaaa;
+                default: return value;
+            }
+        }
+
+        float4 EvaluateSlot(SlotRecord slot, SurfaceInput input)
+        {
+            float4 value = slot.constant;
+
+            if (slot.textureIndex != NoTexture)
+            {
+                float2 uv = input.uv[slot.uvChannel] * slot.uvScaleOffset.xy + slot.uvScaleOffset.zw;
+                float2 uvDdx = input.uvDdx[slot.uvChannel] * slot.uvScaleOffset.xy;
+                float2 uvDdy = input.uvDdy[slot.uvChannel] * slot.uvScaleOffset.xy;
+                value *= SelectChannel(SampleSlotTexture(slot.textureIndex, slot.samplerId, uv, uvDdx, uvDdy), slot.channel);
+            }
+
+            if (slot.detailTextureIndex != NoTexture)
+            {
+                float2 uv = input.uv[slot.detailUvChannel] * slot.detailUvScaleOffset.xy + slot.detailUvScaleOffset.zw;
+                float2 uvDdx = input.uvDdx[slot.detailUvChannel] * slot.detailUvScaleOffset.xy;
+                float2 uvDdy = input.uvDdy[slot.detailUvChannel] * slot.detailUvScaleOffset.xy;
+                float4 detail = SampleSlotTexture(slot.detailTextureIndex, slot.samplerId, uv, uvDdx, uvDdy) * slot.detailWeight;
+                value = slot.op == SlotOpAdd ? value + detail : value * detail;
+            }
+
+            return value + slot.bias;
+        }
+    };
+}
