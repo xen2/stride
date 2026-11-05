@@ -16,40 +16,19 @@ using Stride.Shaders.Parsing.Upgrade;
 namespace Stride.Assets;
 
 /// <summary>
-/// Rewrites the stored data that names a shader, an effect or the key of a shader member to the full names: effect logs,
-/// graphics compositors, materials, and the particle materials of scenes and prefabs. A name is found by its place in the YAML
-/// document: a stage name or a placeholder such as <c>EffectName: Test</c> stays, and so does the rest of the file. Running it
-/// again changes nothing.
+/// Rewrites the stored data that names a shader or an effect to the full names: graphics compositors, materials, and the
+/// particle materials of scenes and prefabs. A name is found by its place in the YAML document: a stage name or a placeholder
+/// such as <c>EffectName: Test</c> stays, and so does the rest of the file. Running it again changes nothing.
 /// </summary>
 internal static class ShaderDataUpgrader
 {
-    // Where a scalar stands under the nearest key above it
-    private enum Position { Value, SequenceItem, MappingKey }
-
-    private sealed record Slot(Position Position, string Key, Func<string, EngineShaderClasses, string> ToFullName, string? MappingTag = null);
-
-    private static readonly Slot[] EffectLog =
-    [
-        new(Position.Value, "ClassName", FullName),
-        new(Position.Value, "EffectName", FullName),
-        new(Position.Value, "ComputeEffectShader.ComputeShaderName", FullName),
-        new(Position.Value, "Name", FullName, MappingTag: "!ShaderMixinGeneratorSource"),
-        new(Position.SequenceItem, "GenericArguments", FullKey),
-        new(Position.MappingKey, "UsedParameters", FullKey),
-    ];
-
-    private static readonly Slot[] Compositor = [new(Position.Value, "EffectName", FullName)];
-
-    // By key alone: any class can derive from ComputeShaderClassBase<T>, so its tag is not a known list
-    private static readonly Slot[] Material = [new(Position.Value, "MixinReference", FullName)];
-
-    private static readonly Dictionary<string, Slot[]> SlotsByExtension = new()
+    // The key whose value is a name. By key alone: any class can derive from ComputeShaderClassBase<T>, so its tag is not a known list
+    private static readonly Dictionary<string, string> NameKeyByExtension = new()
     {
-        [".sdeffectlog"] = EffectLog,
-        [".sdgfxcomp"] = Compositor,
-        [".sdmat"] = Material,
-        [".sdscene"] = Material,
-        [".sdprefab"] = Material,
+        [".sdgfxcomp"] = "EffectName",
+        [".sdmat"] = "MixinReference",
+        [".sdscene"] = "MixinReference",
+        [".sdprefab"] = "MixinReference",
     };
 
     /// <summary>
@@ -61,7 +40,7 @@ internal static class ShaderDataUpgrader
     /// <exception cref="YamlException">The text isn't valid YAML.</exception>
     public static string Upgrade(string path, string text, EngineShaderClasses classes)
     {
-        if (!SlotsByExtension.TryGetValue(Path.GetExtension(path).ToLowerInvariant(), out var slots))
+        if (!NameKeyByExtension.TryGetValue(Path.GetExtension(path).ToLowerInvariant(), out var nameKey))
             return text;
 
         var edits = new List<(int Start, int End, string Name)>();
@@ -70,19 +49,19 @@ internal static class ShaderDataUpgrader
         while (reader.Allow<StreamEnd>() == null)
         {
             reader.Expect<DocumentStart>();
-            ReadNode(Position.Value, key: null, mappingTag: null);
+            ReadNode(key: null);
             reader.Expect<DocumentEnd>();
         }
         return Apply(text, edits);
 
-        void ReadNode(Position position, string? key, string? mappingTag)
+        // key: the key whose value this node is
+        void ReadNode(string? key)
         {
             if (reader.Allow<Scalar>() is { } scalar)
             {
-                var slot = slots.FirstOrDefault(x => x.Position == position && x.Key == key && (x.MappingTag == null || x.MappingTag == mappingTag));
-                if (slot == null || !IsOnlyAName(scalar))
+                if (key != nameKey || !IsOnlyAName(scalar))
                     return;
-                var name = slot.ToFullName(scalar.Value, classes);
+                var name = FullName(scalar.Value, classes);
                 var quote = scalar.Style == ScalarStyle.Plain ? 0 : 1;
                 if (name != scalar.Value)
                     edits.Add((scalar.Start.Index + quote, scalar.End.Index - quote, name));
@@ -90,16 +69,16 @@ internal static class ShaderDataUpgrader
             else if (reader.Allow<SequenceStart>() != null)
             {
                 while (reader.Allow<SequenceEnd>() == null)
-                    ReadNode(Position.SequenceItem, key, mappingTag: null);
+                    ReadNode(key: null);
             }
-            else if (reader.Allow<MappingStart>() is { } mapping)
+            else if (reader.Allow<MappingStart>() != null)
             {
                 while (reader.Allow<MappingEnd>() == null)
                 {
                     // Assets with an archetype mark a member they override: EffectName*: or EffectName!:
                     var childKey = reader.Peek<Scalar>()?.Value.TrimEnd('*', '!');
-                    ReadNode(Position.MappingKey, key, mapping.Tag);
-                    ReadNode(Position.Value, childKey, mapping.Tag);
+                    ReadNode(key: null);
+                    ReadNode(childKey);
                 }
             }
             else
@@ -133,6 +112,4 @@ internal static class ShaderDataUpgrader
         var fullName = classes.FullName(root);
         return fullName != null ? fullName + name[root.Length..] : name;
     }
-
-    private static string FullKey(string key, EngineShaderClasses classes) => classes.ToFullKeyName(key);
 }

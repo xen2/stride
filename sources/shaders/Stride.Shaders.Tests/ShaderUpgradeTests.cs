@@ -90,7 +90,7 @@ public class ShaderUpgradeTests
     }
 
     /// <summary>
-    /// Writes the full names of shaders and effects in the effect logs, compositors and materials of the repository.
+    /// Writes the full names of shaders and effects in the compositors and materials of the repository.
     /// </summary>
     [Fact(Explicit = true)]
     public void UpgradeRepositoryData()
@@ -111,7 +111,7 @@ public class ShaderUpgradeTests
             var rootPath = Path.Combine(RepositoryRoot, root);
             // Test.sdsl is a test shader: EffectName: Test in the compositors is a placeholder
             var classes = engine.WithProject(ReadShaders(root).Where(x => Path.GetFileName(x.Key) != "Test.sdsl").Select(x => x.Value));
-            foreach (var pattern in new[] { "*.sdeffectlog", "*.sdgfxcomp", "*.sdmat", "*.sdscene", "*.sdprefab" })
+            foreach (var pattern in new[] { "*.sdgfxcomp", "*.sdmat", "*.sdscene", "*.sdprefab" })
             {
                 foreach (var file in Directory.EnumerateFiles(rootPath, pattern, SearchOption.AllDirectories))
                 {
@@ -139,42 +139,6 @@ public class ShaderUpgradeTests
         "Texturing\t0\tmodule\t-\t-\t\t\tStride.Rendering.Texturing\tTexture0\n" +
         "ComputeColor\t0\tshader\t-\t-\t\t\tStride.Rendering.Materials.ComputeColor\t\n" +
         "MyEffect\t0\teffect\t-\t-\t\t\tStride.Rendering.MyEffect\t\n";
-
-    [Fact]
-    public void EffectLogsTakeFullNames()
-    {
-        var log = """
-            !EffectCompileRequest
-            EffectName: MyEffect.Child
-            UsedParameters:
-                Material.PixelStageSurfaceShaders: !ShaderMixinSource
-                    Mixins:
-                        - !ShaderClassSource
-                            ClassName: ComputeColor
-                            GenericArguments:
-                                - Texturing.Texture0
-                                - Material.Sampler.i0
-                                - TEXCOORD0
-                        - !ShaderClassSource
-                            ClassName: MyOwnShader
-                ComputeEffectShader.ComputeShaderName: MyEffect
-                Texturing.Texture0.first: 3
-                Other: !ShaderMixinGeneratorSource
-                    Name: MyEffect
-            """;
-        var engine = EngineShaderClasses.Parse(DataEngine);
-
-        var upgraded = ShaderDataUpgrader.Upgrade("Log.sdeffectlog", log, engine);
-
-        Assert.Equal(log
-            .Replace("EffectName: MyEffect.Child", "EffectName: Stride.Rendering.MyEffect.Child")
-            .Replace("ClassName: ComputeColor", "ClassName: Stride.Rendering.Materials.ComputeColor")
-            .Replace("- Texturing.Texture0", "- Stride.Rendering.Texturing.Texture0")
-            .Replace("ComputeShaderName: MyEffect", "ComputeShaderName: Stride.Rendering.MyEffect")
-            .Replace("Texturing.Texture0.first:", "Stride.Rendering.Texturing.Texture0.first:")
-            .Replace("    Name: MyEffect", "    Name: Stride.Rendering.MyEffect"), upgraded);
-        Assert.Equal(upgraded, ShaderDataUpgrader.Upgrade("Log.sdeffectlog", upgraded, engine));
-    }
 
     // A placeholder and a stage name aren't effects
     [Fact]
@@ -224,47 +188,9 @@ public class ShaderUpgradeTests
         Assert.Equal("    MixinReference: Game.Effects.MyShader\n    MixinReference: Global\n    MixinReference: 00000000-0000-0000-0000-000000000000:MyShader\n", upgraded);
     }
 
-    // The key of a member of a namespaced class has the full name of the class. A global class keeps its keys, and a project class hides the engine class of its name.
-    [Fact]
-    public void EffectLogsNameTheKeysOfTheProject()
-    {
-        var log = "UsedParameters:\n    Mine.Value: 1\n    Mine.Value.first: 2\n    Mine.NotAKey: 3\n    Global.Value: 4\n    Texturing.Texture0: 5\n    Game.Mine.Value: 6\n    A: !ShaderClassSource\n        GenericArguments:\n            - Mine.Value\n";
-        var classes = EngineShaderClasses.Parse(DataEngine).WithProject(["namespace Game; shader Mine { float Value; };", "shader Global { float Value; };", "shader Texturing { };"]);
-
-        var upgraded = ShaderDataUpgrader.Upgrade("Log.sdeffectlog", log, classes);
-
-        Assert.Equal("UsedParameters:\n    Game.Mine.Value: 1\n    Game.Mine.Value.first: 2\n    Mine.NotAKey: 3\n    Global.Value: 4\n    Texturing.Texture0: 5\n    Game.Mine.Value: 6\n    A: !ShaderClassSource\n        GenericArguments:\n            - Game.Mine.Value\n", upgraded);
-    }
-
     private static readonly EngineShaderClasses DataClasses = EngineShaderClasses.Parse(DataEngine).WithProject(["namespace Game; shader Mine { float Value; };"]);
 
-    private static string UpgradeLog(string text) => ShaderDataUpgrader.Upgrade("Log.sdeffectlog", text, DataClasses);
-
-    // The generic arguments are written in both forms, and they are keys only there
-    [Fact]
-    public void GenericArgumentsAreKeysInEitherForm()
-    {
-        Assert.Equal("GenericArguments: [Game.Mine.Value, TEXCOORD0, 'Game.Mine.Value']\n", UpgradeLog("GenericArguments: [Mine.Value, TEXCOORD0, 'Mine.Value']\n"));
-        Assert.Equal("Other:\n    - Mine.Value\n", UpgradeLog("Other:\n    - Mine.Value\n"));
-    }
-
-    // A dotted key is the key of a shader member only as a direct key of the used parameters
-    [Fact]
-    public void AKeyOutsideTheUsedParametersStays()
-    {
-        const string log = "Mine.Value: 1\nOther:\n    Mine.Value: 2\nUsedParameters:\n    A:\n        Mine.Value: 3\n";
-
-        Assert.Equal(log, UpgradeLog(log));
-    }
-
-    // Macros have a Name too
-    [Fact]
-    public void ANameIsAnEffectOnlyInAGeneratorSource()
-    {
-        const string text = "A: !ShaderMixinGeneratorSource\n    Other: 1\n    Name: MyEffect\nMacros:\n    - Name: MyEffect\n      Definition: 1\nB: !OtherSource\n    Name: MyEffect\n";
-
-        Assert.Equal(text.Replace("    Name: MyEffect\nMacros", "    Name: Stride.Rendering.MyEffect\nMacros"), UpgradeLog(text));
-    }
+    private static string UpgradeCompositor(string text) => ShaderDataUpgrader.Upgrade("Compositor.sdgfxcomp", text, DataClasses);
 
     // The upgrade edits the places it found: comments, spacing, line endings and characters before them stay
     [Theory]
@@ -286,13 +212,12 @@ public class ShaderUpgradeTests
             "UsedParameters: {  }",
             $"Other: '{emoji} EffectName: MyEffect'",
             "After:   1  ",
-            "ClassName: ComputeColor",
         };
         var text = string.Join(newLine, lines);
 
-        var upgraded = UpgradeLog(text);
+        var upgraded = UpgradeCompositor(text);
 
-        Assert.Equal(text.Replace("EffectName:    MyEffect", "EffectName:    Stride.Rendering.MyEffect").Replace("ClassName: ComputeColor", "ClassName: Stride.Rendering.Materials.ComputeColor"), upgraded);
+        Assert.Equal(text.Replace("EffectName:    MyEffect", "EffectName:    Stride.Rendering.MyEffect"), upgraded);
     }
 
     // Other line breaks of YAML, and an edit after each of them
@@ -304,18 +229,17 @@ public class ShaderUpgradeTests
     {
         var text = $"# comment{lineBreak}Before: 'a{lineBreak}b'{lineBreak}EffectName: MyEffect{lineBreak}";
 
-        Assert.Equal(text.Replace("MyEffect", "Stride.Rendering.MyEffect"), UpgradeLog(text));
+        Assert.Equal(text.Replace("MyEffect", "Stride.Rendering.MyEffect"), UpgradeCompositor(text));
     }
 
     // A value that is quoted stays quoted
     [Theory]
     [InlineData("EffectName: \"MyEffect\"\n", "EffectName: \"Stride.Rendering.MyEffect\"\n")]
     [InlineData("EffectName: 'MyEffect.Child'\n", "EffectName: 'Stride.Rendering.MyEffect.Child'\n")]
-    [InlineData("UsedParameters:\n    \"Mine.Value\": 1\n", "UsedParameters:\n    \"Game.Mine.Value\": 1\n")]
     [InlineData("EffectName: \"My\\x45ffect\"\n", "EffectName: \"Stride.Rendering.MyEffect\"\n")]
     public void QuotedNamesAreUpgraded(string text, string expected)
     {
-        Assert.Equal(expected, UpgradeLog(text));
+        Assert.Equal(expected, UpgradeCompositor(text));
     }
 
     [Theory]
@@ -328,14 +252,13 @@ public class ShaderUpgradeTests
     [InlineData("EffectName: MyEffect Child\n", null)]
     public void AValueOnSeveralLines(string text, string? expected)
     {
-        Assert.Equal(expected ?? text, UpgradeLog(text));
+        Assert.Equal(expected ?? text, UpgradeCompositor(text));
     }
 
     // A block holds any text: the code of a shader, or the YAML of something else
     [Theory]
     [InlineData("Material.sdmat", "Code: |\n    MixinReference: MyEffect\n    - Mine.Value\nMixinReference: MyEffect\n", "Code: |\n    MixinReference: MyEffect\n    - Mine.Value\nMixinReference: Stride.Rendering.MyEffect\n")]
     [InlineData("Scene.sdscene", "Code: >-\n    MixinReference: MyEffect\n", null)]
-    [InlineData("Log.sdeffectlog", "ShaderSourceCode: |\n    ClassName: ComputeColor\n    EffectName: MyEffect\n    Mine.Value: 1\n", null)]
     [InlineData("Compositor.sdgfxcomp", "Comment: \"EffectName: MyEffect\"\n", null)]
     // The name itself in a block is left as written
     [InlineData("Compositor.sdgfxcomp", "EffectName: |-\n    MyEffect\n", null)]
@@ -349,7 +272,7 @@ public class ShaderUpgradeTests
     {
         const string log = "---\nEffectName: MyEffect\n...\n---\n!EffectCompileRequest\nEffectName: MyEffect.Child\n---\nEffectName: Unknown\n";
 
-        Assert.Equal("---\nEffectName: Stride.Rendering.MyEffect\n...\n---\n!EffectCompileRequest\nEffectName: Stride.Rendering.MyEffect.Child\n---\nEffectName: Unknown\n", UpgradeLog(log));
+        Assert.Equal("---\nEffectName: Stride.Rendering.MyEffect\n...\n---\n!EffectCompileRequest\nEffectName: Stride.Rendering.MyEffect.Child\n---\nEffectName: Unknown\n", UpgradeCompositor(log));
     }
 
     // Only a value alone is a name: an anchor and the aliases that read it stay the same
@@ -359,7 +282,7 @@ public class ShaderUpgradeTests
     [InlineData("EffectName: &name !!str MyEffect\n")]
     public void AnchorsAliasesAndTagsStay(string text)
     {
-        Assert.Equal(text, UpgradeLog(text));
+        Assert.Equal(text, UpgradeCompositor(text));
     }
 
     [Theory]
@@ -372,7 +295,7 @@ public class ShaderUpgradeTests
     [InlineData("MyEffect\n")]
     public void ThereIsNoNameToUpgrade(string text)
     {
-        Assert.Equal(text, UpgradeLog(text));
+        Assert.Equal(text, UpgradeCompositor(text));
     }
 
     [Theory]
@@ -381,7 +304,7 @@ public class ShaderUpgradeTests
     [InlineData("\tEffectName: MyEffect\n")]
     public void TextThatIsNotYamlIsAnError(string text)
     {
-        Assert.ThrowsAny<YamlException>(() => UpgradeLog(text));
+        Assert.ThrowsAny<YamlException>(() => UpgradeCompositor(text));
     }
 
     // Only the types of data the upgrade knows are read
