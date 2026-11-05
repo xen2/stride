@@ -64,6 +64,8 @@ public class EffectLinkageTests
 
     // The words are not reserved
     [Theory]
+    [InlineData("float order = 2;")]
+    [InlineData("float phase = 2;")]
     [InlineData("float extend = 2;")]
     public void TheWordsCanStillNameAVariable(string line)
     {
@@ -71,7 +73,20 @@ public class EffectLinkageTests
     }
 
     [Theory]
+    [InlineData("order Owner.Run.A: X, Y;", "SDSL0251: order Owner.Run.A: X, Y; is no longer part of the language. Write extend shader Owner { [MixinOrder(X, Y)] Run; }.")]
+    [InlineData("order Some.Owner.Run.A: X;", "Write extend shader Some.Owner { [MixinOrder(X)] Run; }.")]
+    [InlineData("bind Owner.Run.A = X;", "SDSL0251: bind Owner.Run.A = X; is no longer part of the language. Write extend shader X { [Phase(A)] Owner.Run; }.")]
+    [InlineData("unbind Owner.Run.A;", "SDSL0251: unbind Owner.Run.A; is no longer part of the language. Write extend shader Owner { [Unbind(Phases = { A })] Run; }.")]
+    [InlineData("unbind Owner.Run = X;", "SDSL0251: unbind Owner.Run = X; is no longer part of the language. Write extend shader Owner { [Unbind(Mixins = { X })] Run; }.")]
+    [InlineData("phase Owner.Run.Wind after A before B;", "SDSL0251: phase Owner.Run.Wind after A before B; is no longer part of the language. Write [Phase(Vendor.Wind, After = A, Before = B)] on a class that joins it, or extend shader X { [Phase(Vendor.Wind, ...)] Owner.Run; }.")]
+    public void ARemovedStatementNamesItsBlock(string line, string message)
+    {
+        Assert.Contains(message, Errors($"namespace Test {{ effect MyEffect {{ {line} }} }}"));
+    }
+
+    [Theory]
     [InlineData("extend shader X { [Drops(Mixins = { Y })] Owner.Run; }", "SDSL0256: extend shader X { ... Owner.Run; }: an effect takes contributors out with [Unbind] on the method")]
+    [InlineData("extend shader X { [After(Y)] Owner.Run; }", "SDSL0256: extend shader X { ... Owner.Run; }: write [MixinOrder(After = X)] on the method the class contributes to")]
     [InlineData("extend shader X { [Color] Run; }", "SDSL0256: extend shader X { ... Run; }: a block takes [Phase], [MixinOrder] and [Unbind], and [Color] is none of them")]
     [InlineData("extend shader X { [Unbind(Phases = { A })] Owner.Run; }", "SDSL0256: extend shader X { ... Owner.Run; }: [Unbind] goes on the method itself: extend shader Owner { [Unbind(...)] Run; }")]
     [InlineData("extend shader X { [Phase(A)] Run; }", "SDSL0256: extend shader X { ... Run; }: [Phase] goes on a method the class contributes to, written Owner.Run")]

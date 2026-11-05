@@ -219,7 +219,7 @@ public record struct MethodParser : IParser<ShaderMethod>
 
     /// <summary>
     /// <c>extend Owner.Method(parameters) { }</c> or <c>patch Owner.Method(parameters) { }</c>. The words are not reserved: <c>patch x;</c> is a member.
-    /// A form with no parameters is read for its error.
+    /// A form with no parameters, or with <c>in</c>, <c>after</c> or <c>replaces</c>, is read for its error.
     /// </summary>
     private static bool Extend<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderMethod parsed)
         where TScanner : struct, IScanner
@@ -228,7 +228,7 @@ public record struct MethodParser : IParser<ShaderMethod>
         var position = scanner.Position;
         if (!Tokens.AnyOf(["extend", "patch"], ref scanner, out var keyword, advance: true)
             || !Parsers.Spaces1(ref scanner, result, out _)
-            || !SDFX.EffectShaderBlockParser.DottedName(ref scanner, result, out var path)
+            || !SDFX.EffectLinkageRuleParser.DottedName(ref scanner, result, out var path)
             || path.Count < 2)
         {
             scanner.Position = position;
@@ -249,7 +249,47 @@ public record struct MethodParser : IParser<ShaderMethod>
             }
         }
 
-        Parsers.Spaces0(ref scanner, result, out _);
+        var phase = "";
+        var after = new List<string>();
+        var replaces = new List<string>();
+        while (true)
+        {
+            Parsers.Spaces0(ref scanner, result, out _);
+            var clause = scanner.Position;
+            if (Tokens.AnyOf(["in", "after", "replaces"], ref scanner, out var word, advance: true) && Parsers.Spaces1(ref scanner, result, out _))
+            {
+                if (word == "in")
+                {
+                    if (!LiteralsParser.Identifier(ref scanner, result, out var phaseName))
+                    {
+                        scanner.Position = position;
+                        return false;
+                    }
+                    phase = phaseName.Name;
+                }
+                else
+                {
+                    var names = word == "after" ? after : replaces;
+                    do
+                    {
+                        Parsers.Spaces0(ref scanner, result, out _);
+                        if (!SDFX.EffectLinkageRuleParser.DottedName(ref scanner, result, out var target))
+                        {
+                            scanner.Position = position;
+                            return false;
+                        }
+                        names.Add(string.Join('.', target));
+                    }
+                    while (Parsers.FollowedBy(ref scanner, Tokens.Char(','), withSpaces: true, advance: true));
+                }
+            }
+            else
+            {
+                scanner.Position = clause;
+                break;
+            }
+        }
+
         var outer = result.ExtendedMethod;
         result.ExtendedMethod = name.Name;
         BlockStatement? block = null;
@@ -266,9 +306,17 @@ public record struct MethodParser : IParser<ShaderMethod>
         {
             Parameters = parameters ?? [],
             Body = block,
-            Extend = new ExtendClause(keyword == "patch", string.Join('.', path.Take(path.Count - 1)), hasParameters),
+            Extend = new ExtendClause(keyword == "patch", string.Join('.', path.Take(path.Count - 1)), hasParameters, ClauseAttributes(phase, after, replaces)),
         };
         return true;
+    }
+
+    private static string? ClauseAttributes(string phase, List<string> after, List<string> replaces)
+    {
+        var attributes = (phase.Length > 0 ? $"[Phase({phase})] " : "")
+            + (after.Count > 0 ? $"[MixinOrder(After = {(after.Count == 1 ? after[0] : $"{{ {string.Join(", ", after)} }}")})] " : "")
+            + (replaces.Count > 0 ? $"[Drops(Mixins = {{ {string.Join(", ", replaces)} }})] " : "");
+        return attributes.Length > 0 ? attributes : null;
     }
 }
 

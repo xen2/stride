@@ -145,6 +145,21 @@ public class ExtendSyntaxTests : IDisposable
     }
 
     [Theory]
+    [InlineData("extend Owner.Run in A { }", "SDSL0143: extend of Owner.Run: in, after and replaces are attributes. Write [Phase(A)] extend Owner.Run(...).")]
+    [InlineData("extend Owner.Run() in A { }", "SDSL0143: extend of Owner.Run: in, after and replaces are attributes. Write [Phase(A)] extend Owner.Run(...).")]
+    [InlineData("extend Owner.Run in A after First, Second replaces Gone { }", "SDSL0143: extend of Owner.Run: in, after and replaces are attributes. Write [Phase(A)] [MixinOrder(After = { First, Second })] [Drops(Mixins = { Gone })] extend Owner.Run(...).")]
+    [InlineData("patch Owner.Plain after First { return 1; }", "SDSL0143: patch of Owner.Plain: in, after and replaces are attributes. Write [MixinOrder(After = First)] patch Owner.Plain(...).")]
+    public void AnOldClauseNamesTheAttribute(string member, string expected)
+    {
+        WriteModule("Step", member);
+
+        var (ok, log, _) = Mix(false, "Test.Step");
+
+        Assert.False(ok, log);
+        Assert.Contains(expected, log);
+    }
+
+    [Theory]
     [InlineData("extend Owner.Run { }", "SDSL0143: extend of Owner.Run: write the parameters, as an override does: extend Owner.Run().")]
     [InlineData("extend Owner.RunWith { other = other + value; }", "SDSL0143: extend of Owner.RunWith: write the parameters, as an override does: extend Owner.RunWith(float value, inout float other).")]
     [InlineData("patch Owner.Plain { return 1; }", "SDSL0143: patch of Owner.Plain: write the parameters, as an override does: patch Owner.Plain().")]

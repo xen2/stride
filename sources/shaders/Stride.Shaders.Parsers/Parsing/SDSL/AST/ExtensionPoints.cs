@@ -39,6 +39,12 @@ internal static class ExtensionPoints
         }
 
         var shortName = ShaderNames.ShortName(owner);
+        if (extend.Clauses != null)
+        {
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, keyword, shortName, method.Name.Name, $"in, after and replaces are attributes. Write {extend.Clauses}{keyword} {extend.Owner}.{method.Name.Name}(...)")));
+            return;
+        }
+
         bool IsOwner(MethodExtensionPoint point) => ShaderNames.WithoutGenerics(point.Owner) == owner;
         var inherited = table.InheritedShaders.SelectMany(x => x.Symbol!.Methods.Select(y => y.Symbol)).Where(x => x.Id.Name == method.Name.Name && x.Type is FunctionType).ToList();
         var declared = inherited.Where(x => x.ExtensionPoint is { } point && IsOwner(point)).ToList();
@@ -164,7 +170,7 @@ internal static class ExtensionPoints
             method.Body!.Statements.Insert(0, statement);
     }
 
-    public static bool IsAttribute(string name) => name is PhasesAttribute or PhaseAttribute or MixinOrderAttribute or DropsAttribute or UnbindAttribute;
+    public static bool IsAttribute(string name) => name is "Replace" or "Pipeline" or "Around" or "Collect" or "After" or "Replaces" or PhasesAttribute or PhaseAttribute or MixinOrderAttribute or DropsAttribute or UnbindAttribute;
 
     /// <summary>
     /// What a method states about its place in a chain, as the mixer reads it: classes by full name, and phases with their prefix in
@@ -212,7 +218,13 @@ internal static class ExtensionPoints
         foreach (var attribute in attributes)
         {
             var name = attribute.Name.Name;
-            if (name == PhaseAttribute)
+            if (name == "Collect")
+                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0139, methodName)));
+            else if (name is "Replace" or "Pipeline" or "Around")
+                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0249, name, methodName, KeywordForm(attribute, method))));
+            else if (name is "After" or "Replaces")
+                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0251, $"[{name}] on {methodName}", RemovedForm(attribute, point))));
+            else if (name == PhaseAttribute)
                 phase = ReadPhase(table, attribute, method, methodName, inherited, out addedPhase) ?? phase;
             else if (name == MixinOrderAttribute)
                 ReadMixinOrder(table, attribute, method, methodName, point, contribution);
@@ -244,6 +256,20 @@ internal static class ExtensionPoints
             CheckBasePosition(table, method, methodName, point, phase);
     }
 
+    // The attribute that replaces [After] or [Replaces] on a method, with the names it was given
+    private static string RemovedForm(AnyShaderAttribute attribute, MethodExtensionPoint? point)
+    {
+        var names = attribute.Parameters.Select(x => DottedName(x)?.Name ?? x.ToString()).ToList();
+        static string List(IEnumerable<string> names) => names.Count() == 1 ? names.First() : $"{{ {string.Join(", ", names)} }}";
+        if (attribute.Name.Name == "After")
+            return $"[{MixinOrderAttribute}(After = {List(names)})]";
+
+        var phases = names.Where(x => point?.Phases.Contains(x) == true).ToList();
+        var mixins = names.Except(phases).ToList();
+        var keys = new[] { (Key: "Mixins", Names: mixins), (Key: "Phases", Names: phases) }.Where(x => x.Names.Count > 0).Select(x => $"{x.Key} = {{ {string.Join(", ", x.Names)} }}");
+        return $"[{DropsAttribute}({string.Join(", ", keys)})] on an override, or [Replaces(Full.Name)] on a class to replace the whole class";
+    }
+
     /// <summary>
     /// The method an override is chained to: the last one with this signature in the linearization.
     /// </summary>
@@ -253,6 +279,12 @@ internal static class ExtensionPoints
             .SelectMany(x => x.Symbol!.Methods)
             .LastOrDefault(x => x.Symbol.Id.Name == name && x.Symbol.Type is FunctionType inheritedType && inheritedType == type)
             .Symbol;
+    }
+
+    private static string KeywordForm(AnyShaderAttribute attribute, ShaderMethod method)
+    {
+        var phases = attribute.Parameters.Count > 0 ? $"[{PhasesAttribute}({string.Join(", ", attribute.Parameters)})] " : "";
+        return $"{phases}{attribute.Name.Name.ToLowerInvariant()} {method.ReturnTypeName} {method.Name.Name}(...)";
     }
 
     private static MethodExtensionPoint ReadPoint(Identifier keyword, List<AnyShaderAttribute> attributes, ShaderMethod method, string owner)

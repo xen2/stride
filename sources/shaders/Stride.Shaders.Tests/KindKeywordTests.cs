@@ -160,6 +160,7 @@ public class KindKeywordTests : IDisposable
     [InlineData("pipeline around void F() { }", "SDSL0250: around on Wrong.F: a method has one kind.")]
     [InlineData("pipeline pipeline void F() { }", "SDSL0250: pipeline on Wrong.F: a method has one kind.")]
     [InlineData("collect void F() { }", "SDSL0139: collect on Wrong.F: collect is reserved for a later version. Use pipeline or around.")]
+    [InlineData("[Collect] void F() { }", "SDSL0139: collect on Wrong.F: collect is reserved for a later version. Use pipeline or around.")]
     public void AWrongCombinationIsAnError(string member, string expected)
     {
         Write("Wrong", $"shader Wrong {{ {member} }}");
@@ -182,6 +183,22 @@ public class KindKeywordTests : IDisposable
 
         Assert.False(ok, log);
         Assert.Contains("SDSL0142: pipeline on Wrong.F: a kind goes on the first definition of F, not on an override.", log);
+    }
+
+    [Theory]
+    [InlineData("[Pipeline(A, B)] void F() { }", "SDSL0249: [Pipeline] on Wrong.F: a kind is a keyword. Write [Phases(A, B)] pipeline void F(...).")]
+    [InlineData("[Pipeline] void F() { }", "SDSL0249: [Pipeline] on Wrong.F: a kind is a keyword. Write pipeline void F(...).")]
+    [InlineData("[Around(A)] float F() { return 1; }", "SDSL0249: [Around] on Wrong.F: a kind is a keyword. Write [Phases(A)] around float F(...).")]
+    [InlineData("[Replace] float F() { return 1; }", "SDSL0249: [Replace] on Wrong.F: a kind is a keyword. Write replace float F(...).")]
+    [InlineData("[Replace] abstract float F();", "SDSL0249: [Replace] on Wrong.F: a kind is a keyword. Write replace float F(...).")]
+    public void AnOldKindAttributeNamesTheKeyword(string member, string expected)
+    {
+        Write("Wrong", $"shader Wrong {{ {member} }}");
+
+        var (ok, log) = Mix("Wrong");
+
+        Assert.False(ok, log);
+        Assert.Contains(expected, log);
     }
 
     [Theory]

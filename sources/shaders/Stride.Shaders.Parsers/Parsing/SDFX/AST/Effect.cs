@@ -103,6 +103,44 @@ public partial class EffectDiscardStatement(TextLocation info) : EffectStatement
 }
 
 /// <summary>
+/// A linkage rule of 4.4 previews: <c>order</c>, <c>bind</c>, <c>unbind</c> or <c>phase</c>. It is read for its error, which gives the block that replaces it.
+/// </summary>
+/// <param name="keyword">The word that starts the rule.</param>
+/// <param name="path">The dotted name after it, cut at the dots.</param>
+/// <param name="names">The class names, or for <c>phase</c> the phases after and before it (empty when not given).</param>
+public partial class EffectLinkageRule(string keyword, List<string> path, List<string> names, TextLocation info) : EffectStatement(info)
+{
+    public string Keyword { get; } = keyword;
+    public List<string> Path { get; } = path;
+    public List<string> Names { get; } = names;
+
+    public override void Compile(SymbolTable table, CompilerUnit compiler) => throw new NotImplementedException();
+
+    public override string ToString() => $"{Keyword} {string.Join('.', Path)} {string.Join(", ", Names)}";
+
+    /// <summary>
+    /// The block that replaces this rule.
+    /// </summary>
+    public string NewForm()
+    {
+        var isUnbindOfClass = Keyword == "unbind" && Names.Count == 1;
+        var methodIndex = Path.Count - (isUnbindOfClass ? 1 : 2);
+        var owner = string.Join('.', Path.Take(methodIndex));
+        var method = Path[methodIndex];
+        var phase = Path[^1];
+        static string List(List<string> names) => names.Count == 1 ? names[0] : $"{{ {string.Join(", ", names)} }}";
+        return Keyword switch
+        {
+            "order" => $"extend shader {owner} {{ [MixinOrder({string.Join(", ", Names)})] {method}; }}",
+            "bind" => $"extend shader {Names[0]} {{ [Phase({phase})] {owner}.{method}; }}",
+            "unbind" when isUnbindOfClass => $"extend shader {owner} {{ [Unbind(Mixins = {{ {Names[0]} }})] {method}; }}",
+            "unbind" => $"extend shader {owner} {{ [Unbind(Phases = {{ {phase} }})] {method}; }}",
+            _ => $"[Phase(Vendor.{phase}{(Names[0].Length > 0 ? $", After = {Names[0]}" : "")}{(Names[1].Length > 0 ? $", Before = {Names[1]}" : "")})] on a class that joins it, or extend shader X {{ [Phase(Vendor.{phase}, ...)] {owner}.{method}; }}",
+        };
+    }
+}
+
+/// <summary>
 /// <c>extend shader Shader { [Attribute] Method; [Attribute] Owner.Method; }</c> in an effect: attributes given to the methods of a class,
 /// for this effect. Each replaces the attribute of the same kind that the class writes.
 /// </summary>
@@ -139,6 +177,7 @@ public partial class EffectShaderBlock(string shader, List<EffectBlockMember> me
                 {
                     "MixinOrder" or "Unbind" or "Phase" => null,
                     "Drops" => "an effect takes contributors out with [Unbind] on the method, extend shader Owner { [Unbind(Mixins = { X })] Method; }",
+                    "After" => "write [MixinOrder(After = X)] on the method the class contributes to",
                     _ => $"a block takes [Phase], [MixinOrder] and [Unbind], and [{name}] is none of them",
                 };
                 problem ??= (name, member.Owner != null) switch

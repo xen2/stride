@@ -197,6 +197,7 @@ public partial class ExtensionPointTests : IDisposable
     }
 
     [Theory]
+    [InlineData("[Collect] void F() { }", "SDSL0139")]
     [InlineData("collect void F() { }", "SDSL0139")]
     [InlineData("[Phases(A)] replace void F() { }", "SDSL0135")]
     [InlineData("[Phases(A, A)] pipeline void F() { }", "SDSL0135")]
@@ -231,6 +232,8 @@ public partial class ExtensionPointTests : IDisposable
     [InlineData("[MixinOrder(StepB)] override void Run() { base.Run(); }", "SDSL0135: [MixinOrder] on Wrong.Run: on an override, [MixinOrder] takes After = and Before =")]
     [InlineData("[MixinOrder(After = \"Test.StepB\")] override void Run() { base.Run(); }", "SDSL0255: [MixinOrder] on Wrong.Run: \"Test.StepB\" is a string.")]
     [InlineData("[MixinOrder(After = NoSuchClass)] override void Run() { base.Run(); }", "SDSL0110")]
+    [InlineData("[After(StepB)] override void Run() { base.Run(); }", "SDSL0251: [After] on Wrong.Run is no longer part of the language. Write [MixinOrder(After = StepB)].")]
+    [InlineData("[After(StepB, Other)] override void Run() { base.Run(); }", "Write [MixinOrder(After = { StepB, Other })].")]
     public void AWrongMixinOrderIsAnError(string member, string code)
     {
         WriteOwner();
@@ -676,6 +679,7 @@ public partial class ExtensionPointTests : IDisposable
     [InlineData("[Drops(Phases = { Missing })] override void Run() { base.Run(); }", "SDSL0254: [Drops] on Wrong.Run: Owner.Run has no phase Missing.")]
     [InlineData("[Drops(Mixins = { \"Test.Step\" })] override void Run() { base.Run(); }", "SDSL0255: [Drops] on Wrong.Run: \"Test.Step\" is a string.")]
     [InlineData("[Drops(Mixins = { NoSuchClass })] override void Run() { base.Run(); }", "SDSL0110")]
+    [InlineData("[Replaces(Step, A)] override void Run() { base.Run(); }", "SDSL0251: [Replaces] on Wrong.Run is no longer part of the language. Write [Drops(Mixins = { Step }, Phases = { A })] on an override")]
     public void AWrongDropsIsAnError(string member, string code)
     {
         WriteOwner();
@@ -1608,10 +1612,14 @@ public partial class ExtensionPointTests : IDisposable
 
     // They go on a method, and a class that writes them expects them to do something
     [Theory]
+    [InlineData("[Replace] shader Wrong { }")]
     [InlineData("[Phases(A, B)] shader Wrong { }")]
+    [InlineData("[Pipeline(A)] module Wrong { }")]
     [InlineData("[Phase(A)] shader Wrong { }")]
     [InlineData("[MixinOrder(After = Other)] shader Wrong { }")]
     [InlineData("[Drops(Mixins = { Other })] shader Wrong { }")]
+    [InlineData("[After(Other)] shader Wrong { }")]
+    [InlineData("[Collect] shader Wrong { }")]
     [InlineData("shader Wrong { [Phases(A)] cbuffer PerDraw { float A; } }")]
     public void AKindOrAPhaseOnAClassIsAnError(string code)
     {
