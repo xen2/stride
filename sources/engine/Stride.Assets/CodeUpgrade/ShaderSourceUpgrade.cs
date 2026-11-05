@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Stride.Assets.Effect;
 using Stride.Core.Assets;
 using Stride.Core.Diagnostics;
 using Stride.Core.IO;
@@ -35,8 +36,27 @@ internal static class ShaderSourceUpgrade
     /// <param name="backup">The copy-on-write backup to snapshot each file into before writing it, or <c>null</c>.</param>
     public static void Run(IReadOnlyList<string> folders, UpgradeBackup backup, ILogger log)
     {
+        DeleteEffectLogs(folders, backup, log);
         RunSources(folders, backup, log);
         RunData(folders, backup, log);
+    }
+
+    // An effect log holds what older engine code asked for: its entries don't match the effects of this version
+    private static void DeleteEffectLogs(IReadOnlyList<string> folders, UpgradeBackup backup, ILogger log)
+    {
+        foreach (var file in ProjectFiles(folders, $"*{EffectLogAsset.FileExtension}"))
+        {
+            try
+            {
+                backup?.Snapshot(file);
+                File.Delete(file);
+                log.Warning($"Deleted the effect log [{file}]: it was recorded with an older version of Stride, and its entries don't match the effects of this version. To precompile effects again, run the game with Record used effects on, then use Import effects.");
+            }
+            catch (Exception e)
+            {
+                log.Warning($"Unable to delete the effect log [{file}]", e);
+            }
+        }
     }
 
     // The stored data that names a shader or an effect, after the sources it names
@@ -44,7 +64,7 @@ internal static class ShaderSourceUpgrade
     {
         var sources = ProjectFiles(folders, "*.sdsl").Concat(ProjectFiles(folders, "*.sdfx")).Select(File.ReadAllText);
         var classes = EngineShaderClasses.Current.WithProject(sources);
-        foreach (var file in new[] { "*.sdeffectlog", "*.sdgfxcomp", "*.sdmat", "*.sdscene", "*.sdprefab" }.SelectMany(pattern => ProjectFiles(folders, pattern)))
+        foreach (var file in new[] { "*.sdgfxcomp", "*.sdmat", "*.sdscene", "*.sdprefab" }.SelectMany(pattern => ProjectFiles(folders, pattern)))
         {
             var bytes = File.ReadAllBytes(file);
             var text = File.ReadAllText(file);
