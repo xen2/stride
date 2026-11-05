@@ -137,7 +137,7 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
                 }
                 catch (Exception e) when (e is not NotImplementedException)
                 {
-                    log.Warning($"Code upgrade: a source migration of [{pendingItem.ProjectFullPath.GetFileName()}] failed and was skipped; its code is left unchanged.", e);
+                    log.Warning($"Code upgrade: a source migration of [{pendingItem.ProjectFullPath.GetFileName()}] failed and was skipped; the other migrations still apply.", e);
                 }
             }
 

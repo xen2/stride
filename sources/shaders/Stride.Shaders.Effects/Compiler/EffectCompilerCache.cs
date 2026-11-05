@@ -121,7 +121,7 @@ namespace Stride.Shaders.Compiler
                 if (Compiler is NullEffectCompiler && bytecode.Key == null)
                 {
                     var stringBuilder = new StringBuilder();
-                    stringBuilder.AppendFormat("Unable to find compiled shaders [{0}] for mixin [{1}] with parameters [{2}]", compiledUrl, effect.Root, compilerParameters.ToStringPermutationsDetailed());
+                    stringBuilder.AppendFormat("Unable to find compiled shaders [{0}] for mixin [{1}] with parameters [{2}]. This effect isn't in the effect log. Run the game with Record used effects on, with an effect compiler, then use Import effects and build again. If the log is from an older version of Stride, delete it first.", compiledUrl, effect.Root, compilerParameters.ToStringPermutationsDetailed());
                     Log.Error(stringBuilder.ToString());
                     throw new InvalidOperationException(stringBuilder.ToString());
                 }
