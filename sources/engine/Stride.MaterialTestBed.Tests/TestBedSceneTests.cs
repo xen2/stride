@@ -3,12 +3,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Xunit;
 
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using Stride.Games;
 using Stride.Graphics;
 using Stride.Graphics.Regression;
 using Stride.Rendering;
@@ -29,21 +31,27 @@ public class TestBedSceneTests : GameTestBase
     private readonly bool useMaterialTable;
     private readonly bool enableUvTransform;
     private readonly bool enableWetness;
+    private readonly StressOptions stress;
+    private Color[] capturedPixels;
 
     private string ImageName => !useMaterialTable ? "GeneratedMaterials" : enableUvTransform ? "UvTransform" : enableWetness ? "Wetness" : "MaterialTable";
 
     private TestBedTextures textures;
     private MaterialTable materialTable;
 
+    /// <summary>What a stress run of the scene turns on. Such a run compares its own pixels, and has no reference image.</summary>
+    private sealed record StressOptions(bool Snow = false, bool Wetness = false, bool ModelShading = false, bool Cel = false, bool DebugViewClass = false, bool ShowDebugView = false);
+
     public TestBedSceneTests() : this(false)
     {
     }
 
-    private TestBedSceneTests(bool useMaterialTable, bool enableUvTransform = false, bool enableWetness = false)
+    private TestBedSceneTests(bool useMaterialTable, bool enableUvTransform = false, bool enableWetness = false, StressOptions stress = null)
     {
         this.useMaterialTable = useMaterialTable;
         this.enableUvTransform = enableUvTransform;
         this.enableWetness = enableWetness;
+        this.stress = stress;
 
         GraphicsDeviceManager.PreferredBackBufferWidth = 960;
         GraphicsDeviceManager.PreferredBackBufferHeight = 540;
@@ -59,7 +67,21 @@ public class TestBedSceneTests : GameTestBase
     protected override void RegisterTests()
     {
         base.RegisterTests();
-        FrameGameSystem.TakeScreenshot(2, ImageName);
+        if (stress != null)
+            FrameGameSystem.Draw(2, () => { });
+        else
+            FrameGameSystem.TakeScreenshot(2, ImageName);
+    }
+
+    protected override void Draw(GameTime gameTime)
+    {
+        base.Draw(gameTime);
+
+        if (stress != null && capturedPixels == null && gameTime.FrameCount >= 2)
+        {
+            using var image = GraphicsDevice.Presenter.BackBuffer.GetDataAsImage(GraphicsContext.CommandList);
+            capturedPixels = image.PixelBuffer[0].GetPixels<Color>();
+        }
     }
 
     protected override async Task LoadContent()
@@ -72,7 +94,7 @@ public class TestBedSceneTests : GameTestBase
         var materials = new List<Material>();
         if (useMaterialTable)
         {
-            materialTable = new MaterialTable(GraphicsDevice, Content.Load<Texture>(LookupTableUrl));
+            materialTable = new MaterialTable(GraphicsDevice, Content.Load<Texture>(LookupTableUrl), stress is { ModelShading: true } ? TestBedModelShadingKeys.ShaderName : null);
             foreach (var description in descriptions)
                 materials.Add(materialTable.Add(description));
             materialTable.Upload(GraphicsDevice);
@@ -121,7 +143,11 @@ public class TestBedSceneTests : GameTestBase
         meshFeature.RenderFeatures.Add(new TestBedEffectRenderFeature
         {
             EnableUvTransform = enableUvTransform,
-            EnableWetness = enableWetness,
+            EnableWetness = enableWetness || stress is { Wetness: true },
+            EnableSnow = stress is { Snow: true },
+            EnableCel = stress is { Cel: true },
+            EnableDebugView = stress is { DebugViewClass: true },
+            ShowDebugView = stress is { ShowDebugView: true },
             TextureRegion = new Vector4(0.25f, 0.1f, 0.5f, 0.5f),
         });
 
@@ -249,5 +275,60 @@ public class TestBedSceneTests : GameTestBase
     public void MaterialTableWithWetness()
     {
         RunGameTest(new TestBedSceneTests(useMaterialTable: true, enableWetness: true));
+    }
+
+    private static Color[] RunStress(StressOptions options)
+    {
+        var game = new TestBedSceneTests(useMaterialTable: true, stress: options);
+        RunGameTest(game);
+        return game.capturedPixels;
+    }
+
+    private static double ChangedPixels(Color[] first, Color[] second)
+    {
+        Assert.Equal(first.Length, second.Length);
+        return first.Zip(second).Count(x => Math.Abs(x.First.R - x.Second.R) + Math.Abs(x.First.G - x.Second.G) + Math.Abs(x.First.B - x.Second.B) > 8) / (double)first.Length;
+    }
+
+    // Through its point, the default model is the same as the Standard model called directly
+    [SkippableFact]
+    public void TheModelPointWithItsDefaultGivesTheStandardImage()
+    {
+        var standard = RunStress(new StressOptions());
+        var point = RunStress(new StressOptions(ModelShading: true));
+
+        Assert.Equal(0.0, ChangedPixels(standard, point));
+    }
+
+    [SkippableFact]
+    public void ASecondModelFromAnEffectLayerChangesTheImage()
+    {
+        var standard = RunStress(new StressOptions(ModelShading: true));
+        var cel = RunStress(new StressOptions(ModelShading: true, Cel: true));
+
+        Assert.True(ChangedPixels(standard, cel) > 0.2, $"{ChangedPixels(standard, cel):P1} of the pixels changed");
+    }
+
+    // On the point of the mesh path: darkens after next, or skips the shading when it is on
+    [SkippableFact]
+    public void TheDebugViewOnTheMeshPathChangesOrSkipsTheShading()
+    {
+        var plain = RunStress(new StressOptions());
+        var wrapped = RunStress(new StressOptions(DebugViewClass: true));
+        var shown = RunStress(new StressOptions(DebugViewClass: true, ShowDebugView: true));
+
+        Assert.True(ChangedPixels(plain, wrapped) > 0.2, $"{ChangedPixels(plain, wrapped):P1} of the pixels changed");
+        var magenta = shown.Count(x => x.R == 255 && x.G == 0 && x.B == 255) / (double)shown.Length;
+        Assert.True(magenta > 0.2, $"{magenta:P1} of the pixels are the debug color");
+    }
+
+    // The whole mesh path with both modifiers, as a game would have them
+    [SkippableFact]
+    public void TwoModifiersThatDoNotKnowEachOtherRenderTogether()
+    {
+        var wet = RunStress(new StressOptions(Wetness: true));
+        var both = RunStress(new StressOptions(Wetness: true, Snow: true));
+
+        Assert.True(ChangedPixels(wet, both) > 0.05, $"{ChangedPixels(wet, both):P1} of the pixels changed");
     }
 }

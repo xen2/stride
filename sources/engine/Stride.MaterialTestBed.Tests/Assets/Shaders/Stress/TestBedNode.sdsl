@@ -1,0 +1,22 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// A composed node with a point of its own: each node of an effect has its own chain.
+    /// </summary>
+    shader TestBedNode
+    {
+        [Pipeline(Base, Detail)]
+        void ModifyColor(inout float3 color)
+        {
+        }
+
+        float3 Evaluate(float3 color)
+        {
+            ModifyColor(color);
+            return color;
+        }
+    };
+}

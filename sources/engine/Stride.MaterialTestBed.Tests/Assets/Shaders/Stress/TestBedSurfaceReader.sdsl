@@ -1,0 +1,17 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>Only reads the roughness, so what it gives depends on who wrote it before.</summary>
+    module TestBedSurfaceReader
+    {
+        import TestBedSurface;
+        import TestBedSurfaceModifiers;
+
+        extend TestBedSurfaceModifiers.ModifySurface in Scene
+        {
+            s.emissive = float3(s.roughness, s.roughness, s.roughness);
+        }
+    };
+}

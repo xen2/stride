@@ -1,0 +1,17 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// A sample with an explicit level of detail: the one a pure module can have.
+    /// </summary>
+    [Pure]
+    module TestBedPureSample
+    {
+        float4 ReadExplicit(Texture2D source, SamplerState samplerState, float2 uv)
+        {
+            return source.SampleLevel(samplerState, uv, 0.0);
+        }
+    };
+}

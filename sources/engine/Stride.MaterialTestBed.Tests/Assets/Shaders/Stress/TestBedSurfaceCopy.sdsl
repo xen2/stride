@@ -1,0 +1,25 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>Writes a copy of the surface, and passes it by value: neither changes the surface of the caller.</summary>
+    module TestBedSurfaceCopy
+    {
+        import TestBedSurface;
+        import TestBedSurfaceModifiers;
+
+        float ReadMetalness(Surface value)
+        {
+            value.roughness = 0.0;
+            return value.metalness;
+        }
+
+        extend TestBedSurfaceModifiers.ModifySurface in Scene
+        {
+            Surface copy = s;
+            copy.roughness = 1.0;
+            s.occlusion = ReadMetalness(copy);
+        }
+    };
+}

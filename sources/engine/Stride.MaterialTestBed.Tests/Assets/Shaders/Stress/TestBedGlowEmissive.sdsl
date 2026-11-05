@@ -1,0 +1,20 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// Changes only the optional part of the contract.
+    /// </summary>
+    [Pure]
+    module TestBedGlowEmissive
+    {
+        import TestBedSurface;
+        import TestBedShadingModel;
+
+        extend TestBedShadingModel.ModelEmissive
+        {
+            return s.emissive * 2.0;
+        }
+    };
+}

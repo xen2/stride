@@ -1,0 +1,37 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// Runs the points of the conflict cases from fixed values and returns what they give, on a sprite.
+    /// </summary>
+    module TestBedConflictProbe
+    {
+        import SpriteBase;
+        import TestBedSurfaceModifiers;
+        import TestBedConflictPoints;
+
+        extend SpriteBase.Shading in Surface
+        {
+            SurfaceInput input = (SurfaceInput)0;
+            input.positionWS = float3(0.0, 0.25, 0.0);
+
+            Surface s = (Surface)0;
+            s.roughness = 0.5;
+            ModifySurface(s, input);
+
+            Current = (Surface)0;
+            Current.roughness = 0.5;
+            ModifyCurrent();
+
+            SharedValue = 0.5;
+            ModifyShared();
+
+            streams.StreamValue = 0.5;
+            ModifyStream();
+
+            return float4(s.roughness, Current.roughness, SharedValue, streams.StreamValue);
+        }
+    };
+}

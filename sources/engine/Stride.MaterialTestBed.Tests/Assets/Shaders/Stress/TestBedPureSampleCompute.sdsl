@@ -1,0 +1,22 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// Reads a texture through the pure module in a compute shader, with an explicit level of detail.
+    /// </summary>
+    shader TestBedPureSampleCompute
+    {
+        import ComputeShaderBase;
+        import Texturing;
+        import TestBedPureSample;
+
+        RWStructuredBuffer<float4> ModelResult;
+
+        extend ComputeShaderBase.Compute
+        {
+            ModelResult[0] = ReadExplicit(Texture0, Sampler, float2(0.5, 0.5));
+        }
+    };
+}

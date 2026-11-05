@@ -1,0 +1,23 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// A debug view on the point of the mesh path: skips the shading when it is on, and darkens it when it is off.
+    /// </summary>
+    shader TestBedShadingDebugView : ShadingBase
+    {
+        cbuffer PerDraw
+        {
+            module float ShadingDebugEnabled;
+        }
+
+        extend ShadingBase.Shading in Post
+        {
+            if (ShadingDebugEnabled > 0.5)
+                return float4(1.0, 0.0, 1.0, 1.0);
+            return next() * float4(0.5, 0.5, 0.5, 1.0);
+        }
+    };
+}

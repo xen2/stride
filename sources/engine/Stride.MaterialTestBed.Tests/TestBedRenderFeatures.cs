@@ -61,10 +61,19 @@ public sealed class TestBedEffectRenderFeature : SubRenderFeature
 {
     private StaticObjectPropertyKey<RenderEffect> renderEffectKey;
     private ConstantBufferOffsetReference textureRegion;
+    private ConstantBufferOffsetReference shadingDebugEnabled;
 
     public bool EnableUvTransform { get; set; }
 
     public bool EnableWetness { get; set; }
+
+    public bool EnableSnow { get; set; }
+
+    public bool EnableCel { get; set; }
+
+    public bool EnableDebugView { get; set; }
+
+    public bool ShowDebugView { get; set; }
 
     public Vector4 TextureRegion { get; set; } = new(0, 0, 1, 1);
 
@@ -75,6 +84,7 @@ public sealed class TestBedEffectRenderFeature : SubRenderFeature
         var rootFeature = (RootEffectRenderFeature)RootRenderFeature;
         renderEffectKey = rootFeature.RenderEffectKey;
         textureRegion = rootFeature.CreateDrawCBufferOffsetSlot(TestBedUvTransformKeys.TextureRegion.Name);
+        shadingDebugEnabled = rootFeature.CreateDrawCBufferOffsetSlot(TestBedShadingDebugViewKeys.ShadingDebugEnabled.Name);
     }
 
     public override void PrepareEffectPermutations(RenderDrawContext context)
@@ -93,6 +103,9 @@ public sealed class TestBedEffectRenderFeature : SubRenderFeature
 
                 renderEffect.EffectValidator.ValidateParameter(TestBedEffectKeys.EnableUvTransform, EnableUvTransform);
                 renderEffect.EffectValidator.ValidateParameter(TestBedEffectKeys.EnableWetness, EnableWetness);
+                renderEffect.EffectValidator.ValidateParameter(TestBedEffectKeys.EnableSnow, EnableSnow);
+                renderEffect.EffectValidator.ValidateParameter(TestBedEffectKeys.EnableCel, EnableCel);
+                renderEffect.EffectValidator.ValidateParameter(TestBedEffectKeys.EnableDebugView, EnableDebugView);
             }
         }
     }
@@ -108,6 +121,10 @@ public sealed class TestBedEffectRenderFeature : SubRenderFeature
             var offset = perDrawLayout.GetConstantBufferOffset(textureRegion);
             if (offset != -1)
                 *(Vector4*)((byte*)renderNode.Resources.ConstantBuffer.Data + offset) = TextureRegion;
+
+            offset = perDrawLayout.GetConstantBufferOffset(shadingDebugEnabled);
+            if (offset != -1)
+                *(float*)((byte*)renderNode.Resources.ConstantBuffer.Data + offset) = ShowDebugView ? 1.0f : 0.0f;
         }
     }
 }
