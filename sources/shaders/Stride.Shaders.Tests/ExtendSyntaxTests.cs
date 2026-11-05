@@ -26,17 +26,16 @@ public class ExtendSyntaxTests : IDisposable
         {
             stream float Steps;
 
-            [Pipeline(Early, Default, A, B)]
-            void Run() { streams.Steps = 1; }
+            [Phases(Early, Default, A, B)]
+            pipeline void Run() { streams.Steps = 1; }
 
-            [Pipeline(Early, Default, A)]
-            void RunWith(float value, inout float other) { other = value; }
+            [Phases(Early, Default, A)]
+            pipeline void RunWith(float value, inout float other) { other = value; }
 
-            [Around(Outer, Inner)]
-            float Wrap() { return 1; }
+            [Phases(Outer, Inner)]
+            around float Wrap() { return 1; }
 
-            [Replace]
-            float Pick(float value) { return value; }
+            replace float Pick(float value) { return value; }
 
             float Plain() { return 1; }
         }
@@ -189,8 +188,8 @@ public class ExtendSyntaxTests : IDisposable
     private void WriteOverloads() => Write("Over", """
         module Over
         {
-            [Replace] float2 Value(float a) { return a; }
-            [Replace] float Value(float a, float b) { return b; }
+            replace float2 Value(float a) { return a; }
+            replace float Value(float a, float b) { return b; }
             float Plain(float a) { return a; }
             float Plain(float a, float b) { return b; }
         }
@@ -232,7 +231,7 @@ public class ExtendSyntaxTests : IDisposable
     [InlineData("Texture2D a")]
     public void AParameterThatIsMoreThanANameHasToBeWritten(string parameter)
     {
-        Write("Over", $"module Over {{ [Replace] float Value({parameter}) {{ return 0; }} }}");
+        Write("Over", $"module Over {{ replace float Value({parameter}) {{ return 0; }} }}");
         Write("Ext", "module Ext { import Over; extend Over.Value { return 1; } }");
 
         var (ok, log, _) = Mix(false, "Test.Ext");
@@ -508,7 +507,7 @@ public class ExtendSyntaxTests : IDisposable
     {
         var result = ShaderUpgrader.Upgrade(new Dictionary<string, string>
         {
-            ["Point.sdsl"] = "namespace Lib.Core;\nmodule Point\n{\n    [Replace]\n    float Value() { return 1; }\n}\n",
+            ["Point.sdsl"] = "namespace Lib.Core;\nmodule Point\n{\n    replace float Value() { return 1; }\n}\n",
             ["Middle.sdsl"] = "namespace Lib.Other;\nusing Lib.Core;\nshader Middle\n{\n    import Point;\n};\n",
             ["Child.sdsl"] = "namespace Game;\nusing Lib.Other;\nshader Child : Middle\n{\n    module override float Value() { return 2; }\n};\n",
         }, EngineShaderClasses.Parse(""), implicitUsings: []);

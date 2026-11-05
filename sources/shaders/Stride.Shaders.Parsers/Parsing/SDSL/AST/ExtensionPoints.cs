@@ -10,11 +10,12 @@ using static Stride.Shaders.Spirv.Specification;
 namespace Stride.Shaders.Parsing.SDSL.AST;
 
 /// <summary>
-/// Extension points: <c>[Replace]</c>, <c>[Pipeline(A, B)]</c> or <c>[Around(A, B)]</c> on the first definition of a method, <c>[Phase(A)]</c>, <c>[After(X)]</c> and <c>[Replaces(X)]</c> on an override. The class records them next to <see cref="OpFunctionMetadataSDSL"/>,
+/// Extension points: <c>replace</c>, <c>[Phases(A, B)] pipeline</c> or <c>[Phases(A, B)] around</c> on the first definition of a method, <c>[Phase(A)]</c>, <c>[After(X)]</c> and <c>[Replaces(X)]</c> on an override. The class records them next to <see cref="OpFunctionMetadataSDSL"/>,
 /// and the mixer orders the override chain with them.
 /// </summary>
 internal static class ExtensionPoints
 {
+    private const string PhasesAttribute = "Phases";
     private const string PhaseAttribute = "Phase";
     private const string AfterAttribute = "After";
     private const string ReplacesAttribute = "Replaces";
@@ -164,7 +165,7 @@ internal static class ExtensionPoints
             method.Body!.Statements.Insert(0, statement);
     }
 
-    public static bool IsAttribute(string name) => name is "Replace" or "Pipeline" or "Around" or "Collect" or PhaseAttribute or AfterAttribute or ReplacesAttribute;
+    public static bool IsAttribute(string name) => name is "Replace" or "Pipeline" or "Around" or "Collect" or PhasesAttribute or PhaseAttribute or AfterAttribute or ReplacesAttribute;
 
     /// <summary>
     /// Checks the attributes of a method and writes what the mixer needs. An override of a declared point carries the point too,
@@ -182,23 +183,34 @@ internal static class ExtensionPoints
         var shaderName = table.CurrentShader!.ShortName;
         var methodName = $"{shaderName}.{method.Name.Name}";
 
+        foreach (var kind in method.Kinds)
+        {
+            if (kind.Name == "collect")
+                table.AddError(new(kind.Info, string.Format(SDSLErrorMessages.SDSL0139, methodName)));
+            else if (!ReferenceEquals(kind, method.Kinds[0]))
+                table.AddError(new(kind.Info, string.Format(SDSLErrorMessages.SDSL0250, kind.Name, methodName, "a method has one kind")));
+            else if (method.IsOverride)
+                table.AddError(new(kind.Info, string.Format(SDSLErrorMessages.SDSL0142, kind.Name, method.Name.Name, methodName)));
+            else if (method.IsAbstract)
+                table.AddError(new(kind.Info, string.Format(SDSLErrorMessages.SDSL0250, kind.Name, methodName, "an abstract method has no body to extend, and its overrides implement it. Remove the kind, or give the method a body")));
+            else
+                point = ReadPoint(kind, attributes, method, table.CurrentShader.ToClassName());
+        }
+        CheckPhases(table, attributes, method, methodName);
+
         foreach (var attribute in attributes)
         {
             var name = attribute.Name.Name;
             if (name == "Collect")
                 table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0139, methodName)));
+            else if (name is "Replace" or "Pipeline" or "Around")
+                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0249, name, methodName, KeywordForm(attribute, method))));
             else if (name == PhaseAttribute)
                 phase = ReadPhase(table, attribute, method, methodName, inherited, out addedPhase) ?? phase;
             else if (name == AfterAttribute)
                 ReadAfter(table, attribute, method, methodName, inherited, after);
             else if (name == ReplacesAttribute)
                 ReadReplaces(table, attribute, method, methodName, inherited, replaces);
-            else if (method.IsOverride)
-                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0142, name, method.Name.Name, methodName)));
-            else if (point != null)
-                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, name, methodName, "a method has one kind")));
-            else
-                point = ReadPoint(table, attribute, method, methodName, table.CurrentShader.ToClassName());
         }
 
         if (point != null)
@@ -236,37 +248,59 @@ internal static class ExtensionPoints
             .Symbol;
     }
 
-    private static MethodExtensionPoint? ReadPoint(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, string owner)
+    private static string KeywordForm(AnyShaderAttribute attribute, ShaderMethod method)
     {
-        var kind = attribute.Name.Name switch
+        var phases = attribute.Parameters.Count > 0 ? $"[{PhasesAttribute}({string.Join(", ", attribute.Parameters)})] " : "";
+        return $"{phases}{attribute.Name.Name.ToLowerInvariant()} {method.ReturnTypeName} {method.Name.Name}(...)";
+    }
+
+    private static MethodExtensionPoint ReadPoint(Identifier keyword, List<AnyShaderAttribute> attributes, ShaderMethod method, string owner)
+    {
+        var kind = keyword.Name switch
         {
-            "Replace" => ExtensionPointKindSDSL.Replace,
-            "Pipeline" => ExtensionPointKindSDSL.Pipeline,
+            "replace" => ExtensionPointKindSDSL.Replace,
+            "pipeline" => ExtensionPointKindSDSL.Pipeline,
             _ => ExtensionPointKindSDSL.Around,
         };
-        var phases = new List<string>();
-        foreach (var parameter in attribute.Parameters)
-        {
-            if (kind == ExtensionPointKindSDSL.Replace)
-            {
-                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "a [Replace] point has no phases")));
-                return null;
-            }
-            if (parameter is not Identifier identifier)
-            {
-                table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, $"'{parameter}' is not a phase name")));
-                return null;
-            }
-            if (phases.Contains(identifier.Name))
-            {
-                table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, $"phase {identifier.Name} is written twice")));
-                return null;
-            }
-            phases.Add(identifier.Name);
-        }
-        if (kind != ExtensionPointKindSDSL.Replace && phases.Count == 0)
+        if (kind == ExtensionPointKindSDSL.Replace)
+            return new MethodExtensionPoint(kind, owner, [], [.. method.Parameters.Select(x => x.Name.Name)]);
+
+        var phases = attributes.Find(x => x.Name.Name == PhasesAttribute)?.Parameters.OfType<Identifier>().Select(x => x.Name).Distinct().ToList() ?? [];
+        if (phases.Count == 0)
             phases.Add(MethodExtensionPoint.DefaultPhase);
         return new MethodExtensionPoint(kind, owner, [.. phases], [.. method.Parameters.Select(x => x.Name.Name)]);
+    }
+
+    /// <summary>
+    /// <c>[Phases]</c> lists the phases of a <c>pipeline</c> or an <c>around</c>: anywhere else it would do nothing.
+    /// </summary>
+    private static void CheckPhases(SymbolTable table, List<AnyShaderAttribute> attributes, ShaderMethod method, string methodName)
+    {
+        var first = true;
+        foreach (var attribute in attributes.Where(x => x.Name.Name == PhasesAttribute))
+        {
+            var problem = !first ? "a method has one list of phases"
+                : method.IsOverride ? "the phases are on the first definition. An override adds a phase with [Phase(Name, After = Other)]"
+                : method.Kinds.Exists(x => x.Name == "replace") ? "a replace method has no phases"
+                : !method.Kinds.Exists(x => x.Name is "pipeline" or "around") ? "the phases belong to a pipeline or an around method"
+                : attribute.Parameters.Count == 0 ? "[Phases] takes the names of the phases"
+                : null;
+            first = false;
+            if (problem != null)
+            {
+                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, PhasesAttribute, methodName, problem)));
+                continue;
+            }
+
+            var seen = new HashSet<string>();
+            foreach (var parameter in attribute.Parameters)
+            {
+                if (parameter is not Identifier identifier)
+                    table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, PhasesAttribute, methodName, $"'{parameter}' is not a phase name")));
+                else if (!seen.Add(identifier.Name))
+                    table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, PhasesAttribute, methodName, $"phase {identifier.Name} is written twice")));
+            }
+        }
     }
 
     private static string? ReadPhase(SymbolTable table, AnyShaderAttribute attribute, ShaderMethod method, string methodName, MethodExtensionPoint? point, out string addedPhase)
@@ -296,7 +330,7 @@ internal static class ExtensionPoints
         {
             if (!method.IsOverride || point == null || point.Kind == ExtensionPointKindSDSL.Replace)
             {
-                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0141, phase.Name, methodName, "a phase is added by an override of a [Pipeline] or [Around] point")));
+                table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0141, phase.Name, methodName, "a phase is added by an override of a pipeline or around point")));
                 return null;
             }
             addedPhase = $"{after},{before}";
@@ -323,7 +357,7 @@ internal static class ExtensionPoints
         if (!method.IsOverride || (point == null && method.Extend is not { IsPatch: true }))
             table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "[After] goes on an override of an extension point")));
         else if (point?.Kind == ExtensionPointKindSDSL.Replace)
-            table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "one override of a [Replace] point runs, so it has no order")));
+            table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "one override of a replace point runs, so it has no order")));
         else if (attribute.Parameters.Count == 0)
             table.AddError(new(attribute.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "[After] takes class names")));
         else

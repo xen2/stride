@@ -12,7 +12,7 @@ public static partial class ShaderUpgrader
 
     private static readonly Regex ClassHeader = new(@"\b(shader|module)\s+(\w+)\s*(?:<[^>{]*>)?\s*(?::\s*([^{;]+?))?\s*\{", RegexOptions.Compiled);
     private static readonly Regex ImportLine = new(@"\bimport\s+([\w.]+)", RegexOptions.Compiled);
-    private static readonly Regex PointDeclaration = new(@"\[(Pipeline|Around|Replace)(?:\(([^)]*)\))?\]\s*((?:(?:module|abstract)\s+)*)[\w<>,\[\] ]+?\s+(\w+)\s*\(", RegexOptions.Compiled);
+    private static readonly Regex PointDeclaration = new(@"(?:\[Phases\(([^)]*)\)\]\s*)?((?:module\s+)?)\b(pipeline|around|replace)\s+((?:module\s+)?)[\w<>,\[\] ]+?\s+(\w+)\s*\(", RegexOptions.Compiled);
     private static readonly Regex OverrideMethod = new(@"(?<attributes>(?:[ \t]*\[[^\]\r\n]*\][ \t]*\r?\n)*)(?<indent>[ \t]*)(?<modifiers>(?:(?:module|override)\s+)+)(?<type>[\w<>,\[\] ]+?)\s+(?<name>\w+)\s*\((?<parameters>[^)]*)\)(?<space>\s*)\{", RegexOptions.Compiled);
     private static readonly Regex Attribute = new(@"\[(\w+)(?:\((.*)\))?\]", RegexOptions.Compiled);
 
@@ -89,9 +89,10 @@ public static partial class ShaderUpgrader
             var points = new Dictionary<string, ExtendPoint>();
             foreach (Match point in PointDeclaration.Matches(body))
             {
-                var phases = point.Groups[2].Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                points[point.Groups[4].Value] = new ExtendPoint(point.Groups[1].Value, header.Groups[2].Value, phases.Length > 0 ? phases : point.Groups[1].Value == "Replace" ? [] : ["Default"],
-                    isModuleClass || point.Groups[3].Value.Contains("module", StringComparison.Ordinal));
+                var kind = point.Groups[3].Value;
+                var phases = point.Groups[1].Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                points[point.Groups[5].Value] = new ExtendPoint(kind, header.Groups[2].Value, phases.Length > 0 ? phases : kind == "replace" ? [] : ["Default"],
+                    isModuleClass || point.Groups[2].Length > 0 || point.Groups[4].Length > 0);
             }
             classes.Add(new ExtendClass(header.Groups[2].Value, parents, points, open, close));
         }
@@ -99,7 +100,7 @@ public static partial class ShaderUpgrader
     }
 
     /// <summary>
-    /// An override with a phase, or an override of a module <c>[Replace]</c> point, becomes an <c>extend</c>. What the compat form can do and
+    /// An override with a phase, or an override of a module <c>replace</c> point, becomes an <c>extend</c>. What the compat form can do and
     /// <c>extend</c> can't stays as it is, which is allowed: a pipeline step with no <c>base</c> or with <c>base</c> in the middle, <c>base</c> from
     /// a helper, an override without a phase, whose place is outside every phase.
     /// </summary>
@@ -108,7 +109,7 @@ public static partial class ShaderUpgrader
         var known = new Dictionary<string, ExtendClass>();
         foreach (var text in texts.Values.Concat(dependencies.Values))
         {
-            if (!text.Contains("Pipeline", StringComparison.Ordinal) && !text.Contains("Around", StringComparison.Ordinal) && !text.Contains("Replace", StringComparison.Ordinal) && !text.Contains(" : ", StringComparison.Ordinal) && !text.Contains("import", StringComparison.Ordinal))
+            if (!text.Contains("pipeline", StringComparison.Ordinal) && !text.Contains("around", StringComparison.Ordinal) && !text.Contains("replace", StringComparison.Ordinal) && !text.Contains(" : ", StringComparison.Ordinal) && !text.Contains("import", StringComparison.Ordinal))
                 continue;
             foreach (var shaderClass in ReadExtendClasses(CodeOnly(text)))
                 known.TryAdd(shaderClass.Name, shaderClass);
@@ -180,7 +181,7 @@ public static partial class ShaderUpgrader
         // An added phase has no place to write its neighbours. Without a phase, the two forms mean different places.
         if (phase != null && phase.Contains('=', StringComparison.Ordinal))
             return;
-        if (phase == null && point.Kind != "Replace")
+        if (phase == null && point.Kind != "replace")
             return;
 
         var open = method.Index + method.Length - 1;
@@ -196,7 +197,7 @@ public static partial class ShaderUpgrader
             return;
 
         var parameters = method.Groups["parameters"].Value.Trim();
-        if (point.Kind == "Pipeline")
+        if (point.Kind == "pipeline")
         {
             if (method.Groups["type"].Value.Trim() != "void" || !RemoveStep(text, code, open, close, calls, parameters, point, phase, edits))
                 return;

@@ -52,8 +52,7 @@ module ComputeShaderBase
         Compute();
     }
 
-    [Replace]
-    void Compute() 
+    replace void Compute() 
     {
     }
 };

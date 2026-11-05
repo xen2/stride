@@ -8,7 +8,7 @@ using Stride.Shaders.Compilers.SDSL;
 namespace Stride.Shaders.Parsers.Tests;
 
 /// <summary>
-/// Extension points in the compat form: <c>[Replace]</c>, <c>[Pipeline]</c> or <c>[Around]</c> on the first definition of a module
+/// Extension points in the compat form: <c>replace</c>, <c>pipeline</c> or <c>around</c> on the first definition of a module
 /// method, <c>[Phase]</c> on an override, and <c>base</c> in the sorted chain. What the running order gives is checked by
 /// the render test <c>ExtensionPointPhases</c>.
 /// </summary>
@@ -27,14 +27,13 @@ public class ExtensionPointTests : IDisposable
         {
             stream float Steps;
 
-            [Pipeline(Early, Default, A, B)]
-            void Run() { streams.Steps = 1; }
+            [Phases(Early, Default, A, B)]
+            pipeline void Run() { streams.Steps = 1; }
 
-            [Around(Outer, Inner)]
-            float Wrap() { return 1; }
+            [Phases(Outer, Inner)]
+            around float Wrap() { return 1; }
 
-            [Replace]
-            float Pick() { return 1; }
+            replace float Pick() { return 1; }
 
             float Plain() { return 1; }
         }
@@ -199,16 +198,17 @@ public class ExtensionPointTests : IDisposable
 
     [Theory]
     [InlineData("[Collect] void F() { }", "SDSL0139")]
-    [InlineData("[Replace(A)] void F() { }", "SDSL0135")]
-    [InlineData("[Pipeline(A, A)] void F() { }", "SDSL0135")]
-    [InlineData("[Pipeline(A + B)] void F() { }", "SDSL0135")]
-    [InlineData("[Pipeline(A)] [Around(B)] void F() { }", "SDSL0135")]
+    [InlineData("collect void F() { }", "SDSL0139")]
+    [InlineData("[Phases(A)] replace void F() { }", "SDSL0135")]
+    [InlineData("[Phases(A, A)] pipeline void F() { }", "SDSL0135")]
+    [InlineData("[Phases(A + B)] pipeline void F() { }", "SDSL0135")]
+    [InlineData("[Phases(A)] [Phases(B)] around void F() { }", "SDSL0135")]
     [InlineData("[Phase(A, B)] override void Run() { base.Run(); }", "SDSL0135")]
     [InlineData("[Phase(A)] void F() { }", "SDSL0141")]
     [InlineData("[Phase(Missing)] override void Run() { base.Run(); }", "SDSL0141")]
     [InlineData("[Phase(A)] override float Pick() { return 2; }", "SDSL0141")]
     [InlineData("[Phase(A)] override float Plain() { return 2; }", "SDSL0246")]
-    [InlineData("[Pipeline(A)] override void Run() { base.Run(); }", "SDSL0142")]
+    [InlineData("[Phases(A)] override pipeline void Run() { base.Run(); }", "SDSL0142")]
     [InlineData("[Phase(Early)] override void Run() { base.Run(); streams.Steps = 2; }", "SDSL0140")]
     [InlineData("[Phase(A)] override void Run() { streams.Steps = 2; base.Run(); }", "SDSL0140")]
     [InlineData("[Phase(A)] override void Run() { if (streams.Steps > 0) base.Run(); }", "SDSL0140")]
@@ -368,14 +368,14 @@ public class ExtensionPointTests : IDisposable
                 static Data Current;
                 static float Shared;
 
-                [Pipeline(A)]
-                void Run(inout Data s) { }
+                [Phases(A)]
+                pipeline void Run(inout Data s) { }
 
-                [Pipeline(A)]
-                void Fill(out Data s) { s = (Data)0; }
+                [Phases(A)]
+                pipeline void Fill(out Data s) { s = (Data)0; }
 
-                [Pipeline(A)]
-                void Look(Data s) { }
+                [Phases(A)]
+                pipeline void Look(Data s) { }
 
                 void SetA(inout Data d) { d.a = 1; }
                 void SetALocally(Data d) { d.a = 1; }
@@ -801,7 +801,7 @@ public class ExtensionPointTests : IDisposable
         Assert.Contains("replace each other", log);
     }
 
-    // The one a [Replace] point keeps: the stated replacement, wherever the mix puts it
+    // The one a replace point keeps: the stated replacement, wherever the mix puts it
     [Fact]
     public void ReplacesPicksTheWinnerOfAReplacePoint()
     {
@@ -841,7 +841,7 @@ public class ExtensionPointTests : IDisposable
     [Fact]
     public void AConflictInANodeDoesNotAskForAnOrderRule()
     {
-        Write("Part", "shader Part { stream float Value; [Pipeline(A)] void Go() { } }");
+        Write("Part", "shader Part { stream float Value; [Phases(A)] pipeline void Go() { } }");
         Write("PartOne", "shader PartOne : Part { [Phase(A)] override void Go() { base.Go(); streams.Value = 1; } }");
         Write("PartTwo", "shader PartTwo : Part { [Phase(A)] override void Go() { base.Go(); streams.Value = 2; } }");
 
@@ -857,7 +857,7 @@ public class ExtensionPointTests : IDisposable
     [Fact]
     public void AnInstanceMethodIsAPointOfItsNode()
     {
-        Write("Part", "shader Part { [Pipeline(A, B)] void Go() { } }");
+        Write("Part", "shader Part { [Phases(A, B)] pipeline void Go() { } }");
         Write("PartB", "shader PartB : Part { [Phase(B)] override void Go() { base.Go(); } }");
         Write("PartA", "shader PartA : Part { [Phase(A)] override void Go() { base.Go(); } }");
 
@@ -932,9 +932,9 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Theory]
-    [InlineData("[Pipeline(A)]", false)]
-    [InlineData("[Replace]", false)]
-    [InlineData("[Around]", false)]
+    [InlineData("[Phases(A)] pipeline", false)]
+    [InlineData("replace", false)]
+    [InlineData("around", false)]
     [InlineData("", true)]
     public void OverridingAnUndeclaredModuleMethodIsAnError(string kind, bool isError)
     {
@@ -946,7 +946,7 @@ public class ExtensionPointTests : IDisposable
         Assert.Equal(isError, !ok);
         Assert.Equal(isError, log.Contains("SDSL0246"));
         if (isError)
-            Assert.Contains("If you own Base, add [Replace], [Pipeline] or [Around] to the first definition of F. If you don't, write patch Base.F instead of override.", log);
+            Assert.Contains("If you own Base, write replace, pipeline or around on the first definition of F. If you don't, write patch Base.F instead of override.", log);
     }
 
     [Fact]
@@ -1452,12 +1452,12 @@ public class ExtensionPointTests : IDisposable
     // They go on a method, and a class that writes them expects them to do something
     [Theory]
     [InlineData("[Replace] shader Wrong { }")]
-    [InlineData("[Pipeline(A, B)] shader Wrong { }")]
-    [InlineData("[Around] module Wrong { }")]
+    [InlineData("[Phases(A, B)] shader Wrong { }")]
+    [InlineData("[Pipeline(A)] module Wrong { }")]
     [InlineData("[Phase(A)] shader Wrong { }")]
     [InlineData("[After(Other)] shader Wrong { }")]
     [InlineData("[Collect] shader Wrong { }")]
-    [InlineData("shader Wrong { [Pipeline] cbuffer PerDraw { float A; } }")]
+    [InlineData("shader Wrong { [Phases(A)] cbuffer PerDraw { float A; } }")]
     public void AKindOrAPhaseOnAClassIsAnError(string code)
     {
         Write("Wrong", code);
@@ -1700,6 +1700,6 @@ public class ExtensionPointTests : IDisposable
         var (ok, log, _) = Mix("Test.Plainer");
 
         Assert.False(ok, log);
-        Assert.Contains("SDSL0246: Plainer overrides Plain of Owner, which is not an extension point. If you own Owner, add [Replace], [Pipeline] or [Around] to the first definition of Plain. If you don't, write patch Owner.Plain instead of override.", log);
+        Assert.Contains("SDSL0246: Plainer overrides Plain of Owner, which is not an extension point. If you own Owner, write replace, pipeline or around on the first definition of Plain. If you don't, write patch Owner.Plain instead of override.", log);
     }
 }

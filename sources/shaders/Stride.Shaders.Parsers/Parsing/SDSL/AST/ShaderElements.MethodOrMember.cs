@@ -451,6 +451,10 @@ public partial class ShaderMethod(
     public bool IsVirtual { get; set; } = isVirtual;
     public bool IsOverride { get; set; } = isOverride;
     public bool IsClone { get; set; } = isClone;
+    /// <summary>
+    /// The <c>pipeline</c>, <c>replace</c>, <c>around</c> or <c>collect</c> written on the method.
+    /// </summary>
+    public List<Identifier> Kinds { get; set; } = [];
     public List<MethodParameter> Parameters { get; set; } = [];
     /// <summary>
     /// HLSL return semantic (<c>float4 F() : COLOR</c>): only an entry point's matters, and Stride's come from streams, so it is never emitted.

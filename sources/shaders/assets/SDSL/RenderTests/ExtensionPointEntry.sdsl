@@ -12,8 +12,8 @@ module ExtensionPointEntryOwner
 
     void VSMain() { streams.ShadingPosition = streams.Position; }
 
-    [Pipeline(Default, A, B)]
-    void PSMain() { streams.ColorTarget = 1 / 255.0; }
+    [Phases(Default, A, B)]
+    pipeline void PSMain() { streams.ColorTarget = 1 / 255.0; }
 }
 
 module ExtensionPointEntryB

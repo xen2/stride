@@ -8,8 +8,8 @@ namespace ShaderPipe
     {
         stream float PipeValue;
 
-        [Pipeline(Scene)]
-        void ModifyValue()
+        [Phases(Scene)]
+        pipeline void ModifyValue()
         {
         }
     };

@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 namespace Stride.Packaging.Tests;
 
 /// <summary>
-/// One package declares a <c>[Pipeline]</c> and an effect, two packages extend them and don't know each other, and a game
+/// One package declares a <c>pipeline</c> and an effect, two packages extend them and don't know each other, and a game
 /// settles their order with a layer of its own. All are packed with <c>dotnet pack</c>, and the game's effect log is compiled by
 /// the asset compiler. Between its builds the game adds and removes plugins, and the compiled effect follows.
 /// </summary>

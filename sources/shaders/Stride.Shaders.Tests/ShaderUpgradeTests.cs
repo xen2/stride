@@ -643,15 +643,18 @@ public class ShaderUpgradeTests
             foreach (var (upgradedText, todayText) in ManualEdits.GetValueOrDefault(path) ?? [])
                 text = text.Replace(upgradedText, todayText);
             // The kinds and the replacements the upgrade writes are not the ones the engine chose by hand
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"^[ \t]*\[(Replace|Pipeline|Replaces\([^)\n]*\))\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline);
-            text = WithoutCallSyntax(WithoutEngineNamespaceLines(text));
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"^[ \t]*\[Replaces\([^)\n]*\)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline);
+            text = WithoutCallSyntax(WithoutEngineNamespaceLines(WithoutKinds(text)));
             // [Root], [Pure] and the kinds, phases and orders of extension points are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
-            var expected = WithoutCallSyntax(WithoutEngineNamespaceLines(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|Replace|(Pipeline|Around|Phase|After|Replaces)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline)));
+            var expected = WithoutCallSyntax(WithoutEngineNamespaceLines(WithoutKinds(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|(Phases|Phase|After|Replaces)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline))));
             if (text != expected)
                 differences.Add(path);
         }
         Assert.True(differences.Count == 0, $"Upgraded from {EngineBeforeModules}, differs from today: {string.Join(", ", differences)}");
     }
+
+    static string WithoutKinds(string text)
+        => System.Text.RegularExpressions.Regex.Replace(text, @"^([ \t]*(?:module[ \t]+)?)(?:pipeline|replace|around)[ \t]+", "$1", System.Text.RegularExpressions.RegexOptions.Multiline);
 
     // The engine moved to extend after that commit: what is left of a method is its body, whichever way the override is written
     static string WithoutCallSyntax(string text)
@@ -671,15 +674,15 @@ public class ShaderUpgradeTests
     }
 
     [Theory]
-    [InlineData("override void F() { }", "Replace")]
-    [InlineData("override void F() { base.F(); }", "Pipeline")]
+    [InlineData("override void F() { }", "replace")]
+    [InlineData("override void F() { base.F(); }", "pipeline")]
     // base from another method reaches the same chain
-    [InlineData("override void F() { } void Helper() { base.F(); }", "Pipeline")]
+    [InlineData("override void F() { } void Helper() { base.F(); }", "pipeline")]
     public void TheKindComesFromTheOverrides(string member, string kind)
     {
         var owner = "module Owner\n{\n    void F() { }\n}\n";
 
-        Assert.Equal($"module Owner\n{{\n    [{kind}]\n    void F() {{ }}\n}}\n", AddKind(owner, $"module Other {{ import Owner; {member} }}"));
+        Assert.Equal($"module Owner\n{{\n    {kind} void F() {{ }}\n}}\n", AddKind(owner, $"module Other {{ import Owner; {member} }}"));
     }
 
     // The upgrader decides with all the overrides: one that calls base is enough, whatever the others do
@@ -694,7 +697,7 @@ public class ShaderUpgradeTests
             ["C.sdsl"] = "module C { import Owner; override void F() { } }",
         };
 
-        Assert.Contains("[Pipeline]\n    void F()", ShaderUpgrader.Upgrade(files, engine: null, lastStep: "add-kinds").Files["Owner.sdsl"].ReplaceLineEndings("\n"));
+        Assert.Contains("pipeline void F()", ShaderUpgrader.Upgrade(files, engine: null, lastStep: "add-kinds").Files["Owner.sdsl"].ReplaceLineEndings("\n"));
     }
 
     [Fact]
@@ -703,12 +706,12 @@ public class ShaderUpgradeTests
         var owner = "shader Owner\n{\n    module void F() { }\n    void G() { }\n}\n";
         var result = AddKind(owner, "shader Other : Owner { module override void F() { } override void G() { } }");
 
-        Assert.Equal("shader Owner\n{\n    [Replace]\n    module void F() { }\n    void G() { }\n}\n", result);
+        Assert.Equal("shader Owner\n{\n    module replace void F() { }\n    void G() { }\n}\n", result);
     }
 
     [Theory]
     // Already declared
-    [InlineData("module Owner\n{\n    [Around]\n    float F() { return 1; }\n}\n", "override float F() { return 2; }")]
+    [InlineData("module Owner\n{\n    around float F() { return 1; }\n}\n", "override float F() { return 2; }")]
     // Implementing an abstract method is not a contribution
     [InlineData("module Owner\n{\n    abstract void F();\n}\n", "override void F() { }")]
     // No override
@@ -725,7 +728,7 @@ public class ShaderUpgradeTests
         var owner = "module Owner\n{\n    float2 F(float2 a, float2 b, float c) { return a; }\n\n    float2 F(float2 a, inout float c) { return a; }\n}\n";
         var result = AddKind(owner, "module Other { import Owner; override float2 F(float2 x, inout float y) { return x; } }");
 
-        Assert.Equal("module Owner\n{\n    float2 F(float2 a, float2 b, float c) { return a; }\n\n    [Replace]\n    float2 F(float2 a, inout float c) { return a; }\n}\n", result);
+        Assert.Equal("module Owner\n{\n    float2 F(float2 a, float2 b, float c) { return a; }\n\n    replace float2 F(float2 a, inout float c) { return a; }\n}\n", result);
     }
 
     [Fact]
@@ -744,7 +747,7 @@ public class ShaderUpgradeTests
         var dependencies = new Dictionary<string, string> { ["Library.sdsl"] = "module Library\n{\n    void F() { }\n}\n" };
         AddKind("module Owner { }", "module Other { import Library; override void F() { } }", dependencies, notes);
 
-        Assert.Contains(notes, x => x.Contains("error SDSL0246. Write patch Library.F instead of override, or ask the author of Library to add", StringComparison.Ordinal));
+        Assert.Contains(notes, x => x.Contains("error SDSL0246. Write patch Library.F instead of override, or ask the author of Library to write", StringComparison.Ordinal));
     }
 
     // The file-scoped namespace and its usings were added by hand after that commit

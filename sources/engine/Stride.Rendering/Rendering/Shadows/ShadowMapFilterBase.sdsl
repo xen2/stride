@@ -13,7 +13,6 @@ namespace Stride.Rendering.Shadows
         /// <summary>
         /// Calculate the shadow factor based on the position and shadow map distance.
         /// </summary>
-        [Replace]
         abstract float FilterShadow(float2 position, float positionDepth);
                 
         /// <summary>

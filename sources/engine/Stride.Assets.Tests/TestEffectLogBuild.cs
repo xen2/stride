@@ -23,11 +23,9 @@ namespace Stride.Assets.Tests
             {
                 stream float4 ColorTarget : SV_Target0;
 
-                [Pipeline]
-                void PSMain() { streams.ColorTarget = 0; }
+                pipeline void PSMain() { streams.ColorTarget = 0; }
 
-                [Replace]
-                float Pick() { return 1; }
+                replace float Pick() { return 1; }
             };
             """;
 

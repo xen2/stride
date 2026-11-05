@@ -11,7 +11,7 @@ namespace Stride.Shaders.Core;
 /// <param name="ParameterNames">The names of the parameters of the first definition: an <c>extend</c> uses them without repeating them.</param>
 public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Owner, string[] Phases, string[] ParameterNames)
 {
-    /// <summary>The phase of a <c>[Pipeline]</c> or <c>[Around]</c> written without phases, and of the default body of a pipeline that declares it.</summary>
+    /// <summary>The phase of a <c>pipeline</c> or <c>around</c> written without phases, and of the default body of a pipeline that declares it.</summary>
     public const string DefaultPhase = "Default";
 
     /// <summary>What a contribution records when it is written with <c>extend</c>.</summary>

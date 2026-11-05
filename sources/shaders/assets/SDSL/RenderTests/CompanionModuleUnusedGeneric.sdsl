@@ -9,8 +9,7 @@ shader CompanionModuleGenericBase
 {
     stream float4 ColorTarget : SV_Target0;
 
-    [Pipeline]
-    module void Contribute()
+    module pipeline void Contribute()
     {
     }
 

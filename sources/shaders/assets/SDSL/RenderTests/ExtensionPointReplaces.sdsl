@@ -12,8 +12,8 @@ module ExtensionPointReplacesOwner
 
     void VSMain() { streams.ShadingPosition = streams.Position; }
 
-    [Pipeline(Default, A)]
-    void PSMain() { streams.ColorTarget = 1 / 255.0; }
+    [Phases(Default, A)]
+    pipeline void PSMain() { streams.ColorTarget = 1 / 255.0; }
 }
 
 module ExtensionPointReplaced

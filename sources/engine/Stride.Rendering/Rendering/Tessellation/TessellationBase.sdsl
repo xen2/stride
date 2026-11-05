@@ -131,14 +131,10 @@ shader TessellationBase : MaterialDomainStream
         return f2ScreenPosition;
     }
     
-    [Pipeline]
-    module void TessellateHull(InputPatch<Input, InputControlPointCount> input, uint uCPID, uint NextCPID) {}
-    [Replace]
-    module void TessellateHullConstant(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants) {}
-    [Replace]
-    module float ComputeClipping(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants) { return 0.0f; }
-    [Pipeline(Interpolate, Fixup)]
-    module void InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords) {}
-    [Pipeline]
-    module void TessellateDomain() {}
+    module pipeline void TessellateHull(InputPatch<Input, InputControlPointCount> input, uint uCPID, uint NextCPID) {}
+    module replace void TessellateHullConstant(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants) {}
+    module replace float ComputeClipping(InputPatch<Input, InputControlPointCount> input, const OutputPatch<Input2, 3> output, inout Constants constants) { return 0.0f; }
+    [Phases(Interpolate, Fixup)]
+    module pipeline void InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords) {}
+    module pipeline void TessellateDomain() {}
 };

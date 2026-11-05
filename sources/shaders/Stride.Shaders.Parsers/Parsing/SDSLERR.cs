@@ -88,6 +88,8 @@ public static class SDSLErrorMessages
     public const string SDSL0160 = "SDSL0160: {0} takes {1}, but the call gives {2}.";
     public const string SDSL0161 = "SDSL0161: Argument {0} of the call to {1} has type {2}, which can't be converted to {3}.";
     public const string SDSL0162 = "SDSL0162: No overload of {0} can take these arguments:{1}";
+    public const string SDSL0249 = "SDSL0249: [{0}] on {1}: a kind is a keyword. Write {2}.";
+    public const string SDSL0250 = "SDSL0250: {0} on {1}: {2}.";
     public const string SDSL0248 = "SDSL0248: The call {0} in {1} is ambiguous: {2} and {3} both declare it, and neither comes from the other, so only the order of the parents and imports would say which one runs. Write {2}.{4}(...) or {3}.{4}(...).";
     public const string SDSL0163 = "SDSL0163: The call {0} is ambiguous: these overloads match equally well:{1}\nCast the arguments to the parameter types of the one to call.";
     public const string SDSL0170 = "SDSL0170: [StreamOutput] on {0} is not supported: Stride shaders have no geometry shader stream output. Remove the attribute; to keep generated vertices, write them to a RWStructuredBuffer from a compute shader instead.";
@@ -96,10 +98,10 @@ public static class SDSLErrorMessages
     public const string SDSL0137 = "SDSL0137: {0} and {1} are both in phase {2} of {3} and {4}, and nothing orders them. Add [After({0})] to {1}, or this linkage rule to the effect: order {3}.{2}: {0}, {1};";
     public const string SDSL0137InComposition = "SDSL0137: {0} and {1} are both in phase {2} of {3}, in a composition, and {4}, and nothing orders them. An order rule of the effect doesn't reach a composition: add [After({0})] to {1}, or give one of them a phase of its own, such as [Phase(Later, After = {2})].";
     public const string SDSL0138 = "SDSL0138: the order of {0} can't be followed: {1}.";
-    public const string SDSL0139 = "SDSL0139: [Collect] on {0}: collect is reserved for a later version. Use [Pipeline] or [Around].";
+    public const string SDSL0139 = "SDSL0139: collect on {0}: collect is reserved for a later version. Use pipeline or around.";
     public const string SDSL0140 = "SDSL0140: {0} is in phase {1} of {2} and {3}. A step before the phase of the default body ({4}) calls base last, a step after it calls base first.";
     public const string SDSL0141 = "SDSL0141: [Phase({0})] on {1}: {2}.";
-    public const string SDSL0142 = "SDSL0142: [{0}] on {2}: a kind goes on the first definition of {1}, not on an override.";
+    public const string SDSL0142 = "SDSL0142: {0} on {2}: a kind goes on the first definition of {1}, not on an override.";
     public const string SDSL0171 = "SDSL0171: Attribute [{0}] on method {1} is not supported. Remove it.";
     public const string SDSL0172 = "SDSL0172: Stream {0} has an initial value ({1}), but a stream has none. Remove it, and assign the value in the stage that writes the stream first (streams.{0} = {1};).";
     public const string SDSL0173 = "SDSL0173: The initial value of member {0} ({1}) is not a constant. A member's initial value is its default value, set by the application, so it must be a constant. To compute it from other members, declare it static (static {2} {0} = {1};), or compute it where it is used.";
@@ -149,7 +151,7 @@ public static class SDSLErrorMessages
     public const string SDSL0158 = "SDSL0158: a linkage rule of the effect names the class {0}, which doesn't exist. Check the name. If the class comes from a package, reference that package from the project, or remove the rule.";
     public const string SDSL0218 = "SDSL0218: phase {0} added by {1} to {2} has no place: {2} has no phase {3}.";
     public const string SDSL0216 = "SDSL0216: {0}.{1} doesn't call base, so {2} never run in this effect. Write [Replaces({3})] on it, or call base.";
-    public const string SDSL0246 = "SDSL0246: {0} overrides {1} of {2}, which is not an extension point. If you own {2}, add [Replace], [Pipeline] or [Around] to the first definition of {1}. If you don't, write patch {2}.{1} instead of override.";
+    public const string SDSL0246 = "SDSL0246: {0} overrides {1} of {2}, which is not an extension point. If you own {2}, write replace, pipeline or around on the first definition of {1}. If you don't, write patch {2}.{1} instead of override.";
 
     // Partial structs
 

@@ -409,7 +409,7 @@ internal sealed class ShaderUpgradeProject
                         var signature = string.Join(",", method.Parameters.Select(x => Regex.Replace(x.TypeName.ToString(), @"\s+", "")));
                         if (method.Extend is { IsPatch: true })
                             shaderClass.Patches.Add(method.Name.Name);
-                        if (method.Attributes?.OfType<AnyShaderAttribute>().Any(x => x.Name.Name is "Replace" or "Pipeline" or "Around") == true)
+                        if (method.Kinds.Count > 0)
                             shaderClass.DeclaredKinds.Add((method.Name.Name, signature));
                         if (method.Attributes?.OfType<AnyShaderAttribute>().Any(x => x.Name.Name is "Phase" or "After" or "Replaces") == true)
                             shaderClass.PlacedOverrides.Add((method.Name.Name, signature));

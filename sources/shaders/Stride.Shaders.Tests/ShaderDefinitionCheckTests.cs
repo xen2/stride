@@ -293,8 +293,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
             module CheckModule
             {
-                [Pipeline]
-                float4 Helper() { return 1; }
+                pipeline float4 Helper() { return 1; }
             }
             """);
         Write("CheckImporter", """
@@ -328,8 +327,7 @@ public class ShaderDefinitionCheckTests : IDisposable
 
             shader CheckCompanion
             {
-                [Pipeline]
-                module float4 Knob() { return 0; }
+                module pipeline float4 Knob() { return 0; }
             }
             """);
         Write("CheckCompanionOverride", """
@@ -409,8 +407,7 @@ public class ShaderDefinitionCheckTests : IDisposable
             shader CheckParent
             {
                 float Radius;
-                [Replace]
-                module float4 Knob() { return 0; }
+                module replace float4 Knob() { return 0; }
                 float4 Value() { return Radius; }
             }
             """);

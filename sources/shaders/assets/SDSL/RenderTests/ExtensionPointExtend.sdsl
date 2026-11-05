@@ -11,11 +11,11 @@ module ExtensionPointExtendOwner
     stream float4 ColorTarget : SV_Target0;
     stream float Steps;
 
-    [Pipeline(Early, Default, A, B)]
-    void Run() { streams.Steps = streams.Steps - 2; }
+    [Phases(Early, Default, A, B)]
+    pipeline void Run() { streams.Steps = streams.Steps - 2; }
 
-    [Around(Outer, Inner)]
-    float Wrap() { return streams.Steps; }
+    [Phases(Outer, Inner)]
+    around float Wrap() { return streams.Steps; }
 
     void VSMain() { streams.ShadingPosition = streams.Position; }
 

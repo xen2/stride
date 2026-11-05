@@ -8,8 +8,7 @@ namespace Stride.Shaders.Tests;
 
     abstract float4 Filter(float4 color);
 
-    [Replace]
-    module float4 Shading()
+    module replace float4 Shading()
     {
         return Filter(float4(1.0, 1.0, 1.0, 1.0));
     }

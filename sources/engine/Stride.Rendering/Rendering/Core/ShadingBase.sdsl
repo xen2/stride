@@ -44,8 +44,8 @@ shader ShadingBase
 #endif
 
     // method computing color
-    [Around(Post, Surface)]
-    module float4 Shading()
+    [Phases(Post, Surface)]
+    module around float4 Shading()
     {
         return ShadingColor0.Compute();
     }

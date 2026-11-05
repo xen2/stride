@@ -46,7 +46,7 @@ public static partial class ShaderUpgrader
         "add-usings",
         // 4.5: the key of a member of a namespaced class has the full name of the class
         "full-key-names",
-        // 4.5: an override with a phase, or of a [Replace] point, says what it extends
+        // 4.5: an override with a phase, or of a replace point, says what it extends
         "extend",
     ];
 
@@ -328,7 +328,7 @@ public static partial class ShaderUpgrader
 
     /// <summary>
     /// The first definition of a module method that has overrides gets a kind, when it is in the sources being upgraded:
-    /// <c>[Pipeline]</c> if an override reaches it with <c>base</c>, else <c>[Replace]</c>. Without phases, the two link the same way, so
+    /// <c>pipeline</c> if an override reaches it with <c>base</c>, else <c>replace</c>. Without phases, the two link the same way, so
     /// a class of another project that this upgrade doesn't see changes nothing. A method of a dependency stays as it is: its author has to do it.
     /// </summary>
     private static Dictionary<string, ShaderSourceText> AddKinds(ShaderUpgradeProject project, Dictionary<string, string> texts, List<string> notes)
@@ -346,7 +346,7 @@ public static partial class ShaderUpgrader
                         continue;
                     if (owner.IsDependency)
                     {
-                        notes.Add($"{shaderClass.Path}: {shaderClass.Name} overrides {method.Name} of {owner.Name}, in a library ({owner.Path}), and it has no kind: error SDSL0246. Write patch {owner.Name}.{method.Name} instead of override, or ask the author of {owner.Name} to add [Replace], [Pipeline] or [Around]");
+                        notes.Add($"{shaderClass.Path}: {shaderClass.Name} overrides {method.Name} of {owner.Name}, in a library ({owner.Path}), and it has no kind: error SDSL0246. Write patch {owner.Name}.{method.Name} instead of override, or ask the author of {owner.Name} to write replace, pipeline or around on it");
                         continue;
                     }
                     if (!done.Add((owner.Name, method.Name, method.Signature)))
@@ -354,7 +354,7 @@ public static partial class ShaderUpgrader
 
                     var callsBase = new Regex($@"\bbase\s*\.\s*{Regex.Escape(method.Name)}\s*\(");
                     var overriders = project.Classes.Values.Where(x => project.Ancestors(x.Name).Contains(owner.Name) && x.Methods.Any(y => y.IsOverride && y.Name == method.Name && y.Signature == method.Signature));
-                    var kind = overriders.Any(x => x.Methods.Any(y => callsBase.IsMatch(y.Body))) ? "Pipeline" : "Replace";
+                    var kind = overriders.Any(x => x.Methods.Any(y => callsBase.IsMatch(y.Body))) ? "pipeline" : "replace";
 
                     var source = Source(sources, texts, owner.Path!);
                     foreach (var classText in source.FindClass(owner.Name))
@@ -362,7 +362,7 @@ public static partial class ShaderUpgrader
                         foreach (var declaration in MethodDeclarations(source, classText, method.Name, kind))
                         {
                             if (DeclaredSignature(source.Text, declaration) == method.Signature)
-                                InsertAttribute(source, declaration, kind);
+                                source.Insert(ReturnType(source.Text, declaration), $"{kind} ");
                         }
                     }
                 }
@@ -403,6 +403,13 @@ public static partial class ShaderUpgrader
             }
         }
         return sources;
+    }
+
+    // After the modifiers of the declaration at start
+    private static int ReturnType(string text, int start)
+    {
+        var modifiers = Regex.Match(text[start..], @"\A(?:(?:module|static)\s+)*");
+        return start + modifiers.Length;
     }
 
     // On its own line before the declaration, at its indentation

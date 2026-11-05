@@ -6,6 +6,6 @@ namespace Stride.Shaders.Tests;
 // The method a test's linkage rule is about
 module EffectLinkageOwner
 {
-    [Pipeline(Early, Late)]
-    void Run() { }
+    [Phases(Early, Late)]
+    pipeline void Run() { }
 }
