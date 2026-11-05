@@ -391,6 +391,19 @@ TessellationAE4	1	shader	-	-	TessellationBase,MaterialDomainStream		Stride.Rende
 TessellationBase	0	shader	-	-	MaterialDomainStream,ShaderBase,TransformationBase,Camera,Transformation,NormalBase		Stride.Rendering.TessellationBase	DesiredTriangleSize	BaseTransformVS,GenerateNormal_VS,TransformPosition	ComputeClipping(InputPatch<Input,3,>,OutputPatch<Input2,3,>,Constants);InterpolateBarycentric(OutputPatch<Input,3,>,Constants,float3);TessellateDomain();TessellateHull(InputPatch<Input,3,>,uint,uint);TessellateHullConstant(InputPatch<Input,3,>,OutputPatch<Input2,3,>,Constants)
 TessellationFlat	0	shader	-	-	TessellationBase		Stride.Rendering.TessellationFlat		ComputeClipping,InterpolateBarycentric	
 TessellationPN	0	shader	-	-	TessellationFlat		Stride.Rendering.TessellationPN		ComputeClipping,InterpolateBarycentric,TessellateHull,TessellateHullConstant	
+TestBedCurrentSurface	0	module	-	-	TestBedSurface		Stride.MaterialTestBed.TestBedCurrentSurface			
+TestBedLayers	0	module	-	-	NormalUtil,TestBedSurface,TestBedRecords,TestBedMaterialTable,TestBedSlots		Stride.MaterialTestBed.TestBedLayers			
+TestBedMaterialSurface	0	shader	-	-	IMaterialSurfacePixel,TestBedStreamBridge,TestBedMaterialTable,TestBedLayers,TestBedSurfaceModifiers,TestBedCurrentSurface		Stride.MaterialTestBed.TestBedMaterialSurface			
+TestBedMaterialTable	0	module	-	-	TestBedRecords		Stride.MaterialTestBed.TestBedMaterialTable	LayerRecords,MaterialIndex,MaterialRecords,SlotRecords		
+TestBedRecords	0	module	-	-			Stride.MaterialTestBed.TestBedRecords			
+TestBedSlots	0	module	-	-	TestBedSurface,TestBedRecords		Stride.MaterialTestBed.TestBedSlots	SlotSamplerAnisotropicWrap,SlotSamplerLinearWrap,SlotTexture0,SlotTexture1,SlotTexture2,SlotTexture3,SlotTexture4,SlotTexture5,SlotTexture6,SlotTexture7		
+TestBedStandardModel	0	module	-	-	Math,BRDFMicrofacet,TestBedSurface		Stride.MaterialTestBed.TestBedStandardModel			
+TestBedStandardShading	0	shader	-	-	IMaterialSurfaceShading,TestBedStreamBridge,TestBedSurfaceModifiers,TestBedCurrentSurface		Stride.MaterialTestBed.TestBedStandardShading			
+TestBedStreamBridge	0	shader	-	-	MaterialPixelShadingStream,Texturing,PositionStream4,NormalStream,LightStream,ShadowStream,TestBedSurface,TestBedStandardModel		Stride.MaterialTestBed.TestBedStreamBridge			
+TestBedSurface	0	module	-	-			Stride.MaterialTestBed.TestBedSurface			
+TestBedSurfaceModifiers	0	module	-	-	TestBedSurface		Stride.MaterialTestBed.TestBedSurfaceModifiers			ModifyOutput(float3,Surface);ModifySurface(Surface,SurfaceInput)
+TestBedUvTransform	0	shader	-	-	ShaderBase,Texturing		Stride.MaterialTestBed.TestBedUvTransform	TextureRegion	VSMain	
+TestBedWetness	0	module	-	-	TestBedSurface,TestBedSurfaceModifiers		Stride.MaterialTestBed.TestBedWetness		ModifyOutput,ModifySurface	
 TextureProjectionCommon	1	shader	-	-			Stride.Rendering.Lights.TextureProjectionCommon	ProjectionTexture,UVOffset,UVScale		
 TextureProjectionFilterDefault	1	shader	-	-	TextureProjectionCommon,Texturing		Stride.Rendering.Lights.TextureProjectionFilterDefault			
 TextureProjectionGroup	0	shader	-	-			Stride.Rendering.Lights.TextureProjectionGroup			ComputeSpecularTextureProjection(float3,float3,int);ComputeTextureProjection(float3,int)

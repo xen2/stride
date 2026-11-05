@@ -110,6 +110,7 @@
     <Project Path="sources/engine/Stride.Graphics.Tests.11_0/Stride.Graphics.Tests.11_0.csproj" />
     <Project Path="sources/engine/Stride.Graphics.Tests/Stride.Graphics.Tests.csproj" />
     <Project Path="sources/engine/Stride.Input.Tests/Stride.Input.Tests.csproj" />
+    <Project Path="sources/engine/Stride.MaterialTestBed.Tests/Stride.MaterialTestBed.Tests.csproj" />
   </Folder>
   <Folder Name="/30-CoreDesign/">
     <Project Path="sources/buildengine/Stride.Core.BuildEngine.Common/Stride.Core.BuildEngine.Common.csproj" />

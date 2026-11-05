@@ -1,0 +1,67 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// The records of the material table. MaterialRecords.cs holds the same layouts in C#.
+    /// </summary>
+    [Pure]
+    module TestBedRecords
+    {
+        static const int NoTexture = -1;
+
+        static const uint SlotOpMultiply = 0;
+        static const uint SlotOpAdd = 1;
+
+        static const uint SlotChannelAll = 0;
+        static const uint SlotChannelR = 1;
+        static const uint SlotChannelG = 2;
+        static const uint SlotChannelB = 3;
+        static const uint SlotChannelA = 4;
+
+        static const uint SamplerLinearWrap = 0;
+        static const uint SamplerAnisotropicWrap = 1;
+
+        static const uint LayerSlotBaseColor = 0;
+        static const uint LayerSlotNormal = 1;
+        static const uint LayerSlotRoughness = 2;
+        static const uint LayerSlotMetalness = 3;
+        static const uint LayerSlotOcclusion = 4;
+        static const uint LayerSlotEmissive = 5;
+
+        struct MaterialRecord
+        {
+            uint shadingModel;
+            uint flags;
+            uint layerOffset;
+            uint layerCount;
+        };
+
+        struct LayerRecord
+        {
+            int maskSlot;
+            uint blendMode;
+            uint slotOffset;
+        };
+
+        struct SlotRecord
+        {
+            float4 constant;
+            float4 uvScaleOffset;
+            float4 detailUvScaleOffset;
+            int textureIndex;
+            int detailTextureIndex;
+            uint samplerId;
+            uint uvChannel;
+            uint detailUvChannel;
+            uint channel;
+            uint op;
+            uint graphId;
+            float detailWeight;
+            float bias;
+            uint reserved0;
+            uint reserved1;
+        };
+    };
+}

@@ -1,0 +1,47 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// What a material reads (SurfaceInput), what it produces (Surface), and what a shading model gets for one light.
+    /// </summary>
+    [Pure]
+    module TestBedSurface
+    {
+        struct SurfaceInput
+        {
+            float3 positionWS;
+            float2 uv[2];
+            float2 uvDdx[2];
+            float2 uvDdy[2];
+        };
+
+        partial struct Surface
+        {
+            float3 albedo;
+            float3 normalTS;
+            float3 normalWS;
+            float roughness;
+            float metalness;
+            float occlusion;
+            float3 emissive;
+            float alpha;
+        };
+
+        struct LightSample
+        {
+            float3 directionWS;
+            float3 color;
+            float attenuation;
+            float3 shadow;
+        };
+
+        struct EnvironmentSample
+        {
+            float3 irradiance;
+            float3 prefiltered;
+            float3 specularWeight;
+        };
+    };
+}

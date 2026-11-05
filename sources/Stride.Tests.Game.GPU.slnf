@@ -6,6 +6,7 @@
       "sources\\engine\\Stride.Graphics.Tests.10_0\\Stride.Graphics.Tests.10_0.csproj",
       "sources\\engine\\Stride.Graphics.Tests.11_0\\Stride.Graphics.Tests.11_0.csproj",
       "sources\\engine\\Stride.Graphics.Tests\\Stride.Graphics.Tests.csproj",
+      "sources\\engine\\Stride.MaterialTestBed.Tests\\Stride.MaterialTestBed.Tests.csproj",
       "sources\\plugins\\BulletPhysics\\Stride.Physics.Tests\\Stride.Physics.Tests.csproj",
       "sources\\plugins\\UI\\Stride.UI.Tests\\Stride.UI.Tests.csproj"
     ]

@@ -1,0 +1,27 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+using Stride.MaterialTestBed;
+
+namespace Stride.MaterialTestBed
+{
+    params TestBedEffectKeys
+    {
+        bool EnableUvTransform = false;
+        bool EnableWetness = false;
+    }
+}
+
+namespace Stride.Rendering
+{
+    extend effect StrideForwardShadingEffect
+    {
+        using params TestBedEffectKeys;
+
+        if (TestBedEffectKeys.EnableUvTransform)
+            mixin TestBedUvTransform;
+
+        if (TestBedEffectKeys.EnableWetness)
+            mixin TestBedWetness;
+    }
+}

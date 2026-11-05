@@ -1,0 +1,7 @@
+!Package
+Id: b0784f19-5a90-42fb-a5eb-104846e73cb1
+SerializedVersion: {Assets: 3.1.0.0}
+AssetFolders:
+    -   Path: !dir Assets
+RootAssets:
+    - ab59d7a4-eac1-487c-921b-e7bacf9fcbfb:GraphicsCompositor

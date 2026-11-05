@@ -1,0 +1,27 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+using Stride.Rendering.Materials;
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// Evaluates the material of the current draw from the table, before the light loop.
+    /// </summary>
+    shader TestBedMaterialSurface : IMaterialSurfacePixel, TestBedStreamBridge
+    {
+        import TestBedMaterialTable;
+        import TestBedLayers;
+        import TestBedSurfaceModifiers;
+        import TestBedCurrentSurface;
+
+        override void Compute()
+        {
+            SurfaceInput input = ReadSurfaceInput();
+            Surface s = EvaluateMaterial(MaterialRecords[MaterialIndex], input);
+            ModifySurface(s, input);
+            Current = s;
+            WriteSurface(s);
+        }
+    };
+}

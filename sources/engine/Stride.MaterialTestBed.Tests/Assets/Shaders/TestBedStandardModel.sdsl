@@ -1,0 +1,58 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+using Stride.Rendering.BRDF;
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// The Standard shading model: Lambert diffuse, GGX + Smith-Schlick + Schlick specular.
+    /// </summary>
+    [Pure]
+    module TestBedStandardModel
+    {
+        import Math;
+        import BRDFMicrofacet;
+        import TestBedSurface;
+
+        // The reflectance of a non-metal in the generated materials
+        static const float DielectricF0 = 0.02;
+
+        float3 DiffuseColor(Surface s)
+        {
+            return s.albedo * (1.0 - s.metalness);
+        }
+
+        float3 SpecularColor(Surface s)
+        {
+            return lerp(DielectricF0, s.albedo, s.metalness);
+        }
+
+        float AlphaRoughness(Surface s)
+        {
+            return max(s.roughness * s.roughness, 0.001);
+        }
+
+        float3 DirectLight(Surface s, LightSample light, float3 viewWS)
+        {
+            float3 h = normalize(viewWS + light.directionWS);
+            float nDotL = max(dot(s.normalWS, light.directionWS), 0.0001);
+            float nDotV = max(dot(s.normalWS, viewWS), 0.0001);
+            float nDotH = saturate(dot(s.normalWS, h));
+            float lDotH = saturate(dot(light.directionWS, h));
+            float alphaR = AlphaRoughness(s);
+
+            float3 fresnel = FresnelSchlick(SpecularColor(s), lDotH);
+            float visibility = VisibilitySmithSchlickGGX(alphaR, nDotL, nDotV);
+            float distribution = NormalDistributionGGX(alphaR, nDotH);
+
+            float3 radiance = light.color * light.attenuation * light.shadow * nDotL;
+            return (DiffuseColor(s) / PI + fresnel * visibility * distribution / 4.0) * radiance;
+        }
+
+        float3 EnvironmentLight(Surface s, EnvironmentSample environment)
+        {
+            return DiffuseColor(s) * environment.irradiance + environment.specularWeight * environment.prefiltered;
+        }
+    };
+}

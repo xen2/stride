@@ -1,0 +1,31 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// A surface modifier: low surfaces are wet. The field it adds to the surface goes through the light loop to the final color.
+    /// </summary>
+    module TestBedWetness
+    {
+        import TestBedSurface;
+        import TestBedSurfaceModifiers;
+
+        extend struct Surface
+        {
+            float wetness;
+        };
+
+        extend TestBedSurfaceModifiers.ModifySurface in Scene
+        {
+            s.wetness = saturate(1.0 - input.positionWS.y * 2.0);
+            s.albedo *= lerp(1.0, 0.5, s.wetness);
+            s.roughness = lerp(s.roughness, 0.1, s.wetness);
+        }
+
+        extend TestBedSurfaceModifiers.ModifyOutput in Scene
+        {
+            color *= lerp(float3(1.0, 1.0, 1.0), float3(0.8, 0.9, 1.0), s.wetness);
+        }
+    };
+}
