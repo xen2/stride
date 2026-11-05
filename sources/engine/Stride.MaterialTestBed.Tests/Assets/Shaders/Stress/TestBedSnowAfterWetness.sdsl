@@ -11,7 +11,9 @@ namespace Stride.MaterialTestBed
         import TestBedSurface;
         import TestBedSurfaceModifiers;
 
-        extend TestBedSurfaceModifiers.ModifySurface in Scene after TestBedWetness
+        [Phase(Scene)]
+        [After(TestBedWetness)]
+        extend TestBedSurfaceModifiers.ModifySurface(inout Surface s, SurfaceInput input)
         {
             s.roughness = lerp(s.roughness, 0.9, saturate(input.positionWS.y * 2.0));
         }

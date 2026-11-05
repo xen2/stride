@@ -15,7 +15,8 @@ namespace Stride.MaterialTestBed
             float DebugViewEnabled;
         }
 
-        extend SpriteBase.Shading in Post
+        [Phase(Post)]
+        extend SpriteBase.Shading()
         {
             if (DebugViewEnabled > 0.5)
                 return float4(1.0, 0.0, 1.0, 1.0);

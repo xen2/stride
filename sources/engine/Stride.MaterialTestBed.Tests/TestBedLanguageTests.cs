@@ -139,7 +139,7 @@ public class TestBedLanguageTests
     [Fact]
     public void TwoModelsWithNoReplacesAreAnError()
     {
-        var result = MixSource("TestBedModelProbe,TestBedCelModel", "module OtherModel { import TestBedShadingModel; extend TestBedShadingModel.ModelDirectLight { return s.albedo; } };");
+        var result = MixSource("TestBedModelProbe,TestBedCelModel", "module OtherModel { import TestBedShadingModel; extend TestBedShadingModel.ModelDirectLight(Surface s, LightSample light, float3 viewWS) { return s.albedo; } };");
 
         Assert.False(result.Ok, result.Log);
         Assert.Contains("SDSL0136: OtherModel.ModelDirectLight doesn't call next, so TestBedCelModel never run in this effect.", result.Log);
@@ -179,7 +179,7 @@ public class TestBedLanguageTests
         var sources = new Dictionary<string, string>
         {
             ["ModelSlotType"] = "namespace Stride.MaterialTestBed;\nshader ModelSlotType { import TestBedSurface; abstract float3 DirectLight(Surface s, LightSample light, float3 viewWS); };",
-            ["ModelSlotProbe"] = "namespace Stride.MaterialTestBed;\nmodule ModelSlotProbe { import SpriteBase; import TestBedSurface; compose ModelSlotType Model; extend SpriteBase.Shading in Surface { Surface s = (Surface)0; LightSample l = (LightSample)0; return float4(Model.DirectLight(s, l, float3(0, 1, 0)), 1); } };",
+            ["ModelSlotProbe"] = "namespace Stride.MaterialTestBed;\nmodule ModelSlotProbe { import SpriteBase; import TestBedSurface; compose ModelSlotType Model; [Phase(Surface)] extend SpriteBase.Shading() { Surface s = (Surface)0; LightSample l = (LightSample)0; return float4(Model.DirectLight(s, l, float3(0, 1, 0)), 1); } };",
             ["NoLight"] = "namespace Stride.MaterialTestBed;\nshader NoLight { float Other() { return 1; } };",
         };
 
@@ -207,9 +207,9 @@ public class TestBedLanguageTests
         var sources = new Dictionary<string, string>
         {
             ["RequiredPart"] = "namespace Stride.MaterialTestBed;\n[Pure] module RequiredPart { abstract float3 Required(float3 c); };",
-            ["RequiredUse"] = "namespace Stride.MaterialTestBed;\nmodule RequiredUse { import SpriteBase; import RequiredPart; extend SpriteBase.Shading in Surface { return float4(Required(float3(1, 1, 1)), 1); } };",
+            ["RequiredUse"] = "namespace Stride.MaterialTestBed;\nmodule RequiredUse { import SpriteBase; import RequiredPart; [Phase(Surface)] extend SpriteBase.Shading() { return float4(Required(float3(1, 1, 1)), 1); } };",
             ["RequiredOverride"] = "namespace Stride.MaterialTestBed;\n[Pure] module RequiredOverride { import RequiredPart; override float3 Required(float3 c) { return c; } };",
-            ["RequiredExtend"] = "namespace Stride.MaterialTestBed;\n[Pure] module RequiredExtend { import RequiredPart; extend RequiredPart.Required { return c; } };",
+            ["RequiredExtend"] = "namespace Stride.MaterialTestBed;\n[Pure] module RequiredExtend { import RequiredPart; extend RequiredPart.Required(float3 c) { return c; } };",
         };
 
         var missing = TestBedMixer.Mix(TestBedMixer.Effect("RequiredUse"), isAssetBuild: true, sources);
@@ -245,7 +245,7 @@ public class TestBedLanguageTests
         var result = TestBedMixer.Mix("SpriteBase", "TestBedSpriteColor", "TestBedHalfTint", "TestBedFixedPost");
 
         Assert.False(result.Ok, result.Log);
-        Assert.Contains("SDSL0136: TestBedFixedPost.Shading doesn't call next, so TestBedSpriteColor, TestBedHalfTint never run in this effect. Write replaces TestBedSpriteColor, TestBedHalfTint, or call next.", result.Log);
+        Assert.Contains("SDSL0136: TestBedFixedPost.Shading doesn't call next, so TestBedSpriteColor, TestBedHalfTint never run in this effect. Write [Replaces(TestBedSpriteColor, TestBedHalfTint)] on it, or call next.", result.Log);
     }
 
     [Fact]
@@ -272,11 +272,11 @@ public class TestBedLanguageTests
     private static readonly Dictionary<string, string> NodeSources = new()
     {
         ["NodeStream"] = NodeStream,
-        ["NodeStepA"] = "namespace Stride.MaterialTestBed;\nshader NodeStepA : TestBedNode { import NodeStream; extend TestBedNode.ModifyColor in Detail { streams.NodeValue = 1.0; } };",
-        ["NodeStepB"] = "namespace Stride.MaterialTestBed;\nshader NodeStepB : TestBedNode { import NodeStream; extend TestBedNode.ModifyColor in Detail { streams.NodeValue = 2.0; } };",
-        ["NodeStepC"] = "namespace Stride.MaterialTestBed;\nshader NodeStepC : TestBedNode { import NodeStream; extend TestBedNode.ModifyColor in Detail after NodeStepA { streams.NodeValue = 2.0; } };",
+        ["NodeStepA"] = "namespace Stride.MaterialTestBed;\nshader NodeStepA : TestBedNode { import NodeStream; [Phase(Detail)] extend TestBedNode.ModifyColor(inout float3 color) { streams.NodeValue = 1.0; } };",
+        ["NodeStepB"] = "namespace Stride.MaterialTestBed;\nshader NodeStepB : TestBedNode { import NodeStream; [Phase(Detail)] extend TestBedNode.ModifyColor(inout float3 color) { streams.NodeValue = 2.0; } };",
+        ["NodeStepC"] = "namespace Stride.MaterialTestBed;\nshader NodeStepC : TestBedNode { import NodeStream; [Phase(Detail)] [After(NodeStepA)] extend TestBedNode.ModifyColor(inout float3 color) { streams.NodeValue = 2.0; } };",
         ["NodeStepD"] = "namespace Stride.MaterialTestBed;\nshader NodeStepD : TestBedNode { import NodeStream; [Phase(Later, After = Detail)] override void ModifyColor(inout float3 color) { base.ModifyColor(color); streams.NodeValue = 3.0; } };",
-        ["NodeFromRoot"] = "namespace Stride.MaterialTestBed;\nshader NodeFromRoot : TestBedNode { extend TestBedNode.ModifyColor in Detail { color += 0.5; } };",
+        ["NodeFromRoot"] = "namespace Stride.MaterialTestBed;\nshader NodeFromRoot : TestBedNode { [Phase(Detail)] extend TestBedNode.ModifyColor(inout float3 color) { color += 0.5; } };",
     };
 
     private static EffectSource NodeEffect(string[] rootClasses, params string[] nodeClasses)

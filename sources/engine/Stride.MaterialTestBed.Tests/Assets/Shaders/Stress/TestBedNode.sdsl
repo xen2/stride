@@ -8,8 +8,8 @@ namespace Stride.MaterialTestBed
     /// </summary>
     shader TestBedNode
     {
-        [Pipeline(Base, Detail)]
-        void ModifyColor(inout float3 color)
+        [Phases(Base, Detail)]
+        pipeline void ModifyColor(inout float3 color)
         {
         }
 

@@ -15,7 +15,8 @@ namespace Stride.MaterialTestBed
             return value.metalness;
         }
 
-        extend TestBedSurfaceModifiers.ModifySurface in Scene
+        [Phase(Scene)]
+        extend TestBedSurfaceModifiers.ModifySurface(inout Surface s, SurfaceInput input)
         {
             Surface copy = s;
             copy.roughness = 1.0;

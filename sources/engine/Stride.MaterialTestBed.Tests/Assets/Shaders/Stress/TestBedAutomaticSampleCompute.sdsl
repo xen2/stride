@@ -13,7 +13,7 @@ namespace Stride.MaterialTestBed
 
         RWStructuredBuffer<float4> ModelResult;
 
-        extend ComputeShaderBase.Compute
+        extend ComputeShaderBase.Compute()
         {
             ModelResult[0] = Texture0.Sample(Sampler, float2(0.5, 0.5));
         }

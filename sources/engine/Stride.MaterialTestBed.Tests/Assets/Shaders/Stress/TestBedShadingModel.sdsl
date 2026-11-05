@@ -12,21 +12,18 @@ namespace Stride.MaterialTestBed
         import TestBedSurface;
         import TestBedStandardModel;
 
-        [Replace]
-        float3 ModelDirectLight(Surface s, LightSample light, float3 viewWS)
+        replace float3 ModelDirectLight(Surface s, LightSample light, float3 viewWS)
         {
             return DirectLight(s, light, viewWS);
         }
 
-        [Replace]
-        float3 ModelEnvironmentLight(Surface s, EnvironmentSample environment)
+        replace float3 ModelEnvironmentLight(Surface s, EnvironmentSample environment)
         {
             return EnvironmentLight(s, environment);
         }
 
         // An optional part: a model that doesn't write it gets this one
-        [Replace]
-        float3 ModelEmissive(Surface s)
+        replace float3 ModelEmissive(Surface s)
         {
             return s.emissive;
         }

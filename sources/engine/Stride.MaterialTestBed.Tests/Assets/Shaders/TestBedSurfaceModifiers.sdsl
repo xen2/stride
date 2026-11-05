@@ -10,13 +10,13 @@ namespace Stride.MaterialTestBed
     {
         import TestBedSurface;
 
-        [Pipeline(Scene, Debug)]
-        void ModifySurface(inout Surface s, SurfaceInput input)
+        [Phases(Scene, Debug)]
+        pipeline void ModifySurface(inout Surface s, SurfaceInput input)
         {
         }
 
-        [Pipeline(Scene, Debug)]
-        void ModifyOutput(inout float3 color, Surface s)
+        [Phases(Scene, Debug)]
+        pipeline void ModifyOutput(inout float3 color, Surface s)
         {
         }
     };

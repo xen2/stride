@@ -9,7 +9,8 @@ namespace Stride.MaterialTestBed
         import SpriteBase;
         import TestBedColorFilter;
 
-        extend SpriteBase.Shading in Surface
+        [Phase(Surface)]
+        extend SpriteBase.Shading()
         {
             return float4(FilterColor(float3(0.25, 0.25, 0.25)), 1.0);
         }

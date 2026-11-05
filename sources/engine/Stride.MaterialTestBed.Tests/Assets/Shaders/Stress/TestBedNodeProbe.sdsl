@@ -13,7 +13,8 @@ namespace Stride.MaterialTestBed
         compose TestBedNode Node;
         compose TestBedNode NodeList[];
 
-        extend SpriteBase.Shading in Surface
+        [Phase(Surface)]
+        extend SpriteBase.Shading()
         {
             float3 single = Node.Evaluate(float3(0.25, 0.25, 0.25));
             float3 list = float3(0.25, 0.25, 0.25);

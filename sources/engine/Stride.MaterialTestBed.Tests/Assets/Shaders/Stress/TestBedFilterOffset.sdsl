@@ -8,7 +8,8 @@ namespace Stride.MaterialTestBed
     {
         import TestBedColorFilter;
 
-        extend TestBedColorFilter.FilterColor in Inner
+        [Phase(Inner)]
+        extend TestBedColorFilter.FilterColor(float3 color)
         {
             return next(color) + float3(0.125, 0.125, 0.125);
         }

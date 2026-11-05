@@ -12,7 +12,8 @@ namespace Stride.MaterialTestBed
         import TestBedSurfaceModifiers;
         import TestBedConflictPoints;
 
-        extend SpriteBase.Shading in Surface
+        [Phase(Surface)]
+        extend SpriteBase.Shading()
         {
             SurfaceInput input = (SurfaceInput)0;
             input.positionWS = float3(0.0, 0.25, 0.0);

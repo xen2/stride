@@ -10,7 +10,8 @@ namespace Stride.MaterialTestBed
     {
         import SpriteBase;
 
-        extend SpriteBase.Shading in Post
+        [Phase(Post)]
+        extend SpriteBase.Shading()
         {
             return float4(0.125, 0.125, 0.125, 1.0);
         }

@@ -13,13 +13,13 @@ namespace Stride.MaterialTestBed
         static float SharedValue;
         stream float StreamValue;
 
-        [Pipeline(Scene)]
-        void ModifyCurrent() { }
+        [Phases(Scene)]
+        pipeline void ModifyCurrent() { }
 
-        [Pipeline(Scene)]
-        void ModifyShared() { }
+        [Phases(Scene)]
+        pipeline void ModifyShared() { }
 
-        [Pipeline(Scene)]
-        void ModifyStream() { }
+        [Phases(Scene)]
+        pipeline void ModifyStream() { }
     };
 }
