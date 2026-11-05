@@ -28,7 +28,10 @@ namespace Stride.Rendering
             mixin TestBedWetness;
 
         if (TestBedEffectKeys.EnableSnow)
+        {
             mixin TestBedSnow;
+            order TestBedSurfaceModifiers.ModifySurface.Scene: TestBedWetness, TestBedSnow;
+        }
 
         if (TestBedEffectKeys.EnableCel)
             mixin TestBedCelModel;

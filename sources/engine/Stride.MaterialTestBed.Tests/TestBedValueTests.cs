@@ -111,7 +111,7 @@ public class TestBedValueTests : GameTestBase
 
     // The compiler sees nothing here, and the order of the mix gives another result
     [SkippableFact]
-    public void TheOrderOfTheMixChangesTheResultOfTheBlindPairs()
+    public void TheOrderRuleDecidesTheResultOfThePairs()
     {
         var values = Run(["TestBedInoutWetSnow", "TestBedInoutSnowWet", "TestBedCurrentWetSnow", "TestBedCurrentSnowWet", "TestBedSharedWetSnow", "TestBedSharedSnowWet"]);
 
@@ -194,11 +194,11 @@ public class TestBedValueTests : GameTestBase
     }
 
     [SkippableFact]
-    public void TheOrderOfTwoWrappersOnAPointOfTheTestBedChangesTheResult()
+    public void TheOrderRuleDecidesTheResultOfTwoWrappers()
     {
         var values = Run(["TestBedFilterDoubleOffset", "TestBedFilterOffsetDouble"]);
 
-        // The last of the mix is the outermost. Offset outside: 0.25 * 2 + 0.125. Double outside: (0.25 + 0.125) * 2
+        // The first of the rule is the outermost. Offset outside: 0.25 * 2 + 0.125. Double outside: (0.25 + 0.125) * 2
         Assert.Equal(0.625f, values["TestBedFilterDoubleOffset"].X, Tolerance);
         Assert.Equal(0.75f, values["TestBedFilterOffsetDouble"].X, Tolerance);
     }

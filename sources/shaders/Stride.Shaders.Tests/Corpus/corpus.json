@@ -388,6 +388,18 @@
     }
   },
   {
+    "effect": "Stride.MaterialTestBed.TestBedComputeAutomaticSample",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedAutomaticSampleCompute"
+      ]
+    }
+  },
+  {
     "effect": "Stride.MaterialTestBed.TestBedCurrentSnowWet",
     "profile": "Level_11_0",
     "sources": [
@@ -399,7 +411,17 @@
         "Stride.MaterialTestBed.TestBedCurrentSnow",
         "Stride.MaterialTestBed.TestBedCurrentWet"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedConflictPoints",
+        "ModifyCurrent",
+        "Scene",
+        "Stride.MaterialTestBed.TestBedCurrentSnow",
+        "Stride.MaterialTestBed.TestBedCurrentWet"
+      ]
+    ]
   },
   {
     "effect": "Stride.MaterialTestBed.TestBedCurrentWetSnow",
@@ -413,7 +435,17 @@
         "Stride.MaterialTestBed.TestBedCurrentWet",
         "Stride.MaterialTestBed.TestBedCurrentSnow"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedConflictPoints",
+        "ModifyCurrent",
+        "Scene",
+        "Stride.MaterialTestBed.TestBedCurrentWet",
+        "Stride.MaterialTestBed.TestBedCurrentSnow"
+      ]
+    ]
   },
   {
     "effect": "Stride.MaterialTestBed.TestBedFilterDoubleOffset",
@@ -427,7 +459,17 @@
         "Stride.MaterialTestBed.TestBedFilterDouble",
         "Stride.MaterialTestBed.TestBedFilterOffset"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedColorFilter",
+        "FilterColor",
+        "Inner",
+        "Stride.MaterialTestBed.TestBedFilterOffset",
+        "Stride.MaterialTestBed.TestBedFilterDouble"
+      ]
+    ]
   },
   {
     "effect": "Stride.MaterialTestBed.TestBedFilterOffsetDouble",
@@ -441,7 +483,17 @@
         "Stride.MaterialTestBed.TestBedFilterOffset",
         "Stride.MaterialTestBed.TestBedFilterDouble"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedColorFilter",
+        "FilterColor",
+        "Inner",
+        "Stride.MaterialTestBed.TestBedFilterDouble",
+        "Stride.MaterialTestBed.TestBedFilterOffset"
+      ]
+    ]
   },
   {
     "effect": "Stride.MaterialTestBed.TestBedInoutAfter",
@@ -493,7 +545,17 @@
         "Stride.MaterialTestBed.TestBedSnow",
         "Stride.MaterialTestBed.TestBedWetness"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedSurfaceModifiers",
+        "ModifySurface",
+        "Scene",
+        "Stride.MaterialTestBed.TestBedSnow",
+        "Stride.MaterialTestBed.TestBedWetness"
+      ]
+    ]
   },
   {
     "effect": "Stride.MaterialTestBed.TestBedInoutWetSnow",
@@ -507,7 +569,17 @@
         "Stride.MaterialTestBed.TestBedWetness",
         "Stride.MaterialTestBed.TestBedSnow"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedSurfaceModifiers",
+        "ModifySurface",
+        "Scene",
+        "Stride.MaterialTestBed.TestBedWetness",
+        "Stride.MaterialTestBed.TestBedSnow"
+      ]
+    ]
   },
   {
     "effect": "Stride.MaterialTestBed.TestBedModelCel",
@@ -600,7 +672,7 @@
         "Node": {
           "mixins": [
             "Stride.MaterialTestBed.TestBedNodeDouble",
-            "Stride.MaterialTestBed.TestBedNodeOffset"
+            "Stride.MaterialTestBed.TestBedNodeOffsetLast"
           ]
         },
         "NodeList": [
@@ -632,7 +704,7 @@
         "Node": {
           "mixins": [
             "Stride.MaterialTestBed.TestBedNodeOffset",
-            "Stride.MaterialTestBed.TestBedNodeDouble"
+            "Stride.MaterialTestBed.TestBedNodeDoubleLast"
           ]
         },
         "NodeList": [
@@ -674,7 +746,17 @@
         "Stride.MaterialTestBed.TestBedSharedSnow",
         "Stride.MaterialTestBed.TestBedSharedWet"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedConflictPoints",
+        "ModifyShared",
+        "Scene",
+        "Stride.MaterialTestBed.TestBedSharedSnow",
+        "Stride.MaterialTestBed.TestBedSharedWet"
+      ]
+    ]
   },
   {
     "effect": "Stride.MaterialTestBed.TestBedSharedWetSnow",
@@ -688,7 +770,17 @@
         "Stride.MaterialTestBed.TestBedSharedWet",
         "Stride.MaterialTestBed.TestBedSharedSnow"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedConflictPoints",
+        "ModifyShared",
+        "Scene",
+        "Stride.MaterialTestBed.TestBedSharedWet",
+        "Stride.MaterialTestBed.TestBedSharedSnow"
+      ]
+    ]
   },
   {
     "effect": "Stride.MaterialTestBed.TestBedSpriteDebugTint",
@@ -703,7 +795,17 @@
         "Stride.MaterialTestBed.TestBedDebugView",
         "Stride.MaterialTestBed.TestBedHalfTint"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.Rendering.SpriteBase",
+        "Shading",
+        "Post",
+        "Stride.MaterialTestBed.TestBedHalfTint",
+        "Stride.MaterialTestBed.TestBedDebugView"
+      ]
+    ]
   },
   {
     "effect": "Stride.MaterialTestBed.TestBedSpriteDebugView",
@@ -745,7 +847,17 @@
         "Stride.MaterialTestBed.TestBedHalfTint",
         "Stride.MaterialTestBed.TestBedDebugView"
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.Rendering.SpriteBase",
+        "Shading",
+        "Post",
+        "Stride.MaterialTestBed.TestBedDebugView",
+        "Stride.MaterialTestBed.TestBedHalfTint"
+      ]
+    ]
   },
   {
     "effect": "Stride.MaterialTestBed.TestBedStreamOrdered",
@@ -35565,7 +35677,17 @@
           "1"
         ]
       ]
-    }
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedSurfaceModifiers",
+        "ModifySurface",
+        "Scene",
+        "Stride.MaterialTestBed.TestBedWetness",
+        "Stride.MaterialTestBed.TestBedSnow"
+      ]
+    ]
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect",
@@ -58732,6 +58854,14 @@
         "Stride.Rendering.ShaderBase",
         "PSMain",
         "Input"
+      ],
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedSurfaceModifiers",
+        "ModifySurface",
+        "Scene",
+        "Stride.MaterialTestBed.TestBedWetness",
+        "Stride.MaterialTestBed.TestBedSnow"
       ]
     ]
   },
