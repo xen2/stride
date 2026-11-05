@@ -388,6 +388,390 @@
     }
   },
   {
+    "effect": "Stride.MaterialTestBed.TestBedCurrentSnowWet",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedConflictProbe",
+        "Stride.MaterialTestBed.TestBedCurrentSnow",
+        "Stride.MaterialTestBed.TestBedCurrentWet"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedCurrentWetSnow",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedConflictProbe",
+        "Stride.MaterialTestBed.TestBedCurrentWet",
+        "Stride.MaterialTestBed.TestBedCurrentSnow"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedFilterDoubleOffset",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedFilterProbe",
+        "Stride.MaterialTestBed.TestBedFilterDouble",
+        "Stride.MaterialTestBed.TestBedFilterOffset"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedFilterOffsetDouble",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedFilterProbe",
+        "Stride.MaterialTestBed.TestBedFilterOffset",
+        "Stride.MaterialTestBed.TestBedFilterDouble"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedInoutAfter",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedConflictProbe",
+        "Stride.MaterialTestBed.TestBedSnowAfterWetness",
+        "Stride.MaterialTestBed.TestBedWetness"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedInoutOrdered",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedConflictProbe",
+        "Stride.MaterialTestBed.TestBedSnow",
+        "Stride.MaterialTestBed.TestBedWetness"
+      ]
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedSurfaceModifiers",
+        "ModifySurface",
+        "Scene",
+        "Stride.MaterialTestBed.TestBedWetness",
+        "Stride.MaterialTestBed.TestBedSnow"
+      ]
+    ]
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedInoutSnowWet",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedConflictProbe",
+        "Stride.MaterialTestBed.TestBedSnow",
+        "Stride.MaterialTestBed.TestBedWetness"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedInoutWetSnow",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedConflictProbe",
+        "Stride.MaterialTestBed.TestBedWetness",
+        "Stride.MaterialTestBed.TestBedSnow"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedModelCel",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedModelProbe",
+        "Stride.MaterialTestBed.TestBedCelModel"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedModelComputeCel",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedModelCompute",
+        "Stride.MaterialTestBed.TestBedCelModel"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedModelComputeDefault",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedModelCompute"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedModelDefault",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedModelProbe"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedModelGlow",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedModelProbe",
+        "Stride.MaterialTestBed.TestBedGlowEmissive"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedModelRim",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedModelProbe",
+        "Stride.MaterialTestBed.TestBedRimCelModel",
+        "Stride.MaterialTestBed.TestBedCelModel"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedNodeDoubleOffset",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedNodeProbe"
+      ],
+      "compositions": {
+        "Node": {
+          "mixins": [
+            "Stride.MaterialTestBed.TestBedNodeDouble",
+            "Stride.MaterialTestBed.TestBedNodeOffset"
+          ]
+        },
+        "NodeList": [
+          {
+            "mixins": [
+              "Stride.MaterialTestBed.TestBedNodeDouble"
+            ]
+          },
+          {
+            "mixins": [
+              "Stride.MaterialTestBed.TestBedNodeOffset"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedNodeOffsetDouble",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedNodeProbe"
+      ],
+      "compositions": {
+        "Node": {
+          "mixins": [
+            "Stride.MaterialTestBed.TestBedNodeOffset",
+            "Stride.MaterialTestBed.TestBedNodeDouble"
+          ]
+        },
+        "NodeList": [
+          {
+            "mixins": [
+              "Stride.MaterialTestBed.TestBedNodeOffset"
+            ]
+          },
+          {
+            "mixins": [
+              "Stride.MaterialTestBed.TestBedNodeDouble"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedPureSampleInCompute",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedPureSampleCompute"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedSharedSnowWet",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedConflictProbe",
+        "Stride.MaterialTestBed.TestBedSharedSnow",
+        "Stride.MaterialTestBed.TestBedSharedWet"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedSharedWetSnow",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedConflictProbe",
+        "Stride.MaterialTestBed.TestBedSharedWet",
+        "Stride.MaterialTestBed.TestBedSharedSnow"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedSpriteDebugTint",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.SpriteBase",
+        "Stride.MaterialTestBed.TestBedSpriteColor",
+        "Stride.MaterialTestBed.TestBedDebugView",
+        "Stride.MaterialTestBed.TestBedHalfTint"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedSpriteDebugView",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.SpriteBase",
+        "Stride.MaterialTestBed.TestBedSpriteColor",
+        "Stride.MaterialTestBed.TestBedDebugView"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedSpriteOnly",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.SpriteBase",
+        "Stride.MaterialTestBed.TestBedSpriteColor"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedSpriteTintDebug",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.SpriteBase",
+        "Stride.MaterialTestBed.TestBedSpriteColor",
+        "Stride.MaterialTestBed.TestBedHalfTint",
+        "Stride.MaterialTestBed.TestBedDebugView"
+      ]
+    }
+  },
+  {
+    "effect": "Stride.MaterialTestBed.TestBedStreamOrdered",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.MaterialTestBed.TestBedConflictProbe",
+        "Stride.MaterialTestBed.TestBedStreamSnow",
+        "Stride.MaterialTestBed.TestBedStreamWet"
+      ]
+    },
+    "linkage": [
+      [
+        "Order",
+        "Stride.MaterialTestBed.TestBedConflictPoints",
+        "ModifyStream",
+        "Scene",
+        "Stride.MaterialTestBed.TestBedStreamWet",
+        "Stride.MaterialTestBed.TestBedStreamSnow"
+      ]
+    ]
+  },
+  {
     "effect": "Stride.Rendering.BackgroundCubemapShader",
     "profile": "Level_11_0",
     "sources": [
@@ -35074,6 +35458,117 @@
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.ShaderBase",
+        "Stride.Rendering.ShadingBase",
+        "Stride.Rendering.TransformationBase",
+        "Stride.Rendering.NormalStream",
+        "Stride.Rendering.TransformationWAndVP",
+        "Stride.Rendering.NormalFromNormalMapping",
+        "Stride.Rendering.Materials.MaterialSurfacePixelStageCompositor",
+        "Stride.MaterialTestBed.TestBedWetness",
+        "Stride.MaterialTestBed.TestBedSnow"
+      ],
+      "compositions": {
+        "directLightGroups": [
+          {
+            "mixins": [
+              {
+                "class": "Stride.Rendering.Lights.LightDirectionalGroup",
+                "generics": [
+                  "1"
+                ]
+              },
+              {
+                "class": "Stride.Rendering.Shadows.ShadowMapReceiverDirectional",
+                "generics": [
+                  "1",
+                  "1",
+                  "true",
+                  "true",
+                  "false",
+                  "false"
+                ]
+              },
+              {
+                "class": "Stride.Rendering.Shadows.ShadowMapFilterDefault",
+                "generics": [
+                  "PerView.Lighting"
+                ]
+              }
+            ]
+          },
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightClusteredPointGroup"
+            ]
+          },
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightClusteredSpotGroup"
+            ]
+          }
+        ],
+        "environmentLights": [
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightSimpleAmbient"
+            ]
+          }
+        ],
+        "materialPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialSurfaceArray"
+          ],
+          "compositions": {
+            "layers": [
+              "Stride.MaterialTestBed.TestBedMaterialSurface",
+              {
+                "mixins": [
+                  "Stride.Rendering.Materials.MaterialSurfaceLightingAndShading"
+                ],
+                "compositions": {
+                  "surfaces": [
+                    {
+                      "mixins": [
+                        "Stride.MaterialTestBed.TestBedStandardShading"
+                      ],
+                      "compositions": {
+                        "environmentFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "streamInitializerPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialStream",
+            "Stride.Rendering.Materials.MaterialPixelShadingStream"
+          ]
+        }
+      },
+      "macros": [
+        [
+          "STRIDE_RENDER_TARGET_COUNT",
+          "1"
+        ],
+        [
+          "STRIDE_MULTISAMPLE_COUNT",
+          "1"
+        ]
+      ]
+    }
+  },
+  {
+    "effect": "Stride.Rendering.StrideForwardShadingEffect",
     "profile": "Level_10_0",
     "sources": [
       "Stride.Graphics.Tests.10_0"
@@ -37393,6 +37888,115 @@
                         "fresnelFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetFresnelSchlick",
                         "geometricShadowingFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetVisibilitySmithSchlickGGX",
                         "normalDistributionFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetNormalDistributionGGX"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "streamInitializerPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialStream",
+            "Stride.Rendering.Materials.MaterialPixelShadingStream"
+          ]
+        }
+      },
+      "macros": [
+        [
+          "STRIDE_RENDER_TARGET_COUNT",
+          "1"
+        ],
+        [
+          "STRIDE_MULTISAMPLE_COUNT",
+          "1"
+        ]
+      ]
+    }
+  },
+  {
+    "effect": "Stride.Rendering.StrideForwardShadingEffect",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.ShaderBase",
+        "Stride.Rendering.ShadingBase",
+        "Stride.Rendering.TransformationBase",
+        "Stride.Rendering.NormalStream",
+        "Stride.Rendering.TransformationWAndVP",
+        "Stride.Rendering.NormalFromNormalMapping",
+        "Stride.Rendering.Materials.MaterialSurfacePixelStageCompositor"
+      ],
+      "compositions": {
+        "directLightGroups": [
+          {
+            "mixins": [
+              {
+                "class": "Stride.Rendering.Lights.LightDirectionalGroup",
+                "generics": [
+                  "1"
+                ]
+              },
+              {
+                "class": "Stride.Rendering.Shadows.ShadowMapReceiverDirectional",
+                "generics": [
+                  "1",
+                  "1",
+                  "true",
+                  "true",
+                  "false",
+                  "false"
+                ]
+              },
+              {
+                "class": "Stride.Rendering.Shadows.ShadowMapFilterDefault",
+                "generics": [
+                  "PerView.Lighting"
+                ]
+              }
+            ]
+          },
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightClusteredPointGroup"
+            ]
+          },
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightClusteredSpotGroup"
+            ]
+          }
+        ],
+        "environmentLights": [
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightSimpleAmbient"
+            ]
+          }
+        ],
+        "materialPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialSurfaceArray"
+          ],
+          "compositions": {
+            "layers": [
+              "Stride.MaterialTestBed.TestBedMaterialSurface",
+              {
+                "mixins": [
+                  "Stride.Rendering.Materials.MaterialSurfaceLightingAndShading"
+                ],
+                "compositions": {
+                  "surfaces": [
+                    {
+                      "mixins": [
+                        "Stride.MaterialTestBed.TestBedModelShading"
+                      ],
+                      "compositions": {
+                        "environmentFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT"
                       }
                     }
                   ]
@@ -43464,6 +44068,116 @@
     "effect": "Stride.Rendering.StrideForwardShadingEffect",
     "profile": "Level_11_0",
     "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.ShaderBase",
+        "Stride.Rendering.ShadingBase",
+        "Stride.Rendering.TransformationBase",
+        "Stride.Rendering.NormalStream",
+        "Stride.Rendering.TransformationWAndVP",
+        "Stride.Rendering.NormalFromNormalMapping",
+        "Stride.Rendering.Materials.MaterialSurfacePixelStageCompositor",
+        "Stride.MaterialTestBed.TestBedShadingDebugView"
+      ],
+      "compositions": {
+        "directLightGroups": [
+          {
+            "mixins": [
+              {
+                "class": "Stride.Rendering.Lights.LightDirectionalGroup",
+                "generics": [
+                  "1"
+                ]
+              },
+              {
+                "class": "Stride.Rendering.Shadows.ShadowMapReceiverDirectional",
+                "generics": [
+                  "1",
+                  "1",
+                  "true",
+                  "true",
+                  "false",
+                  "false"
+                ]
+              },
+              {
+                "class": "Stride.Rendering.Shadows.ShadowMapFilterDefault",
+                "generics": [
+                  "PerView.Lighting"
+                ]
+              }
+            ]
+          },
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightClusteredPointGroup"
+            ]
+          },
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightClusteredSpotGroup"
+            ]
+          }
+        ],
+        "environmentLights": [
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightSimpleAmbient"
+            ]
+          }
+        ],
+        "materialPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialSurfaceArray"
+          ],
+          "compositions": {
+            "layers": [
+              "Stride.MaterialTestBed.TestBedMaterialSurface",
+              {
+                "mixins": [
+                  "Stride.Rendering.Materials.MaterialSurfaceLightingAndShading"
+                ],
+                "compositions": {
+                  "surfaces": [
+                    {
+                      "mixins": [
+                        "Stride.MaterialTestBed.TestBedStandardShading"
+                      ],
+                      "compositions": {
+                        "environmentFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "streamInitializerPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialStream",
+            "Stride.Rendering.Materials.MaterialPixelShadingStream"
+          ]
+        }
+      },
+      "macros": [
+        [
+          "STRIDE_RENDER_TARGET_COUNT",
+          "1"
+        ],
+        [
+          "STRIDE_MULTISAMPLE_COUNT",
+          "1"
+        ]
+      ]
+    }
+  },
+  {
+    "effect": "Stride.Rendering.StrideForwardShadingEffect",
+    "profile": "Level_11_0",
+    "sources": [
       "Stride.Engine.Tests"
     ],
     "mixin": {
@@ -48703,6 +49417,74 @@
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.ShaderBase",
+        "Stride.Rendering.ShadingBase",
+        "Stride.Rendering.TransformationBase",
+        "Stride.Rendering.NormalStream",
+        "Stride.Rendering.TransformationWAndVP",
+        "Stride.Rendering.NormalFromNormalMapping",
+        "Stride.Rendering.Materials.MaterialSurfacePixelStageCompositor",
+        "Stride.Rendering.Shadows.ShadowMapCasterNoPixelShader"
+      ],
+      "compositions": {
+        "materialPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialSurfaceArray"
+          ],
+          "compositions": {
+            "layers": [
+              "Stride.MaterialTestBed.TestBedMaterialSurface",
+              {
+                "mixins": [
+                  "Stride.Rendering.Materials.MaterialSurfaceLightingAndShading"
+                ],
+                "compositions": {
+                  "surfaces": [
+                    {
+                      "mixins": [
+                        "Stride.MaterialTestBed.TestBedModelShading"
+                      ],
+                      "compositions": {
+                        "environmentFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "streamInitializerPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialStream",
+            "Stride.Rendering.Materials.MaterialPixelShadingStream"
+          ]
+        }
+      }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
+  },
+  {
+    "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
     "profile": "Level_10_0",
     "sources": [
       "TopDownRPG.Windows"
@@ -51141,6 +51923,75 @@
   },
   {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.ShaderBase",
+        "Stride.Rendering.ShadingBase",
+        "Stride.Rendering.TransformationBase",
+        "Stride.Rendering.NormalStream",
+        "Stride.Rendering.TransformationWAndVP",
+        "Stride.Rendering.NormalFromNormalMapping",
+        "Stride.Rendering.Materials.MaterialSurfacePixelStageCompositor",
+        "Stride.Rendering.Shadows.ShadowMapCasterNoPixelShader",
+        "Stride.MaterialTestBed.TestBedCelModel"
+      ],
+      "compositions": {
+        "materialPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialSurfaceArray"
+          ],
+          "compositions": {
+            "layers": [
+              "Stride.MaterialTestBed.TestBedMaterialSurface",
+              {
+                "mixins": [
+                  "Stride.Rendering.Materials.MaterialSurfaceLightingAndShading"
+                ],
+                "compositions": {
+                  "surfaces": [
+                    {
+                      "mixins": [
+                        "Stride.MaterialTestBed.TestBedModelShading"
+                      ],
+                      "compositions": {
+                        "environmentFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "streamInitializerPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialStream",
+            "Stride.Rendering.Materials.MaterialPixelShadingStream"
+          ]
+        }
+      }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
+  },
+  {
+    "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
     "profile": "Level_10_0",
     "sources": [
       "ThirdPersonPlatformer.Windows",
@@ -51445,6 +52296,75 @@
           "Input"
         ]
       }
+    ]
+  },
+  {
+    "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.ShaderBase",
+        "Stride.Rendering.ShadingBase",
+        "Stride.Rendering.TransformationBase",
+        "Stride.Rendering.NormalStream",
+        "Stride.Rendering.TransformationWAndVP",
+        "Stride.Rendering.NormalFromNormalMapping",
+        "Stride.Rendering.Materials.MaterialSurfacePixelStageCompositor",
+        "Stride.Rendering.Shadows.ShadowMapCasterNoPixelShader",
+        "Stride.MaterialTestBed.TestBedShadingDebugView"
+      ],
+      "compositions": {
+        "materialPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialSurfaceArray"
+          ],
+          "compositions": {
+            "layers": [
+              "Stride.MaterialTestBed.TestBedMaterialSurface",
+              {
+                "mixins": [
+                  "Stride.Rendering.Materials.MaterialSurfaceLightingAndShading"
+                ],
+                "compositions": {
+                  "surfaces": [
+                    {
+                      "mixins": [
+                        "Stride.MaterialTestBed.TestBedStandardShading"
+                      ],
+                      "compositions": {
+                        "environmentFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "streamInitializerPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialStream",
+            "Stride.Rendering.Materials.MaterialPixelShadingStream"
+          ]
+        }
+      }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
     ]
   },
   {
@@ -57746,6 +58666,76 @@
     ]
   },
   {
+    "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCaster",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.ShaderBase",
+        "Stride.Rendering.ShadingBase",
+        "Stride.Rendering.TransformationBase",
+        "Stride.Rendering.NormalStream",
+        "Stride.Rendering.TransformationWAndVP",
+        "Stride.Rendering.NormalFromNormalMapping",
+        "Stride.Rendering.Materials.MaterialSurfacePixelStageCompositor",
+        "Stride.Rendering.Shadows.ShadowMapCasterNoPixelShader",
+        "Stride.MaterialTestBed.TestBedWetness",
+        "Stride.MaterialTestBed.TestBedSnow"
+      ],
+      "compositions": {
+        "materialPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialSurfaceArray"
+          ],
+          "compositions": {
+            "layers": [
+              "Stride.MaterialTestBed.TestBedMaterialSurface",
+              {
+                "mixins": [
+                  "Stride.Rendering.Materials.MaterialSurfaceLightingAndShading"
+                ],
+                "compositions": {
+                  "surfaces": [
+                    {
+                      "mixins": [
+                        "Stride.MaterialTestBed.TestBedStandardShading"
+                      ],
+                      "compositions": {
+                        "environmentFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "streamInitializerPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialStream",
+            "Stride.Rendering.Materials.MaterialPixelShadingStream"
+          ]
+        }
+      }
+    },
+    "linkage": [
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Shade"
+      ],
+      [
+        "Unbind",
+        "Stride.Rendering.ShaderBase",
+        "PSMain",
+        "Input"
+      ]
+    ]
+  },
+  {
     "effect": "Stride.Rendering.StrideForwardShadingEffect.ShadowMapCasterCubeMap",
     "profile": "Level_10_0",
     "sources": [
@@ -61383,6 +62373,116 @@
                         "fresnelFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetFresnelSchlick",
                         "geometricShadowingFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetVisibilitySmithSchlickGGX",
                         "normalDistributionFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetNormalDistributionGGX"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "streamInitializerPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialStream",
+            "Stride.Rendering.Materials.MaterialPixelShadingStream"
+          ]
+        }
+      },
+      "macros": [
+        [
+          "STRIDE_RENDER_TARGET_COUNT",
+          "1"
+        ],
+        [
+          "STRIDE_MULTISAMPLE_COUNT",
+          "1"
+        ]
+      ]
+    }
+  },
+  {
+    "effect": "Stride.Rendering.StrideForwardShadingEffect",
+    "profile": "Level_11_0",
+    "sources": [
+      "Stride.MaterialTestBed.Tests"
+    ],
+    "mixin": {
+      "mixins": [
+        "Stride.Rendering.ShaderBase",
+        "Stride.Rendering.ShadingBase",
+        "Stride.Rendering.TransformationBase",
+        "Stride.Rendering.NormalStream",
+        "Stride.Rendering.TransformationWAndVP",
+        "Stride.Rendering.NormalFromNormalMapping",
+        "Stride.Rendering.Materials.MaterialSurfacePixelStageCompositor",
+        "Stride.MaterialTestBed.TestBedCelModel"
+      ],
+      "compositions": {
+        "directLightGroups": [
+          {
+            "mixins": [
+              {
+                "class": "Stride.Rendering.Lights.LightDirectionalGroup",
+                "generics": [
+                  "1"
+                ]
+              },
+              {
+                "class": "Stride.Rendering.Shadows.ShadowMapReceiverDirectional",
+                "generics": [
+                  "1",
+                  "1",
+                  "true",
+                  "true",
+                  "false",
+                  "false"
+                ]
+              },
+              {
+                "class": "Stride.Rendering.Shadows.ShadowMapFilterDefault",
+                "generics": [
+                  "PerView.Lighting"
+                ]
+              }
+            ]
+          },
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightClusteredPointGroup"
+            ]
+          },
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightClusteredSpotGroup"
+            ]
+          }
+        ],
+        "environmentLights": [
+          {
+            "mixins": [
+              "Stride.Rendering.Lights.LightSimpleAmbient"
+            ]
+          }
+        ],
+        "materialPixelStage": {
+          "mixins": [
+            "Stride.Rendering.Materials.MaterialSurfaceArray"
+          ],
+          "compositions": {
+            "layers": [
+              "Stride.MaterialTestBed.TestBedMaterialSurface",
+              {
+                "mixins": [
+                  "Stride.Rendering.Materials.MaterialSurfaceLightingAndShading"
+                ],
+                "compositions": {
+                  "surfaces": [
+                    {
+                      "mixins": [
+                        "Stride.MaterialTestBed.TestBedModelShading"
+                      ],
+                      "compositions": {
+                        "environmentFunction": "Stride.Rendering.Materials.MaterialSpecularMicrofacetEnvironmentGGXLUT"
                       }
                     }
                   ]
