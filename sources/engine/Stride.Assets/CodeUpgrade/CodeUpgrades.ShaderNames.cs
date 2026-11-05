@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Stride.Core.Diagnostics;
 using Stride.Shaders.Parsing.Upgrade;
 
 namespace Stride.Assets;
@@ -92,6 +93,47 @@ public static partial class CodeUpgrades
             }
             return solution;
         };
+    }
+
+    /// <summary>
+    /// Writes a note for a string that starts like the key of a member of a class in a namespace: <see cref="ShaderNames"/> leaves it,
+    /// as it isn't given to an API that takes a key, and it stops matching with no error. A string that isn't about keys costs one line of the log.
+    /// </summary>
+    /// <param name="engine">The engine classes. A class of the project wins over an engine class of the same name.</param>
+    public static CodeUpgradeNote KeyNamesAsText(EngineShaderClasses engine)
+    {
+        ArgumentNullException.ThrowIfNull(engine);
+        return async (solution, targets, log, cancellationToken) =>
+        {
+            var classes = await WithProjectClasses(engine, solution, cancellationToken);
+            foreach (var document in targets.SelectMany(x => solution.GetProject(x)?.Documents ?? []).Where(SymbolRewriteEngine.IsUpgradableSource))
+            {
+                var root = await document.GetSyntaxRootAsync(cancellationToken);
+                foreach (var (node, text, fullName) in FindKeyNamesAsText(root, classes))
+                {
+                    var line = node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                    log.Warning($"Code upgrade: {document.FilePath}({line}): the string \"{text}\" looks like a key name. A key name now holds the full name of its class: [{fullName}]. A string that no longer matches gives no error. If it is a key name, use the key or the full name.");
+                }
+            }
+        };
+    }
+
+    /// <summary>
+    /// The string literals and the interpolated strings that start like a key name, with the text they start with and its full form.
+    /// </summary>
+    internal static IEnumerable<(SyntaxNode Node, string Text, string FullName)> FindKeyNamesAsText(SyntaxNode root, EngineShaderClasses classes)
+    {
+        foreach (var node in root.DescendantNodes())
+        {
+            var text = node switch
+            {
+                LiteralExpressionSyntax literal when literal.IsKind(SyntaxKind.StringLiteralExpression) => literal.Token.ValueText,
+                InterpolatedStringExpressionSyntax { Contents: [InterpolatedStringTextSyntax first, ..] } => first.TextToken.ValueText,
+                _ => null,
+            };
+            if (text != null && classes.KeyNameStart(text) is { } fullName)
+                yield return (node, text, fullName);
+        }
     }
 
     // The shaders and effects are the additional files of the projects, for the source generator
