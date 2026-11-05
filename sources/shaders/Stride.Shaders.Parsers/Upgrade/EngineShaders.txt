@@ -391,17 +391,54 @@ TessellationAE4	1	shader	-	-	TessellationBase,MaterialDomainStream		Stride.Rende
 TessellationBase	0	shader	-	-	MaterialDomainStream,ShaderBase,TransformationBase,Camera,Transformation,NormalBase		Stride.Rendering.TessellationBase	DesiredTriangleSize	BaseTransformVS,GenerateNormal_VS,TransformPosition	ComputeClipping(InputPatch<Input,3,>,OutputPatch<Input2,3,>,Constants);InterpolateBarycentric(OutputPatch<Input,3,>,Constants,float3);TessellateDomain();TessellateHull(InputPatch<Input,3,>,uint,uint);TessellateHullConstant(InputPatch<Input,3,>,OutputPatch<Input2,3,>,Constants)
 TessellationFlat	0	shader	-	-	TessellationBase		Stride.Rendering.TessellationFlat		ComputeClipping,InterpolateBarycentric	
 TessellationPN	0	shader	-	-	TessellationFlat		Stride.Rendering.TessellationPN		ComputeClipping,InterpolateBarycentric,TessellateHull,TessellateHullConstant	
+TestBedAutomaticSampleCompute	0	shader	-	-	ComputeShaderBase,Texturing		Stride.MaterialTestBed.TestBedAutomaticSampleCompute	ModelResult	Compute	
+TestBedCelModel	0	module	-	-	TestBedSurface,TestBedStandardModel,TestBedShadingModel		Stride.MaterialTestBed.TestBedCelModel		ModelDirectLight,ModelEnvironmentLight	
+TestBedColorFilter	0	module	-	-			Stride.MaterialTestBed.TestBedColorFilter			FilterColor(float3)
+TestBedConflictPoints	0	module	-	-	TestBedCurrentSurface		Stride.MaterialTestBed.TestBedConflictPoints			ModifyCurrent();ModifyShared();ModifyStream()
+TestBedConflictProbe	0	module	-	-	SpriteBase,TestBedSurfaceModifiers,TestBedConflictPoints		Stride.MaterialTestBed.TestBedConflictProbe		Shading	
+TestBedCurrentSnow	0	module	-	-	TestBedConflictPoints		Stride.MaterialTestBed.TestBedCurrentSnow		ModifyCurrent	
 TestBedCurrentSurface	0	module	-	-	TestBedSurface		Stride.MaterialTestBed.TestBedCurrentSurface			
+TestBedCurrentWet	0	module	-	-	TestBedConflictPoints		Stride.MaterialTestBed.TestBedCurrentWet		ModifyCurrent	
+TestBedDebugView	0	module	-	-	SpriteBase		Stride.MaterialTestBed.TestBedDebugView	DebugViewEnabled	Shading	
+TestBedFilterDouble	0	module	-	-	TestBedColorFilter		Stride.MaterialTestBed.TestBedFilterDouble		FilterColor	
+TestBedFilterOffset	0	module	-	-	TestBedColorFilter		Stride.MaterialTestBed.TestBedFilterOffset		FilterColor	
+TestBedFilterProbe	0	module	-	-	SpriteBase,TestBedColorFilter		Stride.MaterialTestBed.TestBedFilterProbe		Shading	
+TestBedFixedPost	0	module	-	-	SpriteBase		Stride.MaterialTestBed.TestBedFixedPost		Shading	
+TestBedGlowEmissive	0	module	-	-	TestBedSurface,TestBedShadingModel		Stride.MaterialTestBed.TestBedGlowEmissive		ModelEmissive	
+TestBedHalfTint	0	module	-	-	SpriteBase		Stride.MaterialTestBed.TestBedHalfTint		Shading	
 TestBedLayers	0	module	-	-	NormalUtil,TestBedSurface,TestBedRecords,TestBedMaterialTable,TestBedSlots		Stride.MaterialTestBed.TestBedLayers			
 TestBedMaterialSurface	0	shader	-	-	IMaterialSurfacePixel,TestBedStreamBridge,TestBedMaterialTable,TestBedLayers,TestBedSurfaceModifiers,TestBedCurrentSurface		Stride.MaterialTestBed.TestBedMaterialSurface			
 TestBedMaterialTable	0	module	-	-	TestBedRecords		Stride.MaterialTestBed.TestBedMaterialTable	LayerRecords,MaterialIndex,MaterialRecords,SlotRecords		
+TestBedModelCompute	0	shader	-	-	ComputeShaderBase,TestBedModelInputs		Stride.MaterialTestBed.TestBedModelCompute	ModelResult	Compute	
+TestBedModelInputs	0	module	-	-	TestBedSurface,TestBedShadingModel		Stride.MaterialTestBed.TestBedModelInputs			
+TestBedModelProbe	0	module	-	-	SpriteBase,TestBedModelInputs		Stride.MaterialTestBed.TestBedModelProbe		Shading	
+TestBedModelShading	0	shader	-	-	IMaterialSurfaceShading,TestBedStreamBridge,TestBedSurfaceModifiers,TestBedCurrentSurface,TestBedShadingModel		Stride.MaterialTestBed.TestBedModelShading			
+TestBedNode	0	shader	compose	-			Stride.MaterialTestBed.TestBedNode			ModifyColor(float3)
+TestBedNodeDouble	0	shader	-	-	TestBedNode		Stride.MaterialTestBed.TestBedNodeDouble		ModifyColor	
+TestBedNodeOffset	0	shader	-	-	TestBedNode		Stride.MaterialTestBed.TestBedNodeOffset		ModifyColor	
+TestBedNodeProbe	0	module	-	-	SpriteBase		Stride.MaterialTestBed.TestBedNodeProbe		Shading	
+TestBedPureSample	0	module	-	-			Stride.MaterialTestBed.TestBedPureSample			
+TestBedPureSampleCompute	0	shader	-	-	ComputeShaderBase,Texturing,TestBedPureSample		Stride.MaterialTestBed.TestBedPureSampleCompute	ModelResult	Compute	
 TestBedRecords	0	module	-	-			Stride.MaterialTestBed.TestBedRecords			
+TestBedRimCelModel	0	module	-	-	TestBedSurface,TestBedCelModel		Stride.MaterialTestBed.TestBedRimCelModel		ModelDirectLight	
+TestBedShadingDebugView	0	shader	-	-	ShadingBase		Stride.MaterialTestBed.TestBedShadingDebugView	ShadingDebugEnabled	Shading	
+TestBedShadingModel	0	module	-	-	TestBedSurface,TestBedStandardModel		Stride.MaterialTestBed.TestBedShadingModel			ModelDirectLight(Surface,LightSample,float3);ModelEmissive(Surface);ModelEnvironmentLight(Surface,EnvironmentSample)
+TestBedSharedSnow	0	module	-	-	TestBedConflictPoints		Stride.MaterialTestBed.TestBedSharedSnow		ModifyShared	
+TestBedSharedWet	0	module	-	-	TestBedConflictPoints		Stride.MaterialTestBed.TestBedSharedWet		ModifyShared	
 TestBedSlots	0	module	-	-	TestBedSurface,TestBedRecords		Stride.MaterialTestBed.TestBedSlots	SlotSamplerAnisotropicWrap,SlotSamplerLinearWrap,SlotTexture0,SlotTexture1,SlotTexture2,SlotTexture3,SlotTexture4,SlotTexture5,SlotTexture6,SlotTexture7		
+TestBedSnow	0	module	-	-	TestBedSurface,TestBedSurfaceModifiers		Stride.MaterialTestBed.TestBedSnow		ModifySurface	
+TestBedSnowAfterWetness	0	module	-	-	TestBedSurface,TestBedSurfaceModifiers		Stride.MaterialTestBed.TestBedSnowAfterWetness		ModifySurface	
+TestBedSpriteColor	0	module	-	-	SpriteBase		Stride.MaterialTestBed.TestBedSpriteColor		Shading	
 TestBedStandardModel	0	module	-	-	Math,BRDFMicrofacet,TestBedSurface		Stride.MaterialTestBed.TestBedStandardModel			
 TestBedStandardShading	0	shader	-	-	IMaterialSurfaceShading,TestBedStreamBridge,TestBedSurfaceModifiers,TestBedCurrentSurface		Stride.MaterialTestBed.TestBedStandardShading			
 TestBedStreamBridge	0	shader	-	-	MaterialPixelShadingStream,Texturing,PositionStream4,NormalStream,LightStream,ShadowStream,TestBedSurface,TestBedStandardModel		Stride.MaterialTestBed.TestBedStreamBridge			
+TestBedStreamSnow	0	module	-	-	TestBedConflictPoints		Stride.MaterialTestBed.TestBedStreamSnow		ModifyStream	
+TestBedStreamWet	0	module	-	-	TestBedConflictPoints		Stride.MaterialTestBed.TestBedStreamWet		ModifyStream	
 TestBedSurface	0	module	-	-			Stride.MaterialTestBed.TestBedSurface			
+TestBedSurfaceCopy	0	module	-	-	TestBedSurface,TestBedSurfaceModifiers		Stride.MaterialTestBed.TestBedSurfaceCopy		ModifySurface	
 TestBedSurfaceModifiers	0	module	-	-	TestBedSurface		Stride.MaterialTestBed.TestBedSurfaceModifiers			ModifyOutput(float3,Surface);ModifySurface(Surface,SurfaceInput)
+TestBedSurfaceReader	0	module	-	-	TestBedSurface,TestBedSurfaceModifiers		Stride.MaterialTestBed.TestBedSurfaceReader		ModifySurface	
+TestBedSurfaceReset	0	module	-	-	TestBedSurface,TestBedSurfaceModifiers		Stride.MaterialTestBed.TestBedSurfaceReset		ModifySurface	
 TestBedUvTransform	0	shader	-	-	ShaderBase,Texturing		Stride.MaterialTestBed.TestBedUvTransform	TextureRegion	VSMain	
 TestBedWetness	0	module	-	-	TestBedSurface,TestBedSurfaceModifiers		Stride.MaterialTestBed.TestBedWetness		ModifyOutput,ModifySurface	
 TextureProjectionCommon	1	shader	-	-			Stride.Rendering.Lights.TextureProjectionCommon	ProjectionTexture,UVOffset,UVScale		
@@ -574,6 +611,34 @@ StrideLightingVXGI	0	effect	-	-			Stride.Rendering.Voxels.StrideLightingVXGI
 StrideSinglePassWireframeShader	0	effect	-	-			Stride.BepuPhysics.Debug.StrideSinglePassWireframeShader	
 StrideWireframeShadingEffect	0	effect	-	-			Stride.Rendering.StrideWireframeShadingEffect	
 SubsurfaceScatteringBlurEffect	0	effect	-	-			Stride.Rendering.SubsurfaceScattering.SubsurfaceScatteringBlurEffect	
+TestBedComputeAutomaticSample	0	effect	-	-			Stride.MaterialTestBed.TestBedComputeAutomaticSample	
+TestBedCurrentSnowWet	0	effect	-	-			Stride.MaterialTestBed.TestBedCurrentSnowWet	
+TestBedCurrentWetSnow	0	effect	-	-			Stride.MaterialTestBed.TestBedCurrentWetSnow	
+TestBedFilterDoubleOffset	0	effect	-	-			Stride.MaterialTestBed.TestBedFilterDoubleOffset	
+TestBedFilterOffsetDouble	0	effect	-	-			Stride.MaterialTestBed.TestBedFilterOffsetDouble	
+TestBedInoutAfter	0	effect	-	-			Stride.MaterialTestBed.TestBedInoutAfter	
+TestBedInoutOrdered	0	effect	-	-			Stride.MaterialTestBed.TestBedInoutOrdered	
+TestBedInoutSnowWet	0	effect	-	-			Stride.MaterialTestBed.TestBedInoutSnowWet	
+TestBedInoutWetSnow	0	effect	-	-			Stride.MaterialTestBed.TestBedInoutWetSnow	
+TestBedModelCel	0	effect	-	-			Stride.MaterialTestBed.TestBedModelCel	
+TestBedModelComputeCel	0	effect	-	-			Stride.MaterialTestBed.TestBedModelComputeCel	
+TestBedModelComputeDefault	0	effect	-	-			Stride.MaterialTestBed.TestBedModelComputeDefault	
+TestBedModelDefault	0	effect	-	-			Stride.MaterialTestBed.TestBedModelDefault	
+TestBedModelGlow	0	effect	-	-			Stride.MaterialTestBed.TestBedModelGlow	
+TestBedModelRim	0	effect	-	-			Stride.MaterialTestBed.TestBedModelRim	
+TestBedNodeBoth	0	effect	-	-			Stride.MaterialTestBed.TestBedNodeBoth	
+TestBedNodeBothSwapped	0	effect	-	-			Stride.MaterialTestBed.TestBedNodeBothSwapped	
+TestBedNodeDoubleOffset	0	effect	-	-			Stride.MaterialTestBed.TestBedNodeDoubleOffset	
+TestBedNodeOffsetDouble	0	effect	-	-			Stride.MaterialTestBed.TestBedNodeOffsetDouble	
+TestBedNodeWrittenTwice	0	effect	-	-			Stride.MaterialTestBed.TestBedNodeWrittenTwice	
+TestBedPureSampleInCompute	0	effect	-	-			Stride.MaterialTestBed.TestBedPureSampleInCompute	
+TestBedSharedSnowWet	0	effect	-	-			Stride.MaterialTestBed.TestBedSharedSnowWet	
+TestBedSharedWetSnow	0	effect	-	-			Stride.MaterialTestBed.TestBedSharedWetSnow	
+TestBedSpriteDebugTint	0	effect	-	-			Stride.MaterialTestBed.TestBedSpriteDebugTint	
+TestBedSpriteDebugView	0	effect	-	-			Stride.MaterialTestBed.TestBedSpriteDebugView	
+TestBedSpriteOnly	0	effect	-	-			Stride.MaterialTestBed.TestBedSpriteOnly	
+TestBedSpriteTintDebug	0	effect	-	-			Stride.MaterialTestBed.TestBedSpriteTintDebug	
+TestBedStreamOrdered	0	effect	-	-			Stride.MaterialTestBed.TestBedStreamOrdered	
 ToGlslEffect	0	effect	-	-			Test.ToGlslEffect	
 ToneMapEffect	0	effect	-	-			Stride.Rendering.Images.ToneMapEffect	
 Voxel2x2x2MipmapEffect	0	effect	-	-			Stride.Rendering.Voxels.Voxel2x2x2MipmapEffect	
