@@ -411,7 +411,8 @@ public partial class MethodParameter(TypeName type, Identifier name, TextLocatio
 /// <summary>
 /// The header of <c>extend Owner.Method(parameters)</c> or <c>patch Owner.Method(parameters)</c>.
 /// </summary>
-public sealed record ExtendClause(bool IsPatch, string Owner, bool HasParameters);
+/// <param name="Clauses">The attributes that an <c>in</c>, <c>after</c> or <c>replaces</c> written after the name would be, for its error.</param>
+public sealed record ExtendClause(bool IsPatch, string Owner, bool HasParameters, string? Clauses);
 
 public partial class ShaderMethod(
         TypeName returnType,

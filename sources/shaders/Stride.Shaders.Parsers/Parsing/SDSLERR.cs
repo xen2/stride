@@ -88,7 +88,9 @@ public static class SDSLErrorMessages
     public const string SDSL0160 = "SDSL0160: {0} takes {1}, but the call gives {2}.";
     public const string SDSL0161 = "SDSL0161: Argument {0} of the call to {1} has type {2}, which can't be converted to {3}.";
     public const string SDSL0162 = "SDSL0162: No overload of {0} can take these arguments:{1}";
+    public const string SDSL0249 = "SDSL0249: [{0}] on {1}: a kind is a keyword. Write {2}.";
     public const string SDSL0250 = "SDSL0250: {0} on {1}: {2}.";
+    public const string SDSL0251 = "SDSL0251: {0} is no longer part of the language. Write {1}.";
     public const string SDSL0252 = "SDSL0252: phase {0}, added by {1}, has a plain name. Only the owner of {2} declares plain names, in [Phases]: give the phase a prefix of your own, such as {3}.";
     public const string SDSL0253 = "SDSL0253: phase {0}, added by {1}: a name that starts with Stride. is kept for the engine. Give the phase a prefix of your own.";
     public const string SDSL0254 = "SDSL0254: [{0}] on {1}: {2}.";
