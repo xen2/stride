@@ -1229,6 +1229,11 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                             throw new InvalidOperationException($"Can't find function {function.Name} in module {module.ShaderName}");
                         functionId = moduleFunctions![moduleFunctionIndex].Id;
                     }
+                    else if (isExternalFunction && !isBase && FindFunction(instanceMixinGroup, globalContext.ExternalShaders[function.ShaderId], function.Name, functionType) is { } classFunction)
+                    {
+                        // A method of a class of this node, found in its class (an unrelated class can have a method with the same name and type)
+                        functionId = classFunction;
+                    }
                     else if (isExternalFunction)
                     {
                         // Process member call (composition)
@@ -1355,6 +1360,14 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         if (!mixinNode.ShadersByName.TryGetValue(shaderName, out var shader) && mixinNode.Stage != null)
             mixinNode.Stage.ShadersByName.TryGetValue(shaderName, out shader);
         return shader is { IsModule: true } ? shader : null;
+    }
+
+    private static int? FindFunction(MixinNode mixinNode, string shaderName, string name, FunctionType type)
+    {
+        if (!mixinNode.ShadersByName.TryGetValue(shaderName, out var shader) || !shader.Functions.TryGetValue(name, out var functions))
+            return null;
+        var index = functions.FindIndex(x => x.Type == type);
+        return index >= 0 ? functions[index].Id : null;
     }
 
     static void SetOpNop(Span<int> words)

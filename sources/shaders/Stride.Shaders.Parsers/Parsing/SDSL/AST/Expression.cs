@@ -266,6 +266,8 @@ public partial class MethodCall(Identifier name, ShaderExpressionList arguments,
 
         ResolvedFunctionSymbol = functionSymbol;
         DefinitionChecks.CheckCall(table, this, functionSymbol);
+        if (MemberCallBaseType == null)
+            DefinitionChecks.CheckBareCall(table, this, functionSymbol);
     }
 
     public void ProcessParameterSymbols(SymbolTable table, FunctionType? functionType = null)
@@ -1343,6 +1345,8 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
                         accessor.Type = methodCall.Type;
                         if (i == 0 && Source is Identifier { Name: "base" })
                             DefinitionChecks.CheckBaseCall(table, methodCall);
+                        else if (i == 0 && Source is Identifier { Name: "this" })
+                            DefinitionChecks.CheckBareCall(table, methodCall, methodCall.ResolvedFunctionSymbol);
                         break;
                     }
 

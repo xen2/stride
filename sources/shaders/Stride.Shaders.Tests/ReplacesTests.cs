@@ -110,7 +110,7 @@ public class ReplacesTests : IDisposable
     {
         Write("X", "namespace Lib; shader X<int N> { float4 Get() { return N; } };");
         Write("R", """namespace Game; [Replaces(Lib.X)] shader R<int N> : Lib.X<N> { override float4 Get() { return base.Get() * 2; } };""");
-        Write("Root", "using Stride.Rendering; namespace Lib; shader Root : SpriteBase, X<3>, X<4> { module override float4 Shading() { return Get(); } };");
+        Write("Root", "using Stride.Rendering; namespace Lib; shader Root : SpriteBase, X<3>, X<4> { module override float4 Shading() { return X<3>.Get(); } };");
         replacers["Lib.X"] = "Game.R";
 
         var (ok, log, explanation) = Mix(Tree("Lib.Root"));
