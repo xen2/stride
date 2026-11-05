@@ -11,8 +11,7 @@ using Stride.Shaders;
 namespace Stride.MaterialTestBed;
 
 /// <summary>
-///   What the compiler says about the stress cases, under the rules of the asset build. A test that says "not seen" holds what
-///   the compiler does today, so that a change of the conflict check shows here.
+///   What the compiler says about the stress cases, under the rules of the asset build.
 /// </summary>
 public class TestBedLanguageTests
 {
@@ -28,18 +27,31 @@ public class TestBedLanguageTests
     // Case 1: two plugins on one point
 
     [Theory]
-    [InlineData("TestBedInoutWetSnow", "ModifySurface", "Scene: TestBedSurfaceModifiers > TestBedWetness > TestBedSnow   order: tie-break")]
-    [InlineData("TestBedInoutSnowWet", "ModifySurface", "Scene: TestBedSurfaceModifiers > TestBedSnow > TestBedWetness   order: tie-break")]
-    [InlineData("TestBedCurrentWetSnow", "ModifyCurrent", "Scene: TestBedConflictPoints > TestBedCurrentWet > TestBedCurrentSnow   order: tie-break")]
-    [InlineData("TestBedCurrentSnowWet", "ModifyCurrent", "Scene: TestBedConflictPoints > TestBedCurrentSnow > TestBedCurrentWet   order: tie-break")]
-    [InlineData("TestBedSharedWetSnow", "ModifyShared", "Scene: TestBedConflictPoints > TestBedSharedWet > TestBedSharedSnow   order: tie-break")]
-    [InlineData("TestBedSharedSnowWet", "ModifyShared", "Scene: TestBedConflictPoints > TestBedSharedSnow > TestBedSharedWet   order: tie-break")]
-    public void TwoWritersOfOneFieldThatAreNotStreamsAreNotSeen(string effect, string method, string line)
+    [InlineData("TestBedWetness", "TestBedSnow", "share s.albedo, s.roughness")]
+    [InlineData("TestBedCurrentWet", "TestBedCurrentSnow", "share Current.roughness")]
+    [InlineData("TestBedSharedWet", "TestBedSharedSnow", "share SharedValue")]
+    public void TwoWritersOfOneFieldThatAreNotStreamsConflict(string first, string second, string message)
+    {
+        var result = TestBedMixer.Mix("TestBedConflictProbe", first, second);
+
+        Assert.False(result.Ok, result.Log);
+        Assert.Contains("SDSL0137", result.Log);
+        Assert.Contains(message, result.Log);
+    }
+
+    // With the order of the effect, each order is what it states
+    [Theory]
+    [InlineData("TestBedInoutWetSnow", "ModifySurface", "Scene: TestBedSurfaceModifiers > TestBedWetness > TestBedSnow   order: order rule")]
+    [InlineData("TestBedInoutSnowWet", "ModifySurface", "Scene: TestBedSurfaceModifiers > TestBedSnow > TestBedWetness   order: order rule")]
+    [InlineData("TestBedCurrentWetSnow", "ModifyCurrent", "Scene: TestBedConflictPoints > TestBedCurrentWet > TestBedCurrentSnow   order: order rule")]
+    [InlineData("TestBedCurrentSnowWet", "ModifyCurrent", "Scene: TestBedConflictPoints > TestBedCurrentSnow > TestBedCurrentWet   order: order rule")]
+    [InlineData("TestBedSharedWetSnow", "ModifyShared", "Scene: TestBedConflictPoints > TestBedSharedWet > TestBedSharedSnow   order: order rule")]
+    [InlineData("TestBedSharedSnowWet", "ModifyShared", "Scene: TestBedConflictPoints > TestBedSharedSnow > TestBedSharedWet   order: order rule")]
+    public void AnOrderRuleSettlesTheseWriters(string effect, string method, string line)
     {
         var result = TestBedMixer.MixEffect(effect);
 
         Assert.True(result.Ok, result.Log);
-        Assert.DoesNotContain("SDSL0137", result.Log);
         Assert.Contains(line, result.Block(method));
     }
 
@@ -48,12 +60,12 @@ public class TestBedLanguageTests
     [InlineData("TestBedWetness", "TestBedSurfaceReset")]
     [InlineData("TestBedWetness", "TestBedSurfaceReader")]
     [InlineData("TestBedWetness", "TestBedSurfaceCopy")]
-    public void AWholeStructWriteAndAReadAreNotSeen(string first, string second)
+    public void AWholeStructWriteAndAReadConflict(string first, string second)
     {
         var result = TestBedMixer.Mix("TestBedConflictProbe", first, second);
 
-        Assert.True(result.Ok, result.Log);
-        Assert.DoesNotContain("SDSL0137", result.Log);
+        Assert.False(result.Ok, result.Log);
+        Assert.Contains("SDSL0137", result.Log);
     }
 
     [Fact]
@@ -162,13 +174,13 @@ public class TestBedLanguageTests
     }
 
     [Fact]
-    public void ASlotDoesNotCheckTheClassItGets()
+    public void ASlotTakesNoModule()
     {
         var sources = new Dictionary<string, string>
         {
             ["ModelSlotType"] = "namespace Stride.MaterialTestBed;\nshader ModelSlotType { import TestBedSurface; abstract float3 DirectLight(Surface s, LightSample light, float3 viewWS); };",
             ["ModelSlotProbe"] = "namespace Stride.MaterialTestBed;\nmodule ModelSlotProbe { import SpriteBase; import TestBedSurface; compose ModelSlotType Model; extend SpriteBase.Shading in Surface { Surface s = (Surface)0; LightSample l = (LightSample)0; return float4(Model.DirectLight(s, l, float3(0, 1, 0)), 1); } };",
-            ["NoLight"] = "namespace Stride.MaterialTestBed;\n[Pure] module NoLight { float Other() { return 1; } };",
+            ["NoLight"] = "namespace Stride.MaterialTestBed;\nshader NoLight { float Other() { return 1; } };",
         };
 
         EffectSource Effect(string model)
@@ -178,9 +190,11 @@ public class TestBedLanguageTests
             return effect;
         }
 
-        // A module that isn't of the type of the slot: it has the method, so it compiles
         var module = TestBedMixer.Mix(Effect("TestBedStandardModel"), isAssetBuild: true, sources);
-        Assert.True(module.Ok, module.Log);
+        Assert.False(module.Ok, module.Log);
+        Assert.Contains("SDSL0247", module.Log);
+
+        // A shader isn't checked against the type of the slot yet: only the call fails
 
         var missing = TestBedMixer.Mix(Effect("NoLight"), isAssetBuild: true, sources);
         Assert.False(missing.Ok, missing.Log);
@@ -213,10 +227,10 @@ public class TestBedLanguageTests
     // Case 3: Around from outside
 
     [Theory]
-    [InlineData("TestBedSpriteDebugTint", "Shading", "Post: TestBedDebugView > TestBedHalfTint   order: tie-break")]
-    [InlineData("TestBedSpriteTintDebug", "Shading", "Post: TestBedHalfTint > TestBedDebugView   order: tie-break")]
-    [InlineData("TestBedFilterDoubleOffset", "FilterColor", "Inner: TestBedFilterDouble > TestBedFilterOffset   order: tie-break")]
-    [InlineData("TestBedFilterOffsetDouble", "FilterColor", "Inner: TestBedFilterOffset > TestBedFilterDouble   order: tie-break")]
+    [InlineData("TestBedSpriteDebugTint", "Shading", "Post: TestBedDebugView > TestBedHalfTint   order: order rule")]
+    [InlineData("TestBedSpriteTintDebug", "Shading", "Post: TestBedHalfTint > TestBedDebugView   order: order rule")]
+    [InlineData("TestBedFilterDoubleOffset", "FilterColor", "Inner: TestBedFilterDouble > TestBedFilterOffset   order: order rule")]
+    [InlineData("TestBedFilterOffsetDouble", "FilterColor", "Inner: TestBedFilterOffset > TestBedFilterDouble   order: order rule")]
     public void TwoWrappersInAPhaseAreNotSeen(string effect, string method, string line)
     {
         var result = TestBedMixer.MixEffect(effect);
@@ -281,16 +295,17 @@ public class TestBedLanguageTests
         var result = TestBedMixer.MixEffect("TestBedNodeDoubleOffset");
 
         Assert.True(result.Ok, result.Log);
-        Assert.Contains("Base: TestBedNode > TestBedNodeDouble > TestBedNodeOffset   order: tie-break", result.Block("ModifyColor"));
+        Assert.Contains("Base: TestBedNode > TestBedNodeDouble > TestBedNodeOffsetLast   order: after", result.Block("ModifyColor"));
     }
 
-    // The error asks for this rule. At the root it does nothing, and in a composition it is SDSL0151: only [After] settles this pair
+    // The error asks for what works. An order rule at the root does nothing here, and in a composition it is SDSL0151
     [Fact]
-    public void TheRuleThatAConflictInANodeAsksForDoesNothing()
+    public void AConflictInANodeAsksForAfterOrAPhase()
     {
         var plain = TestBedMixer.Mix(NodeEffect([], "NodeStepA", "NodeStepB"), isAssetBuild: true, NodeSources);
         Assert.False(plain.Ok, plain.Log);
-        Assert.Contains("this linkage rule to the effect: order TestBedNode.ModifyColor.Detail: NodeStepA, NodeStepB;", plain.Log);
+        Assert.Contains("An order rule of the effect doesn't reach a composition: add [After(NodeStepA)] to NodeStepB", plain.Log);
+        Assert.DoesNotContain("order TestBedNode.ModifyColor.Detail", plain.Log);
 
         var withRule = NodeEffect([], "NodeStepA", "NodeStepB");
         withRule.AddLinkageRule(ShaderLinkageKind.Order, "TestBedNode", "ModifyColor", "Detail", "NodeStepA", "NodeStepB");

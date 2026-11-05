@@ -4,12 +4,48 @@
 namespace Stride.MaterialTestBed
 {
     // Two plugins on one point, in both orders of the mix: through inout, a static of a module, and a plain static
-    effect TestBedInoutWetSnow { mixin TestBedConflictProbe; mixin TestBedWetness; mixin TestBedSnow; }
-    effect TestBedInoutSnowWet { mixin TestBedConflictProbe; mixin TestBedSnow; mixin TestBedWetness; }
-    effect TestBedCurrentWetSnow { mixin TestBedConflictProbe; mixin TestBedCurrentWet; mixin TestBedCurrentSnow; }
-    effect TestBedCurrentSnowWet { mixin TestBedConflictProbe; mixin TestBedCurrentSnow; mixin TestBedCurrentWet; }
-    effect TestBedSharedWetSnow { mixin TestBedConflictProbe; mixin TestBedSharedWet; mixin TestBedSharedSnow; }
-    effect TestBedSharedSnowWet { mixin TestBedConflictProbe; mixin TestBedSharedSnow; mixin TestBedSharedWet; }
+    effect TestBedInoutWetSnow
+    {
+        mixin TestBedConflictProbe;
+        mixin TestBedWetness;
+        mixin TestBedSnow;
+        order TestBedSurfaceModifiers.ModifySurface.Scene: TestBedWetness, TestBedSnow;
+    }
+    effect TestBedInoutSnowWet
+    {
+        mixin TestBedConflictProbe;
+        mixin TestBedSnow;
+        mixin TestBedWetness;
+        order TestBedSurfaceModifiers.ModifySurface.Scene: TestBedSnow, TestBedWetness;
+    }
+    effect TestBedCurrentWetSnow
+    {
+        mixin TestBedConflictProbe;
+        mixin TestBedCurrentWet;
+        mixin TestBedCurrentSnow;
+        order TestBedConflictPoints.ModifyCurrent.Scene: TestBedCurrentWet, TestBedCurrentSnow;
+    }
+    effect TestBedCurrentSnowWet
+    {
+        mixin TestBedConflictProbe;
+        mixin TestBedCurrentSnow;
+        mixin TestBedCurrentWet;
+        order TestBedConflictPoints.ModifyCurrent.Scene: TestBedCurrentSnow, TestBedCurrentWet;
+    }
+    effect TestBedSharedWetSnow
+    {
+        mixin TestBedConflictProbe;
+        mixin TestBedSharedWet;
+        mixin TestBedSharedSnow;
+        order TestBedConflictPoints.ModifyShared.Scene: TestBedSharedWet, TestBedSharedSnow;
+    }
+    effect TestBedSharedSnowWet
+    {
+        mixin TestBedConflictProbe;
+        mixin TestBedSharedSnow;
+        mixin TestBedSharedWet;
+        order TestBedConflictPoints.ModifyShared.Scene: TestBedSharedSnow, TestBedSharedWet;
+    }
 
     // The pair settled: by the effect, which neither plugin knows of, and by one plugin that knows the other
     effect TestBedInoutOrdered
@@ -43,14 +79,40 @@ namespace Stride.MaterialTestBed
     // Around from outside: on a point of the engine and on a point of the test-bed, with two wrappers in both orders
     effect TestBedSpriteOnly { mixin SpriteBase; mixin TestBedSpriteColor; }
     effect TestBedSpriteDebugView { mixin SpriteBase; mixin TestBedSpriteColor; mixin TestBedDebugView; }
-    effect TestBedSpriteDebugTint { mixin SpriteBase; mixin TestBedSpriteColor; mixin TestBedDebugView; mixin TestBedHalfTint; }
-    effect TestBedSpriteTintDebug { mixin SpriteBase; mixin TestBedSpriteColor; mixin TestBedHalfTint; mixin TestBedDebugView; }
-    effect TestBedFilterDoubleOffset { mixin TestBedFilterProbe; mixin TestBedFilterDouble; mixin TestBedFilterOffset; }
-    effect TestBedFilterOffsetDouble { mixin TestBedFilterProbe; mixin TestBedFilterOffset; mixin TestBedFilterDouble; }
+    effect TestBedSpriteDebugTint
+    {
+        mixin SpriteBase;
+        mixin TestBedSpriteColor;
+        mixin TestBedDebugView;
+        mixin TestBedHalfTint;
+        order SpriteBase.Shading.Post: TestBedHalfTint, TestBedDebugView;
+    }
+    effect TestBedSpriteTintDebug
+    {
+        mixin SpriteBase;
+        mixin TestBedSpriteColor;
+        mixin TestBedHalfTint;
+        mixin TestBedDebugView;
+        order SpriteBase.Shading.Post: TestBedDebugView, TestBedHalfTint;
+    }
+    effect TestBedFilterDoubleOffset
+    {
+        mixin TestBedFilterProbe;
+        mixin TestBedFilterDouble;
+        mixin TestBedFilterOffset;
+        order TestBedColorFilter.FilterColor.Inner: TestBedFilterOffset, TestBedFilterDouble;
+    }
+    effect TestBedFilterOffsetDouble
+    {
+        mixin TestBedFilterProbe;
+        mixin TestBedFilterOffset;
+        mixin TestBedFilterDouble;
+        order TestBedColorFilter.FilterColor.Inner: TestBedFilterDouble, TestBedFilterOffset;
+    }
 
     // A point of a composed node, next to the same steps as a list of nodes
-    effect TestBedNodeBoth { mixin TestBedNodeDouble; mixin TestBedNodeOffset; }
-    effect TestBedNodeBothSwapped { mixin TestBedNodeOffset; mixin TestBedNodeDouble; }
+    effect TestBedNodeBoth { mixin TestBedNodeDouble; mixin TestBedNodeOffsetLast; }
+    effect TestBedNodeBothSwapped { mixin TestBedNodeOffset; mixin TestBedNodeDoubleLast; }
 
     effect TestBedNodeDoubleOffset
     {

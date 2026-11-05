@@ -415,7 +415,9 @@ TestBedModelProbe	0	module	-	-	SpriteBase,TestBedModelInputs		Stride.MaterialTes
 TestBedModelShading	0	shader	-	-	IMaterialSurfaceShading,TestBedStreamBridge,TestBedSurfaceModifiers,TestBedCurrentSurface,TestBedShadingModel		Stride.MaterialTestBed.TestBedModelShading			
 TestBedNode	0	shader	compose	-			Stride.MaterialTestBed.TestBedNode			ModifyColor(float3)
 TestBedNodeDouble	0	shader	-	-	TestBedNode		Stride.MaterialTestBed.TestBedNodeDouble		ModifyColor	
+TestBedNodeDoubleLast	0	shader	-	-	TestBedNode		Stride.MaterialTestBed.TestBedNodeDoubleLast		ModifyColor	
 TestBedNodeOffset	0	shader	-	-	TestBedNode		Stride.MaterialTestBed.TestBedNodeOffset		ModifyColor	
+TestBedNodeOffsetLast	0	shader	-	-	TestBedNode		Stride.MaterialTestBed.TestBedNodeOffsetLast		ModifyColor	
 TestBedNodeProbe	0	module	-	-	SpriteBase		Stride.MaterialTestBed.TestBedNodeProbe		Shading	
 TestBedPureSample	0	module	-	-			Stride.MaterialTestBed.TestBedPureSample			
 TestBedPureSampleCompute	0	shader	-	-	ComputeShaderBase,Texturing,TestBedPureSample		Stride.MaterialTestBed.TestBedPureSampleCompute	ModelResult	Compute	
