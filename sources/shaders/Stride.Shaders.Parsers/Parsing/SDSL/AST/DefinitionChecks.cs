@@ -63,6 +63,41 @@ internal static class DefinitionChecks
     }
 
     /// <summary>
+    /// A bare call that two unrelated classes could answer with one signature (SDSL0248): only the order of the parents and
+    /// imports would say which one runs, whatever their bodies. Classes are related when one method is the root of both.
+    /// </summary>
+    public static void CheckBareCall(SymbolTable table, MethodCall call, Symbol? function)
+    {
+        if (function is not { Type: FunctionType type, OwnerType: { } owner } || table.CurrentShader is not { } shader || owner == shader)
+            return;
+
+        var roots = RootDeclarations(owner, call.Name.Name, type);
+        foreach (var inherited in shader.InheritedShaders)
+        {
+            if (inherited != owner && Declares(inherited, call.Name.Name, type) && !RootDeclarations(inherited, call.Name.Name, type).Overlaps(roots))
+            {
+                var signature = $"{call.Name.Name}({string.Join(", ", type.ParameterTypes.Select(x => x.Type.GetValueType()))})";
+                table.AddError(new(call.Info, string.Format(SDSLErrorMessages.SDSL0248, signature, shader.ShortName, owner, inherited, call.Name.Name)));
+                return;
+            }
+        }
+    }
+
+    private static bool Declares(ShaderDefinition shader, string name, FunctionType type)
+        => shader.Methods.Exists(x => x.Symbol.Id.Name == name && x.Symbol.Type is FunctionType other && other.ParameterTypes.SequenceEqual(type.ParameterTypes));
+
+    /// <summary>
+    /// The classes where the method of this name and these parameters starts, seen from a class that declares it.
+    /// </summary>
+    private static HashSet<ShaderDefinition> RootDeclarations(ShaderDefinition shader, string name, FunctionType type)
+    {
+        var declaring = shader.InheritedShaders.Where(x => Declares(x, name, type)).ToList();
+        if (declaring.Count == 0)
+            return [shader];
+        return [.. declaring.Where(x => !x.InheritedShaders.Exists(y => Declares(y, name, type)))];
+    }
+
+    /// <summary>
     /// <c>streams.X</c> in a class that inherits or imports two streams named X (SDSL0152): they are separate fields, and the
     /// name reaches only the first. A stream the class declares itself is reported on its declaration (<see cref="CheckStreamDeclaration"/>).
     /// </summary>
