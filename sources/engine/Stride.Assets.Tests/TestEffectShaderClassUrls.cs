@@ -160,12 +160,13 @@ namespace Stride.Assets.Tests
                 ? new SolutionProject(library.Package, Guid.NewGuid(), Path.Combine(directory, "Library", "Library.csproj"))
                 : new StandalonePackage(library.Package) { IsDependencyPackage = true });
 
-            var messages = new[] { library, game }.SelectMany(x => Prepare(x).Messages).Where(x => x.Type == LogMessageType.Error).ToList();
-
-            var error = Assert.Single(messages);
-            Assert.Contains("SDSL0301: Lib.Bar is declared twice", error.Text);
-            Assert.Contains(library.FullPath, error.Text);
-            Assert.Contains(game.FullPath, error.Text);
+            foreach (var item in new[] { library, game })
+            {
+                var error = Assert.Single(Prepare(item).Messages, x => x.Type == LogMessageType.Error);
+                Assert.Contains("SDSL0301: Lib.Bar is declared twice", error.Text);
+                Assert.Contains(library.FullPath, error.Text);
+                Assert.Contains(game.FullPath, error.Text);
+            }
         }
 
         // The two files of one package, built, then read as a source folder
@@ -179,11 +180,13 @@ namespace Stride.Assets.Tests
             var second = AddShader(package, secondFile, "namespace Lib; shader Bar { };");
             InOneSession(package);
 
-            var built = new[] { first, second }.SelectMany(x => Prepare(x).Messages).Where(x => x.Type == LogMessageType.Error).ToList();
-            var error = Assert.Single(built);
-            Assert.Contains("SDSL0301: Lib.Bar is declared twice", error.Text);
-            Assert.Contains(first.FullPath, error.Text);
-            Assert.Contains(second.FullPath, error.Text);
+            foreach (var item in new[] { first, second })
+            {
+                var error = Assert.Single(Prepare(item).Messages, x => x.Type == LogMessageType.Error);
+                Assert.Contains("SDSL0301: Lib.Bar is declared twice", error.Text);
+                Assert.Contains(first.FullPath, error.Text);
+                Assert.Contains(second.FullPath, error.Text);
+            }
 
             using var folder = new FileSystemProvider($"/shaderurls-{Guid.NewGuid():N}", Path.GetDirectoryName(first.FullPath.ToOSPath()));
             var loader = new FileShaderLoader(folder);

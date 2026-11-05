@@ -29,18 +29,19 @@ namespace Stride.Assets.Tests
         }
 
         [Fact]
-        public void TheSecondDeclarationOfAFullNameIsAnErrorThatNamesBoth()
+        public void EveryDeclarationOfAFullNameIsAnErrorThatNamesBoth()
         {
             var first = AddShader(NewPackage("First"), "X", "namespace Lib; shader X { };");
             var second = AddShader(NewPackage("Second"), "X", "namespace Lib; shader X { };");
             InOneSession(first.Package, second.Package);
 
-            Assert.False(Prepare(first).HasErrors);
-
-            var error = Assert.Single(Prepare(second).Messages, x => x.Type == LogMessageType.Error);
-            Assert.Contains("SDSL0301: Lib.X is declared twice", error.Text);
-            Assert.Contains($"{first.FullPath} (package First)", error.Text);
-            Assert.Contains($"{second.FullPath} (package Second)", error.Text);
+            foreach (var item in new[] { first, second })
+            {
+                var error = Assert.Single(Prepare(item).Messages, x => x.Type == LogMessageType.Error);
+                Assert.Contains("SDSL0301: Lib.X is declared twice", error.Text);
+                Assert.Contains($"{first.FullPath} (package First)", error.Text);
+                Assert.Contains($"{second.FullPath} (package Second)", error.Text);
+            }
         }
 
         [Fact]

@@ -46,9 +46,10 @@ namespace Stride.Assets.Effect
             var names = ShaderFileDeclarations.StorageNames(code, originalSourcePath.GetFileNameWithoutExtension());
             foreach (var name in names)
             {
-                var first = sessionShaders[name][0];
-                if (first != declaredBy)
-                    result.Error(string.Format(SDSLErrorMessages.SDSL0301, name, first, declaredBy));
+                // On every file of the name: a file with no error would write the URL, and the editor would merge it
+                var files = sessionShaders[name];
+                if (files.Count > 1)
+                    result.Error(string.Format(SDSLErrorMessages.SDSL0301, name, files[0], files[0] == declaredBy ? files[1] : declaredBy));
             }
 
             result.BuildSteps = new AssetBuildStep(assetItem);
