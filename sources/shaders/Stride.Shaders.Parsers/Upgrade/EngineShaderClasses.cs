@@ -45,6 +45,24 @@ public sealed class EngineShaderClasses
     }
 
     /// <summary>
+    /// The full form of a text that starts like the key of a member of a namespaced class, or null. What follows the name of the
+    /// class is the start of one of its keys, or nothing: <c>Texturing.</c> and <c>Texturing.Tex</c> match, <c>Texturing.Other</c> doesn't.
+    /// </summary>
+    public string? KeyNameStart(string text)
+    {
+        var dot = text.IndexOf('.');
+        if (dot <= 0)
+            return null;
+
+        var memberEnd = text.IndexOfAny(['.', '['], dot + 1);
+        var member = memberEnd < 0 ? text[(dot + 1)..] : text[(dot + 1)..memberEnd];
+        var shaderClass = Classes.FirstOrDefault(x => x.Name == text[..dot]);
+        return shaderClass is { FullName: { } fullName } && fullName != shaderClass.Name && shaderClass.Keys.Any(x => x.StartsWith(member, StringComparison.Ordinal))
+            ? $"{fullName}{text[dot..]}"
+            : null;
+    }
+
+    /// <summary>
     /// This list with the classes and effects of a project on top: a project class wins over an engine class of the same name,
     /// and the first of two project classes of one name wins.
     /// </summary>

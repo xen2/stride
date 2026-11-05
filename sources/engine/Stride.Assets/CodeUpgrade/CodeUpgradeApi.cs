@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Stride.Core;
+using Stride.Core.Diagnostics;
 
 namespace Stride.Assets;
 
@@ -21,6 +22,16 @@ namespace Stride.Assets;
 /// <param name="cancellationToken">The cancellation token.</param>
 /// <returns>The updated solution.</returns>
 public delegate Task<Solution> CodeUpgrade(Solution solution, IReadOnlyList<ProjectId> targets, CancellationToken cancellationToken);
+
+/// <summary>
+/// Reads the migrated source of the projects being upgraded and writes what a person has to look at. It changes no code, and a
+/// failure doesn't stop the upgrade.
+/// </summary>
+/// <param name="solution">The solution, after the migrations of these projects.</param>
+/// <param name="targets">The projects being upgraded.</param>
+/// <param name="log">Where the notes go.</param>
+/// <param name="cancellationToken">The cancellation token.</param>
+public delegate Task CodeUpgradeNote(Solution solution, IReadOnlyList<ProjectId> targets, ILogger log, CancellationToken cancellationToken);
 
 /// <summary>
 /// Implemented by a <see cref="Stride.Core.Assets.PackageUpgrader"/> that migrates user source code
@@ -47,6 +58,9 @@ public sealed class UpgradeRegistry
     /// <summary>The declared code-upgrade registrations, in declaration order.</summary>
     internal IReadOnlyList<CodeUpgradeRegistration> CodeUpgrades => codeUpgrades;
 
+    /// <summary>The notes to write and the version each is for, in declaration order.</summary>
+    internal List<(PackageVersion GateVersion, CodeUpgradeNote Note)> CodeNotes { get; } = [];
+
     /// <summary>The declared project (structural) upgrade registrations, in declaration order.</summary>
     internal IReadOnlyList<ProjectUpgradeRegistration> ProjectUpgrades => projectUpgrades;
 
@@ -72,6 +86,19 @@ public sealed class UpgradeRegistry
         ArgumentNullException.ThrowIfNull(upgrades);
         codeUpgrades.Add(new CodeUpgradeRegistration(new PackageVersion(version), upgrades,
             resolveSince is null ? null : new PackageVersion(resolveSince)));
+    }
+
+    /// <summary>
+    /// Declares a note for what code migrations can't change. It runs for any project upgraded from below
+    /// <paramref name="version"/>, after the migrations of that project.
+    /// </summary>
+    /// <param name="version">The version at which the change landed (e.g. <c>"4.5.0.0"</c>).</param>
+    /// <param name="note">The note to write.</param>
+    public void CodeNote(string version, CodeUpgradeNote note)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+        ArgumentNullException.ThrowIfNull(note);
+        CodeNotes.Add((new PackageVersion(version), note));
     }
 
     /// <summary>
