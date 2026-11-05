@@ -12,7 +12,8 @@ shader PositionVertexTransform
     import Transformation;
     import PositionStream;
 
-    extend ShaderBase.VSMain in Attributes
+    [Phase(Attributes)]
+    extend ShaderBase.VSMain()
     {
         streams.PositionWS = mul(streams.Position, World);
     }

@@ -144,7 +144,8 @@ shader TessellationPN : TessellationFlat
         //    ApplyProjection(g_f4x4ViewProjection, O.f3ViewB111));
     }
 
-    extend TessellationBase.InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords) in Interpolate
+    [Phase(Interpolate)]
+    extend TessellationBase.InterpolateBarycentric(const OutputPatch<Input, 3> input, in Constants constants, float3 f3BarycentricCoords)
     {
         float fU = f3BarycentricCoords.x;
         float fV = f3BarycentricCoords.y;

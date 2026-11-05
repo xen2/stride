@@ -9,7 +9,8 @@ shader Sprite3DBase
 
     module float SliceCoordinate;  
 
-    extend SpriteBase.Shading in Surface
+    [Phase(Surface)]
+    extend SpriteBase.Shading()
     {
         return Texture3D0.Sample(Sampler, float3(streams.TexCoord, SliceCoordinate));
     }

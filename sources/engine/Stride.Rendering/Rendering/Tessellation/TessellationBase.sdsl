@@ -36,7 +36,8 @@ shader TessellationBase : MaterialDomainStream
     patchstream float tessFactor[3] : SV_TessFactor;
     patchstream float insideTessFactor : SV_InsideTessFactor;
     
-    extend NormalUpdate.GenerateNormal_VS in Adjust
+    [Phase(Adjust)]
+    extend NormalUpdate.GenerateNormal_VS()
     {
         // Ensure that normal is normalized at every steps of the tessellation.
         streams.normalWS = normalize(streams.normalWS);
@@ -100,7 +101,7 @@ shader TessellationBase : MaterialDomainStream
         output = streams;
     }
 
-    extend TransformationBase.BaseTransformVS
+    extend TransformationBase.BaseTransformVS()
     {
         this.PreTransformPosition();
     }

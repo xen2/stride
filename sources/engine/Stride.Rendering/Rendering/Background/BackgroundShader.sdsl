@@ -10,7 +10,8 @@ module BackgroundShader
     float Intensity;
 
     // Shading of the sprite
-    extend SpriteBase.Shading in Post
+    [Phase(Post)]
+    extend SpriteBase.Shading()
     { 
         return Intensity * next();
     }

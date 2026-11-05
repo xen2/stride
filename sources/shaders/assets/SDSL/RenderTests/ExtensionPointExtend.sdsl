@@ -30,25 +30,30 @@ module ExtensionPointExtendSteps
 {
     import ExtensionPointExtendOwner;
 
-    extend ExtensionPointExtendOwner.Wrap in Outer { return next() * 2; }
+    [Phase(Outer)]
+    extend ExtensionPointExtendOwner.Wrap() { return next() * 2; }
 
-    extend ExtensionPointExtendOwner.Run in B { streams.Steps = streams.Steps * 2; }
+    [Phase(B)]
+    extend ExtensionPointExtendOwner.Run() { streams.Steps = streams.Steps * 2; }
 }
 
 module ExtensionPointExtendInner
 {
     import ExtensionPointExtendOwner;
 
-    extend ExtensionPointExtendOwner.Wrap in Inner { return next() + 0.5; }
+    [Phase(Inner)]
+    extend ExtensionPointExtendOwner.Wrap() { return next() + 0.5; }
 
-    extend ExtensionPointExtendOwner.Run in A { streams.Steps = streams.Steps + 1; }
+    [Phase(A)]
+    extend ExtensionPointExtendOwner.Run() { streams.Steps = streams.Steps + 1; }
 }
 
 module ExtensionPointExtendEarly
 {
     import ExtensionPointExtendOwner;
 
-    extend ExtensionPointExtendOwner.Run in Early { streams.Steps = 3; }
+    [Phase(Early)]
+    extend ExtensionPointExtendOwner.Run() { streams.Steps = 3; }
 }
 
 shader ExtensionPointExtend

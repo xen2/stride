@@ -21,9 +21,8 @@ internal static class ExtensionPoints
     private const string ReplacesAttribute = "Replaces";
 
     /// <summary>
-    /// Makes an <c>extend</c> or a <c>patch</c> the override it stands for, so that everything after this sees an override: the signature
-    /// and the kind of member come from the method, the phase and the clauses become attributes. A pipeline step gets its call to
-    /// <c>base</c>: before the default body it comes last, after it first.
+    /// Makes an <c>extend</c> or a <c>patch</c> the override it stands for, so that everything after this sees an override: the return type
+    /// and the kind of member come from the method. A pipeline step gets its call to <c>base</c>: before the default body it comes last, after it first.
     /// </summary>
     public static void ResolveExtend(SymbolTable table, ShaderMethod method)
     {
@@ -37,16 +36,18 @@ internal static class ExtensionPoints
             return;
         }
 
+        var shortName = ShaderNames.ShortName(owner);
+        if (extend.Clauses != null)
+        {
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, keyword, shortName, method.Name.Name, $"in, after and replaces are attributes. Write {extend.Clauses}{keyword} {extend.Owner}.{method.Name.Name}(...)")));
+            return;
+        }
+
         bool IsOwner(MethodExtensionPoint point) => ShaderNames.WithoutGenerics(point.Owner) == owner;
         var inherited = table.InheritedShaders.SelectMany(x => x.Symbol!.Methods.Select(y => y.Symbol)).Where(x => x.Id.Name == method.Name.Name && x.Type is FunctionType).ToList();
         var declared = inherited.Where(x => x.ExtensionPoint is { } point && IsOwner(point)).ToList();
-        var target = FindOverload(extend.IsPatch ? inherited.Where(x => x.OwnerType is { } ownerType && ownerType.ToClassName() == owner).ToList() : declared, method, out var isAmbiguous);
-        var shortName = ShaderNames.ShortName(owner);
-        if (isAmbiguous)
-        {
-            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, keyword, shortName, method.Name.Name, "it has several overloads: write the parameters")));
-            return;
-        }
+        var candidates = extend.IsPatch ? inherited.Where(x => x.OwnerType is { } ownerType && ownerType.ToClassName() == owner).ToList() : declared;
+        var target = FindOverload(candidates, method);
         if (extend.IsPatch && target?.ExtensionPoint != null)
         {
             table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, keyword, shortName, method.Name.Name, "it is an extension point: use extend")));
@@ -60,73 +61,63 @@ internal static class ExtensionPoints
             table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, keyword, shortName, method.Name.Name, problem)));
             return;
         }
-
-        if (extend.IsPatch && extend.Phase != null)
-            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, keyword, shortName, method.Name.Name, "it is not an extension point, so it has no phases")));
+        if (!extend.HasParameters)
+        {
+            var signatures = candidates.DistinctBy(x => x.Type).Select(x => $"{keyword} {extend.Owner}.{method.Name.Name}({FormatParameters(x)})");
+            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, keyword, shortName, method.Name.Name, $"write the parameters, as an override does: {string.Join(" or ", signatures)}")));
+            return;
+        }
 
         var type = (FunctionType)target.Type;
         method.IsStaged = target.Id.IsStage;
         method.ReturnTypeName = new TypeName(type.ReturnType.ToString(), info);
-        if (!extend.HasParameters)
-            method.Parameters = TakeParameters(table, method, type, target.ExtensionPoint, info);
 
         var attributes = method.Attributes ?? [];
         method.Attributes = attributes;
         if (target.ExtensionPoint is { } extended)
         {
             var phaseAttribute = attributes.OfType<AnyShaderAttribute>().FirstOrDefault(x => x.Name.Name == PhaseAttribute);
-            var phase = extend.Phase?.Name;
-            if (phase == null && phaseAttribute == null && extended.Phases.Length > 0)
+            string? phase = null;
+            if (phaseAttribute == null && extended.Phases.Length > 0)
+            {
                 phase = extended.Kind == ExtensionPointKindSDSL.Pipeline ? extended.Phases[extended.DefaultPhaseIndex] : extended.Phases[^1];
-            if (phase != null)
                 attributes.Add(new AnyShaderAttribute(new(PhaseAttribute, info), info, [new Identifier(phase, info)]));
+            }
             if (extended.Kind == ExtensionPointKindSDSL.Pipeline && method.Body != null)
                 AddBaseCall(table, method, extended, IsBeforeDefaultBody(extended, phase, phaseAttribute));
         }
-        if (extend.After.Count > 0)
-            attributes.Add(new AnyShaderAttribute(new(AfterAttribute, info), info, [.. extend.After]));
-        if (extend.Replaces.Count > 0)
-            attributes.Add(new AnyShaderAttribute(new(ReplacesAttribute, info), info, [.. extend.Replaces]));
     }
 
     /// <summary>
-    /// The method an <c>extend</c> or a <c>patch</c> is about: the overload whose parameters it writes, else the only one. An overload has one
-    /// symbol per class that overrides it.
+    /// The method an <c>extend</c> or a <c>patch</c> is about: the overload whose parameters it writes, else the closest one. An overload has
+    /// one symbol per class that overrides it.
     /// </summary>
-    private static Symbol? FindOverload(List<Symbol> candidates, ShaderMethod method, out bool isAmbiguous)
+    private static Symbol? FindOverload(List<Symbol> candidates, ShaderMethod method)
     {
-        isAmbiguous = false;
-        if (!method.Extend!.HasParameters)
-        {
-            isAmbiguous = candidates.Select(x => x.Type).Distinct().Skip(1).Any();
-            return candidates.LastOrDefault();
-        }
-
         var written = method.Parameters.Select(x => x.TypeName.ToString()).ToList();
         return candidates.LastOrDefault(x => ((FunctionType)x.Type).ParameterTypes.Select(y => ParameterType(y).ToString()).SequenceEqual(written))
             ?? candidates.LastOrDefault(x => ((FunctionType)x.Type).ParameterTypes.Count == written.Count)
             ?? candidates.LastOrDefault();
     }
 
-    private static SymbolType ParameterType(FunctionParameter parameter) => parameter.Type is PointerType pointer ? pointer.BaseType : parameter.Type;
-
-    private static List<MethodParameter> TakeParameters(SymbolTable table, ShaderMethod method, FunctionType type, MethodExtensionPoint? point, TextLocation info)
+    // With names when the point gives them
+    private static string FormatParameters(Symbol symbol)
     {
-        if (type.ParameterTypes.Count == 0)
-            return [];
-        if (point == null || point.ParameterNames.Length != type.ParameterTypes.Count)
+        var parameters = ((FunctionType)symbol.Type).ParameterTypes;
+        var names = symbol.ExtensionPoint?.ParameterNames;
+        return string.Join(", ", parameters.Select((x, i) =>
         {
-            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, method.Extend!.IsPatch ? "patch" : "extend", method.Extend.Owner, method.Name.Name, "write the parameters: they can only be left out for an extension point")));
-            return [];
-        }
-        // The other types have more to say than a name
-        if (type.ParameterTypes.Select(ParameterType).FirstOrDefault(x => x is not (ScalarType or VectorType or MatrixType or StructType or StreamsType)) is { } other)
-        {
-            table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0143, method.Extend!.IsPatch ? "patch" : "extend", method.Extend.Owner, method.Name.Name, $"write the parameters: one of type {other} can't be left out")));
-            return [];
-        }
-        return type.ParameterTypes.Select((x, i) => new MethodParameter(new TypeName(ParameterType(x).ToString(), info), new Identifier(point.ParameterNames[i], info), info, x.Modifiers)).ToList();
+            var modifier = (x.Modifiers & ParameterModifiers.InOut) switch
+            {
+                ParameterModifiers.InOut => "inout ",
+                ParameterModifiers.Out => "out ",
+                _ => "",
+            };
+            return $"{modifier}{ParameterType(x)}{(names?.Length == parameters.Count ? $" {names[i]}" : "")}";
+        }));
     }
+
+    private static SymbolType ParameterType(FunctionParameter parameter) => parameter.Type is PointerType pointer ? pointer.BaseType : parameter.Type;
 
     /// <summary>
     /// Whether a step runs before the default body: its phase, or the neighbour of the phase it adds. A neighbour that another class
@@ -348,6 +339,15 @@ internal static class ExtensionPoints
         return null;
     }
 
+    // A class can be written with its namespace: [After(Lib.First)]
+    private static Identifier? ClassName(Expression parameter) => parameter switch
+    {
+        Identifier identifier => identifier,
+        AccessorChainExpression { Source: Identifier source } chain when chain.Accessors.TrueForAll(x => x is Identifier)
+            => new Identifier(string.Join('.', chain.Accessors.Select(x => ((Identifier)x).Name).Prepend(source.Name)), chain.Info),
+        _ => null,
+    };
+
     /// <summary>
     /// The classes this contributor runs after, by full name. A class that isn't in the effect is ignored at link, but it has to exist.
     /// </summary>
@@ -364,7 +364,7 @@ internal static class ExtensionPoints
         {
             foreach (var parameter in attribute.Parameters)
             {
-                if (parameter is not Identifier identifier)
+                if (ClassName(parameter) is not { } identifier)
                     table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, $"'{parameter}' is not a class name")));
                 else if (table.ResolveClassName(identifier.Name, identifier.Info) is { } fullName)
                     after.Add(fullName);
@@ -392,7 +392,7 @@ internal static class ExtensionPoints
         {
             if (parameter is StringLiteral)
                 table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, "on an override, [Replaces] takes names without quotes. A string names a whole class, and goes on the class")));
-            else if (parameter is not Identifier identifier)
+            else if (ClassName(parameter) is not { } identifier)
                 table.AddError(new(parameter.Info, string.Format(SDSLErrorMessages.SDSL0135, attribute.Name.Name, methodName, $"'{parameter}' is not the name of a class or a phase")));
             else if (point.Phases.Contains(identifier.Name))
                 replaces.Add($"{MethodExtensionPoint.ReplacedPhasePrefix}{identifier.Name}");

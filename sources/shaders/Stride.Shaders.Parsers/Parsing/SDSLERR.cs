@@ -84,7 +84,7 @@ public static class SDSLErrorMessages
     public const string SDSL0145 = "SDSL0145: Swizzle {0} writes the same element twice. Write each element once.";
     public const string SDSL0146 = "SDSL0146: {0}: these classes inherit, import or use each other in a cycle, so none of them can compile first. Remove one of these links.";
     public const string SDSL0147 = "SDSL0147: #{0} reads {1}, a generic parameter of {2}. A condition runs before generics get their value, so {1} would count as undefined here. Use a plain if, or a separate class for each value.";
-    public const string SDSL0148 = "SDSL0148: {0} and {1} both patch {2}.{3}, and nothing orders them. Add 'after {0}' to the patch in {1}, or this linkage rule to the effect: order {2}.{3}.External: {0}, {1};";
+    public const string SDSL0148 = "SDSL0148: {0} and {1} both patch {2}.{3}, and nothing orders them. Add [After({0})] to the patch in {1}, or this linkage rule to the effect: order {2}.{3}.External: {0}, {1};";
     public const string SDSL0160 = "SDSL0160: {0} takes {1}, but the call gives {2}.";
     public const string SDSL0161 = "SDSL0161: Argument {0} of the call to {1} has type {2}, which can't be converted to {3}.";
     public const string SDSL0162 = "SDSL0162: No overload of {0} can take these arguments:{1}";
@@ -94,7 +94,7 @@ public static class SDSLErrorMessages
     public const string SDSL0163 = "SDSL0163: The call {0} is ambiguous: these overloads match equally well:{1}\nCast the arguments to the parameter types of the one to call.";
     public const string SDSL0170 = "SDSL0170: [StreamOutput] on {0} is not supported: Stride shaders have no geometry shader stream output. Remove the attribute; to keep generated vertices, write them to a RWStructuredBuffer from a compute shader instead.";
     public const string SDSL0135 = "SDSL0135: [{0}] on {1}: {2}.";
-    public const string SDSL0136 = "SDSL0136: {0}.{1} doesn't call next, so {2} never run in this effect. Write replaces {3}, or call next.";
+    public const string SDSL0136 = "SDSL0136: {0}.{1} doesn't call next, so {2} never run in this effect. Write [Replaces({3})] on it, or call next.";
     public const string SDSL0137 = "SDSL0137: {0} and {1} are both in phase {2} of {3} and {4}, and nothing orders them. Add [After({0})] to {1}, or this linkage rule to the effect: order {3}.{2}: {0}, {1};";
     public const string SDSL0137InComposition = "SDSL0137: {0} and {1} are both in phase {2} of {3}, in a composition, and {4}, and nothing orders them. An order rule of the effect doesn't reach a composition: add [After({0})] to {1}, or give one of them a phase of its own, such as [Phase(Later, After = {2})].";
     public const string SDSL0138 = "SDSL0138: the order of {0} can't be followed: {1}.";

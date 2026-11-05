@@ -1501,13 +1501,13 @@ public class ExtensionPointTests : IDisposable
     public void TwoPatchesWithNoOrderAreAnError(bool isAssetBuild)
     {
         WriteOwner();
-        WriteModule("PatchA", "patch Owner.Plain { return next() + 1; }");
-        WriteModule("PatchB", "patch Owner.Plain { return next() * 2; }");
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "patch Owner.Plain() { return next() * 2; }");
 
         var (ok, log, _) = Mix(isAssetBuild, "Test.PatchA", "Test.PatchB");
 
         Assert.False(ok, log);
-        Assert.Contains("SDSL0148: PatchA and PatchB both patch Owner.Plain, and nothing orders them. Add 'after PatchA' to the patch in PatchB, or this linkage rule to the effect: order Owner.Plain.External: PatchA, PatchB;", log);
+        Assert.Contains("SDSL0148: PatchA and PatchB both patch Owner.Plain, and nothing orders them. Add [After(PatchA)] to the patch in PatchB, or this linkage rule to the effect: order Owner.Plain.External: PatchA, PatchB;", log);
     }
 
     [Theory]
@@ -1516,8 +1516,8 @@ public class ExtensionPointTests : IDisposable
     public void AfterOrdersTwoPatches(string first, string second)
     {
         WriteOwner();
-        WriteModule("PatchA", "patch Owner.Plain { return next() + 1; }");
-        WriteModule("PatchB", "patch Owner.Plain after PatchA { return next() * 2; }");
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "[After(PatchA)] patch Owner.Plain() { return next() * 2; }");
 
         var (ok, log, explanation) = Mix(first, second);
 
@@ -1529,9 +1529,9 @@ public class ExtensionPointTests : IDisposable
     public void AfterOrdersPatchesThroughAThird()
     {
         WriteOwner();
-        WriteModule("PatchA", "patch Owner.Plain { return next() + 1; }");
-        WriteModule("PatchB", "patch Owner.Plain after PatchA { return next() + 2; }");
-        WriteModule("PatchC", "patch Owner.Plain after PatchB { return next() + 3; }");
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "[After(PatchA)] patch Owner.Plain() { return next() + 2; }");
+        WriteModule("PatchC", "[After(PatchB)] patch Owner.Plain() { return next() + 3; }");
 
         var (ok, log, explanation) = Mix("Test.PatchC", "Test.PatchA", "Test.PatchB");
 
@@ -1544,9 +1544,9 @@ public class ExtensionPointTests : IDisposable
     public void AThirdPatchWithNoOrderIsAnError()
     {
         WriteOwner();
-        WriteModule("PatchA", "patch Owner.Plain { return next() + 1; }");
-        WriteModule("PatchB", "patch Owner.Plain after PatchA { return next() + 2; }");
-        WriteModule("PatchC", "patch Owner.Plain { return next() + 3; }");
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "[After(PatchA)] patch Owner.Plain() { return next() + 2; }");
+        WriteModule("PatchC", "patch Owner.Plain() { return next() + 3; }");
 
         var (ok, log, _) = Mix("Test.PatchA", "Test.PatchB", "Test.PatchC");
 
@@ -1558,8 +1558,8 @@ public class ExtensionPointTests : IDisposable
     public void PatchesAfterEachOtherAreAnError()
     {
         WriteOwner();
-        WriteModule("PatchA", "patch Owner.Plain after PatchB { return next() + 1; }");
-        WriteModule("PatchB", "patch Owner.Plain after PatchA { return next() + 2; }");
+        WriteModule("PatchA", "[After(PatchB)] patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "[After(PatchA)] patch Owner.Plain() { return next() + 2; }");
 
         var (ok, log, _) = Mix("Test.PatchA", "Test.PatchB");
 
@@ -1572,9 +1572,9 @@ public class ExtensionPointTests : IDisposable
     public void AfterAClassOutsideTheEffectIsNoOrder()
     {
         WriteOwner();
-        WriteModule("PatchOther", "patch Owner.Plain { return next() + 1; }");
-        WriteModule("PatchA", "patch Owner.Plain after PatchOther { return next() + 2; }");
-        WriteModule("PatchB", "patch Owner.Plain { return next() + 3; }");
+        WriteModule("PatchOther", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchA", "[After(PatchOther)] patch Owner.Plain() { return next() + 2; }");
+        WriteModule("PatchB", "patch Owner.Plain() { return next() + 3; }");
 
         var (ok, log, _) = Mix("Test.PatchA", "Test.PatchB");
 
@@ -1587,8 +1587,8 @@ public class ExtensionPointTests : IDisposable
     public void AnOrderRuleOrdersTwoPatches()
     {
         WriteOwner();
-        WriteModule("PatchA", "patch Owner.Plain { return next() + 1; }");
-        WriteModule("PatchB", "patch Owner.Plain { return next() * 2; }");
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "patch Owner.Plain() { return next() * 2; }");
 
         var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Plain", "External", "Test.PatchB", "Test.PatchA"), "Test.PatchA", "Test.PatchB");
 
@@ -1600,21 +1600,21 @@ public class ExtensionPointTests : IDisposable
     public void TheMessageOfTwoPatchesNamesAClassAsItIsWritten()
     {
         WriteOwner();
-        Write("Gen", "module Gen<int N> { import Owner; patch Owner.Plain { return N; } }");
+        Write("Gen", "module Gen<int N> { import Owner; patch Owner.Plain() { return N; } }");
         WriteModule("UsesGen", "import Gen<1>;");
-        WriteModule("Other", "patch Owner.Plain { return 2; }");
+        WriteModule("Other", "patch Owner.Plain() { return 2; }");
 
         var (ok, log, _) = Mix(false, "Test.UsesGen", "Test.Other");
 
         Assert.False(ok, log);
-        Assert.Contains("Add 'after Gen' to the patch in Other", log);
+        Assert.Contains("Add [After(Gen)] to the patch in Other", log);
     }
 
     [Fact]
     public void OnePatchNeedsNoOrder()
     {
         WriteOwner();
-        WriteModule("PatchA", "patch Owner.Plain { return next() + 1; }");
+        WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
 
         var (ok, log, _) = Mix("Test.PatchA");
 
@@ -1626,8 +1626,8 @@ public class ExtensionPointTests : IDisposable
     public void APatchOfAChildComesAfterThePatchOfItsParent()
     {
         WriteOwner();
-        Write("PatchParent", "shader PatchParent { import Owner; patch Owner.Plain { return next() + 1; } }");
-        Write("PatchChild", "shader PatchChild : PatchParent { patch Owner.Plain { return next() * 2; } }");
+        Write("PatchParent", "shader PatchParent { import Owner; patch Owner.Plain() { return next() + 1; } }");
+        Write("PatchChild", "shader PatchChild : PatchParent { patch Owner.Plain() { return next() * 2; } }");
 
         var (ok, log, explanation) = Mix("Test.PatchChild");
 
@@ -1683,12 +1683,12 @@ public class ExtensionPointTests : IDisposable
     public void APatchInAPhaseIsAnError()
     {
         WriteOwner();
-        WriteModule("PatchA", "patch Owner.Plain in A { return next() + 1; }");
+        WriteModule("PatchA", "[Phase(A)] patch Owner.Plain() { return next() + 1; }");
 
         var (ok, log, _) = Mix("Test.PatchA");
 
         Assert.False(ok, log);
-        Assert.Contains("SDSL0143: patch of Owner.Plain: it is not an extension point, so it has no phases.", log);
+        Assert.Contains("SDSL0141: [Phase(A)] on PatchA.Plain: Plain is not an extension point, so it has no phases.", log);
     }
 
     [Fact]

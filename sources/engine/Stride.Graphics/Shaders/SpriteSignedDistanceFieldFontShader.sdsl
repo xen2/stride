@@ -11,7 +11,8 @@ shader SpriteSignedDistanceFieldFontShader
     module stream float4 Color : COLOR;
 
     // Shading of the sprite
-    extend SpriteBase.Shading in Post
+    [Phase(Post)]
+    extend SpriteBase.Shading()
     {
         return FontColor(next(), streams.Color, float4(0,0,0,1), 0.f);
     }

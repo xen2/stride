@@ -36,7 +36,7 @@ namespace Stride.Assets.Tests
 
                 override void PSMain() { base.PSMain(); streams.ColorTarget += 1; }
 
-                extend Entry.Pick { return 2; }
+                extend Entry.Pick() { return 2; }
             };
             """;
 
@@ -52,10 +52,10 @@ namespace Stride.Assets.Tests
         [Fact]
         public void AnExtendThatDropsAnotherFailsTheBuild()
         {
-            var (result, log) = Build("module Dropper { import Step; extend Entry.Pick { return 3; } };");
+            var (result, log) = Build("module Dropper { import Step; extend Entry.Pick() { return 3; } };");
 
             Assert.Equal(BuildResultCode.BuildError, result);
-            Assert.Contains(log.Messages, x => x.Type == LogMessageType.Error && x.Text.Contains("SDSL0136: Dropper.Pick doesn't call next, so Step never run in this effect. Write replaces Step, or call next."));
+            Assert.Contains(log.Messages, x => x.Type == LogMessageType.Error && x.Text.Contains("SDSL0136: Dropper.Pick doesn't call next, so Step never run in this effect. Write [Replaces(Step)] on it, or call next."));
         }
 
         [Fact]

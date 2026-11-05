@@ -52,7 +52,7 @@ internal sealed class ShaderUpgradeClass
     /// <summary>The methods whose first definition here declares a kind: name and signature.</summary>
     public HashSet<(string Name, string Signature)> DeclaredKinds { get; } = [];
 
-    /// <summary>The module methods this class overrides or extends, by name: <c>extend</c> can leave out the parameters.</summary>
+    /// <summary>The module methods this class overrides or extends, by name.</summary>
     public HashSet<string> Contributions { get; } = [];
 
     /// <summary>The overrides that state their place themselves: <c>[Phase]</c>, <c>[After]</c> or <c>[Replaces]</c>.</summary>

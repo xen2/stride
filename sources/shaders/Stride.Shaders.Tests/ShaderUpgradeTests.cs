@@ -514,7 +514,7 @@ public class ShaderUpgradeTests
     [Theory]
     [InlineData("inherited-module", "MyConstantTexture", "[Replaces(MyConstantColor)]", "SDSL0216")]
     [InlineData("engine-module", "MyInstancing", "[Replaces(TransformationBase)]", "SDSL0216")]
-    [InlineData("project-point", "MyLast", " replaces MyStep", "SDSL0136")]
+    [InlineData("project-point", "MyLast", "[Replaces(MyStep)]", "SDSL0136")]
     public void UpgradedReplacesCompilesInAnAssetBuild(string fixture, string shader, string written, string withoutIt)
     {
         var after = Path.Combine(FixturesDirectory, "add-replaces", fixture, "after");

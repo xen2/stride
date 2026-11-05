@@ -11,14 +11,16 @@ module NormalBase
     import NormalUpdate;
     import ShaderBase;
 
-    extend ShaderBase.VSMain in Attributes
+    [Phase(Attributes)]
+    extend ShaderBase.VSMain()
     {
         // Perform normal generation at the end in case vNormal is modified.
         // TODO: Another mechanism (compute on first access?)
         GenerateNormal_VS();
     }
 	
-    extend ShaderBase.PSMain in Input
+    [Phase(Input)]
+    extend ShaderBase.PSMain()
     {
         // Perform normal generation at beginning so that it is accessible during PS.
         // TODO: Another mechanism (compute on first access?)

@@ -12,7 +12,8 @@ module SpriteEffect
     float4 Color = float4(1,1,1,1);
 
     // Shading of the sprite
-    extend SpriteBase.Shading in Post
+    [Phase(Post)]
+    extend SpriteBase.Shading()
     {
         return next() * Color;
     }

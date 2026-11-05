@@ -9,7 +9,8 @@ namespace ShaderPipe
         import SpriteBase;
         import PipeOwner;
 
-        extend SpriteBase.Shading in Surface
+        [Phase(Surface)]
+        extend SpriteBase.Shading()
         {
             streams.PipeValue = 0.5;
             ModifyValue();

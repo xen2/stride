@@ -160,25 +160,8 @@ public static partial class ShaderUpgrader
         if (FindPoint(shaderClass, name, known, []) is not { IsModule: true } point)
             return;
 
-        string? phase = null, after = null, replaces = null;
-        foreach (Match attribute in Attribute.Matches(method.Groups["attributes"].Value))
-        {
-            switch (attribute.Groups[1].Value)
-            {
-                case "Phase":
-                    phase = attribute.Groups[2].Value.Trim();
-                    break;
-                case "After":
-                    after = attribute.Groups[2].Value;
-                    break;
-                case "Replaces":
-                    replaces = attribute.Groups[2].Value;
-                    break;
-                default:
-                    return;
-            }
-        }
-        // An added phase has no place to write its neighbours. Without a phase, the two forms mean different places.
+        var phase = Attribute.Matches(method.Groups["attributes"].Value).FirstOrDefault(x => x.Groups[1].Value == "Phase")?.Groups[2].Value.Trim();
+        // The place of an added phase is only known at link. Without a phase, the two forms mean different places.
         if (phase != null && phase.Contains('=', StringComparison.Ordinal))
             return;
         if (phase == null && point.Kind != "replace")
@@ -208,14 +191,8 @@ public static partial class ShaderUpgrader
                 edits.Add((call.Index, call.Length, "next("));
         }
 
-        var header = $"{method.Groups["indent"].Value}extend {point.Owner}.{name}{(parameters.Length > 0 ? $"({parameters})" : "")}";
-        if (phase != null)
-            header += $" in {phase}";
-        if (after != null)
-            header += $" after {after}";
-        if (replaces != null)
-            header += $" replaces {replaces}";
-        edits.Add((method.Index, method.Groups["space"].Index - method.Index, header));
+        var modifiers = method.Groups["modifiers"].Index;
+        edits.Add((modifiers, method.Groups["space"].Index - modifiers, $"extend {point.Owner}.{name}({parameters})"));
     }
 
     /// <summary>

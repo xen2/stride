@@ -8,7 +8,7 @@ namespace Stride.Shaders.Core;
 /// </summary>
 /// <param name="Owner">The full name of the class of the first definition.</param>
 /// <param name="Phases">In the order the call reaches them.</param>
-/// <param name="ParameterNames">The names of the parameters of the first definition: an <c>extend</c> uses them without repeating them.</param>
+/// <param name="ParameterNames">The names of the parameters of the first definition: the error of an <c>extend</c> with no parameters names them.</param>
 public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Owner, string[] Phases, string[] ParameterNames)
 {
     /// <summary>The phase of a <c>pipeline</c> or <c>around</c> written without phases, and of the default body of a pipeline that declares it.</summary>

@@ -78,8 +78,8 @@ public class ExtendSyntaxTests : IDisposable
     [Fact]
     public void AnExtendIsPlacedByItsPhase()
     {
-        WriteModule("StepA", "extend Owner.Run in A { streams.Steps = streams.Steps + 1; }");
-        WriteModule("StepEarly", "extend Owner.Run in Early { streams.Steps = 3; }");
+        WriteModule("StepA", "[Phase(A)] extend Owner.Run() { streams.Steps = streams.Steps + 1; }");
+        WriteModule("StepEarly", "[Phase(Early)] extend Owner.Run() { streams.Steps = 3; }");
 
         var (ok, log, explanation) = Mix(false, "Test.StepA", "Test.StepEarly");
 
@@ -90,8 +90,8 @@ public class ExtendSyntaxTests : IDisposable
     [Fact]
     public void AnExtendWithoutAPhaseIsInThePhaseOfTheDefaultBody()
     {
-        WriteModule("Step", "extend Owner.Run { streams.Steps = 3; }");
-        WriteModule("Inner", "extend Owner.Wrap { return next() + 1; }");
+        WriteModule("Step", "extend Owner.Run() { streams.Steps = 3; }");
+        WriteModule("Inner", "extend Owner.Wrap() { return next() + 1; }");
 
         var (ok, log, explanation) = Mix(false, "Test.Step", "Test.Inner");
 
@@ -101,11 +101,11 @@ public class ExtendSyntaxTests : IDisposable
     }
 
     [Fact]
-    public void TheClausesAreLikeTheAttributes()
+    public void TheAttributesOrderAndReplaceOnAnExtend()
     {
-        WriteModule("First", "extend Owner.Run in A { streams.Steps = 2; }");
-        WriteModule("Gone", "extend Owner.Run in A { streams.Steps = 4; }");
-        WriteModule("Second", "extend Owner.Run in A after First replaces Gone { streams.Steps = 3; }");
+        WriteModule("First", "[Phase(A)] extend Owner.Run() { streams.Steps = 2; }");
+        WriteModule("Gone", "[Phase(A)] extend Owner.Run() { streams.Steps = 4; }");
+        WriteModule("Second", "[Phase(A)] [After(First)] [Replaces(Gone)] extend Owner.Run() { streams.Steps = 3; }");
 
         var (ok, log, explanation) = Mix(true, "Test.Second", "Test.Gone", "Test.First");
 
@@ -115,17 +115,75 @@ public class ExtendSyntaxTests : IDisposable
         Assert.Contains("replaced by Second: Gone", block);
     }
 
+    // A class can be written with its namespace
+    [Fact]
+    public void AnAttributeTakesAFullClassName()
+    {
+        WriteModule("First", "[Phase(A)] extend Owner.Run() { streams.Steps = 2; }");
+        WriteModule("Gone", "[Phase(A)] extend Owner.Run() { streams.Steps = 4; }");
+        WriteModule("Second", "[Phase(A)] [After(Test.First)] [Replaces(Test.Gone)] extend Owner.Run() { streams.Steps = 3; }");
+
+        var (ok, log, explanation) = Mix(true, "Test.Second", "Test.Gone", "Test.First");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Contains("A: First > Second   order: after", block);
+        Assert.Contains("replaced by Second: Gone", block);
+    }
+
+    // One adds a phase of the point, the other orders this class in it
+    [Fact]
+    public void AnAddedPhaseAndAnOrderCanBeWrittenTogether()
+    {
+        WriteModule("First", "[Phase(Wind, After = A)] extend Owner.Run() { streams.Steps = 2; }");
+        WriteModule("Second", "[Phase(Wind, After = A)] [After(First)] extend Owner.Run() { streams.Steps = 3; }");
+
+        var (ok, log, explanation) = Mix(true, "Test.Second", "Test.First");
+
+        Assert.True(ok, log);
+        Assert.Contains("Wind: First > Second   order: after", Block(explanation, "Run"));
+    }
+
     [Theory]
-    [InlineData("extend Owner.RunWith { other = other + value; }")]
-    [InlineData("extend Owner.RunWith(float value, inout float other) { other = other + value; }")]
-    public void TheParametersComeFromTheMethodOrAreRepeated(string member)
+    [InlineData("extend Owner.Run in A { }", "SDSL0143: extend of Owner.Run: in, after and replaces are attributes. Write [Phase(A)] extend Owner.Run(...).")]
+    [InlineData("extend Owner.Run() in A { }", "SDSL0143: extend of Owner.Run: in, after and replaces are attributes. Write [Phase(A)] extend Owner.Run(...).")]
+    [InlineData("extend Owner.Run in A after First, Second replaces Gone { }", "SDSL0143: extend of Owner.Run: in, after and replaces are attributes. Write [Phase(A)] [After(First, Second)] [Replaces(Gone)] extend Owner.Run(...).")]
+    [InlineData("patch Owner.Plain after First { return 1; }", "SDSL0143: patch of Owner.Plain: in, after and replaces are attributes. Write [After(First)] patch Owner.Plain(...).")]
+    public void AnOldClauseNamesTheAttribute(string member, string expected)
     {
         WriteModule("Step", member);
+
+        var (ok, log, _) = Mix(false, "Test.Step");
+
+        Assert.False(ok, log);
+        Assert.Contains(expected, log);
+    }
+
+    [Theory]
+    [InlineData("extend Owner.Run { }", "SDSL0143: extend of Owner.Run: write the parameters, as an override does: extend Owner.Run().")]
+    [InlineData("extend Owner.RunWith { other = other + value; }", "SDSL0143: extend of Owner.RunWith: write the parameters, as an override does: extend Owner.RunWith(float value, inout float other).")]
+    [InlineData("patch Owner.Plain { return 1; }", "SDSL0143: patch of Owner.Plain: write the parameters, as an override does: patch Owner.Plain().")]
+    public void LeftOutParametersAreAnError(string member, string expected)
+    {
+        WriteModule("Step", member);
+
+        var (ok, log, _) = Mix(false, "Test.Step");
+
+        Assert.False(ok, log);
+        Assert.Contains(expected, log);
+        Assert.DoesNotContain("SDSL0176", log);
+    }
+
+    [Fact]
+    public void TheParametersAreWritten()
+    {
+        WriteModule("Step", "extend Owner.RunWith(float value, inout float other) { other = other + value; }");
 
         var (ok, log, explanation) = Mix(false, "Test.Step");
 
         Assert.True(ok, log);
         Assert.Contains("Default: Owner > Step", Block(explanation, "RunWith"));
+        Assert.DoesNotContain("SDSL0176", log);
     }
 
     [Fact]
@@ -141,9 +199,9 @@ public class ExtendSyntaxTests : IDisposable
     [Fact]
     public void NextReachesTheContributorInward()
     {
-        WriteModule("Outside", "extend Owner.Wrap in Outer { return next() * 2; }");
-        WriteModule("Inside", "extend Owner.Wrap in Inner { return next() + 1; }");
-        WriteModule("Winner", "extend Owner.Pick { return next(value) * 2; }");
+        WriteModule("Outside", "[Phase(Outer)] extend Owner.Wrap() { return next() * 2; }");
+        WriteModule("Inside", "[Phase(Inner)] extend Owner.Wrap() { return next() + 1; }");
+        WriteModule("Winner", "extend Owner.Pick(float value) { return next(value) * 2; }");
 
         var (ok, log, explanation) = Mix(false, "Test.Outside", "Test.Inside", "Test.Winner");
 
@@ -164,15 +222,15 @@ public class ExtendSyntaxTests : IDisposable
     }
 
     [Theory]
-    [InlineData("extend Owner.Run in A { next(); }", "SDSL0144")]
-    [InlineData("extend Owner.Run in A { base.Run(); }", "SDSL0144")]
-    [InlineData("extend Owner.Plain { return 2; }", "SDSL0143")]
-    [InlineData("extend Owner.Missing { }", "SDSL0143")]
-    [InlineData("patch Owner.Run { }", "SDSL0143")]
-    [InlineData("patch Owner.Missing { }", "SDSL0143")]
-    [InlineData("extend NoSuchClass.Run { }", "SDSL0110")]
-    [InlineData("extend Owner.Run in Missing { }", "SDSL0141")]
-    [InlineData("extend Owner.Pick in A { return 1; }", "SDSL0141")]
+    [InlineData("[Phase(A)] extend Owner.Run() { next(); }", "SDSL0144")]
+    [InlineData("[Phase(A)] extend Owner.Run() { base.Run(); }", "SDSL0144")]
+    [InlineData("extend Owner.Plain() { return 2; }", "SDSL0143")]
+    [InlineData("extend Owner.Missing() { }", "SDSL0143")]
+    [InlineData("patch Owner.Run() { }", "SDSL0143")]
+    [InlineData("patch Owner.Missing() { }", "SDSL0143")]
+    [InlineData("extend NoSuchClass.Run() { }", "SDSL0110")]
+    [InlineData("[Phase(Missing)] extend Owner.Run() { }", "SDSL0141")]
+    [InlineData("[Phase(A)] extend Owner.Pick(float value) { return 1; }", "SDSL0141")]
     public void AWrongExtendIsAnError(string member, string code)
     {
         WriteModule("Wrong", member);
@@ -196,9 +254,9 @@ public class ExtendSyntaxTests : IDisposable
         """);
 
     [Theory]
-    [InlineData("extend Over.Value { return 1; }")]
-    [InlineData("patch Over.Plain { return 1; }")]
-    public void AnOverloadedMethodNeedsItsParameters(string member)
+    [InlineData("extend Over.Value { return 1; }", "extend Over.Value(float a) or extend Over.Value(float a, float b)")]
+    [InlineData("patch Over.Plain { return 1; }", "patch Over.Plain(float) or patch Over.Plain(float, float)")]
+    public void AnOverloadedMethodNamesItsSignatures(string member, string expected)
     {
         WriteOverloads();
         Write("Ext", $"module Ext {{ import Over; {member} }}");
@@ -207,7 +265,7 @@ public class ExtendSyntaxTests : IDisposable
 
         Assert.False(ok, log);
         Assert.Contains("SDSL0143", log);
-        Assert.Contains("several overloads", log);
+        Assert.Contains(expected, log);
         Assert.DoesNotContain("SDSL0175", log);
         Assert.DoesNotContain("SDSL0176", log);
     }
@@ -229,25 +287,23 @@ public class ExtendSyntaxTests : IDisposable
     [Theory]
     [InlineData("float3 a[2]")]
     [InlineData("Texture2D a")]
-    public void AParameterThatIsMoreThanANameHasToBeWritten(string parameter)
+    public void AParameterOfAnyTypeIsWritten(string parameter)
     {
         Write("Over", $"module Over {{ replace float Value({parameter}) {{ return 0; }} }}");
-        Write("Ext", "module Ext { import Over; extend Over.Value { return 1; } }");
+        Write("Ext", $"module Ext {{ import Over; extend Over.Value({parameter}) {{ return 1; }} }}");
 
         var (ok, log, _) = Mix(false, "Test.Ext");
 
-        Assert.False(ok, log);
-        Assert.Contains("write the parameters", log);
-        Assert.DoesNotContain("SDSL0176", log);
+        Assert.True(ok, log);
     }
 
     // The mixer checks the place of the call to base, and a step before the default body has it last
     [Theory]
-    [InlineData("[Phase(Early)] extend Owner.Run { streams.Steps = 2; }")]
-    [InlineData("[Phase(Wind, After = Early)] extend Owner.Run { streams.Steps = 2; }")]
-    [InlineData("[Phase(Wind, Before = Default)] extend Owner.Run { streams.Steps = 2; }")]
-    [InlineData("[Phase(Wind, After = Default)] extend Owner.Run { streams.Steps = 2; }")]
-    [InlineData("[Phase(Wind, Before = A)] extend Owner.Run { streams.Steps = 2; }")]
+    [InlineData("[Phase(Early)] extend Owner.Run() { streams.Steps = 2; }")]
+    [InlineData("[Phase(Wind, After = Early)] extend Owner.Run() { streams.Steps = 2; }")]
+    [InlineData("[Phase(Wind, Before = Default)] extend Owner.Run() { streams.Steps = 2; }")]
+    [InlineData("[Phase(Wind, After = Default)] extend Owner.Run() { streams.Steps = 2; }")]
+    [InlineData("[Phase(Wind, Before = A)] extend Owner.Run() { streams.Steps = 2; }")]
     public void APhaseAttributeOnAnExtendPlacesItsCallToBase(string member)
     {
         WriteModule("Step", member);
@@ -260,21 +316,21 @@ public class ExtendSyntaxTests : IDisposable
     [Fact]
     public void AnExtendThatDropsOthersIsAnErrorInAnAssetBuild()
     {
-        WriteModule("Inside", "extend Owner.Wrap in Inner { return next() + 1; }");
-        WriteModule("Dropper", "extend Owner.Wrap in Outer { return 2; }");
+        WriteModule("Inside", "[Phase(Inner)] extend Owner.Wrap() { return next() + 1; }");
+        WriteModule("Dropper", "[Phase(Outer)] extend Owner.Wrap() { return 2; }");
 
         var (ok, log, _) = Mix(true, "Test.Inside", "Test.Dropper");
 
         Assert.False(ok, log);
         Assert.Contains("Error: SDSL0136: Dropper.Wrap doesn't call next, so Inside never run", log);
-        Assert.Contains("Write replaces Inside, or call next", log);
+        Assert.Contains("Write [Replaces(Inside)] on it, or call next", log);
     }
 
     [Fact]
     public void AnExtendThatDropsOthersIsInformationInAMixBuiltAtRunTime()
     {
-        WriteModule("Inside", "extend Owner.Wrap in Inner { return next() + 1; }");
-        WriteModule("Dropper", "extend Owner.Wrap in Outer { return 2; }");
+        WriteModule("Inside", "[Phase(Inner)] extend Owner.Wrap() { return next() + 1; }");
+        WriteModule("Dropper", "[Phase(Outer)] extend Owner.Wrap() { return 2; }");
 
         var (ok, log, _) = Mix(false, "Test.Inside", "Test.Dropper");
 
@@ -308,8 +364,8 @@ public class ExtendSyntaxTests : IDisposable
     [InlineData("float x = value;", "float y = value;", true)]
     public void AnExtendConflictsOverWhatItsBodyDoes(string first, string second, bool ok)
     {
-        WriteModule("First", $"extend Owner.RunWith in A {{ {first} }}");
-        WriteModule("Second", $"extend Owner.RunWith in A {{ {second} }}");
+        WriteModule("First", $"[Phase(A)] extend Owner.RunWith(float value, inout float other) {{ {first} }}");
+        WriteModule("Second", $"[Phase(A)] extend Owner.RunWith(float value, inout float other) {{ {second} }}");
 
         var (mixed, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
 
@@ -320,8 +376,8 @@ public class ExtendSyntaxTests : IDisposable
     [Fact]
     public void AnExtendThatStatesWhatItReplacesIsNotADrop()
     {
-        WriteModule("Inside", "extend Owner.Wrap in Inner { return next() + 1; }");
-        WriteModule("Replacement", "extend Owner.Wrap in Outer replaces Inside { return 2; }");
+        WriteModule("Inside", "[Phase(Inner)] extend Owner.Wrap() { return next() + 1; }");
+        WriteModule("Replacement", "[Phase(Outer)] [Replaces(Inside)] extend Owner.Wrap() { return 2; }");
 
         var (ok, log, _) = Mix(false, "Test.Inside", "Test.Replacement");
 
@@ -331,7 +387,7 @@ public class ExtendSyntaxTests : IDisposable
     [Fact]
     public void TheCompatFormIsAnErrorInAnAssetBuild()
     {
-        WriteModule("Inside", "extend Owner.Wrap in Inner { return next() + 1; }");
+        WriteModule("Inside", "[Phase(Inner)] extend Owner.Wrap() { return next() + 1; }");
         WriteModule("Dropper", "[Phase(Outer)] override float Wrap() { return 2; }");
 
         var (ok, log, _) = Mix(true, "Test.Inside", "Test.Dropper");
@@ -343,7 +399,7 @@ public class ExtendSyntaxTests : IDisposable
     [Fact]
     public void TheCompatFormIsInformationInAMixBuiltAtRunTime()
     {
-        WriteModule("Inside", "extend Owner.Wrap in Inner { return next() + 1; }");
+        WriteModule("Inside", "[Phase(Inner)] extend Owner.Wrap() { return next() + 1; }");
         WriteModule("Dropper", "[Phase(Outer)] override float Wrap() { return 2; }");
 
         var (ok, log, _) = Mix(false, "Test.Inside", "Test.Dropper");
@@ -355,7 +411,7 @@ public class ExtendSyntaxTests : IDisposable
     [Fact]
     public void APatchChangesAMethodThatIsNotAnExtensionPoint()
     {
-        WriteModule("Patch", "patch Owner.Plain { return next() + 1; }");
+        WriteModule("Patch", "patch Owner.Plain() { return next() + 1; }");
 
         var (ok, log, explanation) = Mix(true, "Test.Patch");
 
@@ -405,7 +461,8 @@ public class ExtendSyntaxTests : IDisposable
             {
                 import Owner;
 
-                extend Owner.Run in A
+                [Phase(A)]
+                extend Owner.Run()
                 {
                     // Kept
                     streams.Steps = 2;
@@ -434,7 +491,7 @@ public class ExtendSyntaxTests : IDisposable
             }
             """);
 
-        Assert.Contains("extend Owner.Run in Early after Other replaces Gone, Early\n    {\n        streams.Steps = 2;\n    }", result);
+        Assert.Contains("[Phase(Early)]\n    [After(Other)]\n    [Replaces(Gone, Early)]\n    extend Owner.Run()\n    {\n        streams.Steps = 2;\n    }", result);
     }
 
     [Fact]
@@ -460,8 +517,8 @@ public class ExtendSyntaxTests : IDisposable
             }
             """);
 
-        Assert.Contains("extend Owner.Wrap in Outer\n    {\n        float value = next();", result);
-        Assert.Contains("extend Owner.Pick(float value) replaces Other\n    {\n        return next(value);", result);
+        Assert.Contains("[Phase(Outer)]\n    extend Owner.Wrap()\n    {\n        float value = next();", result);
+        Assert.Contains("[Replaces(Other)]\n    extend Owner.Pick(float value)\n    {\n        return next(value);", result);
     }
 
     [Theory]
@@ -499,7 +556,7 @@ public class ExtendSyntaxTests : IDisposable
             }
             """);
 
-        Assert.Contains("extend Owner.RunWith(float value, inout float other) in A\n    {\n        other = 2;", result);
+        Assert.Contains("[Phase(A)]\n    extend Owner.RunWith(float value, inout float other)\n    {\n        other = 2;", result);
     }
 
     [Fact]
@@ -522,7 +579,7 @@ public class ExtendSyntaxTests : IDisposable
     public void TheUpgraderLeavesThePatchOfAMethodOfTheProject()
     {
         const string plain = "module Plain\n{\n    float Value() { return 1; }\n}\n";
-        const string patch = "module MyPatch\n{\n    import Plain;\n\n    patch Plain.Value { return 2; }\n}\n";
+        const string patch = "module MyPatch\n{\n    import Plain;\n\n    patch Plain.Value() { return 2; }\n}\n";
 
         var result = ShaderUpgrader.Upgrade(new Dictionary<string, string> { ["Plain.sdsl"] = plain, ["MyPatch.sdsl"] = patch }, engine: null, implicitUsings: []);
 
@@ -535,7 +592,7 @@ public class ExtendSyntaxTests : IDisposable
     {
         var once = Upgrade("module Step\n{\n    import Owner;\n\n    [Phase(A)]\n    override void Run()\n    {\n        base.Run();\n    }\n}\n");
 
-        Assert.Contains("extend Owner.Run in A", once);
+        Assert.Contains("[Phase(A)]\n    extend Owner.Run()", once);
         Assert.Equal(once, Upgrade(once));
     }
 }

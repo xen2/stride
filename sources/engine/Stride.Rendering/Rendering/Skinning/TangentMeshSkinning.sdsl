@@ -12,7 +12,9 @@ shader TangentMeshSkinning
     import TransformationSkinning;
     import NormalStream;
 
-    extend TransformationBase.PreTransformPosition in World after TransformationSkinning, TransformationSkinningInstanced
+    [Phase(World)]
+    [After(TransformationSkinning, TransformationSkinningInstanced)]
+    extend TransformationBase.PreTransformPosition()
     {
         streams.meshTangent.xyz = mul(streams.meshTangent.xyz, (float3x3)streams.skinningBlendMatrix);
     }

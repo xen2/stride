@@ -27,7 +27,8 @@ shader SpriteBatchShader<bool TSRgb>
     }
 
     // Shading of the sprite
-    extend SpriteBase.Shading in Post
+    [Phase(Post)]
+    extend SpriteBase.Shading()
     {
         // Because we use float input values we should allow certain threshold - lets fix it at 0.1
 

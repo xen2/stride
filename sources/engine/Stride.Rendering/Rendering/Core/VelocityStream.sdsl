@@ -10,7 +10,8 @@ module VelocityStream
     // Screen space velocity
     stream float2 velocity;
 
-    extend ShaderBase.VSMain in Attributes
+    [Phase(Attributes)]
+    extend ShaderBase.VSMain()
     {
         streams.velocity = float2(0,0);
     }

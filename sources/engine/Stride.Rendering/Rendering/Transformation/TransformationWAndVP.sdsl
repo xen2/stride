@@ -11,12 +11,14 @@ shader TransformationWAndVP : PositionHStream4
     import TransformationBase;
     import PositionStream4;
 
-    extend TransformationBase.PreTransformPosition in World
+    [Phase(World)]
+    extend TransformationBase.PreTransformPosition()
     {
         streams.PositionWS = mul(streams.Position, Transformation.World);
     }
 
-    extend TransformationBase.PostTransformPosition in Project
+    [Phase(Project)]
+    extend TransformationBase.PostTransformPosition()
     {
         streams.ShadingPosition = ComputeShadingPosition(streams.PositionWS);
         streams.PositionH = streams.ShadingPosition;

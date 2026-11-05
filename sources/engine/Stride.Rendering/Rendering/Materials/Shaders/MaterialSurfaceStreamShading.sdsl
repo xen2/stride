@@ -5,7 +5,8 @@ namespace Stride.Rendering.Materials
     // Temporary code for testing IMaterialSurface
     shader MaterialSurfaceStreamShading<MemberName TStreamName, MemberName TStreamRGB, bool RemapSigned> : ShadingBase, MaterialPixelShadingStream
     {
-        extend ShadingBase.Shading in Post
+        [Phase(Post)]
+        extend ShadingBase.Shading()
         {
             // Run surface shading but don't take the result
             next();

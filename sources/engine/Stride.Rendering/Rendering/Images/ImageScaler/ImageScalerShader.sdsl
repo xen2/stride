@@ -16,7 +16,9 @@ namespace Stride.Rendering.Images
         module float IsOnlyChannelRed;
 
         // Shading of the sprite
-        extend SpriteBase.Shading in Post after SpriteSuperSampler
+        [Phase(Post)]
+        [After(SpriteSuperSampler)]
+        extend SpriteBase.Shading()
         {
             float4 color = next();
             if (IsOnlyChannelRed != 0)

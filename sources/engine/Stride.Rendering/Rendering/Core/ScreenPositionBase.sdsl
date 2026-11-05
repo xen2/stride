@@ -14,12 +14,15 @@ module ScreenPositionBase
     // The position in screen space
     stream float4 ScreenPosition;
 
-    extend ShaderBase.VSMain in Screen
+    [Phase(Screen)]
+    extend ShaderBase.VSMain()
     {
         streams.ScreenPosition = streams.ShadingPosition;
     }
 
-    extend ShaderBase.PSMain in Input after MeshVelocity
+    [Phase(Input)]
+    [After(MeshVelocity)]
+    extend ShaderBase.PSMain()
     {
         streams.ScreenPosition /= streams.ScreenPosition.w;
     }

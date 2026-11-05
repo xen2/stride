@@ -35,7 +35,8 @@ module TransformationBase
         this.PostTransformPosition();
     }
 
-    extend ShaderBase.VSMain in Transform
+    [Phase(Transform)]
+    extend ShaderBase.VSMain()
     {
         this.BaseTransformVS();
     }

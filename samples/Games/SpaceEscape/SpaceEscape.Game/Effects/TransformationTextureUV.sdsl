@@ -6,7 +6,8 @@ shader TransformationTextureUV
     import ShaderBase;
     import Texturing;
 
-    extend ShaderBase.VSMain in Input
+    [Phase(Input)]
+    extend ShaderBase.VSMain()
     {
         TransformUV_VS();
     }

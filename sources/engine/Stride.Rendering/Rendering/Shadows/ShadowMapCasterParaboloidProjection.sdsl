@@ -28,7 +28,8 @@ namespace Stride.Rendering.Shadows
             streams.ShadingPosition = ComputeParaboloidProjection(streams.PositionWS, streams.DepthVS);
         }
 
-        extend TransformationBase.ComputeShadingPosition(float4 world) replaces TransformationWAndVP
+        [Replaces(TransformationWAndVP)]
+        extend TransformationBase.ComputeShadingPosition(float4 world)
         {
             float dummy;
             return ComputeParaboloidProjection(world, dummy);

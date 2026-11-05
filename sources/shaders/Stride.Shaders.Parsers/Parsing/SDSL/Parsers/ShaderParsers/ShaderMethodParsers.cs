@@ -209,8 +209,8 @@ public record struct MethodParser : IParser<ShaderMethod>
     }
 
     /// <summary>
-    /// <c>extend Owner.Method [(parameters)] [in Phase] [after X, Y] [replaces Z] { }</c>, or <c>patch Owner.Method [(parameters)] [after X, Y] { }</c>. The words are not
-    /// reserved: <c>patch x;</c> is a member.
+    /// <c>extend Owner.Method(parameters) { }</c> or <c>patch Owner.Method(parameters) { }</c>. The words are not reserved: <c>patch x;</c> is a member.
+    /// A form with no parameters, or with <c>in</c>, <c>after</c> or <c>replaces</c>, is read for its error.
     /// </summary>
     private static bool Extend<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderMethod parsed)
         where TScanner : struct, IScanner
@@ -240,9 +240,9 @@ public record struct MethodParser : IParser<ShaderMethod>
             }
         }
 
-        Identifier? phase = null;
-        var after = new List<Identifier>();
-        var replaces = new List<Identifier>();
+        var phase = "";
+        var after = new List<string>();
+        var replaces = new List<string>();
         while (true)
         {
             Parsers.Spaces0(ref scanner, result, out _);
@@ -251,11 +251,12 @@ public record struct MethodParser : IParser<ShaderMethod>
             {
                 if (word == "in")
                 {
-                    if (!LiteralsParser.Identifier(ref scanner, result, out phase))
+                    if (!LiteralsParser.Identifier(ref scanner, result, out var phaseName))
                     {
                         scanner.Position = position;
                         return false;
                     }
+                    phase = phaseName.Name;
                 }
                 else
                 {
@@ -268,7 +269,7 @@ public record struct MethodParser : IParser<ShaderMethod>
                             scanner.Position = position;
                             return false;
                         }
-                        names.Add(new Identifier(string.Join('.', target), scanner[clause..scanner.Position]));
+                        names.Add(string.Join('.', target));
                     }
                     while (Parsers.FollowedBy(ref scanner, Tokens.Char(','), withSpaces: true, advance: true));
                 }
@@ -296,9 +297,17 @@ public record struct MethodParser : IParser<ShaderMethod>
         {
             Parameters = parameters ?? [],
             Body = block,
-            Extend = new ExtendClause(keyword == "patch", string.Join('.', path.Take(path.Count - 1)), hasParameters, phase, after, replaces),
+            Extend = new ExtendClause(keyword == "patch", string.Join('.', path.Take(path.Count - 1)), hasParameters, ClauseAttributes(phase, after, replaces)),
         };
         return true;
+    }
+
+    private static string? ClauseAttributes(string phase, List<string> after, List<string> replaces)
+    {
+        var attributes = (phase.Length > 0 ? $"[Phase({phase})] " : "")
+            + (after.Count > 0 ? $"[After({string.Join(", ", after)})] " : "")
+            + (replaces.Count > 0 ? $"[Replaces({string.Join(", ", replaces)})] " : "");
+        return attributes.Length > 0 ? attributes : null;
     }
 }
 

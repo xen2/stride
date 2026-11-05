@@ -20,13 +20,15 @@ shader MeshVelocity
     // The previous position in screen space
     module stream float4 PreviousPosition;
 
-    extend ShaderBase.VSMain in Screen
+    [Phase(Screen)]
+    extend ShaderBase.VSMain()
     {
         // Calculate previous world position
         streams.PreviousPosition = mul(streams.Position, PreviousWorldViewProjection);
     }
     
-    extend ShaderBase.PSMain in Input
+    [Phase(Input)]
+    extend ShaderBase.PSMain()
     {
         // Calculate screen space velocity
         float2 position = streams.ScreenPosition.xy / streams.ScreenPosition.w;

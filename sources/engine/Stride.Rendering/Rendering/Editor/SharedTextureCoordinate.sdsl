@@ -8,7 +8,8 @@ shader SharedTextureCoordinate
     import ShaderBase;
     import Texturing;
 
-    extend ShaderBase.PSMain in Input
+    [Phase(Input)]
+    extend ShaderBase.PSMain()
     {
         // Remap all texture coords to TEXCOORD0
         streams.TexCoord1 = streams.TexCoord;
@@ -22,7 +23,8 @@ shader SharedTextureCoordinate
         streams.TexCoord9 = streams.TexCoord;
     }
 
-    extend ShaderBase.VSMain in Screen
+    [Phase(Screen)]
+    extend ShaderBase.VSMain()
     {
     }
 };

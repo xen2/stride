@@ -13,7 +13,8 @@ namespace Stride.Rendering.Materials
         compose IMaterialSurface materialPixelStage;
         compose IStreamInitializer streamInitializerPixelStage;
 
-        extend ShadingBase.Shading in Surface
+        [Phase(Surface)]
+        extend ShadingBase.Shading()
         {
             // Prepare global streams (temp)
             streams.viewWS = normalize(Eye.xyz - streams.PositionWS.xyz);

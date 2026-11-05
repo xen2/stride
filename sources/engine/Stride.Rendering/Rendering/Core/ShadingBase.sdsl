@@ -50,7 +50,8 @@ shader ShadingBase
         return ShadingColor0.Compute();
     }
     
-    extend ShaderBase.PSMain in Shade
+    [Phase(Shade)]
+    extend ShaderBase.PSMain()
     {
         streams.ColorTarget = this.Shading();
 

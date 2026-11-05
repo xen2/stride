@@ -12,7 +12,8 @@ shader ColorTransformGroupShader
 
     compose ColorTransformShader Transforms[];
 
-    extend SpriteBase.Shading in Post
+    [Phase(Post)]
+    extend SpriteBase.Shading()
     {
         float4 color = next();
 
