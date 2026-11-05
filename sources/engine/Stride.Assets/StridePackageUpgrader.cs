@@ -163,6 +163,9 @@ namespace Stride.Assets
                 ShaderNames(EngineShaderClasses.Current),
             ]);
 
+            // 4.5: a key name written as text no longer matches, and nothing says so.
+            registry.CodeNote("4.5.1.0", KeyNamesAsText(EngineShaderClasses.Current));
+
             // Structural csproj migrations, gated by the version each change landed at. Run against the
             // NEW-version project (after the reference bump) by UpgradeBeforeAssembliesLoaded.
             registry.Project("4.1.0.0", UpgradeProjectTo41);

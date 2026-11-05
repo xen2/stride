@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
+using Stride.Core.Diagnostics;
 using Stride.Assets;
 using Xunit;
 using Stride.Shaders.Parsing.Upgrade;
@@ -103,6 +104,54 @@ public class TestCodeUpgrade
         "Texturing\t0\tmodule\t-\t-\t\t\tStride.Rendering.Texturing\tTexture0\n" +
         "Global\t0\tshader\t-\t-\t\t\tGlobal\tTime\n" +
         "MyEffect\t0\teffect\t-\t-\t\t\tStride.Rendering.MyEffect\t\n");
+
+    private static async Task<List<string>> KeyNameNotesAsync(string source)
+    {
+        using var workspace = new AdhocWorkspace();
+        var project = workspace.AddProject("TestProject", LanguageNames.CSharp);
+        var solution = workspace.CurrentSolution.AddDocument(DocumentId.CreateNewId(project.Id), "Test.cs", SourceText.From(source), filePath: Path.Combine(Path.GetTempPath(), "Test.cs"));
+        // As the runner does it: after the migrations
+        solution = await ShaderNames(ShaderNameEngine)(solution, [project.Id], CancellationToken.None);
+
+        var log = new LoggerResult();
+        await KeyNamesAsText(ShaderNameEngine)(solution, [project.Id], log, CancellationToken.None);
+        return log.Messages.Select(x => x.Text).ToList();
+    }
+
+    [Theory]
+    [InlineData("""string A(string entry) => $"Texturing.{entry}";""", "Stride.Rendering.Texturing.")]
+    [InlineData("""bool A(string name) => name.StartsWith("Texturing.Tex");""", "Stride.Rendering.Texturing.Tex")]
+    [InlineData("""const string A = "Texturing.Texture0";""", "Stride.Rendering.Texturing.Texture0")]
+    public async Task AKeyNameAsTextGetsANoteWithTheFullName(string member, string fullName)
+    {
+        var notes = await KeyNameNotesAsync($"class Usage {{ {member} }}");
+
+        var note = Assert.Single(notes);
+        Assert.Contains(fullName, note);
+        Assert.Contains($"Test.cs(1)", note);
+    }
+
+    [Theory]
+    // Not a key of the class, not a class with keys, a class with no namespace, a class alone
+    [InlineData("""const string A = "Texturing.Other";""")]
+    [InlineData("""const string A = "MyEffect.Child";""")]
+    [InlineData("""const string A = "Global.Time";""")]
+    [InlineData("""const string A = "Texturing";""")]
+    [InlineData("""string A(string entry) => $"{entry}.Texturing.";""")]
+    public async Task OtherStringsGetNoNote(string member)
+    {
+        Assert.Empty(await KeyNameNotesAsync($"class Usage {{ {member} }}"));
+    }
+
+    [Fact]
+    public async Task AKeyNameTheUpgradeRewritesGetsNoNote()
+    {
+        var source = ShaderApiSource + """
+            class Usage { object A = Stride.Rendering.ParameterKeys.FindByName("Texturing.Texture0"); }
+            """;
+
+        Assert.Empty(await KeyNameNotesAsync(source));
+    }
 
     [Fact]
     public async Task ShaderNamesTakeTheirFullName()

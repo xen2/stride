@@ -27,7 +27,7 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
     {
         // Resolve each pending upgrader's applicable code rules up front. If nothing applies, never open
         // the (expensive) workspace — this keeps project-only upgrades at exactly today's cost.
-        var plans = new List<(PendingCodeUpgrade Pending, List<CodeUpgrade> Upgrades)>();
+        var plans = new List<(PendingCodeUpgrade Pending, List<CodeUpgrade> Upgrades, List<CodeUpgradeNote> Notes)>();
         foreach (var item in pending)
         {
             if (item.Upgrader is not ICodeUpgradeProvider provider)
@@ -57,8 +57,9 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
 
                 applicable.AddRange(registration.Upgrades);
             }
-            if (applicable.Count > 0)
-                plans.Add((item, applicable));
+            var notes = registry.CodeNotes.Where(x => item.FromVersion.Version < x.GateVersion.Version).Select(x => x.Note).ToList();
+            if (applicable.Count > 0 || notes.Count > 0)
+                plans.Add((item, applicable, notes));
         }
         if (plans.Count == 0)
         {
@@ -85,7 +86,7 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
         }
     }
 
-    private static async Task RunAsync(UFile? solutionPath, List<(PendingCodeUpgrade Pending, List<CodeUpgrade> Upgrades)> plans, UpgradeBackup? backup, ILogger log)
+    private static async Task RunAsync(UFile? solutionPath, List<(PendingCodeUpgrade Pending, List<CodeUpgrade> Upgrades, List<CodeUpgradeNote> Notes)> plans, UpgradeBackup? backup, ILogger log)
     {
         var cancellationToken = CancellationToken.None;
 
@@ -99,7 +100,7 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
         else
         {
             // Standalone upgrade (no solution): open each pending project directly into the workspace.
-            foreach (var (pendingItem, _) in plans)
+            foreach (var (pendingItem, _, _) in plans)
                 await workspace.OpenProjectAsync(pendingItem.ProjectFullPath.ToOSPath(), cancellationToken: cancellationToken);
         }
 
@@ -116,7 +117,7 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
         }
 
         var solution = originalSolution;
-        foreach (var (pendingItem, upgrades) in plans)
+        foreach (var (pendingItem, upgrades, notes) in plans)
         {
             var projectOsPath = pendingItem.ProjectFullPath.ToOSPath();
             var project = solution.Projects.FirstOrDefault(x => PathsEqual(x.FilePath, projectOsPath));
@@ -137,6 +138,18 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
                 catch (Exception e) when (e is not NotImplementedException)
                 {
                     log.Warning($"Code upgrade: a source migration of [{pendingItem.ProjectFullPath.GetFileName()}] failed and was skipped; its code is left unchanged.", e);
+                }
+            }
+
+            foreach (var note in notes)
+            {
+                try
+                {
+                    await note(solution, targets, log, cancellationToken);
+                }
+                catch (Exception e)
+                {
+                    log.Warning($"Code upgrade: unable to look for notes in [{pendingItem.ProjectFullPath.GetFileName()}].", e);
                 }
             }
         }
