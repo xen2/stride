@@ -16,7 +16,8 @@ namespace Stride.MaterialTestBed
             float snow;
         };
 
-        extend TestBedSurfaceModifiers.ModifySurface in Scene
+        [Phase(Scene)]
+        extend TestBedSurfaceModifiers.ModifySurface(inout Surface s, SurfaceInput input)
         {
             s.snow = saturate(input.positionWS.y * 2.0);
             s.albedo = lerp(s.albedo, float3(1.0, 1.0, 1.0), s.snow);

@@ -16,14 +16,16 @@ namespace Stride.MaterialTestBed
             float wetness;
         };
 
-        extend TestBedSurfaceModifiers.ModifySurface in Scene
+        [Phase(Scene)]
+        extend TestBedSurfaceModifiers.ModifySurface(inout Surface s, SurfaceInput input)
         {
             s.wetness = saturate(1.0 - input.positionWS.y * 2.0);
             s.albedo *= lerp(1.0, 0.5, s.wetness);
             s.roughness = lerp(s.roughness, 0.1, s.wetness);
         }
 
-        extend TestBedSurfaceModifiers.ModifyOutput in Scene
+        [Phase(Scene)]
+        extend TestBedSurfaceModifiers.ModifyOutput(inout float3 color, Surface s)
         {
             color *= lerp(float3(1.0, 1.0, 1.0), float3(0.8, 0.9, 1.0), s.wetness);
         }

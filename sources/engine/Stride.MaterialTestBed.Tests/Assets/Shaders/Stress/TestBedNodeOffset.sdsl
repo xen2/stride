@@ -6,7 +6,8 @@ namespace Stride.MaterialTestBed
     /// <summary>A step of a node.</summary>
     shader TestBedNodeOffset : TestBedNode
     {
-        extend TestBedNode.ModifyColor in Base
+        [Phase(Base)]
+        extend TestBedNode.ModifyColor(inout float3 color)
         {
             color += 0.125;
         }

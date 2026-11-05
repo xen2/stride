@@ -8,8 +8,8 @@ namespace Stride.MaterialTestBed
     /// </summary>
     module TestBedColorFilter
     {
-        [Around(Outer, Inner)]
-        float3 FilterColor(float3 color)
+        [Phases(Outer, Inner)]
+        around float3 FilterColor(float3 color)
         {
             return color;
         }

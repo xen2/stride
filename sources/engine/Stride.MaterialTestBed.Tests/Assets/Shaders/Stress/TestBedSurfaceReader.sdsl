@@ -9,7 +9,8 @@ namespace Stride.MaterialTestBed
         import TestBedSurface;
         import TestBedSurfaceModifiers;
 
-        extend TestBedSurfaceModifiers.ModifySurface in Scene
+        [Phase(Scene)]
+        extend TestBedSurfaceModifiers.ModifySurface(inout Surface s, SurfaceInput input)
         {
             s.emissive = float3(s.roughness, s.roughness, s.roughness);
         }

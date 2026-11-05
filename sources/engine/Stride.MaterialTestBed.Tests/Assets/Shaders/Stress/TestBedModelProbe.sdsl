@@ -11,7 +11,8 @@ namespace Stride.MaterialTestBed
         import SpriteBase;
         import TestBedModelInputs;
 
-        extend SpriteBase.Shading in Surface
+        [Phase(Surface)]
+        extend SpriteBase.Shading()
         {
             return TestBedModelInputs.Evaluate();
         }

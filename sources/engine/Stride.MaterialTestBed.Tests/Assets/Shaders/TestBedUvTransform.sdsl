@@ -16,7 +16,8 @@ namespace Stride.MaterialTestBed
             module float4 TextureRegion = float4(0, 0, 1, 1);
         }
 
-        extend ShaderBase.VSMain in Input
+        [Phase(Input)]
+        extend ShaderBase.VSMain()
         {
             streams.TexCoord = TextureRegion.xy + TextureRegion.zw * streams.TexCoord;
         }

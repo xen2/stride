@@ -20,14 +20,14 @@ namespace Stride.MaterialTestBed
             return ceil(saturate(value) * CelBands) / CelBands;
         }
 
-        extend TestBedShadingModel.ModelDirectLight
+        extend TestBedShadingModel.ModelDirectLight(Surface s, LightSample light, float3 viewWS)
         {
             float nDotL = saturate(dot(s.normalWS, light.directionWS));
             float3 radiance = light.color * light.attenuation * light.shadow;
             return DiffuseColor(s) * CelBand(nDotL) * radiance;
         }
 
-        extend TestBedShadingModel.ModelEnvironmentLight
+        extend TestBedShadingModel.ModelEnvironmentLight(Surface s, EnvironmentSample environment)
         {
             return DiffuseColor(s) * CelBand(environment.irradiance.g);
         }

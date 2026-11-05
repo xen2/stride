@@ -13,7 +13,8 @@ namespace Stride.MaterialTestBed
             module float ShadingDebugEnabled;
         }
 
-        extend ShadingBase.Shading in Post
+        [Phase(Post)]
+        extend ShadingBase.Shading()
         {
             if (ShadingDebugEnabled > 0.5)
                 return float4(1.0, 0.0, 1.0, 1.0);

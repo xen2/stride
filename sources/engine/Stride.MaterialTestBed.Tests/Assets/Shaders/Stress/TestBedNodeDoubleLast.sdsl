@@ -6,7 +6,9 @@ namespace Stride.MaterialTestBed
     /// <summary>Settles the pair in a node, where an order rule of the effect doesn't reach.</summary>
     shader TestBedNodeDoubleLast : TestBedNode
     {
-        extend TestBedNode.ModifyColor in Base after TestBedNodeOffset
+        [Phase(Base)]
+        [After(TestBedNodeOffset)]
+        extend TestBedNode.ModifyColor(inout float3 color)
         {
             color *= 2.0;
         }

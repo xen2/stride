@@ -12,7 +12,7 @@ namespace Stride.MaterialTestBed
         import TestBedSurface;
         import TestBedShadingModel;
 
-        extend TestBedShadingModel.ModelEmissive
+        extend TestBedShadingModel.ModelEmissive(Surface s)
         {
             return s.emissive * 2.0;
         }
