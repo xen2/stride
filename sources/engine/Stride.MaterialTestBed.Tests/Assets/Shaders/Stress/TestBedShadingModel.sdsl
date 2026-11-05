@@ -1,0 +1,34 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// The shading model of an effect, one point per part of the contract, with the Standard model as the default.
+    /// </summary>
+    [Pure]
+    module TestBedShadingModel
+    {
+        import TestBedSurface;
+        import TestBedStandardModel;
+
+        [Replace]
+        float3 ModelDirectLight(Surface s, LightSample light, float3 viewWS)
+        {
+            return DirectLight(s, light, viewWS);
+        }
+
+        [Replace]
+        float3 ModelEnvironmentLight(Surface s, EnvironmentSample environment)
+        {
+            return EnvironmentLight(s, environment);
+        }
+
+        // An optional part: a model that doesn't write it gets this one
+        [Replace]
+        float3 ModelEmissive(Surface s)
+        {
+            return s.emissive;
+        }
+    };
+}

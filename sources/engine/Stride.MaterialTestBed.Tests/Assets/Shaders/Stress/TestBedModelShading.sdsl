@@ -1,0 +1,43 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+using Stride.Rendering.Materials;
+
+namespace Stride.MaterialTestBed
+{
+
+    /// <summary>
+    /// The shading model of the effect, called from the engine's light loop.
+    /// </summary>
+    shader TestBedModelShading : IMaterialSurfaceShading, TestBedStreamBridge
+    {
+        import TestBedSurfaceModifiers;
+        import TestBedCurrentSurface;
+        import TestBedShadingModel;
+
+        compose IMaterialSpecularMicrofacetEnvironmentFunction environmentFunction;
+
+        override void PrepareForLightingAndShading()
+        {
+            Current.normalWS = streams.normalWS;
+        }
+
+        override float3 ComputeDirectLightContribution()
+        {
+            return ModelDirectLight(Current, ReadLightSample(), streams.viewWS);
+        }
+
+        override float3 ComputeEnvironmentLightContribution()
+        {
+            float3 specularWeight = environmentFunction.Compute(SpecularColor(Current), AlphaRoughness(Current), max(dot(Current.normalWS, streams.viewWS), 0.0001));
+            return ModelEnvironmentLight(Current, ReadEnvironmentSample(specularWeight));
+        }
+
+        override void AfterLightingAndShading()
+        {
+            float3 color = streams.shadingColor + ModelEmissive(Current);
+            ModifyOutput(color, Current);
+            streams.shadingColor = color;
+        }
+    };
+}

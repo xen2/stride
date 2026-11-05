@@ -1,0 +1,25 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// A debug view: skips the shading when it is on.
+    /// </summary>
+    module TestBedDebugView
+    {
+        import SpriteBase;
+
+        cbuffer PerDraw
+        {
+            float DebugViewEnabled;
+        }
+
+        extend SpriteBase.Shading in Post
+        {
+            if (DebugViewEnabled > 0.5)
+                return float4(1.0, 0.0, 1.0, 1.0);
+            return next();
+        }
+    };
+}

@@ -9,6 +9,9 @@ namespace Stride.MaterialTestBed
     {
         bool EnableUvTransform = false;
         bool EnableWetness = false;
+        bool EnableSnow = false;
+        bool EnableCel = false;
+        bool EnableDebugView = false;
     }
 }
 
@@ -23,5 +26,14 @@ namespace Stride.Rendering
 
         if (TestBedEffectKeys.EnableWetness)
             mixin TestBedWetness;
+
+        if (TestBedEffectKeys.EnableSnow)
+            mixin TestBedSnow;
+
+        if (TestBedEffectKeys.EnableCel)
+            mixin TestBedCelModel;
+
+        if (TestBedEffectKeys.EnableDebugView)
+            mixin TestBedShadingDebugView;
     }
 }

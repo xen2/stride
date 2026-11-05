@@ -1,0 +1,41 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// One evaluation of the shading model from fixed values, for a pixel shader and a compute shader.
+    /// </summary>
+    [Pure]
+    module TestBedModelInputs
+    {
+        import TestBedSurface;
+        import TestBedShadingModel;
+
+        float4 Evaluate()
+        {
+            Surface s = (Surface)0;
+            s.albedo = float3(0.8, 0.4, 0.2);
+            s.normalWS = float3(0.0, 1.0, 0.0);
+            s.roughness = 0.4;
+            s.metalness = 0.25;
+            s.emissive = float3(0.125, 0.25, 0.5);
+
+            LightSample light;
+            light.directionWS = normalize(float3(0.5, 1.0, 0.25));
+            light.color = float3(1.0, 0.9, 0.8);
+            light.attenuation = 0.75;
+            light.shadow = float3(1.0, 1.0, 1.0);
+
+            EnvironmentSample environment;
+            environment.irradiance = float3(0.2, 0.3, 0.4);
+            environment.prefiltered = float3(0.5, 0.5, 0.5);
+            environment.specularWeight = float3(0.25, 0.25, 0.25);
+
+            float3 direct = ModelDirectLight(s, light, normalize(float3(-0.25, 1.0, 0.5)));
+            float3 ambient = ModelEnvironmentLight(s, environment);
+            float3 emissive = ModelEmissive(s);
+            return float4(direct.r, direct.b, ambient.g, emissive.b);
+        }
+    };
+}

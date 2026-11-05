@@ -1,0 +1,17 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// A point that the test-bed declares: wrappers around a color.
+    /// </summary>
+    module TestBedColorFilter
+    {
+        [Around(Outer, Inner)]
+        float3 FilterColor(float3 color)
+        {
+            return color;
+        }
+    };
+}

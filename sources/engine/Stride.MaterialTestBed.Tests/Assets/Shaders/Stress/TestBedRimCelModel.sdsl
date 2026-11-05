@@ -1,0 +1,20 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// Another model that says it takes the place of the cel model in this chain, wherever the mix puts it.
+    /// </summary>
+    [Pure]
+    module TestBedRimCelModel
+    {
+        import TestBedSurface;
+        import TestBedCelModel;
+
+        extend TestBedShadingModel.ModelDirectLight replaces TestBedCelModel
+        {
+            return float3(0.25, 0.25, 0.25);
+        }
+    };
+}

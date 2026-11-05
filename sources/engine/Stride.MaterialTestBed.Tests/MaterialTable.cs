@@ -40,11 +40,14 @@ public sealed class MaterialTable : IDisposable
     private Buffer materialBuffer;
     private Buffer layerBuffer;
     private Buffer slotBuffer;
+    private readonly string shadingClass;
 
-    public MaterialTable(GraphicsDevice device, Texture lookupTable)
+    /// <param name="shadingClass">The class that plugs the shading model into the light loop.</param>
+    public MaterialTable(GraphicsDevice device, Texture lookupTable, string shadingClass = null)
     {
         colorSpace = device.ColorSpace;
         this.lookupTable = lookupTable;
+        this.shadingClass = shadingClass ?? TestBedStandardShadingKeys.ShaderName;
         fallbackTexture = Texture.New2D(device, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { Color.White });
     }
 
@@ -155,10 +158,10 @@ public sealed class MaterialTable : IDisposable
         return textures.Count - 1;
     }
 
-    private static ShaderSource CreatePixelStage()
+    private ShaderSource CreatePixelStage()
     {
         var shading = new ShaderMixinSource();
-        shading.Mixins.Add(new ShaderClassSource(TestBedStandardShadingKeys.ShaderName));
+        shading.Mixins.Add(new ShaderClassSource(shadingClass));
         shading.AddComposition("environmentFunction", new ShaderClassSource(MaterialSpecularMicrofacetEnvironmentGGXLUTKeys.ShaderName));
 
         var lighting = new ShaderMixinSource();

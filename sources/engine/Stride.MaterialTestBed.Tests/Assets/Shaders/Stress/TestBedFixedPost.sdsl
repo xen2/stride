@@ -1,0 +1,18 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// A wrapper that never calls next.
+    /// </summary>
+    module TestBedFixedPost
+    {
+        import SpriteBase;
+
+        extend SpriteBase.Shading in Post
+        {
+            return float4(0.125, 0.125, 0.125, 1.0);
+        }
+    };
+}

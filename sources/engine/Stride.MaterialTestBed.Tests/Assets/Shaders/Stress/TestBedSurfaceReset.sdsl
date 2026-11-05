@@ -1,0 +1,19 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>Writes the whole surface, so a change made before it is lost.</summary>
+    module TestBedSurfaceReset
+    {
+        import TestBedSurface;
+        import TestBedSurfaceModifiers;
+
+        extend TestBedSurfaceModifiers.ModifySurface in Scene
+        {
+            Surface fresh = (Surface)0;
+            fresh.roughness = 0.2;
+            s = fresh;
+        }
+    };
+}

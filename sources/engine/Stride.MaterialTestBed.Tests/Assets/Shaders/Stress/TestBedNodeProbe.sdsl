@@ -1,0 +1,25 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// One composed node with its point, and a list of nodes that each do a step.
+    /// </summary>
+    module TestBedNodeProbe
+    {
+        import SpriteBase;
+
+        compose TestBedNode Node;
+        compose TestBedNode NodeList[];
+
+        extend SpriteBase.Shading in Surface
+        {
+            float3 single = Node.Evaluate(float3(0.25, 0.25, 0.25));
+            float3 list = float3(0.25, 0.25, 0.25);
+            foreach (var node in NodeList)
+                list = node.Evaluate(list);
+            return float4(single.r, list.r, 0.0, 1.0);
+        }
+    };
+}

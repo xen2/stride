@@ -1,0 +1,14 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>A step of a node.</summary>
+    shader TestBedNodeDouble : TestBedNode
+    {
+        extend TestBedNode.ModifyColor in Base
+        {
+            color *= 2.0;
+        }
+    };
+}

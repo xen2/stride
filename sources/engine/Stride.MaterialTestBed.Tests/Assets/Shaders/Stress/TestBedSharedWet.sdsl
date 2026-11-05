@@ -1,0 +1,16 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>Changes a plain static of a module.</summary>
+    module TestBedSharedWet
+    {
+        import TestBedConflictPoints;
+
+        extend TestBedConflictPoints.ModifyShared in Scene
+        {
+            SharedValue = lerp(SharedValue, 0.1, 0.5);
+        }
+    };
+}

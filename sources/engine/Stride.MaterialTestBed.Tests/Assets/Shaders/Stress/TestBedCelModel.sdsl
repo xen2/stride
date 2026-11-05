@@ -1,0 +1,35 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// A cel model: light in hard bands. It writes the two required parts, and gets the emissive of the default.
+    /// </summary>
+    [Pure]
+    module TestBedCelModel
+    {
+        import TestBedSurface;
+        import TestBedStandardModel;
+        import TestBedShadingModel;
+
+        static const float CelBands = 3.0;
+
+        float CelBand(float value)
+        {
+            return ceil(saturate(value) * CelBands) / CelBands;
+        }
+
+        extend TestBedShadingModel.ModelDirectLight
+        {
+            float nDotL = saturate(dot(s.normalWS, light.directionWS));
+            float3 radiance = light.color * light.attenuation * light.shadow;
+            return DiffuseColor(s) * CelBand(nDotL) * radiance;
+        }
+
+        extend TestBedShadingModel.ModelEnvironmentLight
+        {
+            return DiffuseColor(s) * CelBand(environment.irradiance.g);
+        }
+    };
+}

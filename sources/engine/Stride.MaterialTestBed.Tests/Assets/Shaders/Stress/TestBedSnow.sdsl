@@ -1,0 +1,26 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// A surface modifier that knows nothing of the others: high surfaces get snow, which is rough and white.
+    /// </summary>
+    module TestBedSnow
+    {
+        import TestBedSurface;
+        import TestBedSurfaceModifiers;
+
+        extend struct Surface
+        {
+            float snow;
+        };
+
+        extend TestBedSurfaceModifiers.ModifySurface in Scene
+        {
+            s.snow = saturate(input.positionWS.y * 2.0);
+            s.albedo = lerp(s.albedo, float3(1.0, 1.0, 1.0), s.snow);
+            s.roughness = lerp(s.roughness, 0.9, s.snow);
+        }
+    };
+}

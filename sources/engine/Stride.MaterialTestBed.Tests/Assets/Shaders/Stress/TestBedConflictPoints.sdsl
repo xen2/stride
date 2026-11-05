@@ -1,0 +1,25 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+namespace Stride.MaterialTestBed
+{
+    /// <summary>
+    /// The same kind of data in three more places, each with a point that two contributors change.
+    /// </summary>
+    module TestBedConflictPoints
+    {
+        import TestBedCurrentSurface;
+
+        static float SharedValue;
+        stream float StreamValue;
+
+        [Pipeline(Scene)]
+        void ModifyCurrent() { }
+
+        [Pipeline(Scene)]
+        void ModifyShared() { }
+
+        [Pipeline(Scene)]
+        void ModifyStream() { }
+    };
+}
