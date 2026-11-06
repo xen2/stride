@@ -149,7 +149,9 @@ public static class SDSLErrorMessages
     public const string SDSL0262 = "SDSL0262: {0} is an array of arrays of textures. A texture array has one dimension: write {1} {0}[{2}].";
     public const string SDSL0263 = "SDSL0263: {0}[] has no size. An unsized texture array is kept for bindless textures, which are not supported yet: give the array a size.";
     public const string SDSL0264 = "SDSL0264: The size of the texture array {0} is not a constant. Use a literal or a static const value: a generic parameter can't give the size of a texture array yet.";
+    public const string SDSL0265 = "SDSL0265: Index {0} is outside {1}, which has {2} elements (0 to {3}).";
     public const string SDSL0266 = "SDSL0266: Parameter {0} of {1} is a whole texture array, which is not supported yet. Pass one element instead, such as {0}[i], with a {2} parameter.";
+    public const string SDSL0267 = "SDSL0267: NonUniformResourceIndex is not supported yet: the index of a texture array must be the same for the whole draw. Index with a value that is the same for the whole draw, such as a cbuffer member or a push constant.";
 
     // HLSL warnings: valid HLSL that is probably a mistake, reported when a class compiles
     public const string SDSL0219 = "SDSL0219: comma expression ({0}): the values before the last are dropped, the result is {1}. To build a vector, write its type: float4(...).";

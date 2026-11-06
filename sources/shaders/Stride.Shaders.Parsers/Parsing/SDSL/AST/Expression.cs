@@ -1104,6 +1104,9 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
         return compiler.Context.ReverseTypes[value.TypeId].IsFloating() ? compiler.Builder.Convert(compiler.Context, value, ScalarType.Int) : value;
     }
 
+    private static bool IsConstantOutOfBounds(SpirvContext context, SpirvValue index, int size)
+        => context.TryGetConstantValue(index.Id, out var value, out _) && Convert.ToInt64(value) is var element && (element < 0 || element >= size);
+
     public SpirvValue CompileHelper(SymbolTable table, CompilerUnit? compiler = null)
     {
         SpirvValue result = default;
@@ -1669,6 +1672,8 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
                             break;
                         }
                         var indexerValue = CompileIndex(indexer, table, compiler);
+                        if (t is TextureType && p.BaseType is ArrayType { Size: > 0 } textureArray && IsConstantOutOfBounds(compiler.Context, indexerValue, textureArray.Size))
+                            throw new StatementCompileException(new(indexer.Info, string.Format(SDSLErrorMessages.SDSL0265, indexer.Index, ToString(i), textureArray.Size, textureArray.Size - 1)));
                         PushAccessChainId(accessChainIds, indexerValue.Id);
                         break;
                     }
