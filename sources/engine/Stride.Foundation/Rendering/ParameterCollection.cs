@@ -220,6 +220,64 @@ namespace Stride.Rendering
         }
 
         /// <summary>
+        /// Sets the elements of an array of objects, such as the textures of a texture array, one slot per element.
+        /// </summary>
+        /// <typeparam name="T">The type of the elements.</typeparam>
+        /// <param name="parameter">The key of the array.</param>
+        /// <param name="values">The elements. None of them can be <see langword="null"/>.</param>
+        /// <remarks>
+        /// Once the layout of an effect gives the key its size, <paramref name="values"/> must have at least that many elements;
+        /// the ones after are ignored. <see cref="Get{T}(ObjectParameterKey{T}, bool)"/> gives the first element.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="values"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentException">An element is <see langword="null"/>, or <paramref name="values"/> is shorter than the array of the layout.</exception>
+        public void Set<T>(ObjectParameterKey<T> parameter, T[] values)
+        {
+            ArgumentNullException.ThrowIfNull(values);
+            for (int i = 0; i < values.Length; ++i)
+            {
+                if (values[i] is null)
+                    throw new ArgumentException($"Element {i} of {parameter} is null: every element of an array must be set.", nameof(values));
+            }
+
+            var index = parameterKeyInfos.FindIndex(x => x.Key == parameter);
+            var layoutIndex = -1;
+            for (int i = 0; layout != null && i < layout.LayoutParameterKeyInfos.Count; ++i)
+            {
+                if (layout.LayoutParameterKeyInfos[i].Key == parameter)
+                {
+                    layoutIndex = i;
+                    break;
+                }
+            }
+            if (index == -1 && layoutIndex != -1)
+            {
+                LayoutCounter++;
+                parameterKeyInfos.Add(layout.LayoutParameterKeyInfos[layoutIndex]);
+                index = parameterKeyInfos.Count - 1;
+            }
+
+            // The layout fixes the size of the array
+            if (layoutIndex != -1 || (index != -1 && parameterKeyInfos[index].Count == values.Length))
+            {
+                var keyInfo = parameterKeyInfos[index];
+                if (values.Length < keyInfo.Count)
+                    throw new ArgumentException($"{parameter} is an array of {keyInfo.Count} elements, but {values.Length} are given.", nameof(values));
+                Array.Copy(values, 0, ObjectValues, keyInfo.BindingSlot, keyInfo.Count);
+                return;
+            }
+
+            // A new key, or a new size: slots at the end
+            if (index != -1)
+                parameterKeyInfos.SwapRemoveAt(index);
+            LayoutCounter++;
+            var bindingSlot = ObjectValues?.Length ?? 0;
+            Array.Resize(ref ObjectValues, bindingSlot + values.Length);
+            parameterKeyInfos.Add(new ParameterKeyInfo(parameter, bindingSlot) { Count = values.Length });
+            Array.Copy(values, 0, ObjectValues, bindingSlot, values.Length);
+        }
+
+        /// <summary>
         /// Gets an object.
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -629,8 +687,9 @@ namespace Stride.Rendering
                 }
                 else if (parameterKeyInfo.BindingSlot != -1)
                 {
-                    // It's a resource
-                    newParameterKeyInfosSpan[i].BindingSlot = resourceCount++;
+                    // It's a resource, or an array of them
+                    newParameterKeyInfosSpan[i].BindingSlot = resourceCount;
+                    resourceCount += parameterKeyInfo.Count;
                 }
             }
 
@@ -701,8 +760,11 @@ namespace Stride.Rendering
                 }
                 else if (newParameterKeyInfo.BindingSlot != -1)
                 {
-                    // It's a resource
-                    newResourceValues[newParameterKeyInfo.BindingSlot] = ObjectValues[oldParameterKeyInfo.BindingSlot];
+                    // It's a resource, or an array of them: an array set shorter than the one of the layout is an error
+                    if (oldParameterKeyInfo.Count < newParameterKeyInfo.Count && newParameterKeyInfo.Count > 1
+                        && Array.FindIndex(ObjectValues, oldParameterKeyInfo.BindingSlot, oldParameterKeyInfo.Count, x => x != null) != -1)
+                        throw new InvalidOperationException($"{newParameterKeyInfo.Key} is an array of {newParameterKeyInfo.Count} elements in the effect, but {oldParameterKeyInfo.Count} are set.");
+                    Array.Copy(ObjectValues, oldParameterKeyInfo.BindingSlot, newResourceValues, newParameterKeyInfo.BindingSlot, Math.Min(oldParameterKeyInfo.Count, newParameterKeyInfo.Count));
                 }
             }
 
@@ -1038,7 +1100,7 @@ namespace Stride.Rendering
                             // Might be some empty space (padding) (probably unlikely for resources...)
                             currentResourceRange.Size = parameterKeyInfo.BindingSlot - currentResourceRange.DestStart;
 
-                            sourceLayout.LayoutParameterKeyInfos.Add(new ParameterKeyInfo(subkey, currentResourceRange.SourceStart + currentResourceRange.Size));
+                            sourceLayout.LayoutParameterKeyInfos.Add(new ParameterKeyInfo(subkey, currentResourceRange.SourceStart + currentResourceRange.Size) { Count = parameterKeyInfo.Count });
 
                             currentResourceRange.Size += parameterKeyInfo.Count;
                         }

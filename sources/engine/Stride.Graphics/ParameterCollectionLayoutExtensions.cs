@@ -24,15 +24,15 @@ public static class ParameterCollectionLayoutExtensions
     ///   This method iterates over the entries in the provided <paramref name="layout"/> and
     ///   adds corresponding <see cref="ParameterKeyInfo"/> objects to the
     ///   <paramref name="parameterCollectionLayout"/>.
-    ///   The resource count in <paramref name="parameterCollectionLayout"/> is incremented
-    ///   for each entry processed.
+    ///   The resource count in <paramref name="parameterCollectionLayout"/> grows by the array size of
+    ///   each entry processed (1 for a resource that is not an array).
     /// </remarks>
     public static void ProcessResources(this ParameterCollectionLayout parameterCollectionLayout, DescriptorSetLayoutBuilder layout)
     {
         foreach (var layoutEntry in layout.Entries)
         {
-            var parameterKeyInfo = new ParameterKeyInfo(layoutEntry.Key, parameterCollectionLayout.ResourceCount);
-            parameterCollectionLayout.ResourceCount++;
+            var parameterKeyInfo = new ParameterKeyInfo(layoutEntry.Key, parameterCollectionLayout.ResourceCount) { Count = layoutEntry.ArraySize };
+            parameterCollectionLayout.ResourceCount += layoutEntry.ArraySize;
 
             parameterCollectionLayout.LayoutParameterKeyInfos.Add(parameterKeyInfo);
         }

@@ -27,7 +27,8 @@ namespace Stride.Rendering
             for (int index = 0; index < logicalGroup.DescriptorEntryCount; ++index)
             {
                 var layoutEntry = resourceGroupLayout.DescriptorSetLayoutBuilder.Entries[logicalGroup.DescriptorEntryStart + index];
-                parameterCollectionLayout.LayoutParameterKeyInfos.Add(new ParameterKeyInfo(layoutEntry.Key, parameterCollectionLayout.ResourceCount++));
+                parameterCollectionLayout.LayoutParameterKeyInfos.Add(new ParameterKeyInfo(layoutEntry.Key, parameterCollectionLayout.ResourceCount) { Count = layoutEntry.ArraySize });
+                parameterCollectionLayout.ResourceCount += layoutEntry.ArraySize;
             }
             parameterCollectionLayout.BufferSize += logicalGroup.ConstantBufferSize;
         }

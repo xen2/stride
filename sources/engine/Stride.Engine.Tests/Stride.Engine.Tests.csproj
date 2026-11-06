@@ -26,6 +26,7 @@
     <Compile Include="EffectMacroKeyTests.cs" />
     <Compile Include="EngineTestBase.cs" />
     <Compile Include="ForwardRendererTransparentTargetsTest.cs" />
+    <Compile Include="ParameterCollectionArrayTest.cs" />
     <Compile Include="ParameterCollectionAttachedReferenceTest.cs" />
     <Compile Include="ParameterCollectionUpdateEngineTest.cs" />
     <Compile Include="RenderFeatureTestBase.cs" />
