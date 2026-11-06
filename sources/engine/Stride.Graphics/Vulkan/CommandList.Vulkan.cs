@@ -110,6 +110,9 @@ namespace Stride.Graphics
             DebugScopeResetForNewRecording();
             CleanupRenderPass();
             boundDescriptorSets.Clear();
+#if STRIDE_GRAPHICS_NO_DESCRIPTOR_COPIES
+            arrayDescriptorSets.Clear();
+#endif
             currentCbLayouts.Clear();
             currentCbBufferLayouts.Clear();
             pendingMemoryBarriers.Clear();
@@ -492,8 +495,84 @@ namespace Stride.Graphics
 
             GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(GraphicsDevice.NativeDevice, (uint)bindingCount, writes, descriptorCopyCount: 0, descriptorCopies: null);
 #endif
-            GraphicsDevice.NativeDeviceApi.vkCmdBindDescriptorSets(currentCommandList.NativeCommandBuffer, activePipeline.IsCompute ? VkPipelineBindPoint.Compute : VkPipelineBindPoint.Graphics, activePipeline.NativeLayout, firstSet: 0, descriptorSetCount: 1, &localDescriptorSet, dynamicOffsetCount: 0, dynamicOffsets: null);
+            var nativeSets = stackalloc VkDescriptorSet[2];
+            nativeSets[0] = localDescriptorSet;
+            var nativeSetCount = 1u;
+#if STRIDE_GRAPHICS_NO_DESCRIPTOR_COPIES
+            if (activePipeline.ArrayBindingMapping.Count > 0)
+                nativeSets[nativeSetCount++] = GetArrayDescriptorSet();
+#endif
+            GraphicsDevice.NativeDeviceApi.vkCmdBindDescriptorSets(currentCommandList.NativeCommandBuffer, activePipeline.IsCompute ? VkPipelineBindPoint.Compute : VkPipelineBindPoint.Graphics, activePipeline.NativeLayout, firstSet: 0, descriptorSetCount: nativeSetCount, nativeSets, dynamicOffsetCount: 0, dynamicOffsets: null);
         }
+
+#if STRIDE_GRAPHICS_NO_DESCRIPTOR_COPIES
+        // The native sets of the texture arrays, by pipeline layout and source Descriptor Set. As the shader-visible copies of
+        // Direct3D 12, a set is written the first time the command list binds its source, and not again.
+        private readonly Dictionary<(VkDescriptorSetLayout Layout, DescriptorSetEntry[] HeapObjects, int Offset), VkDescriptorSet> arrayDescriptorSets = new();
+
+        /// <summary>
+        ///   Gets the native set 1 of the active pipeline, which holds its texture arrays, and writes it the first time.
+        /// </summary>
+        private unsafe VkDescriptorSet GetArrayDescriptorSet()
+        {
+            var mappings = activePipeline.ArrayBindingMapping;
+            var layout = activePipeline.NativeArrayDescriptorSetLayout;
+            var source = boundDescriptorSets[mappings[0].SourceSet];
+            var key = (layout, source.HeapObjects, source.DescriptorStartOffset);
+            if (arrayDescriptorSets.TryGetValue(key, out var nativeSet))
+                return nativeSet;
+
+            // Keep track of descriptor pool usage
+            var isPoolExhausted = ++allocatedSetCount > GraphicsDevice.MaxDescriptorSetCount;
+            for (int i = 0; i < DescriptorSetLayout.DescriptorTypeCount; i++)
+            {
+                allocatedTypeCounts[i] += activePipeline.ArrayDescriptorTypeCounts[i];
+                isPoolExhausted |= allocatedTypeCounts[i] > GraphicsDevice.MaxDescriptorTypeCounts[i];
+            }
+            if (isPoolExhausted)
+            {
+                currentCommandList.DescriptorPools.Add(descriptorPool);
+                descriptorPool = GraphicsDevice.DescriptorPools.GetObject(GraphicsDevice.CommandListFence.GetCompletedValue());
+                allocatedSetCount = 1;
+                for (int i = 0; i < DescriptorSetLayout.DescriptorTypeCount; i++)
+                    allocatedTypeCounts[i] = activePipeline.ArrayDescriptorTypeCounts[i];
+            }
+
+            var allocateInfo = new VkDescriptorSetAllocateInfo
+            {
+                sType = VkStructureType.DescriptorSetAllocateInfo,
+                descriptorPool = descriptorPool,
+                descriptorSetCount = 1,
+                pSetLayouts = &layout,
+            };
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkAllocateDescriptorSets(GraphicsDevice.NativeDevice, &allocateInfo, &nativeSet));
+
+            // The elements are only sampled: they stay in ShaderReadOnlyOptimal
+            var count = mappings.Count;
+            var writes = stackalloc VkWriteDescriptorSet[count];
+            var images = stackalloc VkDescriptorImageInfo[count];
+            for (int index = 0; index < count; index++)
+            {
+                var mapping = mappings[index];
+                var texture = source.HeapObjects[source.DescriptorStartOffset + mapping.SourceBinding].Value as Texture;
+                images[index] = new VkDescriptorImageInfo { imageView = texture?.NativeImageView ?? GraphicsDevice.EmptyTexture.NativeImageView, imageLayout = VkImageLayout.ShaderReadOnlyOptimal };
+                writes[index] = new VkWriteDescriptorSet
+                {
+                    sType = VkStructureType.WriteDescriptorSet,
+                    descriptorType = mapping.DescriptorType,
+                    dstSet = nativeSet,
+                    dstBinding = (uint)mapping.DestinationBinding,
+                    dstArrayElement = (uint)mapping.DestinationArrayElement,
+                    descriptorCount = 1,
+                    pImageInfo = images + index,
+                };
+            }
+            GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(GraphicsDevice.NativeDevice, (uint)count, writes, descriptorCopyCount: 0, descriptorCopies: null);
+
+            arrayDescriptorSets.Add(key, nativeSet);
+            return nativeSet;
+        }
+#endif
 
         private readonly List<VkCopyDescriptorSet> copies = new();
 
