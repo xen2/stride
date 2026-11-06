@@ -1,0 +1,33 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+namespace Stride.Graphics.Tests
+{
+    shader TextureArrayTwoGroups
+    {
+        import ShaderBase;
+
+        module stream float2 Position : POSITION;
+
+        rgroup PerMaterial
+        {
+            [Link("TextureArrayTest.Textures")]
+            module Texture2D Textures[4];
+        }
+
+        rgroup PerView
+        {
+            [Link("TextureArrayTest.ViewTextures")]
+            module Texture2D ViewTextures[2];
+        }
+
+        module override void VSMain()
+        {
+            streams.ShadingPosition = float4(streams.Position, 0.0f, 1.0f);
+        }
+
+        module override void PSMain()
+        {
+            streams.ColorTarget = Textures[1].Load(int3(0, 0, 0)) + ViewTextures[1].Load(int3(0, 0, 0));
+        }
+    };
+}

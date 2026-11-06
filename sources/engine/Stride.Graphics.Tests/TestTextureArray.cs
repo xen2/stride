@@ -16,6 +16,7 @@ public static class TextureArrayTestKeys
 {
     public static readonly ObjectParameterKey<Texture> Textures = ParameterKeys.NewObject<Texture>();
     public static readonly ValueParameterKey<uint> Index = ParameterKeys.NewValue<uint>();
+    public static readonly ObjectParameterKey<Texture> ViewTextures = ParameterKeys.NewObject<Texture>();
 }
 
 public class TestTextureArray : GraphicTestGameBase
@@ -119,6 +120,76 @@ public class TestTextureArray : GraphicTestGameBase
             }
 
             Assert.Equal(new[] { Colors[1], Colors[2], Colors[1] }, targets.Select(target => target.GetData<Color>(commandList)[0]));
+
+            foreach (var texture in textures.Concat(targets))
+                texture.Dispose();
+        });
+    }
+
+    /// <summary>
+    /// An effect with texture arrays in two rgroups, drawn twice with the same Descriptor Set for the first group and another one
+    /// for the second: each draw reads the elements of its own sets.
+    /// </summary>
+    [SkippableFact]
+    public void ArraysOfTwoGroupsFollowBothDescriptorSets()
+    {
+        PerformTest(game =>
+        {
+            var device = game.GraphicsDevice;
+            var commandList = game.GraphicsContext.CommandList;
+
+            var textures = Colors.Select(color => Texture.New2D(device, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { color })).ToArray();
+            using var effect = new EffectInstance(game.EffectSystem.LoadEffect("Stride.Graphics.Tests.TextureArrayTwoGroupsEffect").WaitForResult());
+            effect.UpdateEffect(device);
+
+            // The second group gets another Descriptor Set for the second draw: element 1 is red, then blue
+            var layouts = effect.DescriptorReflection.Layouts.Select(layout => layout.Layout).ToArray();
+            using var pool = DescriptorPool.New(device, [new DescriptorTypeCount(EffectParameterClass.ShaderResourceView, 32)]);
+            DescriptorSet[] NewDescriptorSets(Texture viewElement)
+            {
+                var descriptorSets = new DescriptorSet[layouts.Length];
+                for (int i = 0; i < layouts.Length; i++)
+                {
+                    descriptorSets[i] = DescriptorSet.New(device, pool, DescriptorSetLayout.New(device, layouts[i]));
+                    var slot = 0;
+                    foreach (var entry in layouts[i].Entries)
+                    {
+                        for (int element = 0; element < entry.ArraySize; element++, slot++)
+                        {
+                            if (entry.Key == TextureArrayTestKeys.Textures)
+                                descriptorSets[i].SetShaderResourceView(slot, textures[element]);
+                            else if (entry.Key == TextureArrayTestKeys.ViewTextures)
+                                descriptorSets[i].SetShaderResourceView(slot, element == 1 ? viewElement : textures[3]);
+                        }
+                    }
+                }
+                return descriptorSets;
+            }
+            var first = NewDescriptorSets(textures[0]);
+            var second = NewDescriptorSets(textures[2]);
+            var materialLayout = effect.DescriptorReflection.Layouts.FindIndex(layout => layout.Name == "PerMaterial");
+            second[materialLayout] = first[materialLayout];
+
+            var pipelineState = new MutablePipelineState(device);
+            pipelineState.State.SetDefaults();
+            pipelineState.State.RootSignature = effect.RootSignature;
+            pipelineState.State.EffectBytecode = effect.Effect.Bytecode;
+            pipelineState.State.InputElements = PrimitiveQuad.VertexDeclaration.CreateInputElements();
+            pipelineState.State.PrimitiveType = PrimitiveQuad.PrimitiveType;
+
+            DescriptorSet[][] draws = [first, second];
+            var targets = draws.Select(_ => Texture.New2D(device, 1, 1, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget | TextureFlags.ShaderResource)).ToArray();
+            for (int i = 0; i < draws.Length; i++)
+            {
+                commandList.SetRenderTargetAndViewport(null, targets[i]);
+                pipelineState.State.Output.CaptureState(commandList);
+                pipelineState.Update();
+                commandList.SetPipelineState(pipelineState.CurrentState);
+                commandList.SetDescriptorSets(0, draws[i]);
+                device.PrimitiveQuad.Draw(commandList);
+            }
+
+            Assert.Equal(new[] { Color.Yellow, Color.Cyan }, targets.Select(target => target.GetData<Color>(commandList)[0]));
 
             foreach (var texture in textures.Concat(targets))
                 texture.Dispose();
