@@ -70,6 +70,9 @@ public unsafe partial struct GraphicsDeviceFeatures
         // The GPU level, for the log; BindlessTier is what the backend uses
         GpuBindless = GetD3D12BindlessSupport((int)d3D12Options.ResourceBindingTier);
 
+        // Tier 1 allows 128 SRVs per stage; above, a descriptor table is bounded by the shader-visible heap
+        MaxTextureArraySize = d3D12Options.ResourceBindingTier == ResourceBindingTier.Tier1 ? 128 : GraphicsDevice.SrvHeapSize;
+
         // TODO: D3D12: Confirm these are correct
         // Some docs: https://msdn.microsoft.com/en-us/library/windows/desktop/ff476876(v=vs.85).aspx
         HasDepthAsSRV = true;

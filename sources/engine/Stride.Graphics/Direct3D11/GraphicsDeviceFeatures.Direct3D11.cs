@@ -70,6 +70,8 @@ namespace Stride.Graphics
             HasIndex32Bits = CurrentProfile >= Level_9_3;
             HasGeometryShaders = CurrentProfile >= Level_10_0;
             HasPixelShaderUnorderedAccess = CurrentProfile >= Level_11_0;
+            // D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; FXC indexes a texture array with a constant only
+            MaxTextureArraySize = 128;
 
             // Check features for each DXGI.Format
             foreach (var format in Enum.GetValues<Format>())
