@@ -146,7 +146,7 @@ public class TestBedValueTests : GameTestBase
         Assert.Equal(0.8f * 0.75f * 1.0f * 0.75f, values["TestBedModelCel"].X, Tolerance);
         Assert.NotEqual(values["TestBedModelDefault"].X, values["TestBedModelCel"].X);
 
-        // [Replaces] gives the winner its value, and the part it doesn't write keeps the default
+        // [Drops] gives the winner its value, and the part it doesn't write keeps the default
         Assert.Equal(0.25f, values["TestBedModelRim"].X, Tolerance);
         Assert.Equal(values["TestBedModelCel"].Z, values["TestBedModelRim"].Z, Tolerance);
 

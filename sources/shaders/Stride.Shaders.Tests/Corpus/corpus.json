@@ -413,14 +413,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedConflictPoints",
-        "ModifyCurrent",
-        "Scene",
-        "Stride.MaterialTestBed.TestBedCurrentSnow",
-        "Stride.MaterialTestBed.TestBedCurrentWet"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedConflictPoints",
+        "method": "ModifyCurrent",
+        "names": [
+          "Stride.MaterialTestBed.TestBedCurrentSnow",
+          "Stride.MaterialTestBed.TestBedCurrentWet"
+        ]
+      }
     ]
   },
   {
@@ -437,14 +438,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedConflictPoints",
-        "ModifyCurrent",
-        "Scene",
-        "Stride.MaterialTestBed.TestBedCurrentWet",
-        "Stride.MaterialTestBed.TestBedCurrentSnow"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedConflictPoints",
+        "method": "ModifyCurrent",
+        "names": [
+          "Stride.MaterialTestBed.TestBedCurrentWet",
+          "Stride.MaterialTestBed.TestBedCurrentSnow"
+        ]
+      }
     ]
   },
   {
@@ -461,14 +463,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedColorFilter",
-        "FilterColor",
-        "Inner",
-        "Stride.MaterialTestBed.TestBedFilterOffset",
-        "Stride.MaterialTestBed.TestBedFilterDouble"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedColorFilter",
+        "method": "FilterColor",
+        "names": [
+          "Stride.MaterialTestBed.TestBedFilterOffset",
+          "Stride.MaterialTestBed.TestBedFilterDouble"
+        ]
+      }
     ]
   },
   {
@@ -485,14 +488,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedColorFilter",
-        "FilterColor",
-        "Inner",
-        "Stride.MaterialTestBed.TestBedFilterDouble",
-        "Stride.MaterialTestBed.TestBedFilterOffset"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedColorFilter",
+        "method": "FilterColor",
+        "names": [
+          "Stride.MaterialTestBed.TestBedFilterDouble",
+          "Stride.MaterialTestBed.TestBedFilterOffset"
+        ]
+      }
     ]
   },
   {
@@ -523,14 +527,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedSurfaceModifiers",
-        "ModifySurface",
-        "Scene",
-        "Stride.MaterialTestBed.TestBedWetness",
-        "Stride.MaterialTestBed.TestBedSnow"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedSurfaceModifiers",
+        "method": "ModifySurface",
+        "names": [
+          "Stride.MaterialTestBed.TestBedWetness",
+          "Stride.MaterialTestBed.TestBedSnow"
+        ]
+      }
     ]
   },
   {
@@ -547,14 +552,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedSurfaceModifiers",
-        "ModifySurface",
-        "Scene",
-        "Stride.MaterialTestBed.TestBedSnow",
-        "Stride.MaterialTestBed.TestBedWetness"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedSurfaceModifiers",
+        "method": "ModifySurface",
+        "names": [
+          "Stride.MaterialTestBed.TestBedSnow",
+          "Stride.MaterialTestBed.TestBedWetness"
+        ]
+      }
     ]
   },
   {
@@ -571,14 +577,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedSurfaceModifiers",
-        "ModifySurface",
-        "Scene",
-        "Stride.MaterialTestBed.TestBedWetness",
-        "Stride.MaterialTestBed.TestBedSnow"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedSurfaceModifiers",
+        "method": "ModifySurface",
+        "names": [
+          "Stride.MaterialTestBed.TestBedWetness",
+          "Stride.MaterialTestBed.TestBedSnow"
+        ]
+      }
     ]
   },
   {
@@ -748,14 +755,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedConflictPoints",
-        "ModifyShared",
-        "Scene",
-        "Stride.MaterialTestBed.TestBedSharedSnow",
-        "Stride.MaterialTestBed.TestBedSharedWet"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedConflictPoints",
+        "method": "ModifyShared",
+        "names": [
+          "Stride.MaterialTestBed.TestBedSharedSnow",
+          "Stride.MaterialTestBed.TestBedSharedWet"
+        ]
+      }
     ]
   },
   {
@@ -772,14 +780,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedConflictPoints",
-        "ModifyShared",
-        "Scene",
-        "Stride.MaterialTestBed.TestBedSharedWet",
-        "Stride.MaterialTestBed.TestBedSharedSnow"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedConflictPoints",
+        "method": "ModifyShared",
+        "names": [
+          "Stride.MaterialTestBed.TestBedSharedWet",
+          "Stride.MaterialTestBed.TestBedSharedSnow"
+        ]
+      }
     ]
   },
   {
@@ -797,14 +806,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.Rendering.SpriteBase",
-        "Shading",
-        "Post",
-        "Stride.MaterialTestBed.TestBedHalfTint",
-        "Stride.MaterialTestBed.TestBedDebugView"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.Rendering.SpriteBase",
+        "method": "Shading",
+        "names": [
+          "Stride.MaterialTestBed.TestBedHalfTint",
+          "Stride.MaterialTestBed.TestBedDebugView"
+        ]
+      }
     ]
   },
   {
@@ -849,14 +859,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.Rendering.SpriteBase",
-        "Shading",
-        "Post",
-        "Stride.MaterialTestBed.TestBedDebugView",
-        "Stride.MaterialTestBed.TestBedHalfTint"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.Rendering.SpriteBase",
+        "method": "Shading",
+        "names": [
+          "Stride.MaterialTestBed.TestBedDebugView",
+          "Stride.MaterialTestBed.TestBedHalfTint"
+        ]
+      }
     ]
   },
   {
@@ -873,14 +884,15 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedConflictPoints",
-        "ModifyStream",
-        "Scene",
-        "Stride.MaterialTestBed.TestBedStreamWet",
-        "Stride.MaterialTestBed.TestBedStreamSnow"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedConflictPoints",
+        "method": "ModifyStream",
+        "names": [
+          "Stride.MaterialTestBed.TestBedStreamWet",
+          "Stride.MaterialTestBed.TestBedStreamSnow"
+        ]
+      }
     ]
   },
   {
@@ -35679,14 +35691,16 @@
       ]
     },
     "linkage": [
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedSurfaceModifiers",
-        "ModifySurface",
-        "Scene",
-        "Stride.MaterialTestBed.TestBedWetness",
-        "Stride.MaterialTestBed.TestBedSnow"
-      ]
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedSurfaceModifiers",
+        "method": "ModifySurface",
+        "names": [
+          "Stride.MaterialTestBed.TestBedWetness",
+          "Stride.MaterialTestBed.TestBedSnow"
+        ],
+        "level": 1
+      }
     ]
   },
   {
@@ -49199,18 +49213,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -49591,18 +49602,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -50053,18 +50061,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -51031,18 +51036,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -52029,18 +52031,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -52098,18 +52097,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -52475,18 +52471,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -53198,18 +53191,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -54367,18 +54357,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -56417,18 +56404,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -58037,18 +58021,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -58843,26 +58824,25 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ],
-      [
-        "Order",
-        "Stride.MaterialTestBed.TestBedSurfaceModifiers",
-        "ModifySurface",
-        "Scene",
-        "Stride.MaterialTestBed.TestBedWetness",
-        "Stride.MaterialTestBed.TestBedSnow"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      },
+      {
+        "kind": "MixinOrder",
+        "shader": "Stride.MaterialTestBed.TestBedSurfaceModifiers",
+        "method": "ModifySurface",
+        "names": [
+          "Stride.MaterialTestBed.TestBedWetness",
+          "Stride.MaterialTestBed.TestBedSnow"
+        ],
+        "level": 1
+      }
     ]
   },
   {

@@ -3,11 +3,11 @@
 
 namespace Stride.MaterialTestBed
 {
-    /// <summary>Settles the pair in a node, where an order rule of the effect doesn't reach.</summary>
+    /// <summary>Settles the pair in a node, where a block of the effect doesn't reach.</summary>
     shader TestBedNodeDoubleLast : TestBedNode
     {
         [Phase(Base)]
-        [After(TestBedNodeOffset)]
+        [MixinOrder(After = TestBedNodeOffset)]
         extend TestBedNode.ModifyColor(inout float3 color)
         {
             color *= 2.0;

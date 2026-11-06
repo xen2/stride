@@ -12,7 +12,7 @@ namespace Stride.MaterialTestBed
         import TestBedSurface;
         import TestBedCelModel;
 
-        [Replaces(TestBedCelModel)]
+        [Drops(Mixins = { TestBedCelModel })]
         extend TestBedShadingModel.ModelDirectLight(Surface s, LightSample light, float3 viewWS)
         {
             return float3(0.25, 0.25, 0.25);
