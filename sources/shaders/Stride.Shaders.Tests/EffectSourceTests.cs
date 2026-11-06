@@ -96,22 +96,20 @@ public class EffectSourceTests
             Macros = { new ShaderMacro("M", "1"), },
             Linkage =
             {
-                new ShaderLinkageRule { Kind = ShaderLinkageKind.Order, Owner = "O", Method = "M", Phase = "P", Names = { "X", "Y" } },
-                new ShaderLinkageRule { Kind = ShaderLinkageKind.Bind, Owner = "O", Method = "M", Phase = "P", Names = { "X" } },
-                new ShaderLinkageRule { Kind = ShaderLinkageKind.Unbind, Owner = "O", Method = "M", Phase = "P" },
-                new ShaderLinkageRule { Kind = ShaderLinkageKind.Unbind, Owner = "O", Method = "M", Names = { "X" } },
-                new ShaderLinkageRule { Kind = ShaderLinkageKind.Phase, Owner = "O", Method = "M", Phase = "P", Names = { "A", "" } },
+                new ShaderLinkageRule { Kind = ShaderLinkageKind.MixinOrder, Shader = "O", Method = "M", Names = { "X", "Y" } },
+                new ShaderLinkageRule { Kind = ShaderLinkageKind.Unbind, Shader = "O", Method = "M", Parameters = "float3", Phases = { "P" }, Mixins = { "X" } },
+                new ShaderLinkageRule { Kind = ShaderLinkageKind.Phase, Shader = "X", Owner = "O", Method = "M", Phase = "P", After = { "A" }, Level = 1 },
+                new ShaderLinkageRule { Kind = ShaderLinkageKind.MixinOrder, Shader = "X", Owner = "O", Method = "M", Before = { "Y" } },
             },
         };
 
         var code = effect.ToCode();
 
         Assert.Contains("new ShaderMacro(\"M\", \"1\"),", code);
-        Assert.Contains("new ShaderLinkageRule { Kind = ShaderLinkageKind.Order, Owner = \"O\", Method = \"M\", Phase = \"P\", Names = { \"X\", \"Y\" } },", code);
-        Assert.Contains("new ShaderLinkageRule { Kind = ShaderLinkageKind.Bind, Owner = \"O\", Method = \"M\", Phase = \"P\", Names = { \"X\" } },", code);
-        Assert.Contains("new ShaderLinkageRule { Kind = ShaderLinkageKind.Unbind, Owner = \"O\", Method = \"M\", Phase = \"P\" },", code);
-        Assert.Contains("new ShaderLinkageRule { Kind = ShaderLinkageKind.Unbind, Owner = \"O\", Method = \"M\", Names = { \"X\" } },", code);
-        Assert.Contains("new ShaderLinkageRule { Kind = ShaderLinkageKind.Phase, Owner = \"O\", Method = \"M\", Phase = \"P\", Names = { \"A\", \"\" } },", code);
+        Assert.Contains("new ShaderLinkageRule { Kind = ShaderLinkageKind.MixinOrder, Shader = \"O\", Method = \"M\", Names = { \"X\", \"Y\" } },", code);
+        Assert.Contains("new ShaderLinkageRule { Kind = ShaderLinkageKind.Unbind, Shader = \"O\", Method = \"M\", Parameters = \"float3\", Phases = { \"P\" }, Mixins = { \"X\" } },", code);
+        Assert.Contains("new ShaderLinkageRule { Kind = ShaderLinkageKind.Phase, Shader = \"X\", Owner = \"O\", Method = \"M\", Phase = \"P\", After = { \"A\" }, Level = 1 },", code);
+        Assert.Contains("new ShaderLinkageRule { Kind = ShaderLinkageKind.MixinOrder, Shader = \"X\", Owner = \"O\", Method = \"M\", Before = { \"Y\" } },", code);
         Assert.Contains(" },\nLinkage =\n{\n", code);
     }
 
@@ -120,10 +118,10 @@ public class EffectSourceTests
     {
         var effect = new EffectSource(new ShaderClassSource("A"))
         {
-            Linkage = { new ShaderLinkageRule { Kind = ShaderLinkageKind.Unbind, Owner = "O", Method = "M", Phase = "P" }, },
+            Linkage = { new ShaderLinkageRule { Kind = ShaderLinkageKind.Unbind, Shader = "O", Method = "M", Phases = { "P" } }, },
         };
 
-        Assert.EndsWith(")\n{\nLinkage =\n{\nnew ShaderLinkageRule { Kind = ShaderLinkageKind.Unbind, Owner = \"O\", Method = \"M\", Phase = \"P\" },\n},\n}", effect.ToCode());
+        Assert.EndsWith(")\n{\nLinkage =\n{\nnew ShaderLinkageRule { Kind = ShaderLinkageKind.Unbind, Shader = \"O\", Method = \"M\", Phases = { \"P\" } },\n},\n}", effect.ToCode());
     }
 
     [Fact]

@@ -153,8 +153,8 @@ public static class SDSLErrorMessages
     public const string SDSL0243 = "SDSL0243: && within ||: {0} computes {1} first. Add parentheses around it to make it clear.";
     public const string SDSL0244 = "SDSL0244: {0} has lower precedence than {1}: {2} computes {3} first. Add parentheses to make it clear.";
     public const string SDSL0245 = "SDSL0245: {0}.sdsl declares {1} and no class named {0}. A class is found by its file name: rename the file or the class.";
-    public const string SDSL0154 = "SDSL0154: a linkage rule of the effect names {0}.{1}, but {0} is in the effect and has no extension point {1}. Check the names: a rule is about a method whose first definition in {0} declares a kind, or the patches of a method in phase External.";
-    public const string SDSL0158 = "SDSL0158: a linkage rule of the effect names the class {0}, which doesn't exist. Check the name. If the class comes from a package, reference that package from the project, or remove the rule.";
+    public const string SDSL0154 = "SDSL0154: the block extend shader {0} ({1}) names {2}, but {0} is in the effect and {3}. A block is about a method of its class, or one the class contributes to, written Owner.Method.";
+    public const string SDSL0158 = "SDSL0158: the {1} names the class {0}, which doesn't exist. Check the name. If the class comes from a package, reference that package from the project, or remove the name.";
     public const string SDSL0218 = "SDSL0218: phase {0} added by {1} to {2} has no place: {2} has no phase {3}.";
     public const string SDSL0216 = "SDSL0216: {0}.{1} doesn't call base, so {2} never run in this effect. Write [Drops(Mixins = {{ {3} }})] on it, or call base.";
     public const string SDSL0246 = "SDSL0246: {0} overrides {1} of {2}, which is not an extension point. If you own {2}, write replace, pipeline or around on the first definition of {1}. If you don't, write patch {2}.{1} instead of override.";
@@ -184,7 +184,7 @@ public static class SDSLErrorMessages
     // Names and namespaces
 
     public const string SDSL0300 = "SDSL0300: {0} is ambiguous: it can be {1} or {2}. Write the full name of the one to use.";
-    public const string SDSL0301 = "SDSL0301: {0} is declared twice: in {1} and in {2}. Rename one or put it in another namespace. To replace a shader, give the new one another name and use [Replaces(\"{0}\")].";
+    public const string SDSL0301 = "SDSL0301: {0} is declared twice: in {1} and in {2}. Rename one or put it in another namespace. To replace a shader, give the new one another name and use [Replaces({0})].";
     // SDSL0302, an effect declared twice: ShaderMixinManager.DuplicateEffectMessage, which doesn't see this class
     public const string SDSL0303 = "SDSL0303: {0} replaces {1}, which doesn't exist or isn't visible from its package ({2}). [Replaces] takes a full name, of a class of the package or of a package it depends on.";
     public const string SDSL0304 = "SDSL0304: {0} has two replacers: {1} and {2}. Keep one, or have one replace the other.";

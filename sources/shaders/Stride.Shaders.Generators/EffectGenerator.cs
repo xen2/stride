@@ -86,6 +86,7 @@ public class EffectGenerator : IIncrementalGenerator
 
             var effectCodeWriter = new EffectCodeWriter
             {
+                FileName = Path.GetFileName(file.Path),
                 CSharpTypeExists = csharpTypeExists,
                 ImplicitUsings = implicitUsings.Split(',', StringSplitOptions.RemoveEmptyEntries),
                 ReferencedLayers = referencedLayers.Split(',', StringSplitOptions.RemoveEmptyEntries),

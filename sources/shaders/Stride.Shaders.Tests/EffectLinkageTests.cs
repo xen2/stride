@@ -28,27 +28,97 @@ public class EffectLinkageTests
         return writer.Text;
     }
 
+    // An error of the parser, or the #error lines the writer gives
+    private static string Errors(string file)
+    {
+        var parsed = SDSLParser.Parse(file);
+        if (parsed.Errors.Count > 0)
+            return string.Join("\n", parsed.Errors.Select(x => x.Message));
+        var writer = new EffectCodeWriter();
+        Assert.False(writer.Run(parsed.AST!), writer.Text);
+        return writer.Text;
+    }
+
     [Theory]
-    [InlineData("order Owner.Run.A: X, Y;", "context.AddLinkageRule(global::Stride.Shaders.ShaderLinkageKind.Order, \"Owner\", \"Run\", \"A\", \"X\", \"Y\");")]
-    [InlineData("order Some.Space.Owner.Run.A: Some.X;", "ShaderLinkageKind.Order, \"Some.Space.Owner\", \"Run\", \"A\", \"Some.X\");")]
-    [InlineData("bind Owner.Run.A = X;", "ShaderLinkageKind.Bind, \"Owner\", \"Run\", \"A\", \"X\");")]
-    [InlineData("unbind Owner.Run.A;", "ShaderLinkageKind.Unbind, \"Owner\", \"Run\", \"A\");")]
-    [InlineData("unbind Owner.Run = X;", "ShaderLinkageKind.Unbind, \"Owner\", \"Run\", null, \"X\");")]
-    [InlineData("phase Owner.Run.Wind after A before B;", "ShaderLinkageKind.Phase, \"Owner\", \"Run\", \"Wind\", \"A\", \"B\");")]
-    [InlineData("phase Owner.Run.Wind after A;", "ShaderLinkageKind.Phase, \"Owner\", \"Run\", \"Wind\", \"A\", \"\");")]
-    [InlineData("phase Owner.Run.Wind before B;", "ShaderLinkageKind.Phase, \"Owner\", \"Run\", \"Wind\", \"\", \"B\");")]
-    public void ALinkageRuleIsWritten(string line, string expected)
+    [InlineData("extend shader Owner { [MixinOrder(X, Y)] Run; }", "context.ExtendShader(\"Owner\", \"effect MyEffect, line 1\").Method(\"Run\").MixinOrder(\"X\", \"Y\");")]
+    [InlineData("extend shader Owner { [Unbind(Phases = { A, B }, Mixins = { X })] Run; }", ".Method(\"Run\").UnbindPhases(\"A\", \"B\");")]
+    [InlineData("extend shader Owner { [Unbind(Phases = { A, B }, Mixins = { X })] Run; }", ".Method(\"Run\").UnbindMixins(\"X\");")]
+    [InlineData("extend shader Owner { [Unbind(Mixins = { X })] Run; }", ".Method(\"Run\").UnbindMixins(\"X\");")]
+    [InlineData("extend shader X { [Phase(A)] Owner.Run; }", "context.ExtendShader(\"X\", \"effect MyEffect, line 1\").Method(\"Owner.Run\").Phase(\"A\", after: null, before: null);")]
+    [InlineData("extend shader X { [Phase(Lib.Wind, After = A, Before = B)] Owner.Run; }", ".Method(\"Owner.Run\").Phase(\"Lib.Wind\", after: \"A\", before: \"B\");")]
+    [InlineData("extend shader X { [MixinOrder(After = A, Before = { B, C })] Owner.Run; }", ".Method(\"Owner.Run\").MixinOrderAfter(\"A\");")]
+    [InlineData("extend shader X { [MixinOrder(After = A, Before = { B, C })] Owner.Run; }", ".Method(\"Owner.Run\").MixinOrderBefore(\"B\", \"C\");")]
+    [InlineData("extend shader Some.Space.X { [Phase(A)] [MixinOrder(After = Some.Y)] Some.Owner.Run; }", "context.ExtendShader(\"Some.Space.X\", \"effect MyEffect, line 1\").Method(\"Some.Owner.Run\").MixinOrderAfter(\"Some.Y\");")]
+    [InlineData("extend shader Owner { [MixinOrder(X, Y)] Run(float3, inout int); }", ".Method(\"Run(float3,int)\").MixinOrder(\"X\", \"Y\");")]
+    [InlineData("extend shader Owner { [MixinOrder(X, Y)] Run(float3 position, inout int count); }", ".Method(\"Run(float3,int)\").MixinOrder(\"X\", \"Y\");")]
+    public void ABlockIsWrittenAsCallsOfItsAttributes(string line, string expected)
     {
         Assert.Contains(expected, Generate($"effect MyEffect {{ {line} }}"));
+    }
+
+    [Fact]
+    public void ABlockCanBeInACondition()
+    {
+        Assert.Contains("context.ExtendShader(\"Owner\"", Generate("params P { bool B; }; effect MyEffect { using params P; if (P.B) { mixin A; extend shader Owner { [Unbind(Phases = { A })] Run; } } }"));
     }
 
     // The words are not reserved
     [Theory]
     [InlineData("float order = 2;")]
     [InlineData("float phase = 2;")]
+    [InlineData("float extend = 2;")]
     public void TheWordsCanStillNameAVariable(string line)
     {
         Assert.Contains("= 2", Generate($"effect MyEffect {{ {line} }}"));
+    }
+
+    [Theory]
+    [InlineData("order Owner.Run.A: X, Y;", "SDSL0251: order Owner.Run.A: X, Y; is no longer part of the language. Write extend shader Owner { [MixinOrder(X, Y)] Run; }.")]
+    [InlineData("order Some.Owner.Run.A: X;", "Write extend shader Some.Owner { [MixinOrder(X)] Run; }.")]
+    [InlineData("bind Owner.Run.A = X;", "SDSL0251: bind Owner.Run.A = X; is no longer part of the language. Write extend shader X { [Phase(A)] Owner.Run; }.")]
+    [InlineData("unbind Owner.Run.A;", "SDSL0251: unbind Owner.Run.A; is no longer part of the language. Write extend shader Owner { [Unbind(Phases = { A })] Run; }.")]
+    [InlineData("unbind Owner.Run = X;", "SDSL0251: unbind Owner.Run = X; is no longer part of the language. Write extend shader Owner { [Unbind(Mixins = { X })] Run; }.")]
+    [InlineData("phase Owner.Run.Wind after A before B;", "SDSL0251: phase Owner.Run.Wind after A before B; is no longer part of the language. Write [Phase(Vendor.Wind, After = A, Before = B)] on a class that joins it, or extend shader X { [Phase(Vendor.Wind, ...)] Owner.Run; }.")]
+    public void ARemovedStatementNamesItsBlock(string line, string message)
+    {
+        Assert.Contains(message, Errors($"namespace Test {{ effect MyEffect {{ {line} }} }}"));
+    }
+
+    [Theory]
+    [InlineData("extend shader X { [Drops(Mixins = { Y })] Owner.Run; }", "SDSL0256: extend shader X { ... Owner.Run; }: an effect takes contributors out with [Unbind] on the method")]
+    [InlineData("extend shader X { [After(Y)] Owner.Run; }", "SDSL0256: extend shader X { ... Owner.Run; }: write [MixinOrder(After = X)] on the method the class contributes to")]
+    [InlineData("extend shader X { [Color] Run; }", "SDSL0256: extend shader X { ... Run; }: a block takes [Phase], [MixinOrder] and [Unbind], and [Color] is none of them")]
+    [InlineData("extend shader X { [Unbind(Phases = { A })] Owner.Run; }", "SDSL0256: extend shader X { ... Owner.Run; }: [Unbind] goes on the method itself: extend shader Owner { [Unbind(...)] Run; }")]
+    [InlineData("extend shader X { [Phase(A)] Run; }", "SDSL0256: extend shader X { ... Run; }: [Phase] goes on a method the class contributes to, written Owner.Run")]
+    [InlineData("extend shader X { [MixinOrder(After = A)] Run; }", "SDSL0135: [MixinOrder] on extend shader X { ... Run; }: on a method of the class, [MixinOrder] lists the classes in their running order")]
+    [InlineData("extend shader X { [MixinOrder(A, B)] Owner.Run; }", "SDSL0135: [MixinOrder] on extend shader X { ... Owner.Run; }: on a method the class contributes to, [MixinOrder] takes After = and Before =")]
+    [InlineData("extend shader X { [MixinOrder(A)] Run; }", "[MixinOrder] lists at least two classes")]
+    [InlineData("extend shader X { [Unbind(A)] Run; }", "SDSL0254: [Unbind] on extend shader X: [Unbind] takes Mixins = { ... } for classes and Phases = { ... } for phases.")]
+    [InlineData("extend shader X { [MixinOrder(\"A\", B)] Run; }", "SDSL0255: [MixinOrder] on extend shader X { ... Run; }: \"A\" is a string.")]
+    [InlineData("extend shader X { [Unbind(Mixins = { \"A\" })] Run; }", "SDSL0255: [Unbind] on extend shader X { ... Run; }: \"A\" is a string.")]
+    [InlineData("extend shader X { [Phase(Lib.Wind, After = \"A\")] Owner.Run; }", "SDSL0255: [Phase] on extend shader X { ... Owner.Run; }: \"A\" is a string.")]
+    [InlineData("extend shader X { [Phase(Wind, After = A)] Owner.Run; }", "SDSL0252: phase Wind, added by extend shader X { ... Owner.Run; }, has a plain name.")]
+    [InlineData("extend shader X { [Phase(Stride.Wind, After = A)] Owner.Run; }", "SDSL0253: phase Stride.Wind, added by extend shader X { ... Owner.Run; }: a name that starts with Stride. is kept for the engine.")]
+    [InlineData("extend shader X<1> { [Phase(A)] Owner.Run; }", "SDSL0256: extend shader X: a block is about every generic version of a class: write the class without its generic values.")]
+    [InlineData("extend shader X { Run }", "SDSL0256: extend shader X: a block holds methods with their attributes")]
+    public void AWrongBlockIsAnError(string line, string message)
+    {
+        Assert.Contains(message, Errors($"namespace Test {{ effect MyEffect {{ {line} }} }}"));
+    }
+
+    // An engine class may add a Stride. phase, in a block too
+    [Fact]
+    public void AnEngineClassAddsAStridePhase()
+    {
+        Assert.Contains(".Phase(\"Stride.Wind\", after: \"A\", before: null);", Generate("effect MyEffect { extend shader Stride.Rendering.X { [Phase(Stride.Wind, After = A)] Owner.Run; } }"));
+    }
+
+    [Theory]
+    [InlineData("namespace Test { extend shader X { [Phase(A)] Owner.Run; } }")]
+    [InlineData("extend shader X { [Phase(A)] Owner.Run; }")]
+    public void ABlockOutsideAnEffectIsAnError(string file)
+    {
+        Assert.Contains("SDSL0256: extend shader ...: a block goes inside an effect, and is about that effect.", Errors(file));
     }
 
     [Fact]
@@ -418,28 +488,25 @@ public class EffectLinkageTests
     private static ShaderMixinContext Context(EffectSource effect) => new(effect, new ParameterCollection(), []);
 
     [Fact]
-    public void ALinkageRuleAtTheTopLevelGoesOnTheEffect()
+    public void ABlockAtTheTopLevelGoesOnTheEffect()
     {
         var effect = new EffectSource(new ShaderMixinSource());
         var context = Context(effect);
 
-        context.AddLinkageRule(ShaderLinkageKind.Unbind, "Owner", "Run", "A");
+        context.UnbindPhases("Owner", "Run", "A");
         context.PushComposition(effect.Root, "Slot", new ShaderMixinSource());
         context.PopComposition();
-        context.AddLinkageRule(ShaderLinkageKind.Unbind, "Owner", "Run", "B");
+        context.ExtendShader("X").Method("Owner.Run").Phase("B");
 
-        Assert.Equal(["A", "B"], effect.Linkage.Select(x => x.Phase));
+        Assert.Equal(["extend shader Owner { [Unbind(Phases = { A })] Run; }", "extend shader X { [Phase(B)] Owner.Run; }"], effect.Linkage.Select(x => x.ToStatement()));
     }
 
     [Theory]
-    [InlineData(ShaderLinkageKind.Order, "A", new[] { "X", "Y" }, "order Owner.Run.A: X, Y")]
-    [InlineData(ShaderLinkageKind.Bind, "A", new[] { "X" }, "bind Owner.Run.A = X")]
-    [InlineData(ShaderLinkageKind.Unbind, "A", new string[0], "unbind Owner.Run.A")]
-    [InlineData(ShaderLinkageKind.Unbind, null, new[] { "X" }, "unbind Owner.Run = X")]
-    [InlineData(ShaderLinkageKind.Phase, "W", new[] { "A", "B" }, "phase Owner.Run.W after A before B")]
-    [InlineData(ShaderLinkageKind.Phase, "W", new[] { "A", "" }, "phase Owner.Run.W after A")]
-    [InlineData(ShaderLinkageKind.Phase, "W", new[] { "", "B" }, "phase Owner.Run.W before B")]
-    public void ALinkageRuleInACompositionIsAnError(ShaderLinkageKind kind, string? phase, string[] names, string statement)
+    [InlineData("MixinOrder", "extend shader Owner { [MixinOrder(X, Y)] Run; }")]
+    [InlineData("Unbind", "extend shader Owner { [Unbind(Mixins = { X })] Run; }")]
+    [InlineData("Phase", "extend shader X { [Phase(Lib.W, After = A)] Owner.Run; }")]
+    [InlineData("Neighbours", "extend shader X { [MixinOrder(After = A)] Owner.Run; }")]
+    public void ABlockInACompositionIsAnError(string attribute, string statement)
     {
         var effect = new EffectSource(new ShaderMixinSource());
         var context = Context(effect);
@@ -447,47 +514,107 @@ public class EffectLinkageTests
 
         context.PushComposition(effect.Root, "Slot", slot);
         context.PushCompositionArray(slot, "Layers", new ShaderMixinSource());
-        var error = Assert.Throws<InvalidOperationException>(() => context.AddLinkageRule(kind, "Owner", "Run", phase!, names));
+        var error = Assert.Throws<InvalidOperationException>(() =>
+        {
+            switch (attribute)
+            {
+                case "MixinOrder": context.MixinOrder("Owner", "Run", "X", "Y"); break;
+                case "Unbind": context.UnbindMixins("Owner", "Run", "X"); break;
+                case "Phase": context.ExtendShader("X").Method("Owner.Run").Phase("Lib.W", after: "A"); break;
+                default: context.ExtendShader("X").Method("Owner.Run").MixinOrderAfter("A"); break;
+            }
+        });
 
-        Assert.StartsWith($"SDSL0151: linkage rule {statement} is inside the composition Slot.Layers[0].", error.Message);
+        Assert.StartsWith($"SDSL0151: the block {statement} is inside the composition Slot.Layers[0].", error.Message);
         Assert.Empty(effect.Linkage);
     }
 
     [Theory]
-    [InlineData(ShaderLinkageKind.Phase, "W", new[] { "A" }, "the phases after and before it")]
-    [InlineData(ShaderLinkageKind.Bind, "A", new string[0], "the class to bind")]
-    [InlineData(ShaderLinkageKind.Order, "A", new string[0], "the classes to order")]
-    [InlineData(ShaderLinkageKind.Unbind, null, new string[0], "the class to unbind")]
-    public void ALinkageRuleWithTooFewNamesIsAClearError(ShaderLinkageKind kind, string? phase, string[] names, string what)
+    [InlineData("Run", "MixinOrder", "lists at least two classes")]
+    [InlineData("Run", "Unbind", "[Unbind(Phases = ...)] takes phases")]
+    [InlineData("Run", "UnbindMixins", "[Unbind(Mixins = ...)] takes classes")]
+    [InlineData("Owner.Run", "MixinOrder", "[MixinOrder(After = ...)] takes the classes it runs after")]
+    [InlineData("Owner.Run", "Before", "[MixinOrder(Before = ...)] takes the classes it runs before")]
+    [InlineData("Run", "Phase", "[Phase] goes on a method the class contributes to")]
+    [InlineData("Run", "Neighbours", "[MixinOrder(After = A)] goes on a method the class contributes to")]
+    [InlineData("Owner.Run", "List", "[MixinOrder(A, B)] lists classes on a method of the class")]
+    [InlineData("Owner.Run", "Unbind", "[Unbind] goes on a method of the class")]
+    public void AWrongCallIsAClearError(string method, string attribute, string message)
     {
         var effect = new EffectSource(new ShaderMixinSource());
-        var error = Assert.Throws<ArgumentException>(() => effect.AddLinkageRule(kind, "Owner", "Run", phase!, names));
-        Assert.Contains($"A linkage rule {kind} about Owner.Run takes {what}", error.Message);
-        Assert.Empty(effect.Linkage);
+        var member = effect.ExtendShader("X").Method(method);
+        var error = Assert.Throws<ArgumentException>(() =>
+        {
+            switch (attribute)
+            {
+                case "MixinOrder" when method == "Run": member.MixinOrder("A"); break;
+                case "MixinOrder": member.MixinOrderAfter(); break;
+                case "Before": member.MixinOrderBefore(); break;
+                case "List": member.MixinOrder("A", "B"); break;
+                case "Unbind": member.UnbindPhases(); break;
+                case "UnbindMixins": member.UnbindMixins(); break;
+                case "Phase": member.Phase("A"); break;
+                default: member.MixinOrderAfter("A"); break;
+            }
+        });
 
-        // The message about a composition writes the rule
-        var context = Context(effect);
-        context.PushComposition(effect.Root, "Slot", new ShaderMixinSource());
-        Assert.Throws<ArgumentException>(() => context.AddLinkageRule(kind, "Owner", "Run", phase!, names));
+        Assert.Contains(message, error.Message);
+        Assert.Empty(effect.Linkage);
     }
 
     [Fact]
-    public void ALinkageRuleOfAMixedEffectGoesOnTheEffect()
+    public void AMethodNamesItsOwnerAndItsOverload()
+    {
+        var effect = new EffectSource(new ShaderMixinSource());
+        effect.ExtendShader("X").Method("Some.Owner.Run(float3, int)").Phase("A");
+
+        var rule = Assert.Single(effect.Linkage);
+        Assert.Equal(("X", "Some.Owner", "Run", "float3,int"), (rule.Shader, rule.Owner, rule.Method, rule.Parameters));
+        Assert.Equal("extend shader X { [Phase(A)] Some.Owner.Run(float3,int); }", rule.ToStatement());
+    }
+
+    [Fact]
+    public void ABlockOfAMixedEffectGoesOnTheEffect()
     {
         var effect = ShaderMixinManager.Generate(TestShader.FullName("EffectLinkageMixedPart"), new ParameterCollection());
 
-        Assert.Equal(["Early", "Late"], effect.Linkage.Select(x => x.Phase));
+        Assert.Equal([ShaderLinkageKind.MixinOrder, ShaderLinkageKind.Unbind], effect.Linkage.Select(x => x.Kind));
+        Assert.All(effect.Linkage, x => Assert.Matches(@"^EffectLinkagePlaces\.sdfx, line \d+$", x.Source));
     }
 
     [Fact]
-    public void ALinkageRuleOfAComposedEffectIsAnError()
+    public void ABlockOfAComposedEffectIsAnError()
     {
         var error = Assert.Throws<InvalidOperationException>(() => ShaderMixinManager.Generate(TestShader.FullName("EffectLinkageComposedPart"), new ParameterCollection()));
 
-        Assert.StartsWith("SDSL0151: linkage rule unbind Owner.Run.Late is inside the composition Layer.", error.Message);
+        Assert.StartsWith("SDSL0151: the block extend shader Owner { [Unbind(Phases = { Late })] Run; } is inside the composition Layer.", error.Message);
     }
 
-    // The compiler adds the platform macros to a copy of the effect. A linkage rule about a phase that doesn't exist only fails if it gets to the mixer.
+    private sealed class Effect : IShaderMixinBuilder
+    {
+        public void Generate(ShaderMixinSource mixin, ShaderMixinContext context) => context.UnbindPhases("Owner", "Run", "A");
+    }
+
+    private sealed class FirstLayer : IShaderMixinBuilder
+    {
+        public void Generate(ShaderMixinSource mixin, ShaderMixinContext context) => context.UnbindPhases("Owner", "Run", "B");
+    }
+
+    // The effect is level 0, and each layer one more, in the order layers run
+    [Fact]
+    public void EachLayerIsOneLevelFurtherOut()
+    {
+        var name = Unique("Effect");
+        ShaderMixinManager.Register(name, new Effect());
+        ShaderMixinManager.RegisterLayer(name, new FirstLayer());
+
+        var effect = ShaderMixinManager.Generate(name, new ParameterCollection());
+
+        Assert.Equal([0, 1], effect.Linkage.Select(x => x.Level));
+        Assert.EndsWith("(layer 1)", effect.Linkage[1].ToString());
+    }
+
+    // The compiler adds the platform macros to a copy of the effect. A block about a phase that doesn't exist only fails if it gets to the mixer.
     [Fact]
     public void TheCompilerGivesTheLinkageToTheMixer()
     {
@@ -495,26 +622,39 @@ public class EffectLinkageTests
         using var compiler = new Stride.Shaders.Compiler.EffectCompiler(provider);
         compiler.SourceDirectories.Add("assets/SDSL/CompilerTests");
         var effect = new EffectSource(new ShaderClassSource(TestShader.FullName("EffectLinkageOwner")));
-        effect.AddLinkageRule(ShaderLinkageKind.Bind, "EffectLinkageOwner", "Run", "Missing", "EffectLinkageOwner");
+        effect.UnbindPhases("EffectLinkageOwner", "Run", "Missing");
 
         var result = compiler.Compile(effect, Stride.Shaders.Compiler.EffectCompilerParameters.Default, new Stride.Shaders.Compiler.CompilerParameters(), ObjectId.New()).WaitForResult();
 
-        Assert.Contains("SDSL0141", string.Join(Environment.NewLine, result.CompilationLog.Messages.Select(x => x.Text)));
+        Assert.Contains("SDSL0254", string.Join(Environment.NewLine, result.CompilationLog.Messages.Select(x => x.Text)));
     }
 
-    // A compiled effect is cached by this hash
+    // A compiled effect is cached by this hash, and the effect log keys an effect with it (EffectCompileCommand): two effects that differ
+    // only by a block, or by the level of a block, are two effects. Where a block is written is not part of it.
     [Fact]
-    public void LinkageIsPartOfTheHashOfACompiledEffect()
+    public void TheBlocksArePartOfTheHashOfACompiledEffect()
     {
         var parameters = Stride.Shaders.Compiler.EffectCompilerParameters.Default;
-        var plain = new EffectSource(new ShaderClassSource("A"));
-        var withRule = new EffectSource(new ShaderClassSource("A"));
-        withRule.AddLinkageRule(ShaderLinkageKind.Unbind, "Owner", "Run", "A");
+        EffectSource Effect(Action<EffectSource> blocks)
+        {
+            var effect = new EffectSource(new ShaderClassSource("A"));
+            blocks(effect);
+            return effect;
+        }
 
-        Assert.NotEqual(ShaderMixinObjectId.Compute(plain, parameters), ShaderMixinObjectId.Compute(withRule, parameters));
+        var plain = ShaderMixinObjectId.Compute(Effect(_ => { }), parameters);
+        var unbind = ShaderMixinObjectId.Compute(Effect(x => x.UnbindPhases("Owner", "Run", "A")), parameters);
+        var otherUnbind = ShaderMixinObjectId.Compute(Effect(x => x.UnbindPhases("Owner", "Run", "B")), parameters);
+        var order = ShaderMixinObjectId.Compute(Effect(x => x.MixinOrder("Owner", "Run", "X", "Y")), parameters);
+        var otherOrder = ShaderMixinObjectId.Compute(Effect(x => x.MixinOrder("Owner", "Run", "Y", "X")), parameters);
+        var outer = ShaderMixinObjectId.Compute(Effect(x => { x.UnbindPhases("Owner", "Run", "A"); x.Linkage[0].Level = 1; }), parameters);
+        var elsewhere = ShaderMixinObjectId.Compute(Effect(x => x.ExtendShader("Owner", "Other.sdfx, line 3").Method("Run").UnbindPhases("A")), parameters);
+
+        Assert.Equal(6, new[] { plain, unbind, otherUnbind, order, otherOrder, outer }.Distinct().Count());
+        Assert.Equal(unbind, elsewhere);
     }
 
-    // Captured with the tree, and not part of its id: an effect gives the same linkage rules for the same parameters
+    // Captured with the tree, and not part of its id: an effect gives the same blocks for the same parameters
     [Fact]
     public void TheCorpusKeepsTheLinkageOfAnEntry()
     {
@@ -522,8 +662,11 @@ public class EffectLinkageTests
         var plainId = plain.Id;
 
         var withRule = new EffectSource(new ShaderClassSource("A"));
-        withRule.AddLinkageRule(ShaderLinkageKind.Unbind, "Owner", "Run", "A");
-        withRule.AddLinkageRule(ShaderLinkageKind.Unbind, "Owner", "Run", null, "X");
+        withRule.UnbindPhases("Owner", "Run", "A");
+        withRule.UnbindMixins("Owner", "Run", "X");
+        withRule.MixinOrder("Owner", "Run(float3)", "X", "Y");
+        withRule.ExtendShader("X").Method("Owner.Run").Phase("Lib.W", after: "A").MixinOrderBefore("Y");
+        withRule.Linkage[^1].Level = 2;
         var entry = new Stride.Shaders.Compiler.ShaderCorpusEntry("Effect", Stride.Graphics.GraphicsProfile.Level_11_0, withRule);
         var read = Stride.Shaders.Compiler.ShaderCorpusEntry.FromJson(Stride.Shaders.Compiler.ShaderCorpusEntry.ToJson(entry));
 
@@ -538,7 +681,7 @@ public class EffectLinkageTests
         var second = new EffectSource(new ShaderMixinSource());
         Assert.Equal(first, second);
 
-        first.AddLinkageRule(ShaderLinkageKind.Unbind, "Owner", "Run", "A");
+        first.UnbindPhases("Owner", "Run", "A");
         Assert.NotEqual(first, second);
 
         var clone = first.Clone();

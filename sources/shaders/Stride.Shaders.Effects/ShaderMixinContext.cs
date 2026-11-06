@@ -22,9 +22,9 @@ namespace Stride.Shaders
         public const string MacroInCompositionMessage = "SDSL0149: macro {0} is set inside the composition {1}. A macro belongs to the whole effect: set it at the top level of the effect. In a composition, use a generic for a value, or a separate class for a different shape.";
 
         /// <summary>
-        /// The message of a linkage rule inside a composition: the rule, and the composition.
+        /// The message of a block inside a composition: the block, and the composition.
         /// </summary>
-        public const string LinkageRuleInCompositionMessage = "SDSL0151: linkage rule {0} is inside the composition {1}. A linkage rule belongs to the whole effect: write it at the top level of the effect.";
+        public const string LinkageRuleInCompositionMessage = "SDSL0151: the block {0} is inside the composition {1}. A block belongs to the whole effect: write it at the top level of the effect.";
 
         private readonly ParameterCollection compilerParameters;
         private readonly Stack<ParameterCollection> parameterCollections = new Stack<ParameterCollection>();
@@ -35,6 +35,8 @@ namespace Stride.Shaders
         private string compositionString = null;
 
         private readonly EffectSource effect;
+
+        private int layerCount;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ShaderMixinContext" /> class.
@@ -107,21 +109,63 @@ namespace Stride.Shaders
         }
 
         /// <summary>
-        /// Adds a linkage rule to the effect being built.
+        /// Gets the level of the rules added now: 0 for the effect, then one more for each layer, in the order layers run.
         /// </summary>
-        /// <param name="kind">What the rule says.</param>
-        /// <param name="owner">The class of the first definition of the method.</param>
-        /// <param name="method">The name of the method.</param>
-        /// <param name="phase">The phase, or null.</param>
-        /// <param name="names">The names of the rule.</param>
-        /// <exception cref="System.InvalidOperationException">Inside a composition: a linkage rule belongs to the whole effect.</exception>
-        public void AddLinkageRule(ShaderLinkageKind kind, string owner, string method, string phase, params string[] names)
+        internal int LinkageLevel { get; private set; }
+
+        /// <summary>
+        /// Gives the rules of a layer the next level, and returns the level to come back to.
+        /// </summary>
+        internal int EnterLayer()
+        {
+            var level = LinkageLevel;
+            LinkageLevel = ++layerCount;
+            return level;
+        }
+
+        internal void LeaveLayer(int level) => LinkageLevel = level;
+
+        /// <summary>
+        /// Starts a block of the effect being built, <c>extend shader Shader { ... }</c>, to give attributes to the methods of a class.
+        /// </summary>
+        /// <param name="shader">The class, by full name, or by a name it ends with.</param>
+        /// <param name="source">Where the block is written, for messages.</param>
+        /// <returns>The block. Adding an attribute inside a composition throws <see cref="InvalidOperationException"/>: a block belongs to the whole effect.</returns>
+        public ShaderBlock ExtendShader(string shader, string source = null) => new(shader, source, rule =>
         {
             if (compositionIndices.Count > 0)
-                throw new InvalidOperationException(string.Format(LinkageRuleInCompositionMessage, ShaderLinkageRule.Create(kind, owner, method, phase, names).ToStatement(), CompositionPath));
+                throw new InvalidOperationException(string.Format(LinkageRuleInCompositionMessage, rule.ToStatement(), CompositionPath));
 
-            effect.AddLinkageRule(kind, owner, method, phase, names);
-        }
+            rule.Level = LinkageLevel;
+            effect.Linkage.Add(rule);
+        });
+
+        /// <summary>
+        /// <c>extend shader Owner { [MixinOrder(A, B)] Method; }</c>: these classes run in this order, in their phase.
+        /// </summary>
+        /// <param name="owner">The class of the first definition of the method.</param>
+        /// <param name="method">The method, with the parameter types of an overload.</param>
+        /// <param name="classes">The classes, in their running order.</param>
+        /// <exception cref="InvalidOperationException">Inside a composition: a block belongs to the whole effect.</exception>
+        public void MixinOrder(string owner, string method, params ReadOnlySpan<string> classes) => ExtendShader(owner).Method(method).MixinOrder(classes);
+
+        /// <summary>
+        /// <c>extend shader Owner { [Unbind(Phases = { P, Q })] Method; }</c>: these phases don't run in this effect.
+        /// </summary>
+        /// <param name="owner">The class of the first definition of the method.</param>
+        /// <param name="method">The method, with the parameter types of an overload.</param>
+        /// <param name="phases">The phases.</param>
+        /// <exception cref="InvalidOperationException">Inside a composition: a block belongs to the whole effect.</exception>
+        public void UnbindPhases(string owner, string method, params ReadOnlySpan<string> phases) => ExtendShader(owner).Method(method).UnbindPhases(phases);
+
+        /// <summary>
+        /// <c>extend shader Owner { [Unbind(Mixins = { X, Y })] Method; }</c>: the contributions of these classes don't run in this effect.
+        /// </summary>
+        /// <param name="owner">The class of the first definition of the method.</param>
+        /// <param name="method">The method, with the parameter types of an overload.</param>
+        /// <param name="mixins">The classes.</param>
+        /// <exception cref="InvalidOperationException">Inside a composition: a block belongs to the whole effect.</exception>
+        public void UnbindMixins(string owner, string method, params ReadOnlySpan<string> mixins) => ExtendShader(owner).Method(method).UnbindMixins(mixins);
 
         private string CompositionPath => string.Join('.', compositionString.Split('.').Reverse());
 

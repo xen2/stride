@@ -26,8 +26,8 @@ namespace Stride.Shaders
         private static readonly Dictionary<string, IShaderMixinBuilder> RegisteredBuilders = new Dictionary<string, IShaderMixinBuilder>();
 
         /// <summary>
-        /// The parts of an effect that assemblies declare: the effect, then its layers. The statements add up, and for one <c>order</c> target,
-        /// the last layer wins.
+        /// The parts of an effect that assemblies declare: the effect, then its layers. The statements add up, and the blocks of each layer
+        /// are one level further out than the ones before it.
         /// </summary>
         private sealed class LayeredEffectBuilder : IShaderMixinBuilder
         {
@@ -47,7 +47,11 @@ namespace Stride.Shaders
 
                 Effect.Generate(mixin, context);
                 foreach (var layer in Layers)
+                {
+                    var level = context.EnterLayer();
                     layer.Generate(mixin, context);
+                    context.LeaveLayer(level);
+                }
             }
 
             /// <summary>

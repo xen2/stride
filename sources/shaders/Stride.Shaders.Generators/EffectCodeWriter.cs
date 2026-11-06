@@ -33,6 +33,7 @@ public class EffectCodeWriter : ShaderWriter
     private bool insideNamespace;
     private bool currentClassHasKeys;
     private bool hasLayer;
+    private string? currentEffect;
 
     /// <summary>
     /// Whether a C# type exists, by full name. A key of a struct type needs a C# struct with the same name (e.g.
@@ -45,6 +46,9 @@ public class EffectCodeWriter : ShaderWriter
     /// written, a <c>mixin</c> name stays as it is written, and the effect of a layer isn't looked for.
     /// </summary>
     public Func<string, bool>? CSharpTypeExists { get; init; }
+
+    /// <summary>The name of the file, for the place of a block in messages.</summary>
+    public string? FileName { get; init; }
 
     /// <summary>The namespaces every shader and effect sees without a <c>using</c>, for the names in <c>mixin</c>.</summary>
     public IReadOnlyList<string> ImplicitUsings { get; init; } = [];
@@ -369,6 +373,7 @@ public class EffectCodeWriter : ShaderWriter
     {
         var effectName = shaderEffect.Name.ToString();
         var fullName = ShaderNames.Combine(currentShaderNamespace, effectName);
+        currentEffect = fullName;
         DeclaredClasses.Add(fullName);
         if (shaderEffect.IsLayer)
             CheckEffectOfLayer(effectName, fullName, shaderEffect.Name.Info);
@@ -818,20 +823,32 @@ public class EffectCodeWriter : ShaderWriter
         }
     }
 
-    public override void VisitEffectLinkageRule(EffectLinkageRule rule)
+    /// <summary>
+    /// One call per attribute of the block, with where it is written.
+    /// </summary>
+    public override void VisitEffectShaderBlock(EffectShaderBlock block)
     {
-        var isUnbindOfClass = rule.Keyword == "unbind" && rule.Names.Count == 1;
-        var methodIndex = rule.Path.Count - (isUnbindOfClass ? 1 : 2);
-        var owner = ResolveClassName(string.Join('.', rule.Path.Take(methodIndex)));
-        var phase = isUnbindOfClass ? "null" : SymbolDisplay.FormatLiteral(rule.Path[^1], true);
-        var kind = rule.Keyword switch { "order" => "Order", "bind" => "Bind", "unbind" => "Unbind", _ => "Phase" };
-        var names = rule.Keyword == "phase" ? rule.Names : rule.Names.Select(ResolveClassName);
-
-        WriteLinkLine(rule);
-        Write($"context.AddLinkageRule(global::Stride.Shaders.ShaderLinkageKind.{kind}, {SymbolDisplay.FormatLiteral(owner, true)}, {SymbolDisplay.FormatLiteral(rule.Path[methodIndex], true)}, {phase}");
-        foreach (var name in names)
-            Write($", {SymbolDisplay.FormatLiteral(name, true)}");
-        WriteLine(");");
+        var errors = new List<(string Message, TextLocation Location)>();
+        var source = $"{FileName ?? $"effect {ShaderNames.ShortName(currentEffect ?? "")}"}, line {block.Info.Line}";
+        var rules = block.ReadRules(ResolveClassName, source, errors);
+        logging.AddRange(errors);
+        foreach (var rule in rules)
+        {
+            static string Literal(string? text) => text != null ? SymbolDisplay.FormatLiteral(text, true) : "null";
+            static string Names(List<string> names) => string.Join(", ", names.Select(x => Literal(x)));
+            // The block gives one rule per key
+            var attribute = rule.Kind switch
+            {
+                ShaderLinkageKind.MixinOrder when !rule.IsOnContribution => $"MixinOrder({Names(rule.Names)})",
+                ShaderLinkageKind.MixinOrder when rule.After.Count > 0 => $"MixinOrderAfter({Names(rule.After)})",
+                ShaderLinkageKind.MixinOrder => $"MixinOrderBefore({Names(rule.Before)})",
+                ShaderLinkageKind.Unbind when rule.Phases.Count > 0 => $"UnbindPhases({Names(rule.Phases)})",
+                ShaderLinkageKind.Unbind => $"UnbindMixins({Names(rule.Mixins)})",
+                _ => $"Phase({Literal(rule.Phase)}, after: {Literal(rule.After.FirstOrDefault())}, before: {Literal(rule.Before.FirstOrDefault())})",
+            };
+            WriteLinkLine(block);
+            WriteLine($"context.ExtendShader({Literal(rule.Shader)}, {Literal(source)}).Method({Literal(rule.Member())}).{attribute};");
+        }
     }
 
     private void WriteMixinName(Expression mixinName)

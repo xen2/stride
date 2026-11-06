@@ -1084,20 +1084,20 @@ public partial class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void AnOrderRuleOrdersAPhaseAndWinsOverAfter()
+    public void ABlockListWinsOverTheOrderAClassStates()
     {
         WriteOwner();
         WriteModule("First", "[Phase(A)] [MixinOrder(After = Second)] override void Run() { base.Run(); streams.Steps = 2; }");
         WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 3; }");
 
-        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "A", "Test.First", "Test.Second"), "Test.First", "Test.Second");
+        var (ok, log, explanation) = Mix(true, x => x.MixinOrder("Test.Owner", "Run", "Test.First", "Test.Second"), "Test.First", "Test.Second");
 
         Assert.True(ok, log);
         Assert.Contains("A: First > Second   order: block", Block(explanation, "Run"));
     }
 
     [Fact]
-    public void AnOrderRuleSettlesAConflict()
+    public void ABlockSettlesAConflict()
     {
         WriteOwner();
         WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
@@ -1108,7 +1108,7 @@ public partial class ExtensionPointTests : IDisposable
         Assert.Contains("this block to the effect: extend shader Owner { [MixinOrder(First, Second)] Run; }", noRuleLog);
 
         // A name as written counts
-        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Owner", "Run", "A", "Second", "First"), "Test.First", "Test.Second");
+        var (ok, log, explanation) = Mix(true, x => x.MixinOrder("Owner", "Run", "Second", "First"), "Test.First", "Test.Second");
 
         Assert.True(ok, log);
         Assert.Contains("A: Second > First   order: block", Block(explanation, "Run"));
@@ -1124,40 +1124,99 @@ public partial class ExtensionPointTests : IDisposable
 
         var (ok, log, _) = Mix(true, x =>
         {
-            x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "A", "Test.First", "Test.Second");
-            x.AddLinkageRule(ShaderLinkageKind.Order, "Owner", "Run", "A", "Second", "First");
+            x.ExtendShader("Test.Owner", "One.sdfx, line 4").Method("Run").MixinOrder("Test.First", "Test.Second");
+            x.ExtendShader("Owner", "Two.sdfx, line 9").Method("Run").MixinOrder("Second", "First");
         }, "Test.First", "Test.Second");
 
         Assert.False(ok, log);
-        Assert.Contains("SDSL0138: the order of Owner.Run can't be followed: First runs before Second (the effect: order Test.Owner.Run.A: Test.First, Test.Second) and after it (the effect: order Owner.Run.A: Second, First)", log);
+        Assert.Contains("SDSL0138: the order of Owner.Run can't be followed: First runs before Second (block of One.sdfx, line 4) and after it (block of Two.sdfx, line 9), and neither is written further out to replace the other.", log);
+    }
+
+    private sealed class OrdersThree : IShaderMixinBuilder
+    {
+        public void Generate(ShaderMixinSource mixin, ShaderMixinContext context)
+        {
+            foreach (var name in new[] { "Test.Entry", "Test.First", "Test.Second", "Test.Third" })
+                mixin.Mixins.Add(new ShaderClassSource(name));
+            context.ExtendShader("Test.Owner", "Effect.sdfx, line 3").Method("Run").MixinOrder("Test.First", "Test.Second", "Test.Third");
+        }
+    }
+
+    private sealed class PutsThirdFirst : IShaderMixinBuilder
+    {
+        public void Generate(ShaderMixinSource mixin, ShaderMixinContext context)
+            => context.ExtendShader("Test.Owner", "Layer.sdfx, line 5").Method("Run").MixinOrder("Test.Third", "Test.Second");
+    }
+
+    // The layer replaces Second before Third, and First before Second still holds
+    [Fact]
+    public void ALayerReplacesOnlyTheOppositePair()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 1; }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Third", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 3; }");
+        var name = $"Ordered{Guid.NewGuid():N}";
+        ShaderMixinManager.Register(name, new OrdersThree());
+        ShaderMixinManager.RegisterLayer(name, new PutsThirdFirst());
+
+        var (ok, log, explanation) = Mix(false, ShaderMixinManager.Generate(name, new ParameterCollection()));
+
+        Assert.True(ok, log);
+        Assert.Contains("A: First > Third > Second   order: block, builder", Block(explanation, "Run"));
+        Assert.Contains("Info: Owner.Run, phase A: First runs before Third because of the order of the mix", log);
     }
 
     [Fact]
-    public void AnOrderRuleOfAPhaseReachedFromTheOutsideIsTheRunningOrder()
+    public void ACycleAcrossAClassAndABlockNamesEverySource()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] [MixinOrder(After = Third)] override void Run() { base.Run(); }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Third", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix(true, x => x.ExtendShader("Test.Owner", "Effect.sdfx, line 7").Method("Run").MixinOrder("Test.First", "Test.Second", "Test.Third"), "Test.First", "Test.Second", "Test.Third");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138: the order of Owner.Run can't be followed: these orders go in a circle:", log);
+        Assert.Contains("Third before First ([MixinOrder] of First.sdsl, line 2)", log);
+        Assert.Contains("First before Second (block of Effect.sdfx, line 7)", log);
+        Assert.Contains("Second before Third (block of Effect.sdfx, line 7)", log);
+    }
+
+    [Fact]
+    public void ABlockListOfAPhaseReachedFromTheOutsideIsTheRunningOrder()
     {
         WriteOwner();
         WriteModule("First", "[Phase(Early)] override void Run() { streams.Steps = 2; base.Run(); }");
         WriteModule("Second", "[Phase(Early)] override void Run() { streams.Steps = 3; base.Run(); }");
 
-        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "Early", "Test.First", "Test.Second"), "Test.First", "Test.Second");
+        var (ok, log, explanation) = Mix(true, x => x.MixinOrder("Test.Owner", "Run", "Test.First", "Test.Second"), "Test.First", "Test.Second");
 
         Assert.True(ok, log);
-        Assert.Equal("module method Run() -> void = Owner > Second > First", Block(explanation, "Run")[0]);
+        var block = Block(explanation, "Run");
+        Assert.Equal("module method Run() -> void = Owner > Second > First", block[0]);
+        Assert.Contains("Early: First > Second   order: block", block);
     }
 
     [Fact]
-    public void BindGivesAPhaseToAClassThatHasNone()
+    public void ABlockGivesAClassItsPhase()
     {
         WriteOwner();
         WriteModule("Later", "[Phase(B)] override void Run() { base.Run(); }");
         WriteModule("Patch", "override void Run() { base.Run(); }");
+        WriteModule("Moved", "[Phase(B)] override void Run() { base.Run(); }");
 
-        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Bind, "Test.Owner", "Run", "A", "Test.Patch"), "Test.Later", "Test.Patch");
+        var (ok, log, explanation) = Mix(true, x =>
+        {
+            x.ExtendShader("Test.Patch").Method("Test.Owner.Run").Phase("A");
+            x.ExtendShader("Test.Moved").Method("Test.Owner.Run").Phase("A");
+        }, "Test.Later", "Test.Patch", "Test.Moved");
 
         Assert.True(ok, log);
         var block = Block(explanation, "Run");
-        Assert.Equal("module method Run() -> void = Owner > Patch > Later", block[0]);
-        Assert.Contains("A: Patch", block);
+        Assert.Equal("module method Run() -> void = Owner > Patch > Moved > Later", block[0]);
+        Assert.Contains("A: Patch > Moved   order: tie-break", block);
     }
 
     [Fact]
@@ -1168,11 +1227,7 @@ public partial class ExtensionPointTests : IDisposable
         WriteModule("Patch", "override void Run() { base.Run(); }");
         WriteModule("Replacement", "override void Run() { streams.Steps = 2; }");
 
-        var (ok, log, explanation) = Mix(true, x =>
-        {
-            x.AddLinkageRule(ShaderLinkageKind.Unbind, "Test.Owner", "Run", "A");
-            x.AddLinkageRule(ShaderLinkageKind.Unbind, "Test.Owner", "Run", null, "Test.Patch");
-        }, "Test.InPhase", "Test.Patch", "Test.Replacement");
+        var (ok, log, explanation) = Mix(true, x => { x.UnbindPhases("Test.Owner", "Run", "A"); x.UnbindMixins("Test.Owner", "Run", "Test.Patch"); }, "Test.InPhase", "Test.Patch", "Test.Replacement");
 
         Assert.True(ok, log);
         var block = Block(explanation, "Run");
@@ -1182,25 +1237,31 @@ public partial class ExtensionPointTests : IDisposable
     }
 
     [Theory]
-    [InlineData(ShaderLinkageKind.Order)]
-    [InlineData(ShaderLinkageKind.Bind)]
-    [InlineData(ShaderLinkageKind.Unbind)]
-    public void ALinkageRuleWithAPhaseThatDoesNotExistIsAnError(ShaderLinkageKind kind)
+    [InlineData("Unbind", "SDSL0254: [Unbind] on Owner.Run (block of C#): Owner.Run has no phase Missing.")]
+    [InlineData("Phase", "SDSL0141: [Phase(Missing)] on Step.Run (block of Here.sdfx, line 2): Owner.Run has the phases Early, Default, A, B, and no class of the effect adds Missing.")]
+    [InlineData("UnbindAClass", "SDSL0254: [Unbind] on Owner.Run (C#): A is a phase: write Phases = { A }.")]
+    public void ABlockAboutAPhaseThatDoesNotExistIsAnError(string attribute, string message)
     {
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
 
-        var (ok, log, _) = MixCatching(x => x.AddLinkageRule(kind, "Test.Owner", "Run", "Missing", "Test.Step"), "Test.Step");
+        var (ok, log, _) = Mix(false, x =>
+        {
+            if (attribute == "Unbind")
+                x.UnbindPhases("Test.Owner", "Run", "Missing");
+            else if (attribute == "Phase")
+                x.ExtendShader("Test.Step", "Here.sdfx, line 2").Method("Test.Owner.Run").Phase("Missing");
+            else
+                x.UnbindMixins("Test.Owner", "Run", "A");
+        }, "Test.Step");
 
         Assert.False(ok, log);
-        Assert.Contains("SDSL0141", log);
+        Assert.Contains(message, log);
     }
-
-    private (bool Ok, string Log, string Explanation) MixCatching(Action<EffectSource> linkage, params string[] classes) => Mix(false, linkage, classes);
 
     private sealed class UnbindsPhaseA : IShaderMixinBuilder
     {
-        public void Generate(ShaderMixinSource mixin, ShaderMixinContext context) => context.AddLinkageRule(ShaderLinkageKind.Unbind, "Test.Owner", "Run", "A");
+        public void Generate(ShaderMixinSource mixin, ShaderMixinContext context) => context.UnbindPhases("Test.Owner", "Run", "A");
     }
 
     private sealed class MixesEntryAndStep(string part, bool compose) : IShaderMixinBuilder
@@ -1230,7 +1291,7 @@ public partial class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void ALinkageRuleOfAMixedEffectIsAboutTheWholeEffect()
+    public void ABlockOfAMixedEffectIsAboutTheWholeEffect()
     {
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
@@ -1244,59 +1305,84 @@ public partial class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void ALinkageRuleOfAComposedEffectIsAnError()
+    public void ABlockOfAComposedEffectIsAnError()
     {
         var error = Assert.Throws<InvalidOperationException>(() => ShaderMixinManager.Generate(RegisterEffectWithLinkageRule(compose: true), new ParameterCollection()));
 
-        Assert.StartsWith("SDSL0151: linkage rule unbind Test.Owner.Run.A is inside the composition Slot.", error.Message);
+        Assert.StartsWith("SDSL0151: the block extend shader Test.Owner { [Unbind(Phases = { A })] Run; } is inside the composition Slot.", error.Message);
     }
 
     [Fact]
-    public void ALinkageRuleAboutAPointThatIsNotInTheEffectIsIgnored()
+    public void ABlockForAClassThatIsNotInTheEffectDoesNothing()
     {
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
         WriteModule("Other", "");
 
-        var (ok, log, _) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Unbind, "Test.Other", "Run", "A"), "Test.Step");
+        var (ok, log, _) = Mix(true, x =>
+        {
+            x.UnbindPhases("Test.Other", "Run", "A");
+            x.ExtendShader("Test.Other").Method("Test.Owner.Runn").Phase("B");
+        }, "Test.Step");
 
         Assert.True(ok, log);
     }
 
     // A name the project couldn't resolve stays as written, and the class can be in a namespace
     [Fact]
-    public void ALinkageRuleCanNameAClassByTheEndOfItsFullName()
+    public void ABlockCanNameAClassByTheEndOfItsFullName()
     {
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
-        WriteModule("Other", "");
 
-        var (ok, log, _) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Unbind, "Other", "Run", "A"), "Test.Step");
+        var (ok, log, explanation) = Mix(true, x => x.ExtendShader("Step").Method("Owner.Run").Phase("B"), "Test.Step");
 
         Assert.True(ok, log);
+        Assert.Contains("B: Step", Block(explanation, "Run"));
     }
 
-    public static TheoryData<bool, ShaderLinkageKind, string, string?, string[], string> MisspelledClasses => new()
+    // A block is about every generic version of a class
+    [Fact]
+    public void ABlockCoversEveryGenericVersionOfAClass()
     {
-        { true, ShaderLinkageKind.Unbind, "Test.Ownr", "A", [], "Test.Ownr" },
-        { false, ShaderLinkageKind.Unbind, "Test.Ownr", "A", [], "Test.Ownr" },
-        { true, ShaderLinkageKind.Unbind, "Test.Owner", null, ["Test.Stepp"], "Test.Stepp" },
-        { false, ShaderLinkageKind.Order, "Test.Owner", "A", ["Test.Step", "Test.Stepp"], "Test.Stepp" },
-        { true, ShaderLinkageKind.Bind, "Test.Owner", "A", ["Test.Stepp"], "Test.Stepp" },
-        { false, ShaderLinkageKind.Phase, "Test.Ownr", "Wind", ["A", ""], "Test.Ownr" },
-    };
+        WriteOwner();
+        Write("Gen", "module Gen<int N> { import Owner; [Phase(A)] override void Run() { base.Run(); streams.Steps = N; } }");
+
+        var source = new ShaderMixinSource { Mixins = { new ShaderClassSource("Test.Entry"), new ShaderClassSource("Test.Gen", 2) } };
+        var effect = new EffectSource(source);
+        effect.ExtendShader("Test.Gen").Method("Test.Owner.Run").Phase("B");
+
+        var (ok, log, explanation) = Mix(true, effect);
+
+        Assert.True(ok, log);
+        Assert.Contains("B: Gen<2>", Block(explanation, "Run"));
+    }
 
     [Theory]
-    [MemberData(nameof(MisspelledClasses))]
-    public void AClassThatExistsNowhereInALinkageRuleIsAnError(bool isAssetBuild, ShaderLinkageKind kind, string owner, string? phase, string[] names, string misspelled)
+    [InlineData("Test.Owner.Ownr", "Test.Owner.Ownr")]
+    [InlineData("Test.Stepp", "Test.Stepp")]
+    [InlineData("Order", "Test.Stepp")]
+    [InlineData("Mixins", "Test.Stepp")]
+    [InlineData("After", "Test.Stepp")]
+    public void AClassThatExistsNowhereInABlockIsAnError(string where, string misspelled)
     {
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
 
-        var (ok, log, _) = Mix(isAssetBuild, x => x.AddLinkageRule(kind, owner, "Run", phase!, names), "Test.Step");
+        var (ok, log, _) = Mix(true, x =>
+        {
+            switch (where)
+            {
+                case "Test.Owner.Ownr": x.UnbindPhases("Test.Owner.Ownr", "Run", "A"); break;
+                case "Test.Stepp": x.ExtendShader("Test.Stepp").Method("Test.Owner.Run").Phase("A"); break;
+                case "Order": x.MixinOrder("Test.Owner", "Run", "Test.Step", "Test.Stepp"); break;
+                case "Mixins": x.UnbindMixins("Test.Owner", "Run", "Test.Stepp"); break;
+                default: x.ExtendShader("Test.Step").Method("Test.Owner.Run").MixinOrderAfter("Test.Stepp"); break;
+            }
+        }, "Test.Step");
 
         Assert.False(ok, log);
-        Assert.Contains($"SDSL0158: a linkage rule of the effect names the class {misspelled}, which doesn't exist.", log);
+        Assert.Contains($"SDSL0158: the block of C# names the class {misspelled}, which doesn't exist.", log);
     }
 
     // Before the order is looked at: what would be missing from it is a misspelled name, not an order
@@ -1307,7 +1393,7 @@ public partial class ExtensionPointTests : IDisposable
         WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 1; }");
         WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
 
-        var (ok, log, _) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "A", "Test.First", "Test.Secnd"), "Test.First", "Test.Second");
+        var (ok, log, _) = Mix(true, x => x.MixinOrder("Test.Owner", "Run", "Test.First", "Test.Secnd"), "Test.First", "Test.Second");
 
         Assert.False(ok, log);
         Assert.Contains("SDSL0158", log);
@@ -1320,7 +1406,7 @@ public partial class ExtensionPointTests : IDisposable
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
 
-        var (ok, log, _) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Unbind, "Wrong.Owner", "Run", "A"), "Test.Step");
+        var (ok, log, _) = Mix(true, x => x.UnbindPhases("Wrong.Owner", "Run", "A"), "Test.Step");
 
         Assert.False(ok, log);
         Assert.Contains("SDSL0158", log);
@@ -1328,23 +1414,34 @@ public partial class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void APhaseRuleAddsAPhase()
+    public void ABlockAddsAPhaseForItsClass()
     {
         WriteOwner();
         WriteModule("InB", "[Phase(B)] override void Run() { base.Run(); }");
         WriteModule("InA", "[Phase(A)] override void Run() { base.Run(); }");
         WriteModule("Patch", "override void Run() { base.Run(); }");
 
-        var (ok, log, explanation) = Mix(true, x =>
-        {
-            x.AddLinkageRule(ShaderLinkageKind.Phase, "Test.Owner", "Run", "Wind", "A", "B");
-            x.AddLinkageRule(ShaderLinkageKind.Bind, "Test.Owner", "Run", "Wind", "Test.Patch");
-        }, "Test.InB", "Test.InA", "Test.Patch");
+        var (ok, log, explanation) = Mix(true, x => x.ExtendShader("Test.Patch").Method("Test.Owner.Run").Phase("Lib.Wind", after: "A", before: "B"), "Test.InB", "Test.InA", "Test.Patch");
 
         Assert.True(ok, log);
         var block = Block(explanation, "Run");
         Assert.Equal("module method Run() -> void = Owner > InA > Patch > InB", block[0]);
-        Assert.Contains("Wind: Patch", block);
+        Assert.Contains("Lib.Wind: Patch", block);
+    }
+
+    // The class of a block built in C# adds the phase
+    [Theory]
+    [InlineData("Wind", "SDSL0252: phase Wind, added by Patch.Run (block of C#), has a plain name.")]
+    [InlineData("Stride.Wind", "SDSL0253: phase Stride.Wind, added by Patch.Run (block of C#): a name that starts with Stride. is kept for the engine.")]
+    public void APhaseThatABlockAddsHasAPrefix(string phase, string message)
+    {
+        WriteOwner();
+        WriteModule("Patch", "override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix(false, x => x.ExtendShader("Test.Patch").Method("Test.Owner.Run").Phase(phase, after: "A"), "Test.Patch");
+
+        Assert.False(ok, log);
+        Assert.Contains(message, log);
     }
 
     [Fact]
@@ -1361,15 +1458,15 @@ public partial class ExtensionPointTests : IDisposable
         Assert.Equal("module method Run() -> void = Owner > InA > Wind > InB", Block(explanation, "Run")[0]);
     }
 
-    // SDSL0137 says to write this rule
+    // SDSL0137 says to write this block
     [Fact]
-    public void AnOrderRuleCanNameAPhaseAnOverrideAdds()
+    public void ABlockCanOrderAPhaseAnOverrideAdds()
     {
         WriteOwner();
         WriteModule("First", "[Phase(Lib.Wind, After = A)] override void Run() { base.Run(); streams.Steps = 2; }");
         WriteModule("Second", "[Phase(Lib.Wind, After = A)] override void Run() { base.Run(); streams.Steps = 3; }");
 
-        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "Lib.Wind", "Test.Second", "Test.First"), "Test.First", "Test.Second");
+        var (ok, log, explanation) = Mix(true, x => x.MixinOrder("Test.Owner", "Run", "Test.Second", "Test.First"), "Test.First", "Test.Second");
 
         Assert.True(ok, log);
         Assert.Contains("Lib.Wind: Second > First", explanation);
@@ -1381,9 +1478,10 @@ public partial class ExtensionPointTests : IDisposable
         WriteOwner();
         WriteModule("Last", "[Phase(Lib.Y, After = Lib.X)] override void Run() { base.Run(); }");
         WriteModule("Next", "[Phase(Lib.X, After = A)] override void Run() { base.Run(); }");
+        WriteModule("Other", "[Phase(A)] override void Run() { base.Run(); }");
 
         Assert.True(Mix(false, "Test.Last", "Test.Next").Ok);
-        Assert.True(Mix(false, x => x.AddLinkageRule(ShaderLinkageKind.Phase, "Test.Owner", "Run", "Lib.X", "A", ""), "Test.Last").Ok);
+        Assert.True(Mix(false, x => x.ExtendShader("Test.Other").Method("Test.Owner.Run").Phase("Lib.X", after: "A"), "Test.Last", "Test.Other").Ok);
     }
 
     [Theory]
@@ -1417,19 +1515,59 @@ public partial class ExtensionPointTests : IDisposable
     }
 
     [Theory]
-    [InlineData(ShaderLinkageKind.Order, "Runn")]
-    [InlineData(ShaderLinkageKind.Bind, "Runn")]
-    [InlineData(ShaderLinkageKind.Unbind, "Runn")]
-    [InlineData(ShaderLinkageKind.Order, "Plain")]
-    public void ALinkageRuleAboutAMethodItsClassDoesNotDeclareIsAnError(ShaderLinkageKind kind, string method)
+    [InlineData("List", "SDSL0154: the block extend shader Owner (C#) names Runn, but Owner is in the effect and has no method Runn that is an extension point or has patches.")]
+    [InlineData("Unbind", "SDSL0154: the block extend shader Owner (C#) names Runn, but Owner is in the effect and has no method Runn that is an extension point.")]
+    [InlineData("UnbindPlain", "SDSL0154: the block extend shader Owner (C#) names Plain, but Owner is in the effect and Plain is not an extension point, so there is nothing to unbind.")]
+    [InlineData("Phase", "SDSL0154: the block extend shader Step (C#) names Test.Owner.Runn, but Step is in the effect and Owner has no method Runn that is an extension point or has patches.")]
+    [InlineData("NotContributing", "SDSL0154: the block extend shader Step (C#) names Test.Owner.Wrap, but Step is in the effect and doesn't contribute to Test.Owner.Wrap.")]
+    public void ABlockAboutAMethodItsClassDoesNotHaveIsAnError(string attribute, string message)
     {
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
 
-        var (ok, log, _) = Mix(true, x => x.AddLinkageRule(kind, "Test.Owner", method, "A", "Test.Step"), "Test.Step");
+        var (ok, log, _) = Mix(true, x =>
+        {
+            switch (attribute)
+            {
+                case "List": x.MixinOrder("Test.Owner", "Runn", "Test.Step", "Test.Entry"); break;
+                case "Unbind": x.UnbindPhases("Test.Owner", "Runn", "A"); break;
+                case "UnbindPlain": x.UnbindMixins("Test.Owner", "Plain", "Test.Step"); break;
+                case "Phase": x.ExtendShader("Test.Step").Method("Test.Owner.Runn").Phase("A"); break;
+                default: x.ExtendShader("Test.Step").Method("Test.Owner.Wrap").Phase("Outer"); break;
+            }
+        }, "Test.Step");
 
         Assert.False(ok, log);
-        Assert.Contains($"SDSL0154: a linkage rule of the effect names Owner.{method}", log);
+        Assert.Contains(message, log);
+    }
+
+    private const string OverloadedOwner = """
+        module OverloadedOwner
+        {
+            stream float Steps;
+
+            [Phases(A)]
+            pipeline void Go(float value) { }
+
+            [Phases(A)]
+            pipeline void Go(int value) { }
+        }
+        """;
+
+    [Fact]
+    public void ABlockAboutAnOverloadWritesItsParameterTypes()
+    {
+        Write("OverloadedOwner", OverloadedOwner);
+        Write("First", "module First { import OverloadedOwner; [Phase(A)] override void Go(float value) { base.Go(value); streams.Steps = 1; } }");
+        Write("Second", "module Second { import OverloadedOwner; [Phase(A)] override void Go(float value) { base.Go(value); streams.Steps = 2; } }");
+
+        var (ok, log, _) = Mix(true, x => x.MixinOrder("Test.OverloadedOwner", "Go", "Test.Second", "Test.First"), "Test.First", "Test.Second");
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0154: the block extend shader OverloadedOwner (C#) names Go, but OverloadedOwner is in the effect and Go has several overloads: write the parameter types, as in Go(", log);
+
+        (ok, log, var explanation) = Mix(true, x => x.MixinOrder("Test.OverloadedOwner", "Go(float)", "Test.Second", "Test.First"), "Test.First", "Test.Second");
+        Assert.True(ok, log);
+        Assert.Contains("A: OverloadedOwner > Second > First   order: block", explanation.Split('\n').Select(x => x.Trim()));
     }
 
     [Fact]
@@ -1615,7 +1753,7 @@ public partial class ExtensionPointTests : IDisposable
         WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
         WriteModule("PatchB", "patch Owner.Plain() { return next() * 2; }");
 
-        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Plain", "External", "Test.PatchB", "Test.PatchA"), "Test.PatchA", "Test.PatchB");
+        var (ok, log, explanation) = Mix(true, x => x.MixinOrder("Test.Owner", "Plain", "Test.PatchB", "Test.PatchA"), "Test.PatchA", "Test.PatchB");
 
         Assert.True(ok, log);
         Assert.Equal("module method Plain() -> float = Owner > PatchB > PatchA", Block(explanation, "Plain")[0]);

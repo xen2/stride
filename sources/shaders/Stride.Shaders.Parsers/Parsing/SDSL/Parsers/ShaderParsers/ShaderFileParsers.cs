@@ -75,9 +75,15 @@ public record struct ShaderFileParser : IParser<ShaderFile>
     // A class that stopped at an element it couldn't parse is also returned, so it must have reached its closing brace.
     internal static ParseError AfterDeclarationError<TScanner>(ref TScanner scanner, Node? previous, string otherwise)
         where TScanner : struct, IScanner
-        => new(previous is ShaderClass shaderClass && shaderClass.Info.TextSpan.TrimEnd().TrimEnd(';').TrimEnd().EndsWith("}")
+    {
+        var position = scanner.Position;
+        var isBlock = Parsers.SequenceOf(ref scanner, ["extend", "shader"]);
+        scanner.Position = position;
+        return new(isBlock ? string.Format(SDSLErrorMessages.SDSL0256, "...", "a block goes inside an effect, and is about that effect")
+            : previous is ShaderClass shaderClass && shaderClass.Info.TextSpan.TrimEnd().TrimEnd(';').TrimEnd().EndsWith("}")
             ? string.Format(SDSLErrorMessages.SDSL0049, shaderClass.Name)
             : otherwise, scanner[scanner.Position], scanner.Memory);
+    }
     public static bool UsingNamespace<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out UsingShaderNamespace parsed, in ParseError? orError = null)
         where TScanner : struct, IScanner
         => new UsingNamespaceParser().Match(ref scanner, result, out parsed, orError);

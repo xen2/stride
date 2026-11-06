@@ -41,7 +41,7 @@ namespace Stride.Shaders
         public List<ShaderMacro> Macros { get; } = [];
 
         /// <summary>
-        /// Gets the linkage rules of this effect: orders, bindings and phases of its extension points.
+        /// Gets the linkage rules of this effect: the attributes its blocks give to the methods of classes.
         /// </summary>
         public List<ShaderLinkageRule> Linkage { get; } = [];
 
@@ -58,18 +58,36 @@ namespace Stride.Shaders
         public void AddMacro(string name, object value) => Macros.Add(new ShaderMacro(name, value));
 
         /// <summary>
-        /// Adds a linkage rule to this effect.
+        /// Starts a block of this effect, <c>extend shader Shader { ... }</c>, to give attributes to the methods of a class.
         /// </summary>
-        /// <param name="kind">What the rule says.</param>
+        /// <param name="shader">The class, by full name, or by a name it ends with.</param>
+        /// <param name="source">Where the block is written, for messages.</param>
+        /// <returns>The block.</returns>
+        public ShaderBlock ExtendShader(string shader, string source = null) => new(shader, source, Linkage.Add);
+
+        /// <summary>
+        /// <c>extend shader Owner { [MixinOrder(A, B)] Method; }</c>: these classes run in this order, in their phase.
+        /// </summary>
         /// <param name="owner">The class of the first definition of the method.</param>
-        /// <param name="method">The name of the method.</param>
-        /// <param name="phase">The phase, or null.</param>
-        /// <param name="names">The names of the rule.</param>
-        /// <exception cref="System.ArgumentException">Too few names for this kind of rule.</exception>
-        public void AddLinkageRule(ShaderLinkageKind kind, string owner, string method, string phase, params string[] names)
-        {
-            Linkage.Add(ShaderLinkageRule.Create(kind, owner, method, phase, names));
-        }
+        /// <param name="method">The method, with the parameter types of an overload.</param>
+        /// <param name="classes">The classes, in their running order.</param>
+        public void MixinOrder(string owner, string method, params ReadOnlySpan<string> classes) => ExtendShader(owner).Method(method).MixinOrder(classes);
+
+        /// <summary>
+        /// <c>extend shader Owner { [Unbind(Phases = { P, Q })] Method; }</c>: these phases don't run in this effect.
+        /// </summary>
+        /// <param name="owner">The class of the first definition of the method.</param>
+        /// <param name="method">The method, with the parameter types of an overload.</param>
+        /// <param name="phases">The phases.</param>
+        public void UnbindPhases(string owner, string method, params ReadOnlySpan<string> phases) => ExtendShader(owner).Method(method).UnbindPhases(phases);
+
+        /// <summary>
+        /// <c>extend shader Owner { [Unbind(Mixins = { X, Y })] Method; }</c>: the contributions of these classes don't run in this effect.
+        /// </summary>
+        /// <param name="owner">The class of the first definition of the method.</param>
+        /// <param name="method">The method, with the parameter types of an overload.</param>
+        /// <param name="mixins">The classes.</param>
+        public void UnbindMixins(string owner, string method, params ReadOnlySpan<string> mixins) => ExtendShader(owner).Method(method).UnbindMixins(mixins);
 
         /// <summary>
         /// Gives a copy of this effect, its tree included.

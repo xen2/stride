@@ -108,14 +108,25 @@ namespace Stride.Shaders.Compiler
                 writer.WriteStartArray("linkage");
                 foreach (var rule in entry.Effect.Linkage)
                 {
-                    writer.WriteStartArray();
-                    writer.WriteStringValue(rule.Kind.ToString());
-                    writer.WriteStringValue(rule.Owner);
-                    writer.WriteStringValue(rule.Method);
-                    writer.WriteStringValue(rule.Phase);
-                    foreach (var name in rule.Names)
-                        writer.WriteStringValue(name);
-                    writer.WriteEndArray();
+                    writer.WriteStartObject();
+                    writer.WriteString("kind", rule.Kind.ToString());
+                    foreach (var (name, value) in new[] { ("shader", rule.Shader), ("owner", rule.Owner), ("method", rule.Method), ("parameters", rule.Parameters), ("phase", rule.Phase) })
+                    {
+                        if (value != null)
+                            writer.WriteString(name, value);
+                    }
+                    foreach (var (name, values) in new[] { ("names", rule.Names), ("after", rule.After), ("before", rule.Before), ("phases", rule.Phases), ("mixins", rule.Mixins) })
+                    {
+                        if (values.Count == 0)
+                            continue;
+                        writer.WriteStartArray(name);
+                        foreach (var value in values)
+                            writer.WriteStringValue(value);
+                        writer.WriteEndArray();
+                    }
+                    if (rule.Level != 0)
+                        writer.WriteNumber("level", rule.Level);
+                    writer.WriteEndObject();
                 }
                 writer.WriteEndArray();
             }
@@ -138,8 +149,23 @@ namespace Stride.Shaders.Compiler
             {
                 foreach (var rule in linkage.EnumerateArray())
                 {
-                    var words = rule.EnumerateArray().Select(x => x.GetString()).ToList();
-                    effect.AddLinkageRule(Enum.Parse<ShaderLinkageKind>(words[0]!), words[1]!, words[2]!, words[3], words.Skip(4).Select(x => x!).ToArray());
+                    string? Text(string name) => rule.TryGetProperty(name, out var value) ? value.GetString() : null;
+                    List<string> Names(string name) => rule.TryGetProperty(name, out var value) ? value.EnumerateArray().Select(x => x.GetString()!).ToList() : [];
+                    effect.Linkage.Add(new ShaderLinkageRule
+                    {
+                        Kind = Enum.Parse<ShaderLinkageKind>(Text("kind")!),
+                        Shader = Text("shader")!,
+                        Owner = Text("owner"),
+                        Method = Text("method")!,
+                        Parameters = Text("parameters"),
+                        Phase = Text("phase"),
+                        Names = Names("names"),
+                        After = Names("after"),
+                        Before = Names("before"),
+                        Phases = Names("phases"),
+                        Mixins = Names("mixins"),
+                        Level = rule.TryGetProperty("level", out var level) ? level.GetInt32() : 0,
+                    });
                 }
             }
             var entry = new ShaderCorpusEntry(effectName, Enum.Parse<GraphicsProfile>(element.GetProperty("profile").GetString()!), effect);

@@ -79,7 +79,7 @@ public class ShaderPluginPackagingTests(ITestOutputHelper output) : IDisposable
         {
             extend effect PipeEffect
             {
-                order PipeOwner.ModifyValue.Scene: {{classes}};
+                extend shader PipeOwner { [MixinOrder({{classes}})] ModifyValue; }
             }
         }
         """);
@@ -130,7 +130,7 @@ public class ShaderPluginPackagingTests(ITestOutputHelper output) : IDisposable
 
     // A clean build finds no such class. An incremental one still finds its source in the database of the previous build
     [Fact]
-    public void AnOrderLineAboutARemovedPluginIsAnErrorInACleanBuild()
+    public void ABlockAboutARemovedPluginIsAnErrorInACleanBuild()
     {
         var feed = Path.Combine(caseDir, "feed");
         Directory.CreateDirectory(feed);
@@ -142,6 +142,6 @@ public class ShaderPluginPackagingTests(ITestOutputHelper output) : IDisposable
         var result = Build("ShaderStepA");
 
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("SDSL0158: a linkage rule of the effect names the class StepB, which doesn't exist.", result.Output);
+        Assert.Contains("SDSL0158: the block of GameOrder.sdfx, line 8 names the class StepB, which doesn't exist.", result.Output);
     }
 }

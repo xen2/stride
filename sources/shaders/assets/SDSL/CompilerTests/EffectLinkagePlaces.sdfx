@@ -5,18 +5,18 @@ namespace Stride.Shaders.Tests
 {
     effect EffectLinkagePart
     {
-        unbind Owner.Run.Late;
+        extend shader Owner { [Unbind(Phases = { Late })] Run; }
         mixin PartShader;
     };
 
-    // Mixed: the rule is on the effect
+    // Mixed: the block is on the effect
     effect EffectLinkageMixedPart
     {
-        order Owner.Run.Early: First, Second;
+        extend shader Owner { [MixinOrder(First, Second)] Run; }
         mixin EffectLinkagePart;
     };
 
-    // Composed: the rule is in a composition
+    // Composed: the block is in a composition
     effect EffectLinkageComposedPart
     {
         mixin BaseShader;

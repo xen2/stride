@@ -4054,13 +4054,14 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        null,
-        "Stride.Rendering.SpriteBase"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "mixins": [
+          "Stride.Rendering.SpriteBase"
+        ]
+      }
     ]
   },
   {
@@ -8997,12 +8998,14 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade"
+        ]
+      }
     ]
   },
   {
@@ -9198,18 +9201,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -9496,18 +9496,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -9586,18 +9583,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -9785,18 +9779,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -9974,18 +9965,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -10221,18 +10209,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -10306,18 +10291,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -10509,18 +10491,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -10736,18 +10715,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -10887,18 +10863,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -11081,18 +11054,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -11293,18 +11263,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -11387,18 +11354,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -11548,18 +11512,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -11721,18 +11682,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -11800,18 +11758,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -12024,18 +11979,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -12177,18 +12129,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -12261,18 +12210,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -12399,18 +12345,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -12528,18 +12471,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -12648,18 +12588,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -12835,18 +12772,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -13166,18 +13100,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -13254,18 +13185,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -13341,18 +13269,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -13466,18 +13391,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -13817,18 +13739,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -13896,18 +13815,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -14021,18 +13937,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -14109,18 +14022,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -14229,18 +14139,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -14402,18 +14309,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -14555,18 +14459,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -14684,18 +14585,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -14908,18 +14806,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -14995,18 +14890,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -15133,18 +15025,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -47251,18 +47140,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -47578,18 +47464,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -47765,18 +47648,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -48348,18 +48228,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -48680,18 +48557,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -48841,18 +48715,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -48962,18 +48833,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -49040,18 +48908,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -49195,18 +49060,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -49412,18 +49274,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -49627,18 +49486,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -49715,18 +49571,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -49813,12 +49666,14 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -49939,18 +49794,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -50035,18 +49887,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -50600,18 +50449,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -50731,18 +50577,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -50902,12 +50745,14 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -51071,12 +50916,14 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -51196,18 +51043,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -51336,18 +51180,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -51437,18 +51278,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -51726,18 +51564,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -51809,18 +51644,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -51984,18 +51816,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -52078,18 +51907,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -52233,18 +52059,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -52321,18 +52144,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -52547,18 +52367,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -52655,18 +52472,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -52785,18 +52599,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -52902,12 +52713,14 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -53143,18 +52956,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -53222,18 +53032,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -53429,18 +53236,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -53583,18 +53387,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -53747,18 +53548,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -53853,18 +53651,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -53949,18 +53744,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -54076,18 +53868,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -54177,18 +53966,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -54348,12 +54134,14 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -54425,18 +54213,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -54505,18 +54290,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -54625,18 +54407,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -54800,12 +54579,14 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -54921,18 +54702,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -55076,18 +54854,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -55155,18 +54930,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -55234,18 +55006,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -55389,18 +55158,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -55520,18 +55286,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -56103,18 +55866,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -56434,18 +56194,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -56598,18 +56355,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -56753,18 +56507,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -56928,18 +56679,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -57016,18 +56764,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -57242,18 +56987,15 @@
       ]
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -57807,18 +57549,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -57928,18 +57667,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -58143,18 +57879,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -58270,18 +58003,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {
@@ -58410,18 +58140,15 @@
       }
     },
     "linkage": [
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Shade"
-      ],
-      [
-        "Unbind",
-        "Stride.Rendering.ShaderBase",
-        "PSMain",
-        "Input"
-      ]
+      {
+        "kind": "Unbind",
+        "shader": "Stride.Rendering.ShaderBase",
+        "method": "PSMain",
+        "phases": [
+          "Shade",
+          "Input"
+        ]
+      }
     ]
   },
   {

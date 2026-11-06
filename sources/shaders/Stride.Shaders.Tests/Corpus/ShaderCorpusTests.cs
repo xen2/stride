@@ -53,8 +53,8 @@ public partial class ShaderCorpusTests
             Assert.Equal(entry.Hash, ShaderCorpusEntry.FromJson(ShaderCorpusEntry.ToJson(entry)).Hash);
     }
 
-    // A tree holds the rules it was captured with, so an effect file that loses a rule still compiles here, and only a real build fails.
-    // A layer of any project also adds rules, to its effect and to the child effects of that effect
+    // A tree holds the blocks it was captured with, so an effect file that loses a block still compiles here, and only a real build fails.
+    // A layer of any project also adds blocks, to its effect and to the child effects of that effect
     [Fact]
     public void StoredLinkageRulesAreTheOnesOfTheEffectFiles()
     {
@@ -69,27 +69,35 @@ public partial class ShaderCorpusTests
         var stored = ShaderCorpus.ReadEntries()
             .Where(x => written.ContainsKey(ShaderNames.ShortName(x.EffectName)))
             .GroupBy(x => ShaderNames.ShortName(x.EffectName))
-            .ToDictionary(x => x.Key, x => x.SelectMany(y => y.Effect.Linkage).Select(RuleText).ToHashSet());
+            .ToDictionary(x => x.Key, x => x.SelectMany(y => y.Effect.Linkage).SelectMany(RuleText).ToHashSet());
 
         Assert.NotEmpty(stored);
         foreach (var (effect, rules) in stored)
             Assert.True(rules.SetEquals(written[effect].Union(rules.Intersect(fromLayers))), $"{effect}: the corpus has [{string.Join("; ", rules.Order())}], its .sdfx file has [{string.Join("; ", written[effect].Order())}], and no layer has the others");
 
-        static IEnumerable<string> WrittenRules(ShaderEffect effect) => RulesOf(effect.Block).Select(x => x.Keyword + " " + string.Join('.', x.Path) + (x.Names.Count > 0 ? " = " + string.Join(',', x.Names) : ""));
+        static IEnumerable<string> WrittenRules(ShaderEffect effect) => BlocksOf(effect.Block).SelectMany(x => x.ReadRules(name => name, "", [])).SelectMany(RuleText);
 
-        static string RuleText(ShaderLinkageRule rule)
+        // One text per name, with short names: the generator resolves the names of a file with its usings, and an effect can put a
+        // name in the block of each branch
+        static IEnumerable<string> RuleText(ShaderLinkageRule rule)
         {
-            var path = string.Join('.', new[] { ShaderNames.ShortName(rule.Owner), rule.Method, rule.Phase }.Where(x => x != null));
-            return rule.Kind.ToString().ToLowerInvariant() + " " + path + (rule.Names.Count > 0 ? " = " + string.Join(',', rule.Names.Select(ShaderNames.ShortName)) : "");
+            var place = $"{rule.Kind} {ShaderNames.ShortName(rule.Shader)} {(rule.Owner != null ? $"{ShaderNames.ShortName(rule.Owner)}." : "")}{rule.Method}{(rule.Parameters != null ? $"({rule.Parameters})" : "")}";
+            var isClass = rule.Kind == ShaderLinkageKind.MixinOrder;
+            return rule.Names.Select(x => $"{place} {ShaderNames.ShortName(x)}")
+                .Concat(rule.After.Select(x => $"{place} after {(isClass ? ShaderNames.ShortName(x) : x)}"))
+                .Concat(rule.Before.Select(x => $"{place} before {(isClass ? ShaderNames.ShortName(x) : x)}"))
+                .Concat(rule.Phases.Select(x => $"{place} phase {x}"))
+                .Concat(rule.Mixins.Select(x => $"{place} mixin {ShaderNames.ShortName(x)}"))
+                .Concat(rule.Phase != null ? [$"{place} in {rule.Phase}"] : []);
         }
 
         static IEnumerable<ShaderEffect> EffectsOf(ShaderFile file) => file.RootDeclarations.Concat(file.Namespaces.SelectMany(x => x.Declarations)).OfType<ShaderEffect>();
 
-        static IEnumerable<EffectLinkageRule> RulesOf(Statement? statement) => statement switch
+        static IEnumerable<EffectShaderBlock> BlocksOf(Statement? statement) => statement switch
         {
-            EffectLinkageRule rule => [rule],
-            BlockStatement block => block.Statements.SelectMany(RulesOf),
-            ConditionalFlow flow => RulesOf(flow.If.Body).Concat(flow.ElseIfs.SelectMany(x => RulesOf(x.Body))).Concat(RulesOf(flow.Else?.Body)),
+            EffectShaderBlock block => [block],
+            BlockStatement block => block.Statements.SelectMany(BlocksOf),
+            ConditionalFlow flow => BlocksOf(flow.If.Body).Concat(flow.ElseIfs.SelectMany(x => BlocksOf(x.Body))).Concat(BlocksOf(flow.Else?.Body)),
             _ => [],
         };
     }

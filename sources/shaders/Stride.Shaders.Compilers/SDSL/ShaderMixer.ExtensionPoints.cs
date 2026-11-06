@@ -28,31 +28,6 @@ public partial class ShaderMixer
     private sealed record OrderPair(string Earlier, string Later, int Level, string Source);
 
     /// <summary>
-    /// What the rules of the effect say about one method. A rule about a class replaces what the class states of the same kind.
-    /// </summary>
-    private sealed class EffectRules
-    {
-        public static readonly EffectRules None = new();
-
-        /// <summary>Lists of classes in their running order, about the method.</summary>
-        public List<(List<string> Classes, int Level, string Source)> MixinOrders { get; } = [];
-
-        /// <summary>What doesn't run: a phase or a class.</summary>
-        public List<(string Name, bool IsPhase, string Source)> Unbinds { get; } = [];
-
-        /// <summary>The phase of a class.</summary>
-        public List<(string Class, string Phase, int Level, string Source)> Phases { get; } = [];
-
-        /// <summary>Phases added next to others, with no class.</summary>
-        public List<(string Phase, string After, string Before, string Source)> AddedPhases { get; } = [];
-
-        /// <summary>Phases a rule names, which have to exist once the phases are added.</summary>
-        public List<string> NamedPhases { get; } = [];
-
-        public bool IsEmpty => MixinOrders.Count == 0 && Unbinds.Count == 0 && Phases.Count == 0 && AddedPhases.Count == 0;
-    }
-
-    /// <summary>
     /// Reads what the class wrote next to <see cref="OpFunctionMetadataSDSL"/>, into the method group of the function.
     /// </summary>
     private static void ReadExtensionPoint(SpirvBuffer buffer, int functionIndex, int functionId, MethodGroup methodGroup)
@@ -95,13 +70,13 @@ public partial class ShaderMixer
     /// </summary>
     private static void SortContributions(MixinGlobalContext globalContext, MixinNode mixinNode)
     {
-        // Names: a class that a rule of the effect names exists. The classes check their own names when they compile.
+        // Names: a class that a block of the effect names exists. The classes check their own names when they compile.
         if (mixinNode.IsRoot)
             CheckLinkageClasses(globalContext, mixinNode);
 
         foreach (var group in mixinNode.MethodGroups.Values.Distinct())
         {
-            // 1. Collect: the rules of an effect are about the effect, so about its module methods
+            // 1. Collect: the blocks of an effect are about the effect, so about its module methods. A block replaces what a class states.
             var rules = mixinNode.IsRoot ? CollectRules(globalContext, group) : EffectRules.None;
             ApplyPhaseRules(group, rules);
             if (group.ExtensionPoint == null)
@@ -113,9 +88,7 @@ public partial class ShaderMixer
             // 2. The phase list: declared phases keep their order, added phases go next to their neighbours
             AddPhases(group, rules);
             // 3. Each contributor in its phase
-            foreach (var phase in rules.NamedPhases)
-                CheckPhase(group, phase);
-            CheckPhasesExist(group);
+            CheckPhasesExist(group, rules);
             if (group.Phases.Count == 0 && group.After.Count == 0 && group.Before.Count == 0 && group.Drops.Count == 0 && group.MixinOrder.Count == 0 && group.Unbind.Count == 0 && rules.IsEmpty)
                 continue;
 
@@ -132,64 +105,117 @@ public partial class ShaderMixer
     }
 
     /// <summary>
-    /// A class that a linkage rule names has to exist, as for <c>[MixinOrder]</c> and <c>[Drops]</c>. It doesn't have to be in the effect.
+    /// What the blocks of the effect say about one method. A block about a class replaces what the class states of the same kind.
+    /// </summary>
+    private sealed class EffectRules
+    {
+        public static readonly EffectRules None = new();
+
+        /// <summary>Lists of classes in their running order, on the method.</summary>
+        public List<(List<string> Classes, int Level, string Source)> MixinOrders { get; } = [];
+
+        /// <summary>What doesn't run: a phase or a class.</summary>
+        public List<(string Name, bool IsPhase, string Source)> Unbinds { get; } = [];
+
+        /// <summary>The phase of a class, and the phase it adds when it has neighbours.</summary>
+        public List<(string Class, string Phase, string After, string Before, int Level, string Source)> Phases { get; } = [];
+
+        /// <summary>The classes a class runs after and before, in its phase.</summary>
+        public List<(string Class, List<string> After, List<string> Before, int Level, string Source)> Neighbours { get; } = [];
+
+        /// <summary>Where the phase of a contributor comes from, by method, when a block gives it.</summary>
+        public Dictionary<int, string> PhaseSources { get; } = [];
+
+        public bool IsEmpty => MixinOrders.Count == 0 && Unbinds.Count == 0 && Phases.Count == 0 && Neighbours.Count == 0;
+    }
+
+    // The level of a block, counted from the classes, which are 0
+    private static int LevelOf(ShaderLinkageRule rule) => rule.Level + 1;
+
+    // A block built in C# may not say where it is
+    private static string SourceOf(ShaderLinkageRule rule) => rule.Source ?? "C#";
+
+    /// <summary>
+    /// A block about a method: its class owns it, or contributes to it when written <c>Owner.Method</c>. The parameter types of an
+    /// overload pick one.
+    /// </summary>
+    private static bool IsAbout(ShaderLinkageRule rule, MethodGroup group)
+    {
+        var owner = group.ExtensionPoint is { } point ? ShaderNames.WithoutGenerics(point.Owner) : ClassName(group.Methods[0].Shader);
+        return rule.Method == group.Name && IsClass(owner, rule.Owner ?? rule.Shader)
+            && (rule.Parameters == null || rule.Parameters == string.Join(",", group.FunctionType.ParameterTypes.Select(x => (x.Type is PointerType pointer ? pointer.BaseType : x.Type).ToString())));
+    }
+
+    /// <summary>
+    /// The classes a block names exist, as for <c>[MixinOrder]</c> and <c>[Drops]</c>, and a name in <c>Mixins</c> isn't a phase. They don't
+    /// have to be in the effect.
     /// </summary>
     private static void CheckLinkageClasses(MixinGlobalContext globalContext, MixinNode mixinNode)
     {
         var loader = globalContext.Table.ShaderLoader;
         foreach (var rule in globalContext.Linkage)
         {
-            foreach (var name in rule.Kind == ShaderLinkageKind.Phase ? [rule.Owner] : rule.Names.Prepend(rule.Owner))
+            var classes = new[] { rule.Shader, rule.Owner }.OfType<string>().Concat(rule.Names).Concat(rule.Mixins);
+            if (rule.Kind == ShaderLinkageKind.MixinOrder)
+                classes = classes.Concat(rule.After).Concat(rule.Before);
+            foreach (var name in classes)
             {
-                if (!mixinNode.Shaders.Any(x => IsClass(ClassName(x), name)) && !loader.Exists(name) && !loader.FindFullNames(ShaderNames.ShortName(name)).Any(x => IsClass(x, name)))
-                    throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0158, name) + globalContext.Table.DidYouMean(name));
+                if (mixinNode.Shaders.Any(x => IsClass(ClassName(x), name)) || loader.Exists(name) || loader.FindFullNames(ShaderNames.ShortName(name)).Any(x => IsClass(x, name)))
+                    continue;
+                if (rule.Mixins.Contains(name) && mixinNode.MethodGroups.Values.Any(x => IsAbout(rule, x) && x.ExtensionPoint?.Phases.Contains(name) == true))
+                    throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0254, "Unbind", $"{ShaderNames.ShortName(rule.Shader)}.{rule.Member()} ({SourceOf(rule)})", $"{name} is a phase: write Phases = {{ {name} }}"));
+                throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0158, name, $"block of {SourceOf(rule)}") + globalContext.Table.DidYouMean(name));
             }
         }
     }
 
     /// <summary>
-    /// A linkage rule about a class of the effect has to name something of that class. A class that isn't in the effect is ignored:
-    /// a layer can be about a class that only some effects mix.
+    /// A block about a class of the effect names a method of that class, or one it contributes to. A class that isn't in the effect is
+    /// ignored: a layer can be about a class that only some effects mix.
     /// </summary>
     private static void CheckLinkageRules(MixinGlobalContext globalContext, MixinNode mixinNode)
     {
-        foreach (var rule in globalContext.Linkage)
+        foreach (var rule in globalContext.Linkage.Where(x => mixinNode.Shaders.Any(y => IsClass(ClassName(y), x.Shader))))
         {
-            var isFound = !mixinNode.Shaders.Any(x => IsClass(ClassName(x), rule.Owner))
-                || mixinNode.MethodGroups.Values.Any(x => x.Name == rule.Method && (x.ExtensionPoint is { } point
-                    ? IsClass(ShaderNames.WithoutGenerics(point.Owner), rule.Owner)
-                    : rule.Kind == ShaderLinkageKind.Order && rule.Phase == MethodExtensionPoint.ImplicitPhase && IsClass(ClassName(x.Methods[0].Shader), rule.Owner)));
-            if (!isFound)
-                throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0154, ShaderNames.ShortName(rule.Owner), rule.Method));
+            var groups = mixinNode.MethodGroups.Values.Distinct().Where(x => x.Name == rule.Method && IsClass(x.ExtensionPoint is { } point ? ShaderNames.WithoutGenerics(point.Owner) : ClassName(x.Methods[0].Shader), rule.Owner ?? rule.Shader)).ToList();
+            string? problem;
+            if (rule.Parameters == null && groups.Select(x => x.FunctionType).Distinct().Count() > 1)
+                problem = $"{rule.Method} has several overloads: write the parameter types, as in {rule.Method}({string.Join(",", groups[0].FunctionType.ParameterTypes.Select(x => (x.Type is PointerType pointer ? pointer.BaseType : x.Type).ToString()))})";
+            else if (!groups.Any(x => IsAbout(rule, x)))
+                problem = rule.IsOnContribution ? $"{ShaderNames.ShortName(rule.Owner!)} has no method {rule.Member()[(rule.Owner!.Length + 1)..]} that is an extension point or has patches"
+                    : $"has no method {rule.Member()} that is an extension point{(rule.Kind == ShaderLinkageKind.MixinOrder ? " or has patches" : "")}";
+            else if (rule.IsOnContribution && !groups.Where(x => IsAbout(rule, x)).Any(x => x.Methods.Skip(1).Concat(x.Replaced.Values.Select(y => (y.Shader, 0, FunctionFlagsMask.None))).Any(y => IsClass(ClassName(y.Shader), rule.Shader))))
+                problem = $"doesn't contribute to {rule.Member()}";
+            else if (rule.Kind == ShaderLinkageKind.Unbind && !groups.Any(x => IsAbout(rule, x) && x.ExtensionPoint != null))
+                problem = $"{rule.Member()} is not an extension point, so there is nothing to unbind";
+            else
+                continue;
+            throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0154, ShaderNames.ShortName(rule.Shader), SourceOf(rule), rule.Member(), problem));
         }
     }
 
     /// <summary>
-    /// The linkage rules of the effect about this method: what they name that isn't in the effect is ignored.
+    /// The blocks of the effect about this method. What they name that isn't in the effect is ignored.
     /// </summary>
     private static EffectRules CollectRules(MixinGlobalContext globalContext, MethodGroup group)
     {
-        var owner = group.ExtensionPoint is { } point ? ShaderNames.WithoutGenerics(point.Owner) : ClassName(group.Methods[0].Shader);
         var rules = new EffectRules();
-        foreach (var rule in globalContext.Linkage.Where(x => x.Method == group.Name && IsClass(owner, x.Owner)))
+        foreach (var rule in globalContext.Linkage.Where(x => IsAbout(x, group)))
         {
-            var source = $"the effect: {rule.ToStatement()}";
-            switch (rule.Kind)
+            var source = $"block of {SourceOf(rule)}";
+            switch (rule.Kind, rule.IsOnContribution)
             {
-                case ShaderLinkageKind.Order:
-                    if (group.ExtensionPoint != null)
-                        rules.NamedPhases.Add(rule.Phase);
-                    rules.MixinOrders.Add((rule.Names, 1, source));
+                case (ShaderLinkageKind.MixinOrder, false):
+                    rules.MixinOrders.Add((rule.Names, LevelOf(rule), source));
                     break;
-                case ShaderLinkageKind.Bind:
-                    rules.NamedPhases.Add(rule.Phase);
-                    rules.Phases.Add((rule.Names[0], rule.Phase, 1, source));
+                case (ShaderLinkageKind.MixinOrder, true):
+                    rules.Neighbours.Add((rule.Shader, rule.After, rule.Before, LevelOf(rule), source));
                     break;
-                case ShaderLinkageKind.Unbind:
-                    rules.Unbinds.Add((rule.Phase ?? rule.Names[0], rule.Phase != null, source));
+                case (ShaderLinkageKind.Unbind, _):
+                    rules.Unbinds.AddRange(rule.Phases.Select(x => (x, true, source)).Concat(rule.Mixins.Select(x => (x, false, source))));
                     break;
-                case ShaderLinkageKind.Phase:
-                    rules.AddedPhases.Add((rule.Phase, rule.Names[0], rule.Names[1], source));
+                case (ShaderLinkageKind.Phase, _):
+                    rules.Phases.Add((rule.Shader, rule.Phase, rule.After.FirstOrDefault() ?? "", rule.Before.FirstOrDefault() ?? "", LevelOf(rule), source));
                     break;
             }
         }
@@ -197,24 +223,36 @@ public partial class ShaderMixer
     }
 
     /// <summary>
-    /// A rule that gives a class its phase replaces the phase the class states, and the phase it adds.
+    /// A block that gives a class its phase replaces the phase the class states, and the phase it adds: the outermost block wins. Two
+    /// blocks of one level that disagree are an error.
     /// </summary>
     private static void ApplyPhaseRules(MethodGroup group, EffectRules rules)
     {
-        foreach (var rule in rules.Phases)
+        foreach (var contributor in group.Methods.Skip(1))
         {
-            foreach (var contributor in group.Methods.Skip(1).Where(x => IsClass(ClassName(x.Shader), rule.Class)))
+            var placed = rules.Phases.Where(x => IsClass(ClassName(contributor.Shader), x.Class)).ToList();
+            if (placed.Count == 0)
+                continue;
+
+            var outer = placed.Where(x => x.Level == placed.Max(y => y.Level)).ToList();
+            if (outer.Any(x => (x.Phase, x.After, x.Before) != (outer[0].Phase, outer[0].After, outer[0].Before)))
+                throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0138, PointName(group), $"{contributor.Shader.ShaderName} is put in phase {outer[0].Phase} ({outer[0].Source}) and in phase {outer.First(x => x.Phase != outer[0].Phase || x.After != outer[0].After || x.Before != outer[0].Before).Phase} ({outer.First(x => x.Phase != outer[0].Phase || x.After != outer[0].After || x.Before != outer[0].Before).Source}), at one level"));
+
+            var rule = outer[0];
+            group.Phases[contributor.MethodId] = rule.Phase;
+            rules.PhaseSources[contributor.MethodId] = rule.Source;
+            if (rule.After.Length > 0 || rule.Before.Length > 0)
             {
-                group.Phases[contributor.MethodId] = rule.Phase;
+                // A block written in C# adds the phase for its class
+                if (MethodExtensionPoint.CheckAddedPhase(rule.Phase, rule.Class, $"{contributor.Shader.ShaderName}.{group.Name} ({rule.Source})", PointName(group)) is { } problem)
+                    throw new InvalidOperationException(problem);
+                group.AddedPhases[contributor.MethodId] = (rule.Phase, rule.After, rule.Before);
+            }
+            else
+            {
                 group.AddedPhases.Remove(contributor.MethodId);
             }
         }
-    }
-
-    private static void CheckPhase(MethodGroup group, string phase)
-    {
-        if (!group.ExtensionPoint!.Phases.Contains(phase))
-            throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0141, phase, "a linkage rule of the effect", $"{PointName(group)} declares {string.Join(", ", group.ExtensionPoint.Phases)}"));
     }
 
     /// <summary>
@@ -247,7 +285,7 @@ public partial class ShaderMixer
 
     private static string ClassName(ShaderInfo shader) => ShaderNames.WithoutGenerics(shader.FullName);
 
-    // A linkage rule of an effect has a full name when its project could resolve it, else the name as written
+    // A name in a block of an effect is a full name when its project could resolve it, else the name as written
     private static bool IsClass(string fullName, string written) => fullName == written || fullName.EndsWith($".{written}", StringComparison.Ordinal);
 
     private static string PointName(MethodGroup group) => $"{ShaderNames.ShortName(group.ExtensionPoint?.Owner ?? group.Methods[0].Shader.ShaderName)}.{group.Name}";
@@ -262,16 +300,15 @@ public partial class ShaderMixer
     /// The phases that contributors and the effect add, next to the ones the point declares, which keep their order. Several
     /// declarations of one phase share it, and all their neighbours count. An added phase goes right after its <c>After</c> neighbour,
     /// else right before its <c>Before</c> neighbour, and after the phases already added there: added phases with nothing between them
-    /// keep the order they were collected in, contributors in the order of the mix, then the rules of the effect.
+    /// keep the order they were collected in: the order of the mix.
     /// </summary>
     private static void AddPhases(MethodGroup group, EffectRules rules)
     {
         var point = group.ExtensionPoint!;
         var pointName = PointName(group);
         var declarations = group.Methods.Skip(1).Where(x => group.AddedPhases.ContainsKey(x.MethodId))
-            .Select(x => (Declaration: group.AddedPhases[x.MethodId], By: x.Shader.ShaderName, Source: ContributorSource(group, x.MethodId)))
+            .Select(x => (Declaration: group.AddedPhases[x.MethodId], By: x.Shader.ShaderName, Source: rules.PhaseSources.GetValueOrDefault(x.MethodId) ?? ContributorSource(group, x.MethodId)))
             .Select(x => (x.Declaration.Phase, x.Declaration.After, x.Declaration.Before, x.By, x.Source))
-            .Concat(rules.AddedPhases.Select(x => (x.Phase, x.After, x.Before, By: "the effect", x.Source)))
             .ToList();
         if (declarations.Count == 0)
             return;
@@ -331,13 +368,14 @@ public partial class ShaderMixer
     /// <summary>
     /// A phase that a contributor names has to exist once the phases are added: a name with a dot can be one that another class adds.
     /// </summary>
-    private static void CheckPhasesExist(MethodGroup group)
+    private static void CheckPhasesExist(MethodGroup group, EffectRules rules)
     {
         var point = group.ExtensionPoint!;
         foreach (var (method, phase) in group.Phases)
         {
+            var where = $"{ShaderOf(group, method).ShaderName}.{group.Name}{(rules.PhaseSources.TryGetValue(method, out var source) ? $" ({source})" : "")}";
             if (!point.Phases.Contains(phase))
-                throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0141, phase, $"{ShaderOf(group, method).ShaderName}.{group.Name}", $"{PointName(group)} has the phases {string.Join(", ", point.Phases)}, and no class of the effect adds {phase}"));
+                throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0141, phase, where, $"{PointName(group)} has the phases {string.Join(", ", point.Phases)}, and no class of the effect adds {phase}"));
         }
     }
 
@@ -356,8 +394,8 @@ public partial class ShaderMixer
             if (isUnbound)
                 group.Replaced.TryAdd(contributor.MethodId, (contributor.Shader, null));
         }
-        foreach (var (unbind, _, _) in rules.Unbinds.Where(x => x.IsPhase))
-            CheckPhase(group, unbind);
+        foreach (var (phase, _, source) in rules.Unbinds.Where(x => x.IsPhase && !group.ExtensionPoint!.Phases.Contains(x.Name)))
+            throw new InvalidOperationException(string.Format(SDSLErrorMessages.SDSL0254, "Unbind", $"{PointName(group)} ({source})", $"{PointName(group)} has no phase {phase}. It has the phases {string.Join(", ", group.ExtensionPoint!.Phases)}"));
 
         var replacedBy = new Dictionary<ShaderInfo, List<ShaderInfo>>();
         foreach (var (method, targets) in group.Drops)
@@ -400,8 +438,8 @@ public partial class ShaderMixer
 
     /// <summary>
     /// The pairs that order contributors: <c>[MixinOrder(After = A, Before = B)]</c> of each contributor, and each list
-    /// <c>[MixinOrder(A, B, C)]</c>, which gives A before B and B before C once what isn't in the chain is left out. A rule of the effect
-    /// about a class replaces its own list.
+    /// <c>[MixinOrder(A, B, C)]</c>, which gives A before B and B before C once what isn't in the chain is left out. A block replaces the
+    /// attribute of the same kind that the class writes.
     /// </summary>
     private static List<OrderPair> CollectPairs(MethodGroup group, EffectRules rules, List<(ShaderInfo Shader, int MethodId, FunctionFlagsMask Flags)> contributors)
     {
@@ -410,11 +448,17 @@ public partial class ShaderMixer
         foreach (var contributor in contributors)
         {
             var name = ClassName(contributor.Shader);
-            var source = $"[MixinOrder] of {ContributorSource(group, contributor.MethodId)}";
-            foreach (var earlier in (group.After.GetValueOrDefault(contributor.MethodId) ?? []).Select(Find).OfType<string>().Where(x => x != name))
-                pairs.Add(new(earlier, name, 0, source));
-            foreach (var later in (group.Before.GetValueOrDefault(contributor.MethodId) ?? []).Select(Find).OfType<string>().Where(x => x != name))
-                pairs.Add(new(name, later, 0, source));
+            var blocks = rules.Neighbours.Where(x => IsClass(name, x.Class)).ToList();
+            var stated = blocks.Count > 0
+                ? blocks.Select(x => (x.After, x.Before, x.Level, x.Source))
+                : [((group.After.GetValueOrDefault(contributor.MethodId) ?? []).ToList(), (group.Before.GetValueOrDefault(contributor.MethodId) ?? []).ToList(), 0, $"[MixinOrder] of {ContributorSource(group, contributor.MethodId)}")];
+            foreach (var (after, before, level, source) in stated)
+            {
+                foreach (var earlier in after.Select(Find).OfType<string>().Where(x => x != name))
+                    pairs.Add(new(earlier, name, level, source));
+                foreach (var later in before.Select(Find).OfType<string>().Where(x => x != name))
+                    pairs.Add(new(name, later, level, source));
+            }
         }
 
         var lists = rules.MixinOrders.Count > 0 || group.MixinOrder.Count == 0

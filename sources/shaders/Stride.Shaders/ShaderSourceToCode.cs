@@ -39,11 +39,19 @@ namespace Stride.Shaders
                     sb.Append($"Linkage =\n{{\n");
                     foreach (var rule in effect.Linkage)
                     {
-                        sb.Append($"new ShaderLinkageRule {{ Kind = ShaderLinkageKind.{rule.Kind}, Owner = \"{rule.Owner}\", Method = \"{rule.Method}\"");
-                        if (rule.Phase != null)
-                            sb.Append($", Phase = \"{rule.Phase}\"");
-                        if (rule.Names.Count > 0)
-                            sb.Append($", Names = {{ {string.Join(", ", rule.Names.Select(x => $"\"{x}\""))} }}");
+                        sb.Append($"new ShaderLinkageRule {{ Kind = ShaderLinkageKind.{rule.Kind}, Shader = \"{rule.Shader}\"");
+                        foreach (var (name, value) in new[] { ("Owner", rule.Owner), ("Method", rule.Method), ("Parameters", rule.Parameters), ("Phase", rule.Phase) })
+                        {
+                            if (value != null)
+                                sb.Append($", {name} = \"{value}\"");
+                        }
+                        foreach (var (name, values) in new[] { ("Names", rule.Names), ("After", rule.After), ("Before", rule.Before), ("Phases", rule.Phases), ("Mixins", rule.Mixins) })
+                        {
+                            if (values.Count > 0)
+                                sb.Append($", {name} = {{ {string.Join(", ", values.Select(x => $"\"{x}\""))} }}");
+                        }
+                        if (rule.Level != 0)
+                            sb.Append($", Level = {rule.Level}");
                         sb.Append($" }},\n");
                     }
                     sb.Append($"}},\n");
