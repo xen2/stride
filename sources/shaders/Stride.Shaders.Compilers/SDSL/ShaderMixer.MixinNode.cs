@@ -99,6 +99,9 @@ public partial class ShaderMixer
         /// <summary>Where the body of a contributor to a pipeline calls <c>base</c>, by method: first, last, only, none or other.</summary>
         public Dictionary<int, string> BaseCalls { get; } = new();
 
+        /// <summary>The second form of an <c>extend</c>, which calls <c>base</c> last, by the method of its first form: see <see cref="PickBaseCallForms"/>.</summary>
+        public Dictionary<int, int> BaseLastForms { get; } = new();
+
         /// <summary>The line of each contributor in its file, by method, for messages.</summary>
         public Dictionary<int, int> Lines { get; } = new();
 

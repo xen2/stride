@@ -96,7 +96,8 @@ public partial class ShaderMixer
             RemoveReplaced(globalContext.Table.CurrentFrame, group, rules);
             // 5. The running order inside each phase, then the chain
             OrderPhases(globalContext.Table.CurrentFrame, group, rules);
-            // 6. Where each step of a pipeline calls base
+            // 6. Where each step of a pipeline calls base: the form of an extend that fits its phase, then a check of every step
+            PickBaseCallForms(globalContext.Table.CurrentFrame, group);
             CheckBaseCalls(group);
         }
 
@@ -567,6 +568,48 @@ public partial class ShaderMixer
 
     private static bool IsReachedFromOutside(MethodExtensionPoint point, string? phase)
         => phase != null && (point.Kind != ExtensionPointKindSDSL.Pipeline || Array.IndexOf(point.Phases, phase) < point.DefaultPhaseIndex);
+
+    // What the class wrote after OpFunctionMetadataSDSL says
+    private static bool IsBaseLastForm(SpirvBuffer buffer, int functionIndex)
+    {
+        var index = functionIndex + 2;
+        if (buffer[index].Op == Op.OpExtensionPointSDSL)
+            index++;
+        return buffer[index].Op == Op.OpContributionSDSL && ((OpContributionSDSL)buffer[index]).Form == MethodExtensionPoint.BaseLastForm;
+    }
+
+    /// <summary>
+    /// An <c>extend</c> whose phase its class couldn't place compiled twice, calling <c>base</c> first and last. The chain holds the first
+    /// form: before the default body, the second one takes its place. The form left out is never called.
+    /// </summary>
+    private static void PickBaseCallForms(SymbolFrame frame, MethodGroup group)
+    {
+        var point = group.ExtensionPoint!;
+        foreach (var (first, last) in group.BaseLastForms)
+        {
+            var index = group.Methods.FindIndex(x => x.MethodId == first);
+            if (index < 0 || !group.Phases.TryGetValue(first, out var phase) || Array.IndexOf(point.Phases, phase) >= point.DefaultPhaseIndex)
+                continue;
+
+            group.Methods[index] = (group.Methods[index].Shader, last, group.Methods[index].Flags);
+            foreach (var byMethod in new IDictionary<int, string[]>[] { group.After, group.Before, group.Drops })
+            {
+                if (byMethod.Remove(first, out var names))
+                    byMethod[last] = names;
+            }
+            group.Phases.Remove(first);
+            group.Phases[last] = phase;
+            if (group.AddedPhases.Remove(first, out var added))
+                group.AddedPhases[last] = added;
+            group.Lines[last] = group.Lines.GetValueOrDefault(first);
+            group.BaseCalls.Remove(first);
+            group.BaseCalls[last] = MethodExtensionPoint.BaseCallLast;
+            if (group.Extends.Remove(first))
+                group.Extends.Add(last);
+            if (frame.TryGetValue(group.Name, out var symbol) && symbol.Type is FunctionGroupType)
+                frame[group.Name] = symbol with { GroupMembers = [.. symbol.GroupMembers.Select(x => x.IdRef == first ? x with { IdRef = last } : x)] };
+        }
+    }
 
     /// <summary>
     /// A step before the phase of the default body calls <c>base</c> last, a step after it first (SDSL0140). A class checks the phases it

@@ -529,7 +529,12 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
                 MethodExtensionPoint? extensionPoint = null;
                 if (index + 2 < shaderBuffers.Buffer.Count && shaderBuffers.Buffer[index + 2].Op == Op.OpExtensionPointSDSL && (OpExtensionPointSDSL)shaderBuffers.Buffer[index + 2] is { } point)
                     extensionPoint = new(point.Kind, point.Owner, point.Phases.Split(',', StringSplitOptions.RemoveEmptyEntries), point.Parameters.Split(',', StringSplitOptions.RemoveEmptyEntries));
-                methods.Add((new(sid, functionType, 0, MethodDefaultParameters: methodDefaultParameters, OwnerType: shaderType, ExtensionPoint: extensionPoint), functionFlags));
+                // The second form of an extend isn't a method of the class
+                var contributionIndex = index + (extensionPoint != null ? 3 : 2);
+                var isBaseLastForm = contributionIndex < shaderBuffers.Buffer.Count && shaderBuffers.Buffer[contributionIndex].Op == Op.OpContributionSDSL
+                    && ((OpContributionSDSL)shaderBuffers.Buffer[contributionIndex]).Form == MethodExtensionPoint.BaseLastForm;
+                if (!isBaseLastForm)
+                    methods.Add((new(sid, functionType, 0, MethodDefaultParameters: methodDefaultParameters, OwnerType: shaderType, ExtensionPoint: extensionPoint), functionFlags));
             }
 
             if (instruction.Op == Op.OpTypeStruct && (OpTypeStruct)instruction is { } typeStructInstruction)
@@ -730,7 +735,7 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             member.ProcessSymbol(table, context);
         // In case a method is calling another method not yet processed, we first declare all methods, then analysis of method body
         // (SPIR-V allow forward calling)
-        foreach (var method in Elements.OfType<ShaderMethod>())
+        foreach (var method in Elements.OfType<ShaderMethod>().ToList())
         {
             // Its signature comes from the method it extends: without one, there is nothing to check
             if (method.Extend != null)
@@ -741,6 +746,15 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
                     continue;
             }
             method.ProcessSymbol(table, context);
+
+            // Right after the method, so that the mixer finds it next to it. Its errors are the ones of the method.
+            if (method.BaseLastForm is { } baseLast)
+            {
+                Elements.Insert(Elements.IndexOf(method) + 1, baseLast);
+                var errorCount = table.Errors.Count;
+                baseLast.ProcessSymbol(table, context);
+                table.Errors.RemoveRange(errorCount, table.Errors.Count - errorCount);
+            }
         }
 
         // If any errors occurred during symbol processing, skip method body analysis and compilation

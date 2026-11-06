@@ -469,6 +469,16 @@ public partial class ShaderMethod(
     /// </summary>
     public ExtendClause? Extend { get; set; }
 
+    /// <summary>
+    /// The second form of an <c>extend</c> whose phase is only placed at link, calling <c>base</c> last: see <see cref="MethodExtensionPoint.BaseLastForm"/>.
+    /// </summary>
+    public ShaderMethod? BaseLastForm { get; set; }
+
+    /// <summary>
+    /// Whether this is the <see cref="BaseLastForm"/> of another method. It isn't a method of the class: a class that inherits sees the other one.
+    /// </summary>
+    public bool IsBaseLastForm { get; set; }
+
     public SymbolFrame? SymbolFrame { get; private set; }
     public List<Symbol> ParameterSymbols { get; private set; } = new();
 
@@ -559,7 +569,8 @@ public partial class ShaderMethod(
         table.DeclaredTypes.TryAdd(Type.ToString(), Type);
 
         SymbolFrame = table.Pop();
-        table.CurrentShader!.Methods.Add((symbol, functionFlags));
+        if (!IsBaseLastForm)
+            table.CurrentShader!.Methods.Add((symbol, functionFlags));
     }
 
     // Without 'override', a method with the signature of an inherited one starts a separate method group,

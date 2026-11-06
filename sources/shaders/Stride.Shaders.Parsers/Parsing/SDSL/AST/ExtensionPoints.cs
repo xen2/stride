@@ -86,7 +86,19 @@ internal static class ExtensionPoints
                 attributes.Add(new AnyShaderAttribute(new(PhaseAttribute, info), info, [new Identifier(phase, info)]));
             }
             if (extended.Kind == ExtensionPointKindSDSL.Pipeline && method.Body != null)
-                AddBaseCall(table, method, extended, IsBeforeDefaultBody(extended, phase, phaseAttribute));
+            {
+                // A phase that another class adds, or next to one: compile both forms, and the mixer keeps the one that fits
+                var isBeforeDefaultBody = IsBeforeDefaultBody(extended, phase, phaseAttribute);
+                if (isBeforeDefaultBody == null && MethodParser.ReadAgain(method) is { Body: not null } baseLast)
+                {
+                    baseLast.IsStaged = method.IsStaged;
+                    baseLast.ReturnTypeName = new TypeName(type.ReturnType.ToString(), info);
+                    baseLast.IsBaseLastForm = true;
+                    AddBaseCall(table, baseLast, extended, isBeforeDefaultBody: true);
+                    method.BaseLastForm = baseLast;
+                }
+                AddBaseCall(table, method, extended, isBeforeDefaultBody ?? false);
+            }
         }
     }
 
@@ -122,10 +134,10 @@ internal static class ExtensionPoints
     private static SymbolType ParameterType(FunctionParameter parameter) => parameter.Type is PointerType pointer ? pointer.BaseType : parameter.Type;
 
     /// <summary>
-    /// Whether a step runs before the default body: its phase, or the neighbour of the phase it adds. A phase or a neighbour that another
-    /// class adds is only known at link, which checks the place of the call to <c>base</c>.
+    /// Whether a step runs before the default body: its phase, or the neighbour of the phase it adds. Null for a phase or a neighbour that
+    /// another class adds, which is only placed at link.
     /// </summary>
-    private static bool IsBeforeDefaultBody(MethodExtensionPoint point, string? phase, AnyShaderAttribute? phaseAttribute)
+    private static bool? IsBeforeDefaultBody(MethodExtensionPoint point, string? phase, AnyShaderAttribute? phaseAttribute)
     {
         if ((phase ?? (phaseAttribute?.Parameters.FirstOrDefault() is { } first ? DottedName(first)?.Name : null)) is { } name && Array.IndexOf(point.Phases, name) is >= 0 and var index)
             return index < point.DefaultPhaseIndex;
@@ -135,7 +147,7 @@ internal static class ExtensionPoints
             if (parameter is AssignExpression { Target: Identifier { Name: var side }, Value: var value } && DottedName(value) is { } neighbour && Array.IndexOf(point.Phases, neighbour.Name) is >= 0 and var neighbourIndex)
                 return side == "After" ? neighbourIndex < point.DefaultPhaseIndex : neighbourIndex <= point.DefaultPhaseIndex;
         }
-        return false;
+        return null;
     }
 
     private static void AddBaseCall(SymbolTable table, ShaderMethod method, MethodExtensionPoint point, bool isBeforeDefaultBody)
@@ -227,6 +239,7 @@ internal static class ExtensionPoints
         var form = method.Extend switch
         {
             { IsPatch: true } => MethodExtensionPoint.PatchForm,
+            not null when method.IsBaseLastForm => MethodExtensionPoint.BaseLastForm,
             not null => MethodExtensionPoint.ExtendForm,
             _ => "",
         };

@@ -137,6 +137,15 @@ public record struct SimpleMethodParser : IParser<ShaderMethod>
 
 public record struct MethodParser : IParser<ShaderMethod>
 {
+    /// <summary>
+    /// Reads a method again from the text it was read from: a second tree of it, with the same places.
+    /// </summary>
+    internal static ShaderMethod? ReadAgain(ShaderMethod method)
+    {
+        var scanner = new Scanner<ScannableString>(method.Info.Original.ToString()) { Position = method.Info.Range.Start.GetOffset(method.Info.Original.Length) };
+        return new MethodParser().Match(ref scanner, new ParseResult(), out var parsed) ? parsed : null;
+    }
+
     public readonly bool Match<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderMethod parsed, in ParseError? orError = null)
         where TScanner : struct, IScanner
     {

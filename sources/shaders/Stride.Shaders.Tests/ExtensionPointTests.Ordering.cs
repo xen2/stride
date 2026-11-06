@@ -222,6 +222,53 @@ public partial class ExtensionPointTests
         Assert.Contains("Post: SpriteSuperSampler > ImageScalerShader   order: mixin order", block);
     }
 
+    // Its class can't place the phase when it compiles: it compiles both forms, and the mixer keeps the one that fits. The render test
+    // ExtensionPointJoinedPhase checks the image.
+    [Theory]
+    [InlineData("After = Early", "Owner > Joiner > Adder", "Lib.Wind: Adder > Joiner")]
+    [InlineData("After = A", "Owner > Adder > Joiner", "Lib.Wind: Adder > Joiner")]
+    public void AnExtendJoiningAPhaseAddedElsewhereCallsBaseWhereItRuns(string place, string chain, string phase)
+    {
+        WriteOwner();
+        WriteModule("Adder", $"[Phase(Lib.Wind, {place})] extend Owner.Run() {{ streams.Steps = 2; }}");
+        WriteModule("Joiner", "[Phase(Lib.Wind)] [MixinOrder(After = Adder)] extend Owner.Run() { streams.Steps = 3; }");
+
+        var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.Adder", "Test.Joiner");
+
+        Assert.True(ok, log);
+        var block = Block(explanation, "Run");
+        Assert.Equal($"module method Run() -> void = {chain}", block[0]);
+        Assert.Contains($"{phase}   order: mixin order", block);
+    }
+
+    // The second form isn't a method of the class: a class that inherits it overrides the first one
+    [Fact]
+    public void TheSecondFormIsNotAMethodOfTheClass()
+    {
+        WriteOwner();
+        WriteModule("Adder", "[Phase(Lib.Wind, After = Early)] extend Owner.Run() { streams.Steps = 2; }");
+        Write("Joiner", "shader Joiner { import Owner; [Phase(Lib.Wind)] extend Owner.Run() { streams.Steps = 3; } }");
+        Write("Child", "shader Child : Joiner { [Phase(Lib.Wind)] override module void Run() { streams.Steps = 4; base.Run(); } }");
+
+        var (ok, log, explanation) = Mix(isAssetBuild: false, "Test.Adder", "Test.Child");
+
+        Assert.True(ok, log);
+        Assert.Equal("module method Run() -> void = Owner > Adder > Joiner > Child", Block(explanation, "Run")[0]);
+    }
+
+    // A block that moves an extend to the other side of the default body: its class placed its call to base for the phase it wrote
+    [Fact]
+    public void ABlockThatMovesAnExtendAcrossTheDefaultBodyIsAnError()
+    {
+        WriteOwner();
+        WriteModule("Step", "[Phase(A)] extend Owner.Run() { streams.Steps = 2; }");
+
+        var (ok, log, _) = Mix(false, x => x.ExtendShader("Test.Step").Method("Test.Owner.Run").Phase("Early"), "Test.Step");
+
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0140: Step.Run is in phase Early of Owner.Run and calls base first, so it runs after the default body.", log);
+    }
+
     // An added phase is a nesting level between its neighbours: inside Outer, around Inner
     [Fact]
     public void APhaseAddedToAnAroundPointIsANestingLevel()
