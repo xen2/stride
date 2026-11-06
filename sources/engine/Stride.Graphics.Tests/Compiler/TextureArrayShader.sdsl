@@ -1,0 +1,31 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+namespace Stride.Graphics.Tests
+{
+    shader TextureArrayShader
+    {
+        import SpriteBase;
+
+        rgroup PerMaterial
+        {
+            [Link("TextureArrayTest.Textures")]
+            module Texture2D Textures[4];
+        }
+
+        cbuffer PerMaterial
+        {
+            [Link("TextureArrayTest.Index")]
+            module uint Index;
+        };
+
+        // Direct3D 11 indexes a texture array with a constant only
+        module override float4 Shading()
+        {
+#if STRIDE_GRAPHICS_API_DIRECT3D11
+            return Textures[2].Load(int3(0, 0, 0));
+#else
+            return Textures[Index].Load(int3(0, 0, 0));
+#endif
+        }
+    };
+}

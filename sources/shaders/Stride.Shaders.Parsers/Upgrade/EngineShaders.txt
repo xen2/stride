@@ -391,6 +391,7 @@ TessellationAE4	1	shader	-	-	TessellationBase,MaterialDomainStream		Stride.Rende
 TessellationBase	0	shader	-	-	MaterialDomainStream,ShaderBase,TransformationBase,Camera,Transformation,NormalBase		Stride.Rendering.TessellationBase	DesiredTriangleSize	BaseTransformVS,GenerateNormal_VS,TransformPosition	ComputeClipping(InputPatch<Input,3,>,OutputPatch<Input2,3,>,Constants);InterpolateBarycentric(OutputPatch<Input,3,>,Constants,float3);TessellateDomain();TessellateHull(InputPatch<Input,3,>,uint,uint);TessellateHullConstant(InputPatch<Input,3,>,OutputPatch<Input2,3,>,Constants)
 TessellationFlat	0	shader	-	-	TessellationBase		Stride.Rendering.TessellationFlat		ComputeClipping,InterpolateBarycentric	
 TessellationPN	0	shader	-	-	TessellationFlat		Stride.Rendering.TessellationPN		ComputeClipping,InterpolateBarycentric,TessellateHull,TessellateHullConstant	
+TextureArrayShader	0	shader	-	-	SpriteBase		Stride.Graphics.Tests.TextureArrayShader	Index,Textures	Shading	
 TextureProjectionCommon	1	shader	-	-			Stride.Rendering.Lights.TextureProjectionCommon	ProjectionTexture,UVOffset,UVScale		
 TextureProjectionFilterDefault	1	shader	-	-	TextureProjectionCommon,Texturing		Stride.Rendering.Lights.TextureProjectionFilterDefault			
 TextureProjectionGroup	0	shader	-	-			Stride.Rendering.Lights.TextureProjectionGroup			ComputeSpecularTextureProjection(float3,float3,int);ComputeTextureProjection(float3,int)
@@ -561,6 +562,7 @@ StrideLightingVXGI	0	effect	-	-			Stride.Rendering.Voxels.StrideLightingVXGI
 StrideSinglePassWireframeShader	0	effect	-	-			Stride.BepuPhysics.Debug.StrideSinglePassWireframeShader	
 StrideWireframeShadingEffect	0	effect	-	-			Stride.Rendering.StrideWireframeShadingEffect	
 SubsurfaceScatteringBlurEffect	0	effect	-	-			Stride.Rendering.SubsurfaceScattering.SubsurfaceScatteringBlurEffect	
+TextureArrayEffect	0	effect	-	-			Stride.Graphics.Tests.TextureArrayEffect	
 ToGlslEffect	0	effect	-	-			Test.ToGlslEffect	
 ToneMapEffect	0	effect	-	-			Stride.Rendering.Images.ToneMapEffect	
 Voxel2x2x2MipmapEffect	0	effect	-	-			Stride.Rendering.Voxels.Voxel2x2x2MipmapEffect	

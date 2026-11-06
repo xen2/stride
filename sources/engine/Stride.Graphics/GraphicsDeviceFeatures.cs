@@ -203,6 +203,16 @@ public partial struct GraphicsDeviceFeatures
     public readonly int MaxBindlessSampledTextureCount;
 
     /// <summary>
+    ///   The maximum number of elements of a texture array that a shader declares in an <c>rgroup</c>
+    ///   (<c>Texture2D Textures[N]</c>).
+    /// </summary>
+    /// <remarks>
+    ///   0 when the device can't index a texture array. On Direct3D 11 the index must be a constant once the
+    ///   shader is inlined, so this is the number of texture slots of a stage.
+    /// </remarks>
+    public readonly int MaxTextureArraySize;
+
+    /// <summary>
     ///   What the GPU supports for bindless access, whether or not the backend uses it.
     /// </summary>
     internal readonly BindlessSupport GpuBindless;
@@ -296,6 +306,7 @@ public partial struct GraphicsDeviceFeatures
                $"HasIndex32Bits: {HasIndex32Bits}, HasGeometryShaders: {HasGeometryShaders}, " +
                $"HasPixelShaderUnorderedAccess: {HasPixelShaderUnorderedAccess}, " +
                $"BindlessTier: {BindlessTier} (GPU: {GpuBindless.Tier}{(GpuBindless.Detail is null ? "" : $", {GpuBindless.Detail}")}), " +
-               $"MaxBindlessSampledTextureCount: {MaxBindlessSampledTextureCount} (GPU: {GpuBindless.MaxSampledTextureCount})";
+               $"MaxBindlessSampledTextureCount: {MaxBindlessSampledTextureCount} (GPU: {GpuBindless.MaxSampledTextureCount}), " +
+               $"MaxTextureArraySize: {MaxTextureArraySize}";
     }
 }

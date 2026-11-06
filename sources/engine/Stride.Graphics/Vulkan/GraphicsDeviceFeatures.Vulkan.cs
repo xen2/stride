@@ -3,6 +3,7 @@
 
 #if STRIDE_GRAPHICS_API_VULKAN
 
+using System;
 using Vortice.Vulkan;
 
 namespace Stride.Graphics
@@ -54,6 +55,13 @@ namespace Stride.Graphics
 
             // The GPU level, for the log; BindlessTier is what the backend uses
             GpuBindless = GetVulkanBindlessSupport(QueryDescriptorIndexingSupport(instanceApi, physicalDevice));
+
+            // A texture array is in one descriptor set of the pools of the device
+            instanceApi.vkGetPhysicalDeviceProperties(physicalDevice, out var properties);
+            MaxTextureArraySize = deviceRoot.EnabledFeatures.shaderSampledImageArrayDynamicIndexing
+                ? (int)Math.Min(Math.Min(properties.limits.maxPerStageDescriptorSampledImages, properties.limits.maxDescriptorSetSampledImages),
+                                deviceRoot.MaxDescriptorTypeCounts[(int)VkDescriptorType.SampledImage])
+                : 0;
 
             for (int i = 0; i < mapFeaturesPerFormat.Length; i++)
             {
