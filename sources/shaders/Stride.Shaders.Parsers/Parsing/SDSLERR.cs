@@ -152,6 +152,7 @@ public static class SDSLErrorMessages
     public const string SDSL0265 = "SDSL0265: Index {0} is outside {1}, which has {2} elements (0 to {3}).";
     public const string SDSL0266 = "SDSL0266: Parameter {0} of {1} is a whole texture array, which is not supported yet. Pass one element instead, such as {0}[i], with a {2} parameter.";
     public const string SDSL0267 = "SDSL0267: NonUniformResourceIndex is not supported yet: the index of a texture array must be the same for the whole draw. Index with a value that is the same for the whole draw, such as a cbuffer member or a push constant.";
+    public const string SDSL0268 = "SDSL0268: On Direct3D 11, a texture array index must be a constant once the methods are inlined: FXC can't index textures with a value. Use a literal, a static const value or a generic parameter, with one shader permutation per value.";
 
     // HLSL warnings: valid HLSL that is probably a mistake, reported when a class compiles
     public const string SDSL0219 = "SDSL0219: comma expression ({0}): the values before the last are dropped, the result is {1}. To build a vector, write its type: float4(...).";
