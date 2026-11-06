@@ -143,7 +143,7 @@ public static class SDSLErrorMessages
     public const string SDSL0189 = "SDSL0189: This texture offset is not a constant, even with the methods inlined and the [unroll] loops unrolled. Use a literal, a static const value, or the counter of an [unroll] loop with constant bounds; a value from a cbuffer, a stream or a loop without [unroll] can't be an offset.";
 
     // Texture arrays
-    public const string SDSL0259 = "SDSL0259: {0} is a texture array, and texture arrays are not supported yet. Declare one texture per element.";
+    // SDSL0259: reserved (a texture array in an rgroup, before texture arrays were supported)
     public const string SDSL0260 = "SDSL0260: {0} is a texture array outside an rgroup. A texture array is bound as one block: declare it in an rgroup, for example rgroup Textures {{ {1} {0}[{2}]; }}.";
     public const string SDSL0261 = "SDSL0261: {0} is an array of {1}. Only read-only textures can be in an array (Texture1D, Texture2D, Texture3D, TextureCube and their Array forms). Declare one {1} per element.";
     public const string SDSL0262 = "SDSL0262: {0} is an array of arrays of textures. A texture array has one dimension: write {1} {0}[{2}].";

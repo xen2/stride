@@ -334,6 +334,14 @@ public partial class ShaderMixer
                 var variablePointerType = (PointerType)context.ReverseTypes[variable.ResultType];
                 var variableType = variablePointerType.BaseType;
 
+                // A texture array takes one slot per element
+                var arraySize = 1;
+                if (variableType is ArrayType { BaseType: TextureType } textureArray)
+                {
+                    arraySize = textureArray.Size;
+                    variableType = textureArray.BaseType;
+                }
+
                 // The push-constant block has no register, descriptor set or binding (see ProcessPushConstants)
                 if (IsResourceType(variableType) && variable.StorageClass != Specification.StorageClass.PushConstant)
                 {
@@ -371,12 +379,12 @@ public partial class ShaderMixer
                         ref var slot = ref (isUAV ? ref uavSlot : ref srvSlot);
                         effectResourceBinding.Class = isUAV ? EffectParameterClass.UnorderedAccessView : EffectParameterClass.ShaderResourceView;
                         effectResourceBinding.SlotStart = slot;
-                        effectResourceBinding.SlotCount = 1;
+                        effectResourceBinding.SlotCount = arraySize;
 
                         context.Add(new OpDecorate(variable.ResultId, Specification.Decoration.DescriptorSet, [0]));
                         context.Add(new OpDecorate(variable.ResultId, Specification.Decoration.Binding, [slot]));
 
-                        slot++;
+                        slot += arraySize;
 
                         if (variableType is TextureType t)
                         {

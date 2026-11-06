@@ -318,6 +318,29 @@ public class KeysGeneratorTests
         Assert.Contains("using Stride.Core.Mathematics;", generated);
     }
 
+    // A texture array has one key, set with an array of textures
+    [Fact]
+    public void TextureArrayKeyBuilds()
+    {
+        var shader = """
+            namespace Stride.Shaders.Tests.Keys;
+
+            shader KeysGeneratorCheck
+            {
+                static const int Count = 4;
+                rgroup PerMaterial
+                {
+                    Texture2D Textures[Count];
+                }
+            };
+            """;
+
+        var (generated, errors) = Build(shader, "");
+
+        Assert.Empty(errors);
+        Assert.Contains("ObjectParameterKey<Texture> Textures", generated);
+    }
+
     // Runs the generator on the shader and compiles its output with the C# source
     private static (string Generated, List<string> Errors) Build(string shader, string csharp) => Build([("KeysGeneratorCheck.sdsl", shader)], csharp);
 

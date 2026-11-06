@@ -258,6 +258,9 @@ internal static class ReadWriteAnalyzer
                 for (int argIdx = 4; argIdx < argSpan.Length; argIdx++)
                 {
                     var argId = argSpan[argIdx];
+                    // An element of a texture array
+                    if (accessChainBases.TryGetValue(argId, out var argAccessChain) && analysisResult.Resources.TryGetValue(argAccessChain.Base, out var argArrayInfo))
+                        argArrayInfo.UsedThisStage = true;
                     if (analysisResult.Resources.TryGetValue(argId, out var argResourceInfo))
                         argResourceInfo.UsedThisStage = true;
                     if (variables.TryGetValue(argId, out var argVariableInfo))

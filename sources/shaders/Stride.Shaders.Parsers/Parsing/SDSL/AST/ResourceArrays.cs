@@ -12,15 +12,12 @@ namespace Stride.Shaders.Parsing.SDSL.AST;
 internal static class ResourceArrays
 {
     /// <summary>
-    /// Reports a variable or member of a resource array type that breaks the rules (SDSL0259 to SDSL0264).
+    /// Reports a variable or member of a resource array type that breaks the rules (SDSL0260 to SDSL0264).
     /// </summary>
     public static void CheckDeclaration(SymbolTable table, TextLocation location, string name, SymbolType type, bool inRGroup)
     {
-        if (type is not ArrayType array || CheckElement(table, location, name, array) is not { } element)
-            return;
-        if (!inRGroup)
+        if (type is ArrayType array && CheckElement(table, location, name, array) is { } element && !inRGroup)
             throw Error(location, string.Format(SDSLErrorMessages.SDSL0260, name, TypeName(element), array.Size == -1 ? "N" : array.Size));
-        throw Error(location, string.Format(SDSLErrorMessages.SDSL0259, name));
     }
 
     /// <summary>

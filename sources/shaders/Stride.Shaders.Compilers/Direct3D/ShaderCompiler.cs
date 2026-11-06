@@ -4,6 +4,7 @@
 #if STRIDE_PLATFORM_DESKTOP
 
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Runtime.CompilerServices;
@@ -362,6 +363,14 @@ namespace Stride.Shaders.Compiler.Direct3D
                     if (resourceName == pushConstantsName)
                         continue;
 
+                    // FXC reports each used element of a texture array on its own, as "Name[3]"
+                    var arrayElement = 0;
+                    if (resourceName.IndexOf('[') is var bracket and >= 0)
+                    {
+                        arrayElement = int.Parse(resourceName.AsSpan(bracket + 1, resourceName.Length - bracket - 2), CultureInfo.InvariantCulture);
+                        resourceName = resourceName[..bracket];
+                    }
+
                     foreach (var linkResource in effectReflection.ResourceBindings)
                     {
                         if (linkResource.RawName == resourceName && linkResource.Stage == ShaderStage.None)
@@ -389,7 +398,7 @@ namespace Stride.Shaders.Compiler.Direct3D
                         effectReflection.ResourceBindings.Add(binding);
 
                         // Update stage flags on the new ResourceGroups structure
-                        UpdateResourceGroupStageFlags(resourceEntryIndex, resourceName, shaderBytecode.Stage, binding.SlotStart);
+                        UpdateResourceGroupStageFlags(resourceEntryIndex, resourceName, shaderBytecode.Stage, binding.SlotStart - arrayElement);
                     }
                 }
 

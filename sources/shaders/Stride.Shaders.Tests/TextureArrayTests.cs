@@ -1,11 +1,15 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using Stride.Core.Diagnostics;
+using Stride.Shaders.Compilers.SDSL;
+using Spv = Stride.Shaders.Spirv.Tools.Spv;
+
 namespace Stride.Shaders.Parsers.Tests;
 
 /// <summary>
-/// Texture arrays: a fixed-size array of read-only textures in an rgroup. Every other resource array is an error with its code
-/// (SDSL0259 to SDSL0266).
+/// Texture arrays: a fixed-size array of read-only textures in an rgroup, one slot per element. Every other resource array is an
+/// error with its code (SDSL0260 to SDSL0266).
 /// </summary>
 public class TextureArrayTests : IDisposable
 {
@@ -18,9 +22,51 @@ public class TextureArrayTests : IDisposable
     }
 
     [Theory]
-    [InlineData("rgroup PerMaterial { Texture2D Textures[4]; }", "SDSL0259: Textures is a texture array, and texture arrays are not supported yet.")]
-    public void TextureArrayInRGroupIsNotSupportedYet(string declaration, string expected)
-        => AssertDeclarationError(declaration, expected);
+    [InlineData(RendererBackend.Direct3D11, "Texture2D", "Textures[Index].Sample(Point, streams.TexCoord)")]
+    [InlineData(RendererBackend.Vulkan, "Texture2D", "Textures[Index].Sample(Point, streams.TexCoord)")]
+    [InlineData(RendererBackend.Vulkan, "Texture2D<float4>", "Textures[2].Sample(Point, streams.TexCoord)")]
+    [InlineData(RendererBackend.Vulkan, "Texture2D", "Pick(Textures[Index])")]
+    [InlineData(RendererBackend.Vulkan, "TextureCube", "Textures[Index].Sample(Point, float3(streams.TexCoord, 1))")]
+    [InlineData(RendererBackend.Vulkan, "Texture2DArray", "Textures[Index].Sample(Point, float3(streams.TexCoord, 1))")]
+    public void TextureArrayTakesOneSlotPerElement(RendererBackend backend, string type, string expression)
+    {
+        Write("ArrayMix", $$"""
+            shader ArrayMix
+            {
+                stream float4 ColorTarget : SV_Target0;
+                stream float2 TexCoord : TEXCOORD0;
+
+                static const int Count = 4;
+                rgroup PerMaterial
+                {
+                    {{type}} Textures[Count];
+                    Texture2D After;
+                }
+                SamplerState Point;
+                cbuffer PerDraw { uint Index; };
+
+                float4 Pick(Texture2D t) { return t.Sample(Point, streams.TexCoord); }
+
+                void PSMain()
+                {
+                    streams.ColorTarget = {{expression}} + After.Sample(Point, streams.TexCoord);
+                }
+            };
+            """);
+
+        var (ok, log, bytecode, reflection) = Mix("ArrayMix", backend);
+        Assert.True(ok, log);
+
+        var textures = reflection.ResourceBindings.Single(x => x.RawName.EndsWith("Textures"));
+        var after = reflection.ResourceBindings.Single(x => x.RawName.EndsWith("After"));
+        Assert.Equal(4, textures.SlotCount);
+        Assert.Equal(textures.SlotStart + 4, after.SlotStart);
+        var entry = reflection.ResourceGroups.Single(x => x.Name == "PerMaterial").Entries.Single(x => x.RawName.EndsWith("Textures"));
+        Assert.Equal(4, entry.SlotCount);
+
+        var validation = Spv.ValidateBinary(bytecode, targetVulkan: backend == RendererBackend.Vulkan);
+        Assert.True(validation.IsValid, validation.Output);
+    }
 
     [Theory]
     [InlineData("Texture2D Textures[4];", "SDSL0260: Textures is a texture array outside an rgroup. A texture array is bound as one block: declare it in an rgroup, for example rgroup Textures { Texture2D Textures[4]; }.")]
@@ -97,7 +143,21 @@ public class TextureArrayTests : IDisposable
 
     private string CompileError(string name, string code)
     {
-        File.WriteAllText(Path.Combine(sourceDir.FullName, $"{name}.sdsl"), code);
+        Write(name, code);
         return Assert.Throws<InvalidOperationException>(() => new ShaderLoader(sourceDir.FullName, "./assets/Stride/SDSL").LoadExternalBuffer(TestShader.FullName(name), [], out _, out _, out _)).Message;
+    }
+
+    private void Write(string name, string code) => File.WriteAllText(Path.Combine(sourceDir.FullName, $"{name}.sdsl"), code);
+
+    private (bool Ok, string Log, byte[] Bytecode, EffectReflection Reflection) Mix(string shaderName, RendererBackend backend)
+    {
+        var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName));
+        mixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName(shaderName), [], out _, out _, out _);
+        var log = new LoggerResult();
+        var options = backend == RendererBackend.Direct3D11
+            ? new ShaderMixer.Options(ResourcesRegisterSeparate: true)
+            : new ShaderMixer.Options(ResourcesRegisterSeparate: false, StripGoogleUserType: true, Direct3DStructuredBufferLayout: true);
+        var ok = mixer.MergeSDSL(new ShaderClassSource(TestShader.FullName(shaderName)), options, log, out var bytecode, out var reflection, out _, out _);
+        return (ok && !log.HasErrors, string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)), bytecode.ToArray(), reflection);
     }
 }
