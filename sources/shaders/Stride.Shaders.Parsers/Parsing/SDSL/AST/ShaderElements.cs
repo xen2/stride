@@ -195,6 +195,7 @@ public abstract class ShaderBuffer : ShaderElement
             smem.WarnIgnoredRegister(table, smem.Name);
             smem.TypeName.ProcessSymbol(table);
             smem.Type = smem.TypeName.Type!;
+            ResourceArrays.CheckDeclaration(table, smem.Info, smem.Name.Name, smem.Type, inRGroup: this is RGroup);
             table.DeclaredTypes.TryAdd(smem.Type.ToString(), smem.Type);
             PartialStructs.CheckFixedLayout(table, smem.Name.Info, $"{Name} member", smem.Name.Name, smem.Type);
 

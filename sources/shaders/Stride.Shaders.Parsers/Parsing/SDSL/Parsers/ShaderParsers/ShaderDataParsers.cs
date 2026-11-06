@@ -154,6 +154,9 @@ public record struct ShaderSamplerStateParser : IParser<ShaderSamplerState>
 
         )
         {
+            // An array is parsed as a member, which reports it (SDSL0261)
+            if (Parsers.FollowedBy(ref scanner, Tokens.Char('['), withSpaces: true))
+                return Parsers.Exit(ref scanner, result, out parsed, position, orError);
             // A semantic does nothing on a sampler (as with FXC); a register gets SDSL0220
             if (!ShaderMemberParser.Qualifiers(ref scanner, result, out _, out var register))
                 return Parsers.Exit(ref scanner, result, out parsed, position, new(SDSLErrorMessages.SDSL0001, scanner[scanner.Position], scanner.Memory));
@@ -212,6 +215,9 @@ public record struct ShaderSamplerComparisonStateParser : IParser<ShaderSamplerC
 
         )
         {
+            // An array is parsed as a member, which reports it (SDSL0261)
+            if (Parsers.FollowedBy(ref scanner, Tokens.Char('['), withSpaces: true))
+                return Parsers.Exit(ref scanner, result, out parsed, position, orError);
             // A semantic does nothing on a sampler (as with FXC); a register gets SDSL0220
             if (!ShaderMemberParser.Qualifiers(ref scanner, result, out _, out var register))
                 return Parsers.Exit(ref scanner, result, out parsed, position, new(SDSLErrorMessages.SDSL0001, scanner[scanner.Position], scanner.Memory));

@@ -113,6 +113,7 @@ public partial class DeclaredVariableAssign(Identifier variable, bool isConst, T
         {
             TypeName.ProcessSymbol(table);
             valueType = TypeName.Type!;
+            ResourceArrays.CheckDeclaration(table, Info, Variable.Name, valueType, inRGroup: false);
             Value?.ProcessSymbol(table, TypeName.Type);
             // If type was unsized array (e.g. int2[]) and initializer inferred the size, use that
             if (valueType is ArrayType { Size: -1 } && Value?.ValueType is ArrayType { Size: > 0 } inferred)
