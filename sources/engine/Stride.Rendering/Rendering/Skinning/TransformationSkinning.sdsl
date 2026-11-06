@@ -36,7 +36,7 @@ module TransformationSkinning
     }
 
     [Phase(World)]
-    [Replaces(TransformationWAndVP, TransformationWAndVPInstanced)]
+    [Drops(Mixins = { TransformationWAndVP, TransformationWAndVPInstanced })]
     extend TransformationBase.PreTransformPosition()
     {
         streams.skinningBlendMatrix = GetBlendMatrix(streams.BlendIndices[0]) * streams.BlendWeights[0]

@@ -55,7 +55,7 @@ internal sealed class ShaderUpgradeClass
     /// <summary>The module methods this class overrides or extends, by name.</summary>
     public HashSet<string> Contributions { get; } = [];
 
-    /// <summary>The overrides that state their place themselves: <c>[Phase]</c>, <c>[After]</c> or <c>[Replaces]</c>.</summary>
+    /// <summary>The overrides that state their place themselves: <c>[Phase]</c>, <c>[MixinOrder]</c> or <c>[Drops]</c>.</summary>
     public HashSet<(string Name, string Signature)> PlacedOverrides { get; } = [];
 
     /// <summary>Classes named before a <c>.</c> in the code (static references), with the text written for them.</summary>
@@ -411,7 +411,7 @@ internal sealed class ShaderUpgradeProject
                             shaderClass.Patches.Add(method.Name.Name);
                         if (method.Kinds.Count > 0)
                             shaderClass.DeclaredKinds.Add((method.Name.Name, signature));
-                        if (method.Attributes?.OfType<AnyShaderAttribute>().Any(x => x.Name.Name is "Phase" or "After" or "Replaces") == true)
+                        if (method.Attributes?.OfType<AnyShaderAttribute>().Any(x => x.Name.Name is "Phase" or "MixinOrder" or "Drops") == true)
                             shaderClass.PlacedOverrides.Add((method.Name.Name, signature));
                         if ((method.IsStaged || declaration.IsModule) && !method.IsAbstract && (method.IsOverride || method.Extend is { IsPatch: false }))
                             shaderClass.Contributions.Add(method.Name.Name);

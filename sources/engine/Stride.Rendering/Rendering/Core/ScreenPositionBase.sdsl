@@ -21,7 +21,7 @@ module ScreenPositionBase
     }
 
     [Phase(Input)]
-    [After(MeshVelocity)]
+    [MixinOrder(After = MeshVelocity)]
     extend ShaderBase.PSMain()
     {
         streams.ScreenPosition /= streams.ScreenPosition.w;

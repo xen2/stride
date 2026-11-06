@@ -373,7 +373,7 @@ public static partial class ShaderUpgrader
 
     /// <summary>
     /// An override with no <c>base</c> replaced what it inherited, and a class that becomes a module is imported, not inherited: the override
-    /// gets <c>[Replaces]</c>, which does what the older version did. Two classes that are only mixed together aren't related here, so
+    /// gets <c>[Drops]</c>, which does what the older version did. Two classes that are only mixed together aren't related here, so
     /// nothing changes for them: only their author knows what the override means.
     /// </summary>
     private static Dictionary<string, ShaderSourceText> AddReplaces(ShaderUpgradeProject project, Dictionary<string, string> texts)
@@ -394,10 +394,10 @@ public static partial class ShaderUpgrader
                     if (source.CodeMatches($@"(?<![\w.])base\s*\.\s*{Regex.Escape(method.Name)}\s*\(", classText.Open, classText.Close).Any())
                         continue;
 
-                    foreach (var declaration in MethodDeclarations(source, classText, method.Name, "Replaces"))
+                    foreach (var declaration in MethodDeclarations(source, classText, method.Name, "Drops"))
                     {
                         if (DeclaredSignature(source.Text, declaration) == method.Signature)
-                            InsertAttribute(source, declaration, $"Replaces({string.Join(", ", replaced)})");
+                            InsertAttribute(source, declaration, $"Drops(Mixins = {{ {string.Join(", ", replaced)} }})");
                     }
                 }
             }

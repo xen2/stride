@@ -12,7 +12,7 @@ namespace Stride.Shaders.Parsers.Tests;
 /// method, <c>[Phase]</c> on an override, and <c>base</c> in the sorted chain. What the running order gives is checked by
 /// the render test <c>ExtensionPointPhases</c>.
 /// </summary>
-public class ExtensionPointTests : IDisposable
+public partial class ExtensionPointTests : IDisposable
 {
     private readonly DirectoryInfo sourceDir = Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, $"extension-point-src-{Guid.NewGuid():N}"));
 
@@ -224,13 +224,17 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Theory]
-    [InlineData("[After(StepB)] void F() { }", "SDSL0135")]
-    [InlineData("[After(StepB)] override float Plain() { return 2; }", "SDSL0246")]
-    [InlineData("[After(StepB)] override float Pick() { return 2; }", "SDSL0135")]
-    [InlineData("[After] override void Run() { base.Run(); }", "SDSL0135")]
-    [InlineData("[After(StepB + 1)] override void Run() { base.Run(); }", "SDSL0135")]
-    [InlineData("[After(NoSuchClass)] override void Run() { base.Run(); }", "SDSL0110")]
-    public void AWrongAfterIsAnError(string member, string code)
+    [InlineData("[MixinOrder(After = StepB)] void F() { }", "SDSL0135")]
+    [InlineData("[MixinOrder(After = StepB)] override float Plain() { return 2; }", "SDSL0246")]
+    [InlineData("[MixinOrder(After = StepB)] override float Pick() { return 2; }", "SDSL0135")]
+    [InlineData("[MixinOrder] override void Run() { base.Run(); }", "SDSL0135")]
+    [InlineData("[MixinOrder(After = StepB + 1)] override void Run() { base.Run(); }", "SDSL0135")]
+    [InlineData("[MixinOrder(StepB)] override void Run() { base.Run(); }", "SDSL0135: [MixinOrder] on Wrong.Run: on an override, [MixinOrder] takes After = and Before =")]
+    [InlineData("[MixinOrder(After = \"Test.StepB\")] override void Run() { base.Run(); }", "SDSL0255: [MixinOrder] on Wrong.Run: \"Test.StepB\" is a string.")]
+    [InlineData("[MixinOrder(After = NoSuchClass)] override void Run() { base.Run(); }", "SDSL0110")]
+    [InlineData("[After(StepB)] override void Run() { base.Run(); }", "SDSL0251: [After] on Wrong.Run is no longer part of the language. Write [MixinOrder(After = StepB)].")]
+    [InlineData("[After(StepB, Other)] override void Run() { base.Run(); }", "Write [MixinOrder(After = { StepB, Other })].")]
+    public void AWrongMixinOrderIsAnError(string member, string code)
     {
         WriteOwner();
         WriteModule("StepB", "[Phase(B)] override void Run() { base.Run(); }");
@@ -244,11 +248,11 @@ public class ExtensionPointTests : IDisposable
 
     // After a phase that runs later: B runs after A whatever the mix says, so A can't run after B
     [Fact]
-    public void AfterAClassOfALaterPhaseIsAnError()
+    public void MixinOrderAfterAClassOfALaterPhaseIsAnError()
     {
         WriteOwner();
         WriteModule("StepB", "[Phase(B)] override void Run() { base.Run(); }");
-        WriteModule("StepA", "[Phase(A)] [After(StepB)] override void Run() { base.Run(); }");
+        WriteModule("StepA", "[Phase(A)] [MixinOrder(After = StepB)] override void Run() { base.Run(); }");
 
         var (ok, log, _) = Mix("Test.StepB", "Test.StepA");
 
@@ -257,11 +261,11 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void AfterAnOverrideWithoutPhaseIsAnError()
+    public void MixinOrderAfterAnOverrideWithoutPhaseIsAnError()
     {
         WriteOwner();
         WriteModule("Patch", "override void Run() { base.Run(); }");
-        WriteModule("StepA", "[Phase(A)] [After(Patch)] override void Run() { base.Run(); }");
+        WriteModule("StepA", "[Phase(A)] [MixinOrder(After = Patch)] override void Run() { base.Run(); }");
 
         var (ok, log, _) = Mix("Test.Patch", "Test.StepA");
 
@@ -270,11 +274,11 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void AfterGoingInACircleIsAnError()
+    public void MixinOrderAfterGoingInACircleIsAnError()
     {
         WriteOwner();
-        WriteModule("First", "[Phase(A)] [After(Second)] override void Run() { base.Run(); }");
-        WriteModule("Second", "[Phase(A)] [After(First)] override void Run() { base.Run(); }");
+        WriteModule("First", "[Phase(A)] [MixinOrder(After = Second)] override void Run() { base.Run(); }");
+        WriteModule("Second", "[Phase(A)] [MixinOrder(After = First)] override void Run() { base.Run(); }");
 
         var (ok, log, _) = Mix("Test.First", "Test.Second");
 
@@ -283,25 +287,25 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void AfterOrdersAPhaseThatCallsBaseFirst()
+    public void MixinOrderAfterOrdersAPhaseThatCallsBaseFirst()
     {
         WriteOwner();
-        WriteModule("First", "[Phase(A)] [After(Second)] override void Run() { base.Run(); }");
+        WriteModule("First", "[Phase(A)] [MixinOrder(After = Second)] override void Run() { base.Run(); }");
         WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); }");
 
         var (ok, log, explanation) = Mix("Test.First", "Test.Second");
 
         Assert.True(ok, log);
-        Assert.Contains("A: Second > First   order: after", Block(explanation, "Run"));
+        Assert.Contains("A: Second > First   order: mixin order", Block(explanation, "Run"));
     }
 
     // The chain is run from its end here: the step that runs later is reached from the one that runs first, so it is lower in the chain
     [Fact]
-    public void AfterOrdersAPhaseThatCallsBaseLast()
+    public void MixinOrderAfterOrdersAPhaseThatCallsBaseLast()
     {
         WriteOwner();
         WriteModule("First", "[Phase(Early)] override void Run() { streams.Steps = 2; base.Run(); }");
-        WriteModule("Second", "[Phase(Early)] [After(First)] override void Run() { streams.Steps = 3; base.Run(); }");
+        WriteModule("Second", "[Phase(Early)] [MixinOrder(After = First)] override void Run() { streams.Steps = 3; base.Run(); }");
 
         var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
 
@@ -310,10 +314,10 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void AfterOrdersAnAroundPhaseFromTheOutside()
+    public void MixinOrderAfterOrdersAnAroundPhaseFromTheOutside()
     {
         WriteOwner();
-        WriteModule("Inner", "[Phase(Outer)] [After(Outermost)] override float Wrap() { return base.Wrap(); }");
+        WriteModule("Inner", "[Phase(Outer)] [MixinOrder(After = Outermost)] override float Wrap() { return base.Wrap(); }");
         WriteModule("Outermost", "[Phase(Outer)] override float Wrap() { return base.Wrap(); }");
 
         var (ok, log, explanation) = Mix("Test.Outermost", "Test.Inner");
@@ -323,11 +327,11 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void AfterAClassThatIsNotInTheEffectIsIgnored()
+    public void MixinOrderAfterAClassThatIsNotInTheEffectIsIgnored()
     {
         WriteOwner();
         WriteModule("Absent", "[Phase(A)] override void Run() { base.Run(); }");
-        WriteModule("Step", "[Phase(A)] [After(Absent)] override void Run() { base.Run(); }");
+        WriteModule("Step", "[Phase(A)] [MixinOrder(After = Absent)] override void Run() { base.Run(); }");
 
         var (ok, log, _) = Mix("Test.Step");
 
@@ -484,7 +488,7 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Theory]
-    [InlineData("[Phase(Inner)] [After(First)]", "[Phase(Inner)]")]
+    [InlineData("[Phase(Inner)] [MixinOrder(After = First)]", "[Phase(Inner)]")]
     [InlineData("[Phase(Outer)]", "[Phase(Inner)]")]
     public void WrappersWithAnOrderDoNotConflict(string secondAttributes, string firstAttributes)
     {
@@ -593,13 +597,13 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Theory]
-    [InlineData("[After(First)]")]
-    [InlineData("[After(Middle)]")]
-    public void AfterSettlesAConflict(string attribute)
+    [InlineData("[MixinOrder(After = First)]")]
+    [InlineData("[MixinOrder(After = Middle)]")]
+    public void MixinOrderAfterSettlesAConflict(string attribute)
     {
         WriteOwner();
         WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
-        WriteModule("Middle", "[Phase(A)] [After(First)] override void Run() { base.Run(); }");
+        WriteModule("Middle", "[Phase(A)] [MixinOrder(After = First)] override void Run() { base.Run(); }");
         Write("Last", $"module Last {{ import First; import Middle; [Phase(A)] {attribute} override void Run() {{ base.Run(); streams.Steps = 3; }} }}");
 
         var (ok, log, _) = Mix(isAssetBuild: true, "Test.First", "Test.Middle", "Test.Last");
@@ -608,7 +612,7 @@ public class ExtensionPointTests : IDisposable
     }
 
     // A class comes after its parents, so inheritance is an order
-    // [After] and an order rule take the name of a class, without its generic values
+    // [MixinOrder] and a block take the name of a class, without its generic values
     [Fact]
     public void TheMessageOfAConflictNamesAClassAsItIsWritten()
     {
@@ -621,7 +625,7 @@ public class ExtensionPointTests : IDisposable
 
         Assert.False(ok, log);
         Assert.Contains("SDSL0137", log);
-        Assert.Contains("[After(Gen)]", log);
+        Assert.Contains("[MixinOrder(After = Gen)]", log);
     }
 
     [Fact]
@@ -666,12 +670,17 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Theory]
-    [InlineData("[Replaces(Step)] void F() { }", "SDSL0135")]
-    [InlineData("[Replaces(Step)] override float Plain() { return 2; }", "SDSL0246")]
-    [InlineData("[Replaces] override void Run() { base.Run(); }", "SDSL0135")]
-    [InlineData("[Replaces(\"Test.Step\")] override void Run() { base.Run(); }", "on an override, [Replaces] takes names without quotes")]
-    [InlineData("[Replaces(NoSuchClass)] override void Run() { base.Run(); }", "SDSL0110")]
-    public void AWrongReplacesIsAnError(string member, string code)
+    [InlineData("[Drops(Mixins = { Step })] void F() { }", "SDSL0135")]
+    [InlineData("[Drops(Mixins = { Step })] override float Plain() { return 2; }", "SDSL0246")]
+    [InlineData("[Drops] override void Run() { base.Run(); }", "SDSL0254")]
+    [InlineData("[Drops(Step)] override void Run() { base.Run(); }", "SDSL0254: [Drops] on Wrong.Run: [Drops] takes Mixins = { ... } for classes and Phases = { ... } for phases.")]
+    [InlineData("[Drops(Mixins = { A })] override void Run() { base.Run(); }", "SDSL0254: [Drops] on Wrong.Run: A is a phase of Owner.Run: write Phases = { A }.")]
+    [InlineData("[Drops(Phases = { Step })] override void Run() { base.Run(); }", "SDSL0254: [Drops] on Wrong.Run: Step is a class: write Mixins = { Step }.")]
+    [InlineData("[Drops(Phases = { Missing })] override void Run() { base.Run(); }", "SDSL0254: [Drops] on Wrong.Run: Owner.Run has no phase Missing.")]
+    [InlineData("[Drops(Mixins = { \"Test.Step\" })] override void Run() { base.Run(); }", "SDSL0255: [Drops] on Wrong.Run: \"Test.Step\" is a string.")]
+    [InlineData("[Drops(Mixins = { NoSuchClass })] override void Run() { base.Run(); }", "SDSL0110")]
+    [InlineData("[Replaces(Step, A)] override void Run() { base.Run(); }", "SDSL0251: [Replaces] on Wrong.Run is no longer part of the language. Write [Drops(Mixins = { Step }, Phases = { A })] on an override")]
+    public void AWrongDropsIsAnError(string member, string code)
     {
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
@@ -684,16 +693,16 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void ABareNameOnAClassIsAnError()
+    public void AStringInReplacesOnAClassIsAnError()
     {
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
-        Write("Wrong", "[Replaces(Step)] module Wrong { import Step; }");
+        Write("Wrong", "[Replaces(\"Test.Step\")] module Wrong : Test.Step { }");
 
         var (ok, log, _) = Mix("Test.Wrong");
 
         Assert.False(ok, log);
-        Assert.Contains("on a class, [Replaces] takes a full name as a string", log);
+        Assert.Contains("SDSL0255: [Replaces] on Wrong: \"Test.Step\" is a string.", log);
     }
 
     [Fact]
@@ -702,7 +711,7 @@ public class ExtensionPointTests : IDisposable
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); } override float Wrap() { return base.Wrap(); }");
         WriteModule("Other", "[Phase(A)] override void Run() { base.Run(); }");
-        WriteModule("Replacement", "[Phase(B)] [Replaces(Step)] override void Run() { base.Run(); }");
+        WriteModule("Replacement", "[Phase(B)] [Drops(Mixins = { Step })] override void Run() { base.Run(); }");
 
         var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.Step", "Test.Other", "Test.Replacement");
 
@@ -720,7 +729,7 @@ public class ExtensionPointTests : IDisposable
         WriteModule("First", "[Phase(A)] override void Run() { base.Run(); }");
         WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); }");
         WriteModule("Later", "[Phase(B)] override void Run() { base.Run(); }");
-        WriteModule("Replacement", "[Phase(A)] [Replaces(A)] override void Run() { base.Run(); }");
+        WriteModule("Replacement", "[Phase(A)] [Drops(Phases = { A })] override void Run() { base.Run(); }");
 
         var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.First", "Test.Second", "Test.Later", "Test.Replacement");
 
@@ -736,7 +745,7 @@ public class ExtensionPointTests : IDisposable
     {
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
-        WriteModule("Replacement", "[Phase(A)] [Replaces(Step)] override void Run() { streams.Steps = 2; }");
+        WriteModule("Replacement", "[Phase(A)] [Drops(Mixins = { Step })] override void Run() { streams.Steps = 2; }");
 
         var (ok, log, _) = Mix(isAssetBuild: true, "Test.Step", "Test.Replacement");
 
@@ -751,7 +760,7 @@ public class ExtensionPointTests : IDisposable
         WriteOwner();
         WriteModule("Step", "[Phase(A)] override void Run() { base.Run(); }");
         WriteModule("Middle", "[Phase(A)] override void Run() { base.Run(); }");
-        WriteModule("Replacement", "[Phase(A)] [Replaces(Middle)] override void Run() { streams.Steps = 2; }");
+        WriteModule("Replacement", "[Phase(A)] [Drops(Mixins = { Middle })] override void Run() { streams.Steps = 2; }");
 
         var (ok, log, _) = Mix(isAssetBuild: true, "Test.Step", "Test.Middle", "Test.Replacement");
 
@@ -764,7 +773,7 @@ public class ExtensionPointTests : IDisposable
     {
         WriteOwner();
         WriteModule("Absent", "[Phase(A)] override void Run() { base.Run(); }");
-        WriteModule("Replacement", "[Phase(A)] [Replaces(Absent)] override void Run() { base.Run(); }");
+        WriteModule("Replacement", "[Phase(A)] [Drops(Mixins = { Absent })] override void Run() { base.Run(); }");
 
         var (ok, log, explanation) = Mix("Test.Replacement");
 
@@ -776,8 +785,8 @@ public class ExtensionPointTests : IDisposable
     public void ReplacingEachOtherIsAnError()
     {
         WriteOwner();
-        WriteModule("First", "[Phase(A)] [Replaces(Second)] override void Run() { base.Run(); }");
-        WriteModule("Second", "[Phase(A)] [Replaces(First)] override void Run() { base.Run(); }");
+        WriteModule("First", "[Phase(A)] [Drops(Mixins = { Second })] override void Run() { base.Run(); }");
+        WriteModule("Second", "[Phase(A)] [Drops(Mixins = { First })] override void Run() { base.Run(); }");
 
         var (ok, log, _) = Mix("Test.First", "Test.Second");
 
@@ -790,15 +799,15 @@ public class ExtensionPointTests : IDisposable
     public void ReplacingInACircleIsAnError()
     {
         WriteOwner();
-        WriteModule("First", "[Replaces(Third)] override float Pick() { return 2; }");
-        WriteModule("Second", "[Replaces(First)] override float Pick() { return 3; }");
-        WriteModule("Third", "[Replaces(Second)] override float Pick() { return 4; }");
+        WriteModule("First", "[Drops(Mixins = { Third })] override float Pick() { return 2; }");
+        WriteModule("Second", "[Drops(Mixins = { First })] override float Pick() { return 3; }");
+        WriteModule("Third", "[Drops(Mixins = { Second })] override float Pick() { return 4; }");
 
         var (ok, log, _) = Mix("Test.First", "Test.Second", "Test.Third");
 
         Assert.False(ok, log);
         Assert.Contains("SDSL0138", log);
-        Assert.Contains("replace each other", log);
+        Assert.Contains("drop each other", log);
     }
 
     // The one a replace point keeps: the stated replacement, wherever the mix puts it
@@ -806,7 +815,7 @@ public class ExtensionPointTests : IDisposable
     public void ReplacesPicksTheWinnerOfAReplacePoint()
     {
         WriteOwner();
-        WriteModule("Winner", "[Replaces(Other)] override float Pick() { return 2; }");
+        WriteModule("Winner", "[Drops(Mixins = { Other })] override float Pick() { return 2; }");
         WriteModule("Other", "override float Pick() { return 3; }");
 
         var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.Winner", "Test.Other");
@@ -849,8 +858,8 @@ public class ExtensionPointTests : IDisposable
 
         Assert.False(ok, log);
         Assert.Contains("SDSL0137", log);
-        Assert.Contains("[After(PartOne)] to PartTwo", log);
-        Assert.Contains("[Phase(Later, After = A)]", log);
+        Assert.Contains("[MixinOrder(After = PartOne)] to PartTwo", log);
+        Assert.Contains("[Phase(Vendor.Later, After = A)]", log);
         Assert.DoesNotContain("order Part.Go", log);
     }
 
@@ -902,7 +911,7 @@ public class ExtensionPointTests : IDisposable
     {
         WriteOwner();
         WriteModule("First", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 2; }");
-        WriteModule("Second", "[Phase(A)] [After(First)] override void Run() { base.Run(); streams.Steps = 3; }");
+        WriteModule("Second", "[Phase(A)] [MixinOrder(After = First)] override void Run() { base.Run(); streams.Steps = 3; }");
         WriteModule("Free1", "[Phase(B)] override void Run() { base.Run(); }");
         WriteModule("Free2", "[Phase(B)] override void Run() { base.Run(); }");
 
@@ -910,7 +919,7 @@ public class ExtensionPointTests : IDisposable
 
         Assert.True(ok, log);
         var block = Block(explanation, "Run");
-        Assert.Contains("A: First > Second   order: after", block);
+        Assert.Contains("A: First > Second   order: mixin order", block);
         Assert.Contains("B: Free1 > Free2   order: tie-break", block);
     }
 
@@ -997,7 +1006,7 @@ public class ExtensionPointTests : IDisposable
         var (ok, log, explanation) = Mix(isAssetBuild, "Test.Step", "Test.Replacement");
 
         Assert.Equal(!isAssetBuild, ok);
-        Assert.Contains($"{type}: SDSL0216: Replacement.Run doesn't call base, so Step never run in this effect. Write [Replaces(Step)] on it, or call base.", log);
+        Assert.Contains($"{type}: SDSL0216: Replacement.Run doesn't call base, so Step never run in this effect. Write [Drops(Mixins = {{ Step }})] on it, or call base.", log);
         Assert.Contains("dropped by Replacement: Step", Block(explanation, "Run"));
     }
 
@@ -1013,9 +1022,9 @@ public class ExtensionPointTests : IDisposable
         var (ok, log, _) = Mix(isAssetBuild: true, "Test.Step", "Test.Other", "Test.Replacement");
 
         Assert.False(ok, log);
-        Assert.Contains("Write [Replaces(Step, Other)] on it", log);
+        Assert.Contains("Write [Drops(Mixins = { Step, Other })] on it", log);
 
-        WriteModule("Replacement", "[Replaces(Step, Other)] override void Run() { streams.Steps = 2; }");
+        WriteModule("Replacement", "[Drops(Mixins = { Step, Other })] override void Run() { streams.Steps = 2; }");
         (ok, log, _) = Mix(isAssetBuild: true, "Test.Step", "Test.Other", "Test.Replacement");
 
         Assert.True(ok, log);
@@ -1078,13 +1087,13 @@ public class ExtensionPointTests : IDisposable
     public void AnOrderRuleOrdersAPhaseAndWinsOverAfter()
     {
         WriteOwner();
-        WriteModule("First", "[Phase(A)] [After(Second)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("First", "[Phase(A)] [MixinOrder(After = Second)] override void Run() { base.Run(); streams.Steps = 2; }");
         WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); streams.Steps = 3; }");
 
         var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "A", "Test.First", "Test.Second"), "Test.First", "Test.Second");
 
         Assert.True(ok, log);
-        Assert.Contains("A: First > Second   order: order rule", Block(explanation, "Run"));
+        Assert.Contains("A: First > Second   order: block", Block(explanation, "Run"));
     }
 
     [Fact]
@@ -1096,17 +1105,31 @@ public class ExtensionPointTests : IDisposable
 
         var (noRule, noRuleLog, _) = Mix(isAssetBuild: true, "Test.First", "Test.Second");
         Assert.False(noRule, noRuleLog);
-        Assert.Contains("this linkage rule to the effect: order Owner.Run.A: First, Second;", noRuleLog);
+        Assert.Contains("this block to the effect: extend shader Owner { [MixinOrder(First, Second)] Run; }", noRuleLog);
 
-        // The last layer wins, and a name as written counts
-        var (ok, log, explanation) = Mix(true, x =>
+        // A name as written counts
+        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Owner", "Run", "A", "Second", "First"), "Test.First", "Test.Second");
+
+        Assert.True(ok, log);
+        Assert.Contains("A: Second > First   order: block", Block(explanation, "Run"));
+    }
+
+    // Neither is further out, so neither replaces the other
+    [Fact]
+    public void TwoOppositeOrdersOfOneLevelAreAnError()
+    {
+        WriteOwner();
+        WriteModule("First", "[Phase(A)] override void Run() { base.Run(); }");
+        WriteModule("Second", "[Phase(A)] override void Run() { base.Run(); }");
+
+        var (ok, log, _) = Mix(true, x =>
         {
             x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "A", "Test.First", "Test.Second");
             x.AddLinkageRule(ShaderLinkageKind.Order, "Owner", "Run", "A", "Second", "First");
         }, "Test.First", "Test.Second");
 
-        Assert.True(ok, log);
-        Assert.Contains("A: Second > First   order: order rule", Block(explanation, "Run"));
+        Assert.False(ok, log);
+        Assert.Contains("SDSL0138: the order of Owner.Run can't be followed: First runs before Second (the effect: order Test.Owner.Run.A: Test.First, Test.Second) and after it (the effect: order Owner.Run.A: Second, First)", log);
     }
 
     [Fact]
@@ -1330,7 +1353,7 @@ public class ExtensionPointTests : IDisposable
         WriteOwner();
         WriteModule("InB", "[Phase(B)] override void Run() { base.Run(); }");
         WriteModule("InA", "[Phase(A)] override void Run() { base.Run(); }");
-        WriteModule("Wind", "[Phase(Wind, After = A, Before = B)] override void Run() { base.Run(); }");
+        WriteModule("Wind", "[Phase(Lib.Wind, After = A, Before = B)] override void Run() { base.Run(); }");
 
         var (ok, log, explanation) = Mix(isAssetBuild: true, "Test.InB", "Test.Wind", "Test.InA");
 
@@ -1343,31 +1366,31 @@ public class ExtensionPointTests : IDisposable
     public void AnOrderRuleCanNameAPhaseAnOverrideAdds()
     {
         WriteOwner();
-        WriteModule("First", "[Phase(Wind, After = A)] override void Run() { base.Run(); streams.Steps = 2; }");
-        WriteModule("Second", "[Phase(Wind, After = A)] override void Run() { base.Run(); streams.Steps = 3; }");
+        WriteModule("First", "[Phase(Lib.Wind, After = A)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Second", "[Phase(Lib.Wind, After = A)] override void Run() { base.Run(); streams.Steps = 3; }");
 
-        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "Wind", "Test.Second", "Test.First"), "Test.First", "Test.Second");
+        var (ok, log, explanation) = Mix(true, x => x.AddLinkageRule(ShaderLinkageKind.Order, "Test.Owner", "Run", "Lib.Wind", "Test.Second", "Test.First"), "Test.First", "Test.Second");
 
         Assert.True(ok, log);
-        Assert.Contains("Wind: Second > First", explanation);
+        Assert.Contains("Lib.Wind: Second > First", explanation);
     }
 
     [Fact]
     public void AddedPhasesCanNameEachOtherInAnyOrder()
     {
         WriteOwner();
-        WriteModule("Last", "[Phase(Y, After = X)] override void Run() { base.Run(); }");
-        WriteModule("Next", "[Phase(X, After = A)] override void Run() { base.Run(); }");
+        WriteModule("Last", "[Phase(Lib.Y, After = Lib.X)] override void Run() { base.Run(); }");
+        WriteModule("Next", "[Phase(Lib.X, After = A)] override void Run() { base.Run(); }");
 
         Assert.True(Mix(false, "Test.Last", "Test.Next").Ok);
-        Assert.True(Mix(false, x => x.AddLinkageRule(ShaderLinkageKind.Phase, "Test.Owner", "Run", "X", "A", ""), "Test.Last").Ok);
+        Assert.True(Mix(false, x => x.AddLinkageRule(ShaderLinkageKind.Phase, "Test.Owner", "Run", "Lib.X", "A", ""), "Test.Last").Ok);
     }
 
     [Theory]
-    [InlineData("[Phase(Wind, After = Early)] override void Run() { base.Run(); streams.Steps = 2; }")]
-    [InlineData("[Phase(Wind, Before = Default)] override void Run() { base.Run(); streams.Steps = 2; }")]
-    [InlineData("[Phase(Wind, After = A)] override void Run() { streams.Steps = 2; base.Run(); }")]
-    [InlineData("[Phase(Wind, Before = B)] override void Run() { streams.Steps = 2; base.Run(); }")]
+    [InlineData("[Phase(Lib.Wind, After = Early)] override void Run() { base.Run(); streams.Steps = 2; }")]
+    [InlineData("[Phase(Lib.Wind, Before = Default)] override void Run() { base.Run(); streams.Steps = 2; }")]
+    [InlineData("[Phase(Lib.Wind, After = A)] override void Run() { streams.Steps = 2; base.Run(); }")]
+    [InlineData("[Phase(Lib.Wind, Before = B)] override void Run() { streams.Steps = 2; base.Run(); }")]
     public void TheBaseCallOfAnAddedPhaseFitsItsPlace(string member)
     {
         WriteOwner();
@@ -1384,13 +1407,13 @@ public class ExtensionPointTests : IDisposable
     public void TheBaseCallOfAnAddedPhaseIsCheckedAtLink()
     {
         WriteOwner();
-        WriteModule("Wrong", "[Phase(Y, After = X)] override void Run() { base.Run(); streams.Steps = 2; }");
-        WriteModule("Other", "[Phase(X, After = Early)] override void Run() { streams.Steps = 3; base.Run(); }");
+        WriteModule("Wrong", "[Phase(Lib.Y, After = Lib.X)] override void Run() { base.Run(); streams.Steps = 2; }");
+        WriteModule("Other", "[Phase(Lib.X, After = Early)] override void Run() { streams.Steps = 3; base.Run(); }");
 
         var (ok, log, _) = Mix(false, "Test.Wrong", "Test.Other");
 
         Assert.False(ok, log);
-        Assert.Contains("SDSL0140: Wrong.Run is in phase Y", log);
+        Assert.Contains("SDSL0140: Wrong.Run is in phase Lib.Y", log);
     }
 
     [Theory]
@@ -1414,12 +1437,12 @@ public class ExtensionPointTests : IDisposable
     {
         WriteOwner();
         WriteModule("InB", "[Phase(B)] override void Run() { base.Run(); }");
-        WriteModule("Wind", "[Phase(Wind, After = Missing)] override void Run() { base.Run(); }");
+        WriteModule("Wind", "[Phase(Lib.Wind, After = Missing)] override void Run() { base.Run(); }");
 
         var (ok, log, _) = Mix(isAssetBuild: false, "Test.Wind", "Test.InB");
 
         Assert.False(ok, log);
-        Assert.Contains("SDSL0218: phase Wind added by Wind to Owner.Run has no place: Owner.Run has no phase Missing", log);
+        Assert.Contains("SDSL0218: phase Lib.Wind added by Wind to Owner.Run has no place: Owner.Run has no phase Missing", log);
     }
 
     [Theory]
@@ -1455,6 +1478,8 @@ public class ExtensionPointTests : IDisposable
     [InlineData("[Phases(A, B)] shader Wrong { }")]
     [InlineData("[Pipeline(A)] module Wrong { }")]
     [InlineData("[Phase(A)] shader Wrong { }")]
+    [InlineData("[MixinOrder(After = Other)] shader Wrong { }")]
+    [InlineData("[Drops(Mixins = { Other })] shader Wrong { }")]
     [InlineData("[After(Other)] shader Wrong { }")]
     [InlineData("[Collect] shader Wrong { }")]
     [InlineData("shader Wrong { [Phases(A)] cbuffer PerDraw { float A; } }")]
@@ -1507,17 +1532,17 @@ public class ExtensionPointTests : IDisposable
         var (ok, log, _) = Mix(isAssetBuild, "Test.PatchA", "Test.PatchB");
 
         Assert.False(ok, log);
-        Assert.Contains("SDSL0148: PatchA and PatchB both patch Owner.Plain, and nothing orders them. Add [After(PatchA)] to the patch in PatchB, or this linkage rule to the effect: order Owner.Plain.External: PatchA, PatchB;", log);
+        Assert.Contains("SDSL0148: PatchA and PatchB both patch Owner.Plain, and nothing orders them. Add [MixinOrder(After = PatchA)] to the patch in PatchB, or this block to the effect: extend shader Owner { [MixinOrder(PatchA, PatchB)] Plain; }", log);
     }
 
     [Theory]
     [InlineData("Test.PatchA", "Test.PatchB")]
     [InlineData("Test.PatchB", "Test.PatchA")]
-    public void AfterOrdersTwoPatches(string first, string second)
+    public void MixinOrderAfterOrdersTwoPatches(string first, string second)
     {
         WriteOwner();
         WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
-        WriteModule("PatchB", "[After(PatchA)] patch Owner.Plain() { return next() * 2; }");
+        WriteModule("PatchB", "[MixinOrder(After = PatchA)] patch Owner.Plain() { return next() * 2; }");
 
         var (ok, log, explanation) = Mix(first, second);
 
@@ -1526,12 +1551,12 @@ public class ExtensionPointTests : IDisposable
     }
 
     [Fact]
-    public void AfterOrdersPatchesThroughAThird()
+    public void MixinOrderAfterOrdersPatchesThroughAThird()
     {
         WriteOwner();
         WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
-        WriteModule("PatchB", "[After(PatchA)] patch Owner.Plain() { return next() + 2; }");
-        WriteModule("PatchC", "[After(PatchB)] patch Owner.Plain() { return next() + 3; }");
+        WriteModule("PatchB", "[MixinOrder(After = PatchA)] patch Owner.Plain() { return next() + 2; }");
+        WriteModule("PatchC", "[MixinOrder(After = PatchB)] patch Owner.Plain() { return next() + 3; }");
 
         var (ok, log, explanation) = Mix("Test.PatchC", "Test.PatchA", "Test.PatchB");
 
@@ -1545,7 +1570,7 @@ public class ExtensionPointTests : IDisposable
     {
         WriteOwner();
         WriteModule("PatchA", "patch Owner.Plain() { return next() + 1; }");
-        WriteModule("PatchB", "[After(PatchA)] patch Owner.Plain() { return next() + 2; }");
+        WriteModule("PatchB", "[MixinOrder(After = PatchA)] patch Owner.Plain() { return next() + 2; }");
         WriteModule("PatchC", "patch Owner.Plain() { return next() + 3; }");
 
         var (ok, log, _) = Mix("Test.PatchA", "Test.PatchB", "Test.PatchC");
@@ -1558,8 +1583,8 @@ public class ExtensionPointTests : IDisposable
     public void PatchesAfterEachOtherAreAnError()
     {
         WriteOwner();
-        WriteModule("PatchA", "[After(PatchB)] patch Owner.Plain() { return next() + 1; }");
-        WriteModule("PatchB", "[After(PatchA)] patch Owner.Plain() { return next() + 2; }");
+        WriteModule("PatchA", "[MixinOrder(After = PatchB)] patch Owner.Plain() { return next() + 1; }");
+        WriteModule("PatchB", "[MixinOrder(After = PatchA)] patch Owner.Plain() { return next() + 2; }");
 
         var (ok, log, _) = Mix("Test.PatchA", "Test.PatchB");
 
@@ -1569,11 +1594,11 @@ public class ExtensionPointTests : IDisposable
 
     // The class named by 'after' isn't in the effect: nothing orders the two that are
     [Fact]
-    public void AfterAClassOutsideTheEffectIsNoOrder()
+    public void MixinOrderAfterAClassOutsideTheEffectIsNoOrder()
     {
         WriteOwner();
         WriteModule("PatchOther", "patch Owner.Plain() { return next() + 1; }");
-        WriteModule("PatchA", "[After(PatchOther)] patch Owner.Plain() { return next() + 2; }");
+        WriteModule("PatchA", "[MixinOrder(After = PatchOther)] patch Owner.Plain() { return next() + 2; }");
         WriteModule("PatchB", "patch Owner.Plain() { return next() + 3; }");
 
         var (ok, log, _) = Mix("Test.PatchA", "Test.PatchB");
@@ -1607,7 +1632,7 @@ public class ExtensionPointTests : IDisposable
         var (ok, log, _) = Mix(false, "Test.UsesGen", "Test.Other");
 
         Assert.False(ok, log);
-        Assert.Contains("Add [After(Gen)] to the patch in Other", log);
+        Assert.Contains("Add [MixinOrder(After = Gen)] to the patch in Other", log);
     }
 
     [Fact]

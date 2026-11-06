@@ -59,7 +59,7 @@ namespace Stride.Assets.Tests
         {
             var package = NewPackage("Game");
             AddShader(package, "X", "namespace Lib; shader X { };");
-            var replacer = AddShader(package, "R", """namespace Game; [Replaces("Lib.X")] shader R : Lib.X { };""");
+            var replacer = AddShader(package, "R", """namespace Game; [Replaces(Lib.X)] shader R : Lib.X { };""");
             InOneSession(package);
 
             var result = Prepare(replacer);
@@ -70,8 +70,8 @@ namespace Stride.Assets.Tests
 
         // The other package isn't a dependency
         [Theory]
-        [InlineData("""namespace Game; [Replaces("Lib.X")] shader R : Lib.X { };""")]
-        [InlineData("""namespace Game; [Replaces("X")] shader R : Lib.X { };""")]
+        [InlineData("""namespace Game; [Replaces(Lib.X)] shader R : Lib.X { };""")]
+        [InlineData("""namespace Game; [Replaces(X)] shader R : Lib.X { };""")]
         public void ATargetThatIsNotVisibleIsAnError(string code)
         {
             var other = AddShader(NewPackage("Other"), "X", "namespace Lib; shader X { };");
@@ -88,8 +88,8 @@ namespace Stride.Assets.Tests
         {
             var package = NewPackage("Game");
             AddShader(package, "X", "namespace Lib; shader X { };");
-            var first = AddShader(package, "R", """namespace Game; [Replaces("Lib.X")] shader R : Lib.X { };""");
-            AddShader(package, "S", """namespace Game; [Replaces("Lib.X")] shader S : Lib.X { };""");
+            var first = AddShader(package, "R", """namespace Game; [Replaces(Lib.X)] shader R : Lib.X { };""");
+            AddShader(package, "S", """namespace Game; [Replaces(Lib.X)] shader S : Lib.X { };""");
             InOneSession(package);
 
             var error = Assert.Single(Prepare(first).Messages, x => x.Type == LogMessageType.Error);
@@ -101,7 +101,7 @@ namespace Stride.Assets.Tests
         {
             var package = NewPackage("Game");
             AddShader(package, "X", "namespace Lib; shader X<int N> { };");
-            var replacer = AddShader(package, "R", """namespace Game; [Replaces("Lib.X")] shader R : Lib.X<3> { };""");
+            var replacer = AddShader(package, "R", """namespace Game; [Replaces(Lib.X)] shader R : Lib.X<3> { };""");
             InOneSession(package);
 
             var error = Assert.Single(Prepare(replacer).Messages, x => x.Type == LogMessageType.Error);
@@ -115,7 +115,7 @@ namespace Stride.Assets.Tests
             var engine = NewPackage("Engine");
             AddShader(engine, "X", "namespace Lib; shader X { };");
             var game = NewPackage("Game");
-            AddShader(game, "R", """namespace Game; [Replaces("Lib.X")] shader R : Lib.X { };""");
+            AddShader(game, "R", """namespace Game; [Replaces(Lib.X)] shader R : Lib.X { };""");
             _ = new StandalonePackage(engine);
             _ = new StandalonePackage(game);
 
@@ -132,7 +132,7 @@ namespace Stride.Assets.Tests
             var engine = NewPackage("Engine");
             AddShader(engine, "X", "namespace Lib; shader X { };");
             var game = NewPackage("Game");
-            AddShader(game, "R", """namespace Game; [Replaces("Lib.X")] shader R : Lib.X { };""");
+            AddShader(game, "R", """namespace Game; [Replaces(Lib.X)] shader R : Lib.X { };""");
             _ = new StandalonePackage(engine);
             new StandalonePackage(game).FlattenedDependencies.Add(new Dependency(engine));
 
@@ -148,7 +148,7 @@ namespace Stride.Assets.Tests
         public void TheTargetOfAReplacerCanBeBuiltApart()
         {
             var game = NewPackage("Game");
-            var replacer = AddShader(game, "R", """namespace Game; [Replaces("Lib.X")] shader R : Lib.X { };""");
+            var replacer = AddShader(game, "R", """namespace Game; [Replaces(Lib.X)] shader R : Lib.X { };""");
             InOneSession(game);
             context.Properties.Set(EffectShaderAssetCompiler.ImportedShadersKey, new() { ["Lib.X"] = ["Engine"] });
 

@@ -55,7 +55,7 @@ namespace Stride.Assets.Tests
             var (result, log) = Build("module Dropper { import Step; extend Entry.Pick() { return 3; } };");
 
             Assert.Equal(BuildResultCode.BuildError, result);
-            Assert.Contains(log.Messages, x => x.Type == LogMessageType.Error && x.Text.Contains("SDSL0136: Dropper.Pick doesn't call next, so Step never run in this effect. Write [Replaces(Step)] on it, or call next."));
+            Assert.Contains(log.Messages, x => x.Type == LogMessageType.Error && x.Text.Contains("SDSL0136: Dropper.Pick doesn't call next, so Step never run in this effect. Write [Drops(Mixins = { Step })] on it, or call next."));
         }
 
         [Fact]
@@ -64,12 +64,12 @@ namespace Stride.Assets.Tests
             var (result, log) = Build("module Dropper { import Step; override void PSMain() { streams.ColorTarget = 2; } };");
 
             Assert.Equal(BuildResultCode.BuildError, result);
-            Assert.Contains(log.Messages, x => x.Type == LogMessageType.Error && x.Text.Contains("SDSL0216: Dropper.PSMain doesn't call base, so Step never run in this effect. Write [Replaces(Step)] on it, or call base."));
+            Assert.Contains(log.Messages, x => x.Type == LogMessageType.Error && x.Text.Contains("SDSL0216: Dropper.PSMain doesn't call base, so Step never run in this effect. Write [Drops(Mixins = { Step })] on it, or call base."));
             Assert.Contains(log.Messages, x => x.Type == LogMessageType.Error && x.Text.Contains("This entry of an effect log failed. If the error above is about your shaders, fix it. If the log is older than the engine, delete it and record it again."));
         }
 
         [Theory]
-        [InlineData("module Dropper { import Step; [Replaces(Step)] override void PSMain() { streams.ColorTarget = 2; } };")]
+        [InlineData("module Dropper { import Step; [Drops(Mixins = { Step })] override void PSMain() { streams.ColorTarget = 2; } };")]
         [InlineData("module Dropper { import Step; override void PSMain() { base.PSMain(); streams.ColorTarget *= 2; } };")]
         public void AnOverrideThatStatesItOrCallsBaseBuilds(string code)
         {

@@ -3,13 +3,13 @@ shader MyConstantTexture
     import MyConstantColor;
     import Texturing;
 
-    [Replaces(MyConstantColor)]
+    [Drops(Mixins = { MyConstantColor })]
     override module void VSMain()
     {
         streams.ShadingPosition = mul(streams.Position, WorldViewProjection);
     }
 
-    [Replaces(MyConstantColor)]
+    [Drops(Mixins = { MyConstantColor })]
     override module void PSMain()
     {
         // base.PSMain();

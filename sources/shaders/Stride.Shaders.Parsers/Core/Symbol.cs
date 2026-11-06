@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Stride.Shaders.Parsing;
 using static Stride.Shaders.Spirv.Specification;
 
 namespace Stride.Shaders.Core;
@@ -23,17 +24,37 @@ public sealed record MethodExtensionPoint(ExtensionPointKindSDSL Kind, string Ow
     /// <summary>The implicit phase after every declared phase, in the order of the mix: where a contributor without a phase is, and the name an <c>order</c> line gives to the patches of a method.</summary>
     public const string ImplicitPhase = "External";
 
-    /// <summary>What marks a phase in the targets of <c>[Replaces]</c>, which are otherwise full names of classes.</summary>
+    /// <summary>What marks a phase in the names of <c>[Drops]</c> and <c>[Unbind]</c>, which are otherwise full names of classes.</summary>
     public const char ReplacedPhasePrefix = '@';
 
-    /// <summary>What a contribution that adds a phase records when its body calls <c>base</c> as its first statement.</summary>
+    /// <summary>What a contribution to a pipeline records when its body calls <c>base</c> as its first statement.</summary>
     public const string BaseCallFirst = "first";
 
-    /// <summary>What a contribution that adds a phase records when its body calls <c>base</c> as its last statement.</summary>
+    /// <summary>What a contribution to a pipeline records when its body calls <c>base</c> as its last statement.</summary>
     public const string BaseCallLast = "last";
+
+    /// <summary>The start of the phases that only the engine adds.</summary>
+    public const string EnginePhasePrefix = "Stride.";
 
     /// <summary>The phase of the default body of a pipeline: <see cref="DefaultPhase"/>, else the first one.</summary>
     public int DefaultPhaseIndex => Math.Max(Array.IndexOf(Phases, DefaultPhase), 0);
+
+    /// <summary>
+    /// The error of a phase added by a class or an effect that doesn't own the point, or null. The owner declares plain names, so an
+    /// added phase has a prefix, and <see cref="EnginePhasePrefix"/> needs an adder of the engine, which only uses <c>Stride</c> namespaces.
+    /// </summary>
+    /// <param name="phase">The added phase.</param>
+    /// <param name="adderFullName">The full name of the class or the effect that adds it.</param>
+    /// <param name="by">The adder, for the message.</param>
+    /// <param name="pointName">The point, for the message.</param>
+    public static string? CheckAddedPhase(string phase, string adderFullName, string by, string pointName)
+    {
+        if (!phase.Contains('.'))
+            return string.Format(SDSLErrorMessages.SDSL0252, phase, by, pointName, $"MyLibrary.{phase}");
+        if (phase.StartsWith(EnginePhasePrefix, StringComparison.Ordinal) && !adderFullName.StartsWith(EnginePhasePrefix, StringComparison.Ordinal))
+            return string.Format(SDSLErrorMessages.SDSL0253, phase, by);
+        return null;
+    }
 }
 
 

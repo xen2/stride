@@ -12,7 +12,7 @@ shader CubemapSprite
 
     // Shading of the sprite
     [Phase(Post)]
-    [Replaces(SpriteEffect)]
+    [Drops(Mixins = { SpriteEffect })]
     extend SpriteBase.Shading()
     {
         return TextureCube0.Sample(Sampler, CubemapUtils.ConvertTexcoordsNoFlip(streams.TexCoord, ViewIndex));

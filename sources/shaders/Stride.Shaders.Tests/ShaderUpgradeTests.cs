@@ -512,9 +512,9 @@ public class ShaderUpgradeTests
 
     // What the step writes is what an effect of the asset build needs: the same classes without it don't compile
     [Theory]
-    [InlineData("inherited-module", "MyConstantTexture", "[Replaces(MyConstantColor)]", "SDSL0216")]
-    [InlineData("engine-module", "MyInstancing", "[Replaces(TransformationBase)]", "SDSL0216")]
-    [InlineData("project-point", "MyLast", "[Replaces(MyStep)]", "SDSL0136")]
+    [InlineData("inherited-module", "MyConstantTexture", "[Drops(Mixins = { MyConstantColor })]", "SDSL0216")]
+    [InlineData("engine-module", "MyInstancing", "[Drops(Mixins = { TransformationBase })]", "SDSL0216")]
+    [InlineData("project-point", "MyLast", "[Drops(Mixins = { MyStep })]", "SDSL0136")]
     public void UpgradedReplacesCompilesInAnAssetBuild(string fixture, string shader, string written, string withoutIt)
     {
         var after = Path.Combine(FixturesDirectory, "add-replaces", fixture, "after");
@@ -643,10 +643,10 @@ public class ShaderUpgradeTests
             foreach (var (upgradedText, todayText) in ManualEdits.GetValueOrDefault(path) ?? [])
                 text = text.Replace(upgradedText, todayText);
             // The kinds and the replacements the upgrade writes are not the ones the engine chose by hand
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"^[ \t]*\[Replaces\([^)\n]*\)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline);
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"^[ \t]*\[Drops\([^)\n]*\)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline);
             text = WithoutCallSyntax(WithoutEngineNamespaceLines(WithoutKinds(text)));
             // [Root], [Pure] and the kinds, phases and orders of extension points are written by hand (the upgrade takes the engine's [Root] markers from EngineShaders.txt)
-            var expected = WithoutCallSyntax(WithoutEngineNamespaceLines(WithoutKinds(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|(Phases|Phase|After|Replaces)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline))));
+            var expected = WithoutCallSyntax(WithoutEngineNamespaceLines(WithoutKinds(System.Text.RegularExpressions.Regex.Replace(today[path].ReplaceLineEndings("\n"), @"^[ \t]*\[(Root|Pure|(Phases|Phase|MixinOrder|Drops)(\([^)\n]*\))?)\]\n", "", System.Text.RegularExpressions.RegexOptions.Multiline))));
             if (text != expected)
                 differences.Add(path);
         }

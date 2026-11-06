@@ -9,7 +9,7 @@ shader TransformationSkinningInstanced
     import TransformationInstancing;
 
     [Phase(World)]
-    [After(TransformationSkinning)]
+    [MixinOrder(After = TransformationSkinning)]
     extend TransformationBase.PreTransformPosition()
     {
         streams.skinningBlendMatrix = GetBlendMatrix(streams.BlendIndices[0]) * streams.BlendWeights[0]

@@ -74,7 +74,7 @@ public class ShaderDefinitionCheckTests : IDisposable
     [Theory]
     [InlineData("[Root] shader CheckAttribute { }", null)]
     [InlineData("[Pure] module CheckAttribute { }", null)]
-    [InlineData("[Replaces(\"Stride.Rendering.ShaderBase\")] shader CheckAttribute : Stride.Rendering.ShaderBase { }", null)]
+    [InlineData("[Replaces(Stride.Rendering.ShaderBase)] shader CheckAttribute : Stride.Rendering.ShaderBase { }", null)]
     [InlineData("shader CheckAttribute { [PushConstant] cbuffer Block { module float Value; } }", null)]
     [InlineData("[Summary(\"Blurs\")] [Category(\"Filter\")] shader CheckAttribute { }", null)]
     [InlineData("[Route] shader CheckAttribute { }", null)]

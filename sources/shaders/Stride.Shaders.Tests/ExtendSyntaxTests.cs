@@ -105,13 +105,13 @@ public class ExtendSyntaxTests : IDisposable
     {
         WriteModule("First", "[Phase(A)] extend Owner.Run() { streams.Steps = 2; }");
         WriteModule("Gone", "[Phase(A)] extend Owner.Run() { streams.Steps = 4; }");
-        WriteModule("Second", "[Phase(A)] [After(First)] [Replaces(Gone)] extend Owner.Run() { streams.Steps = 3; }");
+        WriteModule("Second", "[Phase(A)] [MixinOrder(After = First)] [Drops(Mixins = { Gone })] extend Owner.Run() { streams.Steps = 3; }");
 
         var (ok, log, explanation) = Mix(true, "Test.Second", "Test.Gone", "Test.First");
 
         Assert.True(ok, log);
         var block = Block(explanation, "Run");
-        Assert.Contains("A: First > Second   order: after", block);
+        Assert.Contains("A: First > Second   order: mixin order", block);
         Assert.Contains("replaced by Second: Gone", block);
     }
 
@@ -121,13 +121,13 @@ public class ExtendSyntaxTests : IDisposable
     {
         WriteModule("First", "[Phase(A)] extend Owner.Run() { streams.Steps = 2; }");
         WriteModule("Gone", "[Phase(A)] extend Owner.Run() { streams.Steps = 4; }");
-        WriteModule("Second", "[Phase(A)] [After(Test.First)] [Replaces(Test.Gone)] extend Owner.Run() { streams.Steps = 3; }");
+        WriteModule("Second", "[Phase(A)] [MixinOrder(After = Test.First)] [Drops(Mixins = { Test.Gone })] extend Owner.Run() { streams.Steps = 3; }");
 
         var (ok, log, explanation) = Mix(true, "Test.Second", "Test.Gone", "Test.First");
 
         Assert.True(ok, log);
         var block = Block(explanation, "Run");
-        Assert.Contains("A: First > Second   order: after", block);
+        Assert.Contains("A: First > Second   order: mixin order", block);
         Assert.Contains("replaced by Second: Gone", block);
     }
 
@@ -135,20 +135,20 @@ public class ExtendSyntaxTests : IDisposable
     [Fact]
     public void AnAddedPhaseAndAnOrderCanBeWrittenTogether()
     {
-        WriteModule("First", "[Phase(Wind, After = A)] extend Owner.Run() { streams.Steps = 2; }");
-        WriteModule("Second", "[Phase(Wind, After = A)] [After(First)] extend Owner.Run() { streams.Steps = 3; }");
+        WriteModule("First", "[Phase(Lib.Wind, After = A)] extend Owner.Run() { streams.Steps = 2; }");
+        WriteModule("Second", "[Phase(Lib.Wind, After = A)] [MixinOrder(After = First)] extend Owner.Run() { streams.Steps = 3; }");
 
         var (ok, log, explanation) = Mix(true, "Test.Second", "Test.First");
 
         Assert.True(ok, log);
-        Assert.Contains("Wind: First > Second   order: after", Block(explanation, "Run"));
+        Assert.Contains("Lib.Wind: First > Second   order: mixin order", Block(explanation, "Run"));
     }
 
     [Theory]
     [InlineData("extend Owner.Run in A { }", "SDSL0143: extend of Owner.Run: in, after and replaces are attributes. Write [Phase(A)] extend Owner.Run(...).")]
     [InlineData("extend Owner.Run() in A { }", "SDSL0143: extend of Owner.Run: in, after and replaces are attributes. Write [Phase(A)] extend Owner.Run(...).")]
-    [InlineData("extend Owner.Run in A after First, Second replaces Gone { }", "SDSL0143: extend of Owner.Run: in, after and replaces are attributes. Write [Phase(A)] [After(First, Second)] [Replaces(Gone)] extend Owner.Run(...).")]
-    [InlineData("patch Owner.Plain after First { return 1; }", "SDSL0143: patch of Owner.Plain: in, after and replaces are attributes. Write [After(First)] patch Owner.Plain(...).")]
+    [InlineData("extend Owner.Run in A after First, Second replaces Gone { }", "SDSL0143: extend of Owner.Run: in, after and replaces are attributes. Write [Phase(A)] [MixinOrder(After = { First, Second })] [Drops(Mixins = { Gone })] extend Owner.Run(...).")]
+    [InlineData("patch Owner.Plain after First { return 1; }", "SDSL0143: patch of Owner.Plain: in, after and replaces are attributes. Write [MixinOrder(After = First)] patch Owner.Plain(...).")]
     public void AnOldClauseNamesTheAttribute(string member, string expected)
     {
         WriteModule("Step", member);
@@ -300,10 +300,10 @@ public class ExtendSyntaxTests : IDisposable
     // The mixer checks the place of the call to base, and a step before the default body has it last
     [Theory]
     [InlineData("[Phase(Early)] extend Owner.Run() { streams.Steps = 2; }")]
-    [InlineData("[Phase(Wind, After = Early)] extend Owner.Run() { streams.Steps = 2; }")]
-    [InlineData("[Phase(Wind, Before = Default)] extend Owner.Run() { streams.Steps = 2; }")]
-    [InlineData("[Phase(Wind, After = Default)] extend Owner.Run() { streams.Steps = 2; }")]
-    [InlineData("[Phase(Wind, Before = A)] extend Owner.Run() { streams.Steps = 2; }")]
+    [InlineData("[Phase(Lib.Wind, After = Early)] extend Owner.Run() { streams.Steps = 2; }")]
+    [InlineData("[Phase(Lib.Wind, Before = Default)] extend Owner.Run() { streams.Steps = 2; }")]
+    [InlineData("[Phase(Lib.Wind, After = Default)] extend Owner.Run() { streams.Steps = 2; }")]
+    [InlineData("[Phase(Lib.Wind, Before = A)] extend Owner.Run() { streams.Steps = 2; }")]
     public void APhaseAttributeOnAnExtendPlacesItsCallToBase(string member)
     {
         WriteModule("Step", member);
@@ -323,7 +323,7 @@ public class ExtendSyntaxTests : IDisposable
 
         Assert.False(ok, log);
         Assert.Contains("Error: SDSL0136: Dropper.Wrap doesn't call next, so Inside never run", log);
-        Assert.Contains("Write [Replaces(Inside)] on it, or call next", log);
+        Assert.Contains("Write [Drops(Mixins = { Inside })] on it, or call next", log);
     }
 
     [Fact]
@@ -377,7 +377,7 @@ public class ExtendSyntaxTests : IDisposable
     public void AnExtendThatStatesWhatItReplacesIsNotADrop()
     {
         WriteModule("Inside", "[Phase(Inner)] extend Owner.Wrap() { return next() + 1; }");
-        WriteModule("Replacement", "[Phase(Outer)] [Replaces(Inside)] extend Owner.Wrap() { return 2; }");
+        WriteModule("Replacement", "[Phase(Outer)] [Drops(Mixins = { Inside })] extend Owner.Wrap() { return 2; }");
 
         var (ok, log, _) = Mix(false, "Test.Inside", "Test.Replacement");
 
@@ -480,8 +480,8 @@ public class ExtendSyntaxTests : IDisposable
                 import Owner;
 
                 [Phase(Early)]
-                [After(Other)]
-                [Replaces(Gone, Early)]
+                [MixinOrder(After = Other)]
+                [Drops(Mixins = { Gone }, Phases = { Early })]
                 override void Run()
                 {
                     streams.Steps = 2;
@@ -491,7 +491,7 @@ public class ExtendSyntaxTests : IDisposable
             }
             """);
 
-        Assert.Contains("[Phase(Early)]\n    [After(Other)]\n    [Replaces(Gone, Early)]\n    extend Owner.Run()\n    {\n        streams.Steps = 2;\n    }", result);
+        Assert.Contains("[Phase(Early)]\n    [MixinOrder(After = Other)]\n    [Drops(Mixins = { Gone }, Phases = { Early })]\n    extend Owner.Run()\n    {\n        streams.Steps = 2;\n    }", result);
     }
 
     [Fact]
@@ -509,7 +509,7 @@ public class ExtendSyntaxTests : IDisposable
                     return value * 2;
                 }
 
-                [Replaces(Other)]
+                [Drops(Mixins = { Other })]
                 override float Pick(float value)
                 {
                     return base.Pick(value);
@@ -518,7 +518,7 @@ public class ExtendSyntaxTests : IDisposable
             """);
 
         Assert.Contains("[Phase(Outer)]\n    extend Owner.Wrap()\n    {\n        float value = next();", result);
-        Assert.Contains("[Replaces(Other)]\n    extend Owner.Pick(float value)\n    {\n        return next(value);", result);
+        Assert.Contains("[Drops(Mixins = { Other })]\n    extend Owner.Pick(float value)\n    {\n        return next(value);", result);
     }
 
     [Theory]

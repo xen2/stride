@@ -6,7 +6,7 @@ shader MyInstancing
 
     StructuredBuffer<float4> InstanceColors;
 
-    [Replaces(TransformationBase)]
+    [Drops(Mixins = { TransformationBase })]
     module override void VSMain()
     {
         streams.ShadingPosition = mul(streams.Position, WorldViewProjection);

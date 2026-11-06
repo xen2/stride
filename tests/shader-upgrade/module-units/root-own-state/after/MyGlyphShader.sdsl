@@ -5,7 +5,7 @@ namespace MyGame.Text
     {
         import SpriteBase;
 
-        [Replaces(SpriteBase)]
+        [Drops(Mixins = { SpriteBase })]
         module override void PSMain()
         {
             ApplyEffects();

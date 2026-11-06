@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Stride.Shaders.Core;
 using Stride.Shaders.Parsing.SDSL.AST;
 
 namespace Stride.Shaders.Parsing.SDSL;
@@ -60,7 +61,9 @@ public record struct ParameterListParser : IParser<ShaderExpressionList>
         do
         {
             Parsers.Spaces0(ref scanner, result, out _);
-            if (ExpressionParser.Expression(ref scanner, result, out var expr))
+            if (NamedString(ref scanner, result, out var named))
+                values.Add(named);
+            else if (ExpressionParser.Expression(ref scanner, result, out var expr))
                 values.Add(expr);
             else if (LiteralsParser.StringLiteral(ref scanner, result, out var str))
                 values.Add(str);
@@ -75,6 +78,23 @@ public record struct ParameterListParser : IParser<ShaderExpressionList>
             Values = values
         };
         return true;
+    }
+
+    // An attribute can name a string, as in After = "Name": a string is not an expression
+    private static bool NamedString<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out Expression parsed) where TScanner : struct, IScanner
+    {
+        var position = scanner.Position;
+        if (LiteralsParser.Identifier(ref scanner, result, out var name)
+            && Parsers.FollowedBy(ref scanner, Tokens.Char('='), withSpaces: true, advance: true)
+            && !Tokens.Char('=', ref scanner)
+            && Parsers.FollowedByDel(ref scanner, result, LiteralsParser.StringLiteral, out StringLiteral? text, withSpaces: true, advance: true))
+        {
+            parsed = new AssignExpression(name, AssignOperator.Simple, text!, scanner[position..scanner.Position]);
+            return true;
+        }
+        scanner.Position = position;
+        parsed = null;
+        return false;
     }
 }
 

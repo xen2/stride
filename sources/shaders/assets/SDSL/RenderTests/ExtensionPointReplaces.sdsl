@@ -33,7 +33,7 @@ module ExtensionPointReplacer
     import ExtensionPointReplacesOwner;
 
     [Phase(A)]
-    [Replaces(ExtensionPointReplaced)]
+    [Drops(Mixins = { ExtensionPointReplaced })]
     override void PSMain()
     {
         base.PSMain();

@@ -12,7 +12,7 @@ shader NormalFromNormalMappingTessellationInstanced
     import TransformationInstancing;
 
     [Phase(Generate)]
-    [Replaces(NormalFromNormalMappingTessellation)]
+    [Drops(Mixins = { NormalFromNormalMappingTessellation })]
     override module void GenerateNormal_VS()
     {
         // Perform normal generation at the end in case meshNormal is modified

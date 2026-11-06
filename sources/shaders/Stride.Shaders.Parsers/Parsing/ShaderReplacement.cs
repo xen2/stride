@@ -5,7 +5,7 @@ using Stride.Shaders.Parsing.SDSL.AST;
 namespace Stride.Shaders.Parsing;
 
 /// <summary>
-/// <c>[Replaces("Full.Name")]</c> on a class: it joins every mix of that class, right after it.
+/// <c>[Replaces(Full.Name)]</c> on a class: it joins every mix of that class, right after it.
 /// </summary>
 public static class ShaderReplacement
 {
@@ -13,7 +13,7 @@ public static class ShaderReplacement
     /// The full name of the class this class replaces, or null.
     /// </summary>
     public static string? Target(ShaderClass shaderClass)
-        => shaderClass.FindAttribute("Replaces") is { Parameters: [StringLiteral target] } ? target.Value : null;
+        => shaderClass.FindAttribute("Replaces") is { Parameters: [var target] } ? ExtensionPoints.DottedName(target)?.Name : null;
 
     /// <summary>
     /// The classes of a file, with their namespace.

@@ -2,6 +2,6 @@ shader MyLast
 {
     import MyStep;
 
-    [Replaces(MyStep)]
+    [Drops(Mixins = { MyStep })]
     extend MyOwner.Pick() { return 3; }
 };

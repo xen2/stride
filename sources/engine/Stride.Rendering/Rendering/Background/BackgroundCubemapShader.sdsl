@@ -11,7 +11,7 @@ shader BackgroundCubemapShader
 
     // Shading of the sprite
     [Phase(Post)]
-    [Replaces(BackgroundShader)]
+    [Drops(Mixins = { BackgroundShader })]
     extend SpriteBase.Shading()
     { 
 		var directionVector = float3(1, 1-2*streams.TexCoord.y, 1-2*streams.TexCoord.x);

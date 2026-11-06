@@ -22,13 +22,13 @@ namespace Stride.Rendering.Shadows
         module stream float PixelDepth : SV_DEPTH;
          
         [Phase(Project)]
-        [Replaces(Project)]
+        [Drops(Phases = { Project })]
         module override void PostTransformPosition()
         {
             streams.ShadingPosition = ComputeParaboloidProjection(streams.PositionWS, streams.DepthVS);
         }
 
-        [Replaces(TransformationWAndVP)]
+        [Drops(Mixins = { TransformationWAndVP })]
         extend TransformationBase.ComputeShadingPosition(float4 world)
         {
             float dummy;

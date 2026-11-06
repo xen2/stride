@@ -305,8 +305,8 @@ public record struct MethodParser : IParser<ShaderMethod>
     private static string? ClauseAttributes(string phase, List<string> after, List<string> replaces)
     {
         var attributes = (phase.Length > 0 ? $"[Phase({phase})] " : "")
-            + (after.Count > 0 ? $"[After({string.Join(", ", after)})] " : "")
-            + (replaces.Count > 0 ? $"[Replaces({string.Join(", ", replaces)})] " : "");
+            + (after.Count > 0 ? $"[MixinOrder(After = {(after.Count == 1 ? after[0] : $"{{ {string.Join(", ", after)} }}")})] " : "")
+            + (replaces.Count > 0 ? $"[Drops(Mixins = {{ {string.Join(", ", replaces)} }})] " : "");
         return attributes.Length > 0 ? attributes : null;
     }
 }

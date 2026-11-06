@@ -15,7 +15,7 @@ using Stride.Shaders.Parsing.SDSL.AST;
 namespace Stride.Shaders.Parsers.Tests;
 
 /// <summary>
-/// <c>[Replaces("Full.Name")]</c>: the replacer inherits the original, and joins every mix right after it.
+/// <c>[Replaces(Full.Name)]</c>: the replacer inherits the original, and joins every mix right after it.
 /// </summary>
 public class ReplacesTests : IDisposable
 {
@@ -66,7 +66,7 @@ public class ReplacesTests : IDisposable
     private void WriteOriginalAndReplacer()
     {
         Write("X", "namespace Lib; shader X { float4 Get() { return 1; } };");
-        Write("R", """namespace Game; [Replaces("Lib.X")] shader R : Lib.X { override float4 Get() { return base.Get() * 2; } };""");
+        Write("R", """namespace Game; [Replaces(Lib.X)] shader R : Lib.X { override float4 Get() { return base.Get() * 2; } };""");
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class ReplacesTests : IDisposable
     public void TwoGenericInstancesEachGetTheirReplacer()
     {
         Write("X", "namespace Lib; shader X<int N> { float4 Get() { return N; } };");
-        Write("R", """namespace Game; [Replaces("Lib.X")] shader R<int N> : Lib.X<N> { override float4 Get() { return base.Get() * 2; } };""");
+        Write("R", """namespace Game; [Replaces(Lib.X)] shader R<int N> : Lib.X<N> { override float4 Get() { return base.Get() * 2; } };""");
         Write("Root", "using Stride.Rendering; namespace Lib; shader Root : SpriteBase, X<3>, X<4> { module override float4 Shading() { return X<3>.Get(); } };");
         replacers["Lib.X"] = "Game.R";
 
@@ -155,7 +155,7 @@ public class ReplacesTests : IDisposable
     public void AModuleIsReplacedForTheClassesThatCallIt()
     {
         Write("M", "namespace Lib; module M { pipeline float4 Get() { return 1; } };");
-        Write("R", """namespace Game; [Replaces("Lib.M")] module R : Lib.M { override float4 Get() { return base.Get() * 2; } };""");
+        Write("R", """namespace Game; [Replaces(Lib.M)] module R : Lib.M { override float4 Get() { return base.Get() * 2; } };""");
         Write("Root", "using Stride.Rendering; namespace Lib; shader Root : SpriteBase { module override float4 Shading() { return M.Get(); } };");
         replacers["Lib.M"] = "Game.R";
 
@@ -171,7 +171,7 @@ public class ReplacesTests : IDisposable
     public void AStaticMethodIsOverridden()
     {
         Write("X", "namespace Lib; shader X { static float4 F() { return 1; } float4 Get() { return F(); } };");
-        Write("R", """namespace Game; [Replaces("Lib.X")] shader R : Lib.X { override static float4 F() { return 2; } };""");
+        Write("R", """namespace Game; [Replaces(Lib.X)] shader R : Lib.X { override static float4 F() { return 2; } };""");
         Write("Root", "using Stride.Rendering; namespace Lib; shader Root : SpriteBase, X { module override float4 Shading() { return Get(); } };");
         replacers["Lib.X"] = "Game.R";
 
@@ -183,8 +183,8 @@ public class ReplacesTests : IDisposable
 
     // Only the compile knows which class a parent is. A short target, or a parent that is another class of that short name.
     [Theory]
-    [InlineData("""namespace Game { [Replaces("X")] shader R : Lib.X { }; }""")]
-    [InlineData("""namespace Game { [Replaces("Lib.X")] shader R : X { }; }""")]
+    [InlineData("""namespace Game { [Replaces(X)] shader R : Lib.X { }; }""")]
+    [InlineData("""namespace Game { [Replaces(Lib.X)] shader R : X { }; }""")]
     public void AReplacerThatDoesNotInheritItsTargetDoesNotCompile(string replacer)
     {
         Write("X", "namespace Lib { shader X { }; } namespace Game { shader X { }; }");
@@ -199,7 +199,7 @@ public class ReplacesTests : IDisposable
     public void AReplacerCanBeReplaced()
     {
         WriteOriginalAndReplacer();
-        Write("G", """namespace Top; [Replaces("Game.R")] shader G : Game.R { override float4 Get() { return base.Get() * 3; } };""");
+        Write("G", """namespace Top; [Replaces(Game.R)] shader G : Game.R { override float4 Get() { return base.Get() * 3; } };""");
         Write("Root", "using Stride.Rendering; namespace Lib; shader Root : SpriteBase, X { module override float4 Shading() { return Get(); } };");
         replacers["Lib.X"] = "Game.R";
         replacers["Game.R"] = "Top.G";
@@ -220,7 +220,7 @@ public class ReplacesTests : IDisposable
 
     private const string RootShader = "using Stride.Rendering; namespace Lib; shader Root : SpriteBase, X { module override float4 Shading() { return Get(); } };";
     private const string OriginalShader = "namespace Lib; shader X { float4 Get() { return 1; } };";
-    private const string ReplacerShader = """namespace Game; [Replaces("Lib.X")] shader R : Lib.X { override float4 Get() { return base.Get() * 2; } };""";
+    private const string ReplacerShader = """namespace Game; [Replaces(Lib.X)] shader R : Lib.X { override float4 Get() { return base.Get() * 2; } };""";
 
     private static (ObjectId EffectId, EffectBytecode Bytecode) CompileRoot(EffectCompiler compiler, GraphicsPlatform platform)
     {
@@ -557,7 +557,7 @@ public class ReplacesTests : IDisposable
     }
 
     private const string NoAttribute = "namespace Game; shader R : Lib.X { override float4 Get() { return base.Get() * 2; } };";
-    private const string Retargeted = """namespace Game; [Replaces("Lib.Y")] shader R : Lib.Y { };""";
+    private const string Retargeted = """namespace Game; [Replaces(Lib.Y)] shader R : Lib.Y { };""";
     private const string ParseError = "namespace Game; shader R : Lib.X { override float4 Get() { retur n 1; } };";
 
     private static ShaderReplacement.BuiltFile Built(string text, string fileName = "R", bool succeeded = true) => new(text, fileName, succeeded);
@@ -704,7 +704,7 @@ public class ReplacesTests : IDisposable
     public void TheRecordOfAnotherReplacerStays()
     {
         KeyValuePair<string, string> yByS = new("Lib.Y", "Game.S");
-        const string other = """namespace Game; [Replaces("Lib.Y")] shader S : Lib.Y { };""";
+        const string other = """namespace Game; [Replaces(Lib.Y)] shader S : Lib.Y { };""";
 
         Assert.Equal(["Lib.X"], ShaderReplacement.NoLongerDeclared([XByR, yByS], [Built(NoAttribute), Built(other, "S")]));
         // S isn't in this build: a package built apart, or a file that was deleted
@@ -714,7 +714,7 @@ public class ReplacesTests : IDisposable
     // The build wrote the new replacer of X over R, before this runs
     [Fact]
     public void ANewReplacerOfTheClassIsNotDropped()
-        => Assert.Empty(ShaderReplacement.NoLongerDeclared([new("Lib.X", "Game.S")], [Built(NoAttribute), Built("""namespace Game; [Replaces("Lib.X")] shader S : Lib.X { };""", "S")]));
+        => Assert.Empty(ShaderReplacement.NoLongerDeclared([new("Lib.X", "Game.S")], [Built(NoAttribute), Built("""namespace Game; [Replaces(Lib.X)] shader S : Lib.X { };""", "S")]));
 
     // Its file is gone, so no build goes through it: the deleted state of the compiler holds it (see AReplacerDeletedWithNoFileEventIsFoundByABuild)
     [Fact]
@@ -743,7 +743,7 @@ public class ReplacesTests : IDisposable
         var manager = new ShaderSourceManager(provider);
         manager.AddShaderSource("Game.R", ReplacerShader, "R.sdsl");
 
-        var error = Assert.Throws<InvalidOperationException>(() => manager.AddShaderSource("Game.S", """namespace Game; [Replaces("Lib.X")] shader S : Lib.X { };""", "S.sdsl"));
+        var error = Assert.Throws<InvalidOperationException>(() => manager.AddShaderSource("Game.S", """namespace Game; [Replaces(Lib.X)] shader S : Lib.X { };""", "S.sdsl"));
         Assert.Contains("SDSL0304: Lib.X has two replacers: Game.R and Game.S", error.Message);
     }
 
@@ -754,7 +754,7 @@ public class ReplacesTests : IDisposable
         var manager = new ShaderSourceManager(provider);
         manager.AddShaderSource("Lib.X", OriginalShader, "X.sdsl");
 
-        var error = Assert.Throws<InvalidOperationException>(() => manager.AddShaderSource("Game.R", """namespace Game; [Replaces("Lib.X")] shader R { };""", "R.sdsl"));
+        var error = Assert.Throws<InvalidOperationException>(() => manager.AddShaderSource("Game.R", """namespace Game; [Replaces(Lib.X)] shader R { };""", "R.sdsl"));
         Assert.StartsWith("SDSL0305", error.Message);
     }
 
@@ -769,7 +769,7 @@ public class ReplacesTests : IDisposable
     [Fact]
     public void TheAttributeNamesTheTarget()
     {
-        Assert.Equal("Lib.X", ShaderReplacement.Target(Parse("""namespace Game; [Replaces("Lib.X")] shader R : Lib.X { };""")));
+        Assert.Equal("Lib.X", ShaderReplacement.Target(Parse("""namespace Game; [Replaces(Lib.X)] shader R : Lib.X { };""")));
         Assert.Null(ShaderReplacement.Target(Parse("namespace Game; shader R { };")));
     }
 

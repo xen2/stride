@@ -1,0 +1,9 @@
+// It states what it drops: the step leaves it as it is
+shader MyDropping : MyBase
+{
+    [Drops(Mixins = { MyBase })]
+    override stage void PSMain()
+    {
+        streams.ColorTarget = 5;
+    }
+};

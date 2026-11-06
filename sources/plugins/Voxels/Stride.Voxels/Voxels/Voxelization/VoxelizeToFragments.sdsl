@@ -19,7 +19,7 @@ namespace Stride.Rendering.Voxels
         compose VoxelStorageShader Storage;
 
         // Input and shading only run for the fragments that are stored, and this is the only one that can tell
-        [Replaces(Input, Shade)]
+        [Drops(Phases = { Input, Shade })]
         override module void PSMain()
         {
             Storage.PrepareFragments();
