@@ -65,6 +65,9 @@ public class EffectCodeWriter : ShaderWriter
     /// <summary>The full names of the shaders and effects this file writes: the other files of the project see them.</summary>
     public HashSet<string> DeclaredClasses { get; } = [];
 
+    /// <summary>The errors found while writing, also written as <c>#error</c> lines in the text.</summary>
+    public IReadOnlyList<(string Message, TextLocation Location)> Errors => logging;
+
     public bool Run(Node node)
     {
         void LogErrors()
