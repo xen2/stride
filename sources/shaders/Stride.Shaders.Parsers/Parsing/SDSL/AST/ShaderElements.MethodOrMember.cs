@@ -230,6 +230,7 @@ public sealed partial class ShaderMember(
             table.AddError(new(TypeName.Info, $"{bufTypeName} is not supported. Use RWStructuredBuffer with a separate counter buffer instead (variable '{Name}')."));
             return;
         }
+        ResourceArrays.CheckDeclaration(table, Info, Name.Name, memberType, inRGroup: false);
 
         var storageClass = (memberType, StorageClass, StreamKind) switch
         {
@@ -506,6 +507,7 @@ public partial class ShaderMethod(
             var argSym = p.TypeName.Type!;
             table.DeclaredTypes.TryAdd(argSym.ToString(), argSym);
             p.Type = argSym;
+            ResourceArrays.CheckParameter(table, p.Info, p.Name.Name, Name.Name, argSym);
             if (argSym is AppendStructuredBufferType or ConsumeStructuredBufferType)
                 table.AddError(new(p.Info, string.Format(SDSLErrorMessages.SDSL0180, p.Name, Name, argSym is AppendStructuredBufferType ? "AppendStructuredBuffer" : "ConsumeStructuredBuffer")));
             else if (argSym is StructuredBufferType or ByteAddressBufferType && (p.Modifiers & ParameterModifiers.Out) != 0)

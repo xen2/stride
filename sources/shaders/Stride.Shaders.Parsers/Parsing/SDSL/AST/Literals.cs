@@ -956,7 +956,7 @@ public partial class TypeName(string name, TextLocation info) : Literal(info)
                 table.AddError(new(Info, string.Format(SDSLErrorMessages.SDSL0155, Name, vectorName)));
                 symbolType = VectorType.From(vectorName);
             }
-            else if (!IsArray && Generics.Count == 0 && SymbolType.TryGetBufferType(Name, null, out var bufferType))
+            else if (Generics.Count == 0 && SymbolType.TryGetBufferType(Name, null, out var bufferType))
             {
                 table.DeclaredTypes.Add(fullTypeName, bufferType);
                 symbolType = bufferType;

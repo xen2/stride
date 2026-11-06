@@ -142,6 +142,15 @@ public static class SDSLErrorMessages
     public const string SDSL0188 = "SDSL0188: {0}: 64-bit atomic operations are not supported (Direct3D 11 has none). Use a 32-bit int or uint.";
     public const string SDSL0189 = "SDSL0189: This texture offset is not a constant, even with the methods inlined and the [unroll] loops unrolled. Use a literal, a static const value, or the counter of an [unroll] loop with constant bounds; a value from a cbuffer, a stream or a loop without [unroll] can't be an offset.";
 
+    // Texture arrays
+    public const string SDSL0259 = "SDSL0259: {0} is a texture array, and texture arrays are not supported yet. Declare one texture per element.";
+    public const string SDSL0260 = "SDSL0260: {0} is a texture array outside an rgroup. A texture array is bound as one block: declare it in an rgroup, for example rgroup Textures {{ {1} {0}[{2}]; }}.";
+    public const string SDSL0261 = "SDSL0261: {0} is an array of {1}. Only read-only textures can be in an array (Texture1D, Texture2D, Texture3D, TextureCube and their Array forms). Declare one {1} per element.";
+    public const string SDSL0262 = "SDSL0262: {0} is an array of arrays of textures. A texture array has one dimension: write {1} {0}[{2}].";
+    public const string SDSL0263 = "SDSL0263: {0}[] has no size. An unsized texture array is kept for bindless textures, which are not supported yet: give the array a size.";
+    public const string SDSL0264 = "SDSL0264: The size of the texture array {0} is not a constant. Use a literal or a static const value: a generic parameter can't give the size of a texture array yet.";
+    public const string SDSL0266 = "SDSL0266: Parameter {0} of {1} is a whole texture array, which is not supported yet. Pass one element instead, such as {0}[i], with a {2} parameter.";
+
     // HLSL warnings: valid HLSL that is probably a mistake, reported when a class compiles
     public const string SDSL0219 = "SDSL0219: comma expression ({0}): the values before the last are dropped, the result is {1}. To build a vector, write its type: float4(...).";
     public const string SDSL0220 = "SDSL0220: {0} on {1} is ignored: Stride lays out cbuffers and binds resources itself. Remove it.";
