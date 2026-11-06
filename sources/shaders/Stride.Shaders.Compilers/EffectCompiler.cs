@@ -295,6 +295,8 @@ namespace Stride.Shaders.Compiler
                         }
                         throw;
                     }
+                    if (!Direct3D.TextureArrayIndices.CheckConstant(legalizedSpirv, log))
+                        return new EffectBytecodeCompilerResult(null, log);
                     var translator = new SpirvTranslator(legalizedSpirv.AsMemory());
                     var translatorEntryPoints = translator.GetEntryPoints();
                     foreach (var entryPoint in translatorEntryPoints)
