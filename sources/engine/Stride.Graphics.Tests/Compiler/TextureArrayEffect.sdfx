@@ -6,4 +6,14 @@ namespace Stride.Graphics.Tests
     {
         mixin TextureArrayShader;
     };
+
+    effect TextureArraySecondElementEffect
+    {
+        mixin TextureArraySecondElement;
+    };
+
+    effect TextureArrayThirdElementEffect
+    {
+        mixin TextureArrayThirdElement;
+    };
 }

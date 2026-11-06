@@ -7,6 +7,7 @@ using Xunit;
 
 using Stride.Core.Mathematics;
 using Stride.Rendering;
+using Stride.Shaders;
 
 namespace Stride.Graphics.Tests;
 
@@ -55,6 +56,69 @@ public class TestTextureArray : GraphicTestGameBase
             }
 
             Assert.Equal(indices.Select(index => Colors[index]), targets.Select(target => target.GetData<Color>(commandList)[0]));
+
+            foreach (var texture in textures.Concat(targets))
+                texture.Dispose();
+        });
+    }
+
+    /// <summary>
+    /// Two effects bind one Descriptor Set with a texture array, as the draws of a material do. On Vulkan, the array is in a
+    /// native set of its own, written once per command list and source set: each pipeline still reads its own element.
+    /// </summary>
+    [SkippableFact]
+    public void TwoEffectsShareTheDescriptorSetOfAnArray()
+    {
+        PerformTest(game =>
+        {
+            var device = game.GraphicsDevice;
+            var commandList = game.GraphicsContext.CommandList;
+
+            var textures = Colors.Select(color => Texture.New2D(device, 1, 1, PixelFormat.R8G8B8A8_UNorm, new[] { color })).ToArray();
+            using var second = new EffectInstance(game.EffectSystem.LoadEffect("Stride.Graphics.Tests.TextureArraySecondElementEffect").WaitForResult());
+            using var third = new EffectInstance(game.EffectSystem.LoadEffect("Stride.Graphics.Tests.TextureArrayThirdElementEffect").WaitForResult());
+            second.UpdateEffect(device);
+            third.UpdateEffect(device);
+            Assert.Equal(second.DescriptorReflection.Layouts.Select(layout => layout.Name), third.DescriptorReflection.Layouts.Select(layout => layout.Name));
+
+            // The Descriptor Sets of the first effect, bound to both
+            var layouts = second.DescriptorReflection.Layouts.Select(layout => layout.Layout).ToArray();
+            using var pool = DescriptorPool.New(device, [new DescriptorTypeCount(EffectParameterClass.ShaderResourceView, 16)]);
+            var descriptorSets = new DescriptorSet[layouts.Length];
+            for (int i = 0; i < layouts.Length; i++)
+            {
+                descriptorSets[i] = DescriptorSet.New(device, pool, DescriptorSetLayout.New(device, layouts[i]));
+                var slot = 0;
+                foreach (var entry in layouts[i].Entries)
+                {
+                    for (int element = 0; element < entry.ArraySize; element++, slot++)
+                    {
+                        if (entry.Key == TextureArrayTestKeys.Textures)
+                            descriptorSets[i].SetShaderResourceView(slot, textures[element]);
+                    }
+                }
+            }
+
+            EffectInstance[] effects = [second, third, second];
+            var targets = effects.Select(_ => Texture.New2D(device, 1, 1, PixelFormat.R8G8B8A8_UNorm, TextureFlags.RenderTarget | TextureFlags.ShaderResource)).ToArray();
+            for (int i = 0; i < effects.Length; i++)
+            {
+                var pipelineState = new MutablePipelineState(device);
+                pipelineState.State.SetDefaults();
+                pipelineState.State.RootSignature = effects[i].RootSignature;
+                pipelineState.State.EffectBytecode = effects[i].Effect.Bytecode;
+                pipelineState.State.InputElements = PrimitiveQuad.VertexDeclaration.CreateInputElements();
+                pipelineState.State.PrimitiveType = PrimitiveQuad.PrimitiveType;
+
+                commandList.SetRenderTargetAndViewport(null, targets[i]);
+                pipelineState.State.Output.CaptureState(commandList);
+                pipelineState.Update();
+                commandList.SetPipelineState(pipelineState.CurrentState);
+                commandList.SetDescriptorSets(0, descriptorSets);
+                device.PrimitiveQuad.Draw(commandList);
+            }
+
+            Assert.Equal(new[] { Colors[1], Colors[2], Colors[1] }, targets.Select(target => target.GetData<Color>(commandList)[0]));
 
             foreach (var texture in textures.Concat(targets))
                 texture.Dispose();
