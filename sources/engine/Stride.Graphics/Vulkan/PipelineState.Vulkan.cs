@@ -296,8 +296,10 @@ namespace Stride.Graphics
         internal struct DescriptorSetInfo
         {
             public int SourceSet;
+            // The slot in the source Descriptor Set: one per element of an array
             public int SourceBinding;
             public int DestinationBinding;
+            public int DestinationArrayElement;
             public VkDescriptorType DescriptorType;
             // Used for buffer/texture (to know what type to match)
             public bool ResourceElementIsInteger;
@@ -335,14 +337,15 @@ namespace Stride.Graphics
 
                 var sourceEntries = layouts[layoutIndex].Layout.Entries;
 
-                for (int sourceBinding = 0; sourceBinding < sourceEntries.Count; sourceBinding++)
+                // An entry takes one slot of the source set per element of its array
+                var sourceSlot = 0;
+                foreach (var sourceEntry in sourceEntries)
                 {
-                    var sourceEntry = sourceEntries[sourceBinding];
+                    var firstSourceSlot = sourceSlot;
+                    sourceSlot += sourceEntry.ArraySize;
 
                     if (destinationBindings.TryGetValue(sourceEntry.Key.Name, out var destinationBinding))
                     {
-                        if (destinationBinding.SlotCount != 1)
-                            throw new NotImplementedException();
                         destinationEntries[destinationBinding.SlotStart] = sourceEntry;
 
                         // No need to update immutable samplers
@@ -351,14 +354,18 @@ namespace Stride.Graphics
                             continue;
                         }
 
-                        DescriptorBindingMapping.Add(new DescriptorSetInfo
+                        for (int element = 0; element < sourceEntry.ArraySize; element++)
                         {
-                            SourceSet = layoutIndex,
-                            SourceBinding = sourceBinding,
-                            DestinationBinding = destinationBinding.SlotStart,
-                            DescriptorType = VulkanConvertExtensions.ConvertDescriptorType(sourceEntry.Class, sourceEntry.Type),
-                            ResourceElementIsInteger = sourceEntry.ElementType != EffectParameterType.Float && sourceEntry.ElementType != EffectParameterType.Double
-                        });
+                            DescriptorBindingMapping.Add(new DescriptorSetInfo
+                            {
+                                SourceSet = layoutIndex,
+                                SourceBinding = firstSourceSlot + element,
+                                DestinationBinding = destinationBinding.SlotStart,
+                                DestinationArrayElement = element,
+                                DescriptorType = VulkanConvertExtensions.ConvertDescriptorType(sourceEntry.Class, sourceEntry.Type),
+                                ResourceElementIsInteger = sourceEntry.ElementType != EffectParameterType.Float && sourceEntry.ElementType != EffectParameterType.Double
+                            });
+                        }
                     }
                 }
             }
