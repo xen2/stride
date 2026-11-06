@@ -294,7 +294,7 @@ public class EffectLinkageTests
     // A project as a real build gives it: the generator runs on its effect, and it can see another project through a reference assembly
     private static (byte[] Image, byte[] ReferenceAssembly, string Generated) CompileProject(string name, string effect, string code, params (string Name, byte[] Image)[] references)
     {
-        var output = RunGenerator(name, [effect], code, references);
+        var output = RunGenerator(name, [effect], code, out _, references);
 
         using var image = new MemoryStream();
         using var referenceAssembly = new MemoryStream();
@@ -303,19 +303,23 @@ public class EffectLinkageTests
         return (image.ToArray(), referenceAssembly.ToArray(), output.SyntaxTrees.Last().ToString());
     }
 
-    private static Compilation RunGenerator(string name, string[] effects, string code, params (string Name, byte[] Image)[] references)
+    private static Compilation RunGenerator(string name, string[] effects, string code, out System.Collections.Immutable.ImmutableArray<Diagnostic> generatorDiagnostics, params (string Name, byte[] Image)[] references)
     {
         var framework = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator).Where(x => x.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)).Select(x => MetadataReference.CreateFromFile(x));
         var compilation = CSharpCompilation.Create(name, [CSharpSyntaxTree.ParseText(code)],
             framework.Concat<MetadataReference>(references.Select(x => MetadataReference.CreateFromImage(x.Image))),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         CSharpGeneratorDriver.Create([new EffectGenerator().AsSourceGenerator()], additionalTexts: [.. effects.Select((x, i) => new EffectFile($"{name}{i}.sdfx", x))])
-            .RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);
+            .RunGeneratorsAndUpdateCompilation(compilation, out var output, out generatorDiagnostics);
         return output;
     }
 
+    // The errors of the generator are diagnostics of the effect files, and the generated code has none
     private static string BuildErrors(string[] effects, params (string Name, byte[] Image)[] references)
-        => string.Join(Environment.NewLine, RunGenerator($"Project{Guid.NewGuid():N}", effects, "", references).GetDiagnostics().Where(x => x.Severity == DiagnosticSeverity.Error));
+    {
+        var output = RunGenerator($"Project{Guid.NewGuid():N}", effects, "", out var generatorDiagnostics, references);
+        return string.Join(Environment.NewLine, generatorDiagnostics.Concat(output.GetDiagnostics()).Where(x => x.Severity == DiagnosticSeverity.Error));
+    }
 
     // The project that declares the effect that the layers of a test add to. It registers when it loads.
     private static (string Name, byte[] Image, byte[] ReferenceAssembly) EffectProject(string id, string effects = null)
@@ -358,7 +362,7 @@ public class EffectLinkageTests
         Assert.Empty(BuildErrors([$"namespace Layers{id} {{ extend effect Layered {{ mixin C; }} }}"], ($"First{id}", first.Image), ($"Second{id}", second.Image)));
     }
 
-    // One line, as anything after it in the generated file would be compiled
+    // One line, at the place of the error in the effect file
     [Fact]
     public void AnErrorOfTheGeneratorIsOneLineWithItsPlace()
     {
@@ -366,7 +370,7 @@ public class EffectLinkageTests
         var errors = BuildErrors([$"namespace Layers{id}\n{{\n    extend effect Misspelled {{ mixin A; }}\n}}"]);
 
         Assert.Contains($"SDSL0310: extend effect Layers{id}.Misspelled:", errors);
-        Assert.Contains("(line 3, column 19)", errors);
+        Assert.Contains("0.sdfx(3,19): error SDSL0310", errors);
         Assert.Single(errors.Split(Environment.NewLine));
     }
 
