@@ -415,7 +415,7 @@ namespace Stride.Graphics
                     descriptorType = mapping.DescriptorType,
                     dstSet = localDescriptorSet,
                     dstBinding = (uint)mapping.DestinationBinding,
-                    dstArrayElement = 0,
+                    dstArrayElement = (uint)mapping.DestinationArrayElement,
                     descriptorCount = 1
                 };
 

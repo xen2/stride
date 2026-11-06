@@ -504,6 +504,8 @@ namespace Stride.Graphics
                 shaderStorageImageWriteWithoutFormat = deviceFeatures.shaderStorageImageWriteWithoutFormat,
                 geometryShader = deviceFeatures.geometryShader,
                 fragmentStoresAndAtomics = deviceFeatures.fragmentStoresAndAtomics,
+                // Texture arrays indexed with a value that is the same for the whole draw
+                shaderSampledImageArrayDynamicIndexing = deviceFeatures.shaderSampledImageArrayDynamicIndexing,
                 // Indirect draw arguments with a non-zero start instance
                 drawIndirectFirstInstance = deviceFeatures.drawIndirectFirstInstance,
             };

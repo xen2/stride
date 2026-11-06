@@ -57,23 +57,24 @@ namespace Stride.Graphics
                 var bindingOperations = new List<BindingOperation>();
                 var isDefaultSetSlot = descriptorSetLayout.Name == descriptorSetLayouts.DefaultSetSlot;
 
-                for (int resourceIndex = 0; resourceIndex < layout.Entries.Count; resourceIndex++)
+                // An entry takes one slot of the Descriptor Set per element of its array
+                var firstSlot = 0;
+                foreach (var layoutEntry in layout.Entries)
                 {
-                    var layoutEntry = layout.Entries[resourceIndex];
-
                     // Find matching entry in the resource group
-                    if (!TryMatchEntry(group, layoutEntry, resourceIndex, bindingOperations) && isDefaultSetSlot)
+                    if (!TryMatchEntry(group, layoutEntry, firstSlot, bindingOperations) && isDefaultSetSlot)
                     {
                         // Fallback: search unnamed/Globals groups (resources without explicit resource group)
                         foreach (var fallbackGroup in reflection.ResourceGroups)
                         {
                             if (fallbackGroup != group && fallbackGroup.Name is null or "Globals")
                             {
-                                if (TryMatchEntry(fallbackGroup, layoutEntry, resourceIndex, bindingOperations))
+                                if (TryMatchEntry(fallbackGroup, layoutEntry, firstSlot, bindingOperations))
                                     break;
                             }
                         }
                     }
+                    firstSlot += layoutEntry.ArraySize;
                 }
 
                 // Store the binding operations for this Descriptor Set
@@ -81,7 +82,7 @@ namespace Stride.Graphics
             }
         }
 
-        private static bool TryMatchEntry(EffectResourceGroupDescription group, DescriptorSetLayoutBuilder.Entry layoutEntry, int resourceIndex, List<BindingOperation> bindingOperations)
+        private static bool TryMatchEntry(EffectResourceGroupDescription group, DescriptorSetLayoutBuilder.Entry layoutEntry, int firstSlot, List<BindingOperation> bindingOperations)
         {
             foreach (var resEntry in group.Entries)
             {
@@ -89,14 +90,17 @@ namespace Stride.Graphics
                 {
                     resEntry.Stages.ForEach(stage =>
                     {
-                        bindingOperations.Add(new BindingOperation
+                        for (int element = 0; element < layoutEntry.ArraySize; element++)
                         {
-                            EntryIndex = resourceIndex,
-                            Class = resEntry.Class,
-                            Stage = stage,
-                            SlotStart = resEntry.SlotStart,
-                            ImmutableSampler = layoutEntry.ImmutableSampler
-                        });
+                            bindingOperations.Add(new BindingOperation
+                            {
+                                EntryIndex = firstSlot + element,
+                                Class = resEntry.Class,
+                                Stage = stage,
+                                SlotStart = resEntry.SlotStart + element,
+                                ImmutableSampler = layoutEntry.ImmutableSampler
+                            });
+                        }
                     });
                     return true;
                 }
