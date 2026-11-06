@@ -954,72 +954,78 @@ float4 main(vs_out input) : SV_TARGET {
             }
             else if (resourceType == "texture")
             {
-                var color = ParseColor(value);
-
-                var textureDesc = new Texture2DDesc
+                // A texture array takes one color per element
+                var colors = SplitElements(value);
+                for (var element = 0; element < Math.Max(resourceReflection.SlotCount, 1); element++)
                 {
-                    Width = 1,
-                    Height = 1,
-                    Format = Format.FormatR8G8B8A8Unorm,
-                    MipLevels = 1,
-                    BindFlags = (uint)BindFlag.ShaderResource,
-                    Usage = Usage.Default,
-                    CPUAccessFlags = 0,
-                    MiscFlags = (uint)ResourceMiscFlag.None,
-                    SampleDesc = new SampleDesc(1, 0),
-                    ArraySize = 1
-                };
+                    var color = element < colors.Length ? ParseColor(colors[element]) : 0;
+                    var slot = (uint)(resourceReflection.SlotStart + element);
 
-                var subresourceData = new SubresourceData
-                {
-                    PSysMem = &color,
-                    SysMemPitch = sizeof(int) * 1,
-                    SysMemSlicePitch = sizeof(int) * 1 * 1,
-                };
-
-                ComPtr<ID3D11Texture2D> texture = default;
-                SilkMarshal.ThrowHResult
-                (
-                    device.CreateTexture2D
-                    (
-                        in textureDesc,
-                        in subresourceData,
-                        ref texture
-                    )
-                );
-
-                // Create a view of the texture for the shader.
-                ComPtr<ID3D11ShaderResourceView> textureSRV = default;
-                var srvDesc = new ShaderResourceViewDesc
-                {
-                    Format = Format.FormatR8G8B8A8Unorm,
-                    ViewDimension = D3DSrvDimension.D3DSrvDimensionTexture2D,
-                    Anonymous = new ShaderResourceViewDescUnion
+                    var textureDesc = new Texture2DDesc
                     {
-                        Texture2D = new()
-                        {
-                            MipLevels = 1,
-                            MostDetailedMip = 0,
-                        }
-                    },
-                };
+                        Width = 1,
+                        Height = 1,
+                        Format = Format.FormatR8G8B8A8Unorm,
+                        MipLevels = 1,
+                        BindFlags = (uint)BindFlag.ShaderResource,
+                        Usage = Usage.Default,
+                        CPUAccessFlags = 0,
+                        MiscFlags = (uint)ResourceMiscFlag.None,
+                        SampleDesc = new SampleDesc(1, 0),
+                        ArraySize = 1
+                    };
 
-                SilkMarshal.ThrowHResult
-                (
-                    device.CreateShaderResourceView
+                    var subresourceData = new SubresourceData
+                    {
+                        PSysMem = &color,
+                        SysMemPitch = sizeof(int) * 1,
+                        SysMemSlicePitch = sizeof(int) * 1 * 1,
+                    };
+
+                    ComPtr<ID3D11Texture2D> texture = default;
+                    SilkMarshal.ThrowHResult
                     (
-                        texture,
-                        in srvDesc,
-                        ref textureSRV
-                    )
-                );
+                        device.CreateTexture2D
+                        (
+                            in textureDesc,
+                            in subresourceData,
+                            ref texture
+                        )
+                    );
 
-                deviceContext.CSSetShaderResources((uint)resourceReflection.SlotStart, 1U, &textureSRV.Handle);
-                deviceContext.VSSetShaderResources((uint)resourceReflection.SlotStart, 1U, &textureSRV.Handle);
-                deviceContext.HSSetShaderResources((uint)resourceReflection.SlotStart, 1U, &textureSRV.Handle);
-                deviceContext.DSSetShaderResources((uint)resourceReflection.SlotStart, 1U, &textureSRV.Handle);
-                deviceContext.GSSetShaderResources((uint)resourceReflection.SlotStart, 1U, &textureSRV.Handle);
-                deviceContext.PSSetShaderResources((uint)resourceReflection.SlotStart, 1U, &textureSRV.Handle);
+                    // Create a view of the texture for the shader.
+                    ComPtr<ID3D11ShaderResourceView> textureSRV = default;
+                    var srvDesc = new ShaderResourceViewDesc
+                    {
+                        Format = Format.FormatR8G8B8A8Unorm,
+                        ViewDimension = D3DSrvDimension.D3DSrvDimensionTexture2D,
+                        Anonymous = new ShaderResourceViewDescUnion
+                        {
+                            Texture2D = new()
+                            {
+                                MipLevels = 1,
+                                MostDetailedMip = 0,
+                            }
+                        },
+                    };
+
+                    SilkMarshal.ThrowHResult
+                    (
+                        device.CreateShaderResourceView
+                        (
+                            texture,
+                            in srvDesc,
+                            ref textureSRV
+                        )
+                    );
+
+                    deviceContext.CSSetShaderResources(slot, 1U, &textureSRV.Handle);
+                    deviceContext.VSSetShaderResources(slot, 1U, &textureSRV.Handle);
+                    deviceContext.HSSetShaderResources(slot, 1U, &textureSRV.Handle);
+                    deviceContext.DSSetShaderResources(slot, 1U, &textureSRV.Handle);
+                    deviceContext.GSSetShaderResources(slot, 1U, &textureSRV.Handle);
+                    deviceContext.PSSetShaderResources(slot, 1U, &textureSRV.Handle);
+                }
             }
         }
     }

@@ -237,12 +237,18 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             sType = VkStructureType.PhysicalDeviceVulkan12Features,
             scalarBlockLayout = supportedVulkan12Features.scalarBlockLayout,
         };
+        // Texture arrays indexed with a value (as GraphicsDevice.Vulkan enables it)
+        var enabledFeatures = new VkPhysicalDeviceFeatures
+        {
+            shaderSampledImageArrayDynamicIndexing = supportedFeatures.features.shaderSampledImageArrayDynamicIndexing,
+        };
 
         using var ppEnabledExtensionNames = new VkStringArray(enabledExtensions);
         var createInfo = new VkDeviceCreateInfo
         {
             sType = VkStructureType.DeviceCreateInfo,
             pNext = &enabledVulkan12Features,
+            pEnabledFeatures = &enabledFeatures,
             queueCreateInfoCount = 1,
             pQueueCreateInfos = &queueCreateInfo,
             enabledExtensionCount = ppEnabledExtensionNames.Length,
@@ -403,19 +409,20 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
         var bindings = new List<VkDescriptorSetLayoutBinding>();
         var poolSizes = new Dictionary<VkDescriptorType, uint>();
         // Deferred: descriptor writes need stable pointers, applied after the set is allocated
-        var writes = new List<(uint Binding, VkDescriptorType Type, VkDescriptorBufferInfo BufferInfo, VkDescriptorImageInfo ImageInfo, VkBufferView TexelView)>();
+        var writes = new List<(uint Binding, uint ArrayElement, VkDescriptorType Type, VkDescriptorBufferInfo BufferInfo, VkDescriptorImageInfo ImageInfo, VkBufferView TexelView)>();
 
         foreach (var binding in EffectReflection.ResourceBindings)
         {
             var descriptorType = GetDescriptorType(binding);
+            var descriptorCount = (uint)Math.Max(binding.SlotCount, 1);
             bindings.Add(new VkDescriptorSetLayoutBinding
             {
                 binding = (uint)binding.SlotStart,
                 descriptorType = descriptorType,
-                descriptorCount = 1,
+                descriptorCount = descriptorCount,
                 stageFlags = VkShaderStageFlags.All,
             });
-            poolSizes[descriptorType] = poolSizes.GetValueOrDefault(descriptorType) + 1;
+            poolSizes[descriptorType] = poolSizes.GetValueOrDefault(descriptorType) + descriptorCount;
 
             parameterValues.TryGetValue(binding.SlotStart, out var value);
             switch (descriptorType)
@@ -426,7 +433,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                         ? BuildCBufferData(binding.RawName, value)
                         : new byte[FindCBuffer(binding.RawName).Size];
                     var (buffer, _) = CreateHostBuffer((ulong)data.Length, VkBufferUsageFlags.UniformBuffer, data);
-                    writes.Add(((uint)binding.SlotStart, descriptorType, new VkDescriptorBufferInfo { buffer = buffer, offset = 0, range = ulong.MaxValue }, default, default));
+                    writes.Add(((uint)binding.SlotStart, 0u, descriptorType, new VkDescriptorBufferInfo { buffer = buffer, offset = 0, range = ulong.MaxValue }, default, default));
                     break;
                 }
                 case VkDescriptorType.StorageBuffer:
@@ -434,7 +441,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                     var data = value != null ? ParseStructuredBufferData(value).Data : new byte[1024];
                     var (buffer, memory) = CreateHostBuffer((ulong)data.Length, VkBufferUsageFlags.StorageBuffer, data);
                     storageBuffers[binding.KeyInfo.KeyName] = (memory, (ulong)data.Length);
-                    writes.Add(((uint)binding.SlotStart, descriptorType, new VkDescriptorBufferInfo { buffer = buffer, offset = 0, range = ulong.MaxValue }, default, default));
+                    writes.Add(((uint)binding.SlotStart, 0u, descriptorType, new VkDescriptorBufferInfo { buffer = buffer, offset = 0, range = ulong.MaxValue }, default, default));
                     break;
                 }
                 case VkDescriptorType.UniformTexelBuffer:
@@ -454,33 +461,38 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                     };
                     Check(deviceApi.vkCreateBufferView(device, &viewCreateInfo, null, out var texelView));
                     bufferViews.Add(texelView);
-                    writes.Add(((uint)binding.SlotStart, descriptorType, default, default, texelView));
+                    writes.Add(((uint)binding.SlotStart, 0u, descriptorType, default, default, texelView));
                     break;
                 }
                 case VkDescriptorType.SampledImage:
                 {
-                    var color = value != null ? ParseColor(value) : 0;
-                    var (image, view) = CreateImage2D(1, 1, VkImageUsageFlags.Sampled | VkImageUsageFlags.TransferDst);
-                    OneTimeCommands(commandBuffer =>
+                    // A texture array takes one color per element
+                    var colors = SplitElements(value);
+                    for (var element = 0u; element < descriptorCount; element++)
                     {
-                        TransitionImage(commandBuffer, image, VkImageLayout.Undefined, VkImageLayout.TransferDstOptimal);
-                        var clearColor = new VkClearColorValue(
-                            (color & 0xFF) / 255.0f,
-                            ((color >> 8) & 0xFF) / 255.0f,
-                            ((color >> 16) & 0xFF) / 255.0f,
-                            ((color >> 24) & 0xFF) / 255.0f);
-                        var range = new VkImageSubresourceRange(VkImageAspectFlags.Color, 0, 1, 0, 1);
-                        deviceApi.vkCmdClearColorImage(commandBuffer, image, VkImageLayout.TransferDstOptimal, &clearColor, 1, &range);
-                        TransitionImage(commandBuffer, image, VkImageLayout.TransferDstOptimal, VkImageLayout.ShaderReadOnlyOptimal);
-                    });
-                    writes.Add(((uint)binding.SlotStart, descriptorType, default, new VkDescriptorImageInfo { imageView = view, imageLayout = VkImageLayout.ShaderReadOnlyOptimal }, default));
+                        var color = element < colors.Length ? ParseColor(colors[element]) : 0;
+                        var (image, view) = CreateImage2D(1, 1, VkImageUsageFlags.Sampled | VkImageUsageFlags.TransferDst);
+                        OneTimeCommands(commandBuffer =>
+                        {
+                            TransitionImage(commandBuffer, image, VkImageLayout.Undefined, VkImageLayout.TransferDstOptimal);
+                            var clearColor = new VkClearColorValue(
+                                (color & 0xFF) / 255.0f,
+                                ((color >> 8) & 0xFF) / 255.0f,
+                                ((color >> 16) & 0xFF) / 255.0f,
+                                ((color >> 24) & 0xFF) / 255.0f);
+                            var range = new VkImageSubresourceRange(VkImageAspectFlags.Color, 0, 1, 0, 1);
+                            deviceApi.vkCmdClearColorImage(commandBuffer, image, VkImageLayout.TransferDstOptimal, &clearColor, 1, &range);
+                            TransitionImage(commandBuffer, image, VkImageLayout.TransferDstOptimal, VkImageLayout.ShaderReadOnlyOptimal);
+                        });
+                        writes.Add(((uint)binding.SlotStart, element, descriptorType, default, new VkDescriptorImageInfo { imageView = view, imageLayout = VkImageLayout.ShaderReadOnlyOptimal }, default));
+                    }
                     break;
                 }
                 case VkDescriptorType.StorageImage:
                 {
                     var (image, view) = CreateImage2D(1, 1, VkImageUsageFlags.Storage);
                     OneTimeCommands(commandBuffer => TransitionImage(commandBuffer, image, VkImageLayout.Undefined, VkImageLayout.General));
-                    writes.Add(((uint)binding.SlotStart, descriptorType, default, new VkDescriptorImageInfo { imageView = view, imageLayout = VkImageLayout.General }, default));
+                    writes.Add(((uint)binding.SlotStart, 0u, descriptorType, default, new VkDescriptorImageInfo { imageView = view, imageLayout = VkImageLayout.General }, default));
                     break;
                 }
                 case VkDescriptorType.Sampler:
@@ -497,7 +509,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                     };
                     Check(deviceApi.vkCreateSampler(device, &samplerCreateInfo, null, out var sampler));
                     samplers.Add(sampler);
-                    writes.Add(((uint)binding.SlotStart, descriptorType, default, new VkDescriptorImageInfo { sampler = sampler }, default));
+                    writes.Add(((uint)binding.SlotStart, 0u, descriptorType, default, new VkDescriptorImageInfo { sampler = sampler }, default));
                     break;
                 }
             }
@@ -560,6 +572,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                     sType = VkStructureType.WriteDescriptorSet,
                     dstSet = descriptorSet,
                     dstBinding = write.Binding,
+                    dstArrayElement = write.ArrayElement,
                     descriptorCount = 1,
                     descriptorType = write.Type,
                     pBufferInfo = &bufferInfo,
