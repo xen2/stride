@@ -141,6 +141,11 @@ public abstract class FrameRenderer(uint width = 800, uint height = 600)
         }
     }
 
+    /// <summary>
+    /// The values of a "texture.X" test parameter of a texture array: one color per element, separated by spaces.
+    /// </summary>
+    protected static string[] SplitElements(string? value) => value?.Split(' ', StringSplitOptions.RemoveEmptyEntries) ?? [];
+
     protected static uint ParseColor(string value)
     {
         if (!value.StartsWith("#"))

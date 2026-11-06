@@ -152,6 +152,7 @@ Direct3D11/RenderTests.SwitchEveryCaseReturns strict=540dde474f48 legal=2f1cced7
 Direct3D11/RenderTests.SwitchGenericLabels strict=726d2f88052a legal=75f26cb9f1ec reflection=05b3765fcecb explain=7720cd36d792
 Direct3D11/RenderTests.Swizzle strict=70b40d70bb78 legal=2d4826a2e1b3 reflection=76ead63e1c3a explain=6363d8e8b11b
 Direct3D11/RenderTests.TernaryOperator strict=c5b9b3550b62 legal=9d41c49f0880 reflection=38f0e14a7a23 explain=cafcab50f588
+Direct3D11/RenderTests.TextureArray strict=ff8d19774263 legal=13ff45139614 reflection=f8dfc07dbd61 explain=fb2a57ce15ad
 Direct3D11/RenderTests.TextureLinks strict=f0401b1c3262 legal=ba7fe28a9e4b reflection=62ef3c33fffd explain=a41649adbae3
 Direct3D11/RenderTests.TextureLoad strict=f4442ccc0916 legal=a42bb519d829 reflection=ebaa3e403945 explain=6ab0cbab3cfb
 Direct3D11/RenderTests.TextureOffsetAfterUnroll strict=cb1754d54248 legal=cb1754d54248 reflection=20be65030c00 explain=490e6c25087f
@@ -892,6 +893,7 @@ Vulkan/RenderTests.SwitchEveryCaseReturns strict=f62ee3a6f0ef legal=8cda9b60eeb7
 Vulkan/RenderTests.SwitchGenericLabels strict=0556f8a116e7 legal=ebea4e4b3310 reflection=05b3765fcecb explain=7720cd36d792
 Vulkan/RenderTests.Swizzle strict=1a801fd4ce2b legal=0541ba2681e5 reflection=76ead63e1c3a explain=6363d8e8b11b
 Vulkan/RenderTests.TernaryOperator strict=0320142bd0ad legal=3dcd09bf9727 reflection=38f0e14a7a23 explain=cafcab50f588
+Vulkan/RenderTests.TextureArray strict=d4f2fc029c35 legal=571c5cc7fadb reflection=4948f1a4f44c explain=fb2a57ce15ad
 Vulkan/RenderTests.TextureLinks strict=2cf1290d2f32 legal=12dddea76720 reflection=9a6a1c5fd0d7 explain=a41649adbae3
 Vulkan/RenderTests.TextureLoad strict=d0359b36e77c legal=c46d5707bf87 reflection=ebaa3e403945 explain=6ab0cbab3cfb
 Vulkan/RenderTests.TextureOffsetAfterUnroll strict=9c7148ff5245 legal=9c7148ff5245 reflection=4cf3b7c53ec9 explain=490e6c25087f

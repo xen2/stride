@@ -1,0 +1,25 @@
+// PSMain(ExpectedResult=#10203040, texture.Textures=#01000000 #10000000 #02000000 #00200000, texture.After=#00003040)
+
+namespace Stride.Shaders.Tests;
+
+// Literal indices, as Direct3D 11 needs; an element can go to a function
+shader TextureArray
+{
+    stream float4 ColorTarget : SV_Target0;
+    stream float2 TexCoord : TEXCOORD;
+
+    static const int Count = 4;
+    rgroup PerMaterial
+    {
+        module Texture2D<float4> Textures[Count];
+        module Texture2D<float4> After;
+        module SamplerState Sampler1;
+    }
+
+    float4 Read(Texture2D<float4> element) { return element.Sample(Sampler1, streams.TexCoord); }
+
+    void PSMain()
+    {
+        streams.ColorTarget = Textures[1].Sample(Sampler1, streams.TexCoord) + Read(Textures[3]) + After.Sample(Sampler1, streams.TexCoord);
+    }
+}
