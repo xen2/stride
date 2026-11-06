@@ -9,42 +9,42 @@ namespace Stride.MaterialTestBed
         mixin TestBedConflictProbe;
         mixin TestBedWetness;
         mixin TestBedSnow;
-        order TestBedSurfaceModifiers.ModifySurface.Scene: TestBedWetness, TestBedSnow;
+        extend shader TestBedSurfaceModifiers { [MixinOrder(TestBedWetness, TestBedSnow)] ModifySurface; }
     }
     effect TestBedInoutSnowWet
     {
         mixin TestBedConflictProbe;
         mixin TestBedSnow;
         mixin TestBedWetness;
-        order TestBedSurfaceModifiers.ModifySurface.Scene: TestBedSnow, TestBedWetness;
+        extend shader TestBedSurfaceModifiers { [MixinOrder(TestBedSnow, TestBedWetness)] ModifySurface; }
     }
     effect TestBedCurrentWetSnow
     {
         mixin TestBedConflictProbe;
         mixin TestBedCurrentWet;
         mixin TestBedCurrentSnow;
-        order TestBedConflictPoints.ModifyCurrent.Scene: TestBedCurrentWet, TestBedCurrentSnow;
+        extend shader TestBedConflictPoints { [MixinOrder(TestBedCurrentWet, TestBedCurrentSnow)] ModifyCurrent; }
     }
     effect TestBedCurrentSnowWet
     {
         mixin TestBedConflictProbe;
         mixin TestBedCurrentSnow;
         mixin TestBedCurrentWet;
-        order TestBedConflictPoints.ModifyCurrent.Scene: TestBedCurrentSnow, TestBedCurrentWet;
+        extend shader TestBedConflictPoints { [MixinOrder(TestBedCurrentSnow, TestBedCurrentWet)] ModifyCurrent; }
     }
     effect TestBedSharedWetSnow
     {
         mixin TestBedConflictProbe;
         mixin TestBedSharedWet;
         mixin TestBedSharedSnow;
-        order TestBedConflictPoints.ModifyShared.Scene: TestBedSharedWet, TestBedSharedSnow;
+        extend shader TestBedConflictPoints { [MixinOrder(TestBedSharedWet, TestBedSharedSnow)] ModifyShared; }
     }
     effect TestBedSharedSnowWet
     {
         mixin TestBedConflictProbe;
         mixin TestBedSharedSnow;
         mixin TestBedSharedWet;
-        order TestBedConflictPoints.ModifyShared.Scene: TestBedSharedSnow, TestBedSharedWet;
+        extend shader TestBedConflictPoints { [MixinOrder(TestBedSharedSnow, TestBedSharedWet)] ModifyShared; }
     }
 
     // The pair settled: by the effect, which neither plugin knows of, and by one plugin that knows the other
@@ -53,7 +53,7 @@ namespace Stride.MaterialTestBed
         mixin TestBedConflictProbe;
         mixin TestBedSnow;
         mixin TestBedWetness;
-        order TestBedSurfaceModifiers.ModifySurface.Scene: TestBedWetness, TestBedSnow;
+        extend shader TestBedSurfaceModifiers { [MixinOrder(TestBedWetness, TestBedSnow)] ModifySurface; }
     }
 
     effect TestBedInoutAfter { mixin TestBedConflictProbe; mixin TestBedSnowAfterWetness; mixin TestBedWetness; }
@@ -63,7 +63,7 @@ namespace Stride.MaterialTestBed
         mixin TestBedConflictProbe;
         mixin TestBedStreamSnow;
         mixin TestBedStreamWet;
-        order TestBedConflictPoints.ModifyStream.Scene: TestBedStreamWet, TestBedStreamSnow;
+        extend shader TestBedConflictPoints { [MixinOrder(TestBedStreamWet, TestBedStreamSnow)] ModifyStream; }
     }
 
     // A second shading model
@@ -85,7 +85,7 @@ namespace Stride.MaterialTestBed
         mixin TestBedSpriteColor;
         mixin TestBedDebugView;
         mixin TestBedHalfTint;
-        order SpriteBase.Shading.Post: TestBedHalfTint, TestBedDebugView;
+        extend shader SpriteBase { [MixinOrder(TestBedHalfTint, TestBedDebugView)] Shading; }
     }
     effect TestBedSpriteTintDebug
     {
@@ -93,21 +93,21 @@ namespace Stride.MaterialTestBed
         mixin TestBedSpriteColor;
         mixin TestBedHalfTint;
         mixin TestBedDebugView;
-        order SpriteBase.Shading.Post: TestBedDebugView, TestBedHalfTint;
+        extend shader SpriteBase { [MixinOrder(TestBedDebugView, TestBedHalfTint)] Shading; }
     }
     effect TestBedFilterDoubleOffset
     {
         mixin TestBedFilterProbe;
         mixin TestBedFilterDouble;
         mixin TestBedFilterOffset;
-        order TestBedColorFilter.FilterColor.Inner: TestBedFilterOffset, TestBedFilterDouble;
+        extend shader TestBedColorFilter { [MixinOrder(TestBedFilterOffset, TestBedFilterDouble)] FilterColor; }
     }
     effect TestBedFilterOffsetDouble
     {
         mixin TestBedFilterProbe;
         mixin TestBedFilterOffset;
         mixin TestBedFilterDouble;
-        order TestBedColorFilter.FilterColor.Inner: TestBedFilterDouble, TestBedFilterOffset;
+        extend shader TestBedColorFilter { [MixinOrder(TestBedFilterDouble, TestBedFilterOffset)] FilterColor; }
     }
 
     // A point of a composed node, next to the same steps as a list of nodes

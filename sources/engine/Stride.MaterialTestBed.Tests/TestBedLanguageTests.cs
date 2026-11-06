@@ -41,13 +41,13 @@ public class TestBedLanguageTests
 
     // With the order of the effect, each order is what it states
     [Theory]
-    [InlineData("TestBedInoutWetSnow", "ModifySurface", "Scene: TestBedSurfaceModifiers > TestBedWetness > TestBedSnow   order: order rule")]
-    [InlineData("TestBedInoutSnowWet", "ModifySurface", "Scene: TestBedSurfaceModifiers > TestBedSnow > TestBedWetness   order: order rule")]
-    [InlineData("TestBedCurrentWetSnow", "ModifyCurrent", "Scene: TestBedConflictPoints > TestBedCurrentWet > TestBedCurrentSnow   order: order rule")]
-    [InlineData("TestBedCurrentSnowWet", "ModifyCurrent", "Scene: TestBedConflictPoints > TestBedCurrentSnow > TestBedCurrentWet   order: order rule")]
-    [InlineData("TestBedSharedWetSnow", "ModifyShared", "Scene: TestBedConflictPoints > TestBedSharedWet > TestBedSharedSnow   order: order rule")]
-    [InlineData("TestBedSharedSnowWet", "ModifyShared", "Scene: TestBedConflictPoints > TestBedSharedSnow > TestBedSharedWet   order: order rule")]
-    public void AnOrderRuleSettlesTheseWriters(string effect, string method, string line)
+    [InlineData("TestBedInoutWetSnow", "ModifySurface", "Scene: TestBedSurfaceModifiers > TestBedWetness > TestBedSnow   order: block")]
+    [InlineData("TestBedInoutSnowWet", "ModifySurface", "Scene: TestBedSurfaceModifiers > TestBedSnow > TestBedWetness   order: block")]
+    [InlineData("TestBedCurrentWetSnow", "ModifyCurrent", "Scene: TestBedConflictPoints > TestBedCurrentWet > TestBedCurrentSnow   order: block")]
+    [InlineData("TestBedCurrentSnowWet", "ModifyCurrent", "Scene: TestBedConflictPoints > TestBedCurrentSnow > TestBedCurrentWet   order: block")]
+    [InlineData("TestBedSharedWetSnow", "ModifyShared", "Scene: TestBedConflictPoints > TestBedSharedWet > TestBedSharedSnow   order: block")]
+    [InlineData("TestBedSharedSnowWet", "ModifyShared", "Scene: TestBedConflictPoints > TestBedSharedSnow > TestBedSharedWet   order: block")]
+    public void ABlockSettlesTheseWriters(string effect, string method, string line)
     {
         var result = TestBedMixer.MixEffect(effect);
 
@@ -75,7 +75,7 @@ public class TestBedLanguageTests
 
         Assert.False(result.Ok, result.Log);
         Assert.Contains("SDSL0137: TestBedStreamWet and TestBedStreamSnow are both in phase Scene of TestBedConflictPoints.ModifyStream and share streams.StreamValue", result.Log);
-        Assert.Contains("order TestBedConflictPoints.ModifyStream.Scene: TestBedStreamWet, TestBedStreamSnow;", result.Log);
+        Assert.Contains("extend shader TestBedConflictPoints { [MixinOrder(TestBedStreamWet, TestBedStreamSnow)] ModifyStream; }", result.Log);
 
         var runtime = TestBedMixer.Mix(TestBedMixer.Effect("TestBedConflictProbe", "TestBedStreamWet", "TestBedStreamSnow"), isAssetBuild: false);
 
@@ -90,7 +90,7 @@ public class TestBedLanguageTests
         var result = TestBedMixer.MixEffect("TestBedInoutOrdered");
 
         Assert.True(result.Ok, result.Log);
-        Assert.Contains("Scene: TestBedSurfaceModifiers > TestBedWetness > TestBedSnow   order: order rule", result.Block("ModifySurface"));
+        Assert.Contains("Scene: TestBedSurfaceModifiers > TestBedWetness > TestBedSnow   order: block", result.Block("ModifySurface"));
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class TestBedLanguageTests
         var result = TestBedMixer.MixEffect("TestBedInoutAfter");
 
         Assert.True(result.Ok, result.Log);
-        Assert.Contains("Scene: TestBedSurfaceModifiers > TestBedWetness > TestBedSnowAfterWetness   order: after", result.Block("ModifySurface"));
+        Assert.Contains("Scene: TestBedSurfaceModifiers > TestBedWetness > TestBedSnowAfterWetness   order: mixin order", result.Block("ModifySurface"));
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class TestBedLanguageTests
         var result = TestBedMixer.MixEffect("TestBedStreamOrdered");
 
         Assert.True(result.Ok, result.Log);
-        Assert.Contains("Scene: TestBedConflictPoints > TestBedStreamWet > TestBedStreamSnow   order: order rule", result.Block("ModifyStream"));
+        Assert.Contains("Scene: TestBedConflictPoints > TestBedStreamWet > TestBedStreamSnow   order: block", result.Block("ModifyStream"));
     }
 
     // Case 2: a second shading model
@@ -227,10 +227,10 @@ public class TestBedLanguageTests
     // Case 3: Around from outside
 
     [Theory]
-    [InlineData("TestBedSpriteDebugTint", "Shading", "Post: TestBedDebugView > TestBedHalfTint   order: order rule")]
-    [InlineData("TestBedSpriteTintDebug", "Shading", "Post: TestBedHalfTint > TestBedDebugView   order: order rule")]
-    [InlineData("TestBedFilterDoubleOffset", "FilterColor", "Inner: TestBedFilterDouble > TestBedFilterOffset   order: order rule")]
-    [InlineData("TestBedFilterOffsetDouble", "FilterColor", "Inner: TestBedFilterOffset > TestBedFilterDouble   order: order rule")]
+    [InlineData("TestBedSpriteDebugTint", "Shading", "Post: TestBedHalfTint > TestBedDebugView   order: block")]
+    [InlineData("TestBedSpriteTintDebug", "Shading", "Post: TestBedDebugView > TestBedHalfTint   order: block")]
+    [InlineData("TestBedFilterDoubleOffset", "FilterColor", "Inner: TestBedFilterOffset > TestBedFilterDouble   order: block")]
+    [InlineData("TestBedFilterOffsetDouble", "FilterColor", "Inner: TestBedFilterDouble > TestBedFilterOffset   order: block")]
     public void TwoWrappersInAPhaseAreNotSeen(string effect, string method, string line)
     {
         var result = TestBedMixer.MixEffect(effect);
@@ -245,7 +245,7 @@ public class TestBedLanguageTests
         var result = TestBedMixer.Mix("SpriteBase", "TestBedSpriteColor", "TestBedHalfTint", "TestBedFixedPost");
 
         Assert.False(result.Ok, result.Log);
-        Assert.Contains("SDSL0136: TestBedFixedPost.Shading doesn't call next, so TestBedSpriteColor, TestBedHalfTint never run in this effect. Write [Replaces(TestBedSpriteColor, TestBedHalfTint)] on it, or call next.", result.Log);
+        Assert.Contains("SDSL0136: TestBedFixedPost.Shading doesn't call next, so TestBedSpriteColor, TestBedHalfTint never run in this effect. Write [Drops(Mixins = { TestBedSpriteColor, TestBedHalfTint })] on it, or call next.", result.Log);
     }
 
     [Fact]
@@ -274,8 +274,8 @@ public class TestBedLanguageTests
         ["NodeStream"] = NodeStream,
         ["NodeStepA"] = "namespace Stride.MaterialTestBed;\nshader NodeStepA : TestBedNode { import NodeStream; [Phase(Detail)] extend TestBedNode.ModifyColor(inout float3 color) { streams.NodeValue = 1.0; } };",
         ["NodeStepB"] = "namespace Stride.MaterialTestBed;\nshader NodeStepB : TestBedNode { import NodeStream; [Phase(Detail)] extend TestBedNode.ModifyColor(inout float3 color) { streams.NodeValue = 2.0; } };",
-        ["NodeStepC"] = "namespace Stride.MaterialTestBed;\nshader NodeStepC : TestBedNode { import NodeStream; [Phase(Detail)] [After(NodeStepA)] extend TestBedNode.ModifyColor(inout float3 color) { streams.NodeValue = 2.0; } };",
-        ["NodeStepD"] = "namespace Stride.MaterialTestBed;\nshader NodeStepD : TestBedNode { import NodeStream; [Phase(Later, After = Detail)] override void ModifyColor(inout float3 color) { base.ModifyColor(color); streams.NodeValue = 3.0; } };",
+        ["NodeStepC"] = "namespace Stride.MaterialTestBed;\nshader NodeStepC : TestBedNode { import NodeStream; [Phase(Detail)] [MixinOrder(After = NodeStepA)] extend TestBedNode.ModifyColor(inout float3 color) { streams.NodeValue = 2.0; } };",
+        ["NodeStepD"] = "namespace Stride.MaterialTestBed;\nshader NodeStepD : TestBedNode { import NodeStream; [Phase(MaterialTestBed.Later, After = Detail)] override void ModifyColor(inout float3 color) { base.ModifyColor(color); streams.NodeValue = 3.0; } };",
         ["NodeFromRoot"] = "namespace Stride.MaterialTestBed;\nshader NodeFromRoot : TestBedNode { [Phase(Detail)] extend TestBedNode.ModifyColor(inout float3 color) { color += 0.5; } };",
     };
 
@@ -295,37 +295,37 @@ public class TestBedLanguageTests
         var result = TestBedMixer.MixEffect("TestBedNodeDoubleOffset");
 
         Assert.True(result.Ok, result.Log);
-        Assert.Contains("Base: TestBedNode > TestBedNodeDouble > TestBedNodeOffsetLast   order: after", result.Block("ModifyColor"));
+        Assert.Contains("Base: TestBedNode > TestBedNodeDouble > TestBedNodeOffsetLast   order: mixin order", result.Block("ModifyColor"));
     }
 
-    // The error asks for what works. An order rule at the root does nothing here, and in a composition it is SDSL0151
+    // The error asks for what works. A block at the root does nothing here, and in a composition it is SDSL0151
     [Fact]
-    public void AConflictInANodeAsksForAfterOrAPhase()
+    public void AConflictInANodeAsksForMixinOrderOrAPhase()
     {
         var plain = TestBedMixer.Mix(NodeEffect([], "NodeStepA", "NodeStepB"), isAssetBuild: true, NodeSources);
         Assert.False(plain.Ok, plain.Log);
-        Assert.Contains("An order rule of the effect doesn't reach a composition: add [After(NodeStepA)] to NodeStepB", plain.Log);
-        Assert.DoesNotContain("order TestBedNode.ModifyColor.Detail", plain.Log);
+        Assert.Contains("A block of the effect doesn't reach a composition: add [MixinOrder(After = NodeStepA)] to NodeStepB", plain.Log);
+        Assert.DoesNotContain("extend shader TestBedNode", plain.Log);
 
         var withRule = NodeEffect([], "NodeStepA", "NodeStepB");
-        withRule.AddLinkageRule(ShaderLinkageKind.Order, "TestBedNode", "ModifyColor", "Detail", "NodeStepA", "NodeStepB");
+        withRule.MixinOrder("TestBedNode", "ModifyColor", "NodeStepA", "NodeStepB");
         var ruled = TestBedMixer.Mix(withRule, isAssetBuild: true, NodeSources);
         Assert.False(ruled.Ok, ruled.Log);
         Assert.Contains("SDSL0137", ruled.Log);
 
         var after = TestBedMixer.Mix(NodeEffect([], "NodeStepC", "NodeStepA"), isAssetBuild: true, NodeSources);
         Assert.True(after.Ok, after.Log);
-        Assert.Contains("Detail: NodeStepA > NodeStepC   order: after", after.Block("ModifyColor"));
+        Assert.Contains("Detail: NodeStepA > NodeStepC   order: mixin order", after.Block("ModifyColor"));
     }
 
-    // Without [After]: a phase that one of the two adds
+    // Without [MixinOrder]: a phase that one of the two adds
     [Fact]
     public void AnAddedPhaseAlsoSettlesAConflictInANode()
     {
         var result = TestBedMixer.Mix(NodeEffect([], "NodeStepA", "NodeStepD"), isAssetBuild: true, NodeSources);
 
         Assert.True(result.Ok, result.Log);
-        Assert.Contains("Later: NodeStepD", result.Block("ModifyColor"));
+        Assert.Contains("MaterialTestBed.Later: NodeStepD", result.Block("ModifyColor"));
     }
 
     // It has a chain of its own at the root, which nothing calls: the node doesn't get the step, and nothing says so

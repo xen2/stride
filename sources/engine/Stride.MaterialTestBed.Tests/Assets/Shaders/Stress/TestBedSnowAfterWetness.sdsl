@@ -12,7 +12,7 @@ namespace Stride.MaterialTestBed
         import TestBedSurfaceModifiers;
 
         [Phase(Scene)]
-        [After(TestBedWetness)]
+        [MixinOrder(After = TestBedWetness)]
         extend TestBedSurfaceModifiers.ModifySurface(inout Surface s, SurfaceInput input)
         {
             s.roughness = lerp(s.roughness, 0.9, saturate(input.positionWS.y * 2.0));

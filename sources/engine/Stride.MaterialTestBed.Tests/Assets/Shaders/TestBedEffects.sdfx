@@ -30,7 +30,7 @@ namespace Stride.Rendering
         if (TestBedEffectKeys.EnableSnow)
         {
             mixin TestBedSnow;
-            order TestBedSurfaceModifiers.ModifySurface.Scene: TestBedWetness, TestBedSnow;
+            extend shader TestBedSurfaceModifiers { [MixinOrder(TestBedWetness, TestBedSnow)] ModifySurface; }
         }
 
         if (TestBedEffectKeys.EnableCel)
