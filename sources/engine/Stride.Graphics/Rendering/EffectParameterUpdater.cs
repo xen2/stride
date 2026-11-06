@@ -52,17 +52,22 @@ namespace Stride.Rendering
 
                 if (parameters.ObjectValues != null)
                 {
-                    for (int resourceSlot = 0; resourceSlot < layout.ElementCount; ++resourceSlot)
+                    // An entry takes one slot per element of its array
+                    var resourceSlot = 0;
+                    foreach (var entry in layout.Entries)
                     {
-                        var value = parameters.ObjectValues[descriptorStartSlot + resourceSlot];
-                        switch (layout.Entries[resourceSlot].Class)
+                        for (int element = 0; element < entry.ArraySize; ++element, ++resourceSlot)
                         {
-                            case EffectParameterClass.UnorderedAccessView:
-                                descriptorSet.SetUnorderedAccessView(resourceSlot, value as GraphicsResource);
-                                break;
-                            default:
-                                descriptorSet.SetValue(resourceSlot, value);
-                                break;
+                            var value = parameters.ObjectValues[descriptorStartSlot + resourceSlot];
+                            switch (entry.Class)
+                            {
+                                case EffectParameterClass.UnorderedAccessView:
+                                    descriptorSet.SetUnorderedAccessView(resourceSlot, value as GraphicsResource);
+                                    break;
+                                default:
+                                    descriptorSet.SetValue(resourceSlot, value);
+                                    break;
+                            }
                         }
                     }
                 }
