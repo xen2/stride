@@ -101,8 +101,21 @@ public class KeysGeneratorTests
     {
         var (generated, errors) = Build("shader KeysGeneratorCheck { };\n#error bad thing\n", "");
 
-        Assert.Equal("#error KeysGeneratorCheck.sdsl(2,2): #error bad thing", generated);
+        Assert.Equal("// The errors of this file are in the build output\n", generated);
         Assert.Contains("KeysGeneratorCheck.sdsl(2,2): #error bad thing", Assert.Single(errors));
+    }
+
+    // The compiler doesn't show an #error of generated code when the project's own code has errors: the error is a diagnostic of the file
+    [Theory]
+    [InlineData("Effects.sdfx", "namespace Game { effect E { mixin A; order A.Run.Late: X, Y; } }", "Effects.sdfx(1,38): error SDSL0251: order A.Run.Late: X, Y; is no longer part of the language. Write extend shader A { [MixinOrder(X, Y)] Run; }.")]
+    [InlineData("Effects.sdfx", "namespace Game { effect E { mixin A; extend shader X { [Color] Run; } } }", "error SDSL0256: extend shader X { ... Run; }: a block takes [Phase], [MixinOrder] and [Unbind], and [Color] is none of them")]
+    public void AnErrorOfAShaderFileIsADiagnosticOfThatFile(string path, string text, string message)
+    {
+        var (generated, errors) = Build([(path, text)], "using Game.Missing; class UsesTheEffects { }");
+
+        Assert.Equal("// The errors of this file are in the build output\n", generated);
+        Assert.Contains(errors, x => x.Contains(message));
+        Assert.Contains(errors, x => x.Contains("error CS0246"));
     }
 
     // The key of a member is named after the class: its full name, and the name the mixer gives the member
@@ -365,10 +378,10 @@ public class KeysGeneratorTests
             .ToList();
         var compilation = CSharpCompilation.Create("KeysGeneratorCheck", [CSharpSyntaxTree.ParseText(csharp)], references, new(OutputKind.DynamicallyLinkedLibrary));
         GeneratorDriver driver = CSharpGeneratorDriver.Create([new EffectGenerator().AsSourceGenerator()], additionalTexts: [.. files.Select(x => new ShaderText(x.Path, x.Text))]);
-        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out var generatorDiagnostics);
 
         var generated = string.Join("\n", driver.GetRunResult().GeneratedTrees.Select(x => x.ToString()));
-        var errors = output.GetDiagnostics().Where(x => x.Severity == DiagnosticSeverity.Error).Select(x => x.ToString()).ToList();
+        var errors = generatorDiagnostics.Concat(output.GetDiagnostics()).Where(x => x.Severity == DiagnosticSeverity.Error).Select(x => x.ToString()).ToList();
         return (generated, errors);
     }
 
