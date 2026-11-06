@@ -128,6 +128,30 @@ public class TextureArrayTests : IDisposable
         Assert.Contains("SDSL0209: [Pure] module PureTextures declares PerMaterial", message);
     }
 
+    [Theory]
+    [InlineData("Textures[7]", "SDSL0265: Index 7 is outside Textures, which has 4 elements (0 to 3).")]
+    [InlineData("Textures[Count]", "SDSL0265: Index Count is outside Textures, which has 4 elements (0 to 3).")]
+    [InlineData("Textures[-1]", "SDSL0265: Index -1 is outside Textures")]
+    [InlineData("Textures[NonUniformResourceIndex(Index)]", "SDSL0267: NonUniformResourceIndex is not supported yet")]
+    public void TextureArrayIndexError(string element, string expected)
+    {
+        var message = CompileError("ArrayIndex", $$"""
+            shader ArrayIndex
+            {
+                static const int Count = 4;
+                rgroup PerMaterial { Texture2D Textures[Count]; }
+                SamplerState Point;
+                cbuffer PerDraw { uint Index; };
+                float4 Read(float2 uv)
+                {
+                    return {{element}}.Sample(Point, uv);
+                }
+            };
+            """);
+        Assert.Contains("ArrayIndex.sdsl(9,", message);
+        Assert.Contains(expected, message);
+    }
+
     // The declaration is on line 3 of the shader
     private void AssertDeclarationError(string declaration, string expected)
     {
