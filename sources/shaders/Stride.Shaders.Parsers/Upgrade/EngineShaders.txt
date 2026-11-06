@@ -394,6 +394,7 @@ TessellationPN	0	shader	-	-	TessellationFlat		Stride.Rendering.TessellationPN		C
 TextureArraySecondElement	0	shader	-	-	ShaderBase		Stride.Graphics.Tests.TextureArraySecondElement	Textures	PSMain,VSMain	
 TextureArrayShader	0	shader	-	-	SpriteBase		Stride.Graphics.Tests.TextureArrayShader	Index,Textures	Shading	
 TextureArrayThirdElement	0	shader	-	-	ShaderBase		Stride.Graphics.Tests.TextureArrayThirdElement	Textures	PSMain,VSMain	
+TextureArrayTwoGroups	0	shader	-	-	ShaderBase		Stride.Graphics.Tests.TextureArrayTwoGroups	Textures,ViewTextures	PSMain,VSMain	
 TextureProjectionCommon	1	shader	-	-			Stride.Rendering.Lights.TextureProjectionCommon	ProjectionTexture,UVOffset,UVScale		
 TextureProjectionFilterDefault	1	shader	-	-	TextureProjectionCommon,Texturing		Stride.Rendering.Lights.TextureProjectionFilterDefault			
 TextureProjectionGroup	0	shader	-	-			Stride.Rendering.Lights.TextureProjectionGroup			ComputeSpecularTextureProjection(float3,float3,int);ComputeTextureProjection(float3,int)
@@ -567,6 +568,7 @@ SubsurfaceScatteringBlurEffect	0	effect	-	-			Stride.Rendering.SubsurfaceScatter
 TextureArrayEffect	0	effect	-	-			Stride.Graphics.Tests.TextureArrayEffect	
 TextureArraySecondElementEffect	0	effect	-	-			Stride.Graphics.Tests.TextureArraySecondElementEffect	
 TextureArrayThirdElementEffect	0	effect	-	-			Stride.Graphics.Tests.TextureArrayThirdElementEffect	
+TextureArrayTwoGroupsEffect	0	effect	-	-			Stride.Graphics.Tests.TextureArrayTwoGroupsEffect	
 ToGlslEffect	0	effect	-	-			Test.ToGlslEffect	
 ToneMapEffect	0	effect	-	-			Stride.Rendering.Images.ToneMapEffect	
 Voxel2x2x2MipmapEffect	0	effect	-	-			Stride.Rendering.Voxels.Voxel2x2x2MipmapEffect	

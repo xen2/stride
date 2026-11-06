@@ -16,4 +16,9 @@ namespace Stride.Graphics.Tests
     {
         mixin TextureArrayThirdElement;
     };
+
+    effect TextureArrayTwoGroupsEffect
+    {
+        mixin TextureArrayTwoGroups;
+    };
 }

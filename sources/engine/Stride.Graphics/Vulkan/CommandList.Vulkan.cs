@@ -507,7 +507,8 @@ namespace Stride.Graphics
 
 #if STRIDE_GRAPHICS_NO_DESCRIPTOR_COPIES
         // The native sets of the texture arrays, by pipeline layout and source Descriptor Set. As the shader-visible copies of
-        // Direct3D 12, a set is written the first time the command list binds its source, and not again.
+        // Direct3D 12, a set is written the first time the command list binds its source, and not again. Arrays from several
+        // rgroups get a new set for each draw.
         private readonly Dictionary<(VkDescriptorSetLayout Layout, DescriptorSetEntry[] HeapObjects, int Offset), VkDescriptorSet> arrayDescriptorSets = new();
 
         /// <summary>
@@ -517,9 +518,9 @@ namespace Stride.Graphics
         {
             var mappings = activePipeline.ArrayBindingMapping;
             var layout = activePipeline.NativeArrayDescriptorSetLayout;
-            var source = boundDescriptorSets[mappings[0].SourceSet];
-            var key = (layout, source.HeapObjects, source.DescriptorStartOffset);
-            if (arrayDescriptorSets.TryGetValue(key, out var nativeSet))
+            var firstSource = boundDescriptorSets[mappings[0].SourceSet];
+            var key = (layout, firstSource.HeapObjects, firstSource.DescriptorStartOffset);
+            if (activePipeline.ArraysFromOneSourceSet && arrayDescriptorSets.TryGetValue(key, out var nativeSet))
                 return nativeSet;
 
             // Keep track of descriptor pool usage
@@ -554,6 +555,7 @@ namespace Stride.Graphics
             for (int index = 0; index < count; index++)
             {
                 var mapping = mappings[index];
+                var source = boundDescriptorSets[mapping.SourceSet];
                 var texture = source.HeapObjects[source.DescriptorStartOffset + mapping.SourceBinding].Value as Texture;
                 images[index] = new VkDescriptorImageInfo { imageView = texture?.NativeImageView ?? GraphicsDevice.EmptyTexture.NativeImageView, imageLayout = VkImageLayout.ShaderReadOnlyOptimal };
                 writes[index] = new VkWriteDescriptorSet
@@ -569,7 +571,8 @@ namespace Stride.Graphics
             }
             GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(GraphicsDevice.NativeDevice, (uint)count, writes, descriptorCopyCount: 0, descriptorCopies: null);
 
-            arrayDescriptorSets.Add(key, nativeSet);
+            if (activePipeline.ArraysFromOneSourceSet)
+                arrayDescriptorSets.Add(key, nativeSet);
             return nativeSet;
         }
 #endif

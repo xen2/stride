@@ -23,6 +23,8 @@ namespace Stride.Graphics
         internal VkDescriptorSetLayout NativeArrayDescriptorSetLayout;
         internal uint[] ArrayDescriptorTypeCounts;
         internal List<DescriptorSetInfo> ArrayBindingMapping;
+        // The texture arrays come from one Descriptor Set (one rgroup), so their native set can be kept for the command list
+        internal bool ArraysFromOneSourceSet;
 
         internal VkPipelineLayout NativeLayout;
         internal VkPipeline NativePipeline;
@@ -386,6 +388,7 @@ namespace Stride.Graphics
             NativeDescriptorSetLayout = DescriptorSetLayout.CreateNativeDescriptorSetLayout(GraphicsDevice, destinationEntries, out DescriptorTypeCounts);
             if (ArrayBindingMapping.Count > 0)
                 NativeArrayDescriptorSetLayout = DescriptorSetLayout.CreateNativeDescriptorSetLayout(GraphicsDevice, arrayEntries, out ArrayDescriptorTypeCounts);
+            ArraysFromOneSourceSet = ArrayBindingMapping.TrueForAll(x => x.SourceSet == ArrayBindingMapping[0].SourceSet);
 
             // Create pipeline layout
             // Push constants: one range of the full size for all stages, the same in every layout, so the values stay
