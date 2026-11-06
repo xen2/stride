@@ -482,7 +482,7 @@ public sealed partial class RGroup(string name, TextLocation info) : ShaderBuffe
             var member = Members[index];
             (var storageClass, var kind) = member.Type switch
             {
-                TextureType => (Specification.StorageClass.UniformConstant, SymbolKind.Variable),
+                TextureType or ArrayType { BaseType: TextureType } => (Specification.StorageClass.UniformConstant, SymbolKind.Variable),
                 SamplerType => (Specification.StorageClass.UniformConstant, SymbolKind.SamplerState),
                 BufferType => (Specification.StorageClass.UniformConstant, SymbolKind.TBuffer),
                 StructuredBufferType or ByteAddressBufferType => (Specification.StorageClass.StorageBuffer, SymbolKind.Variable),
