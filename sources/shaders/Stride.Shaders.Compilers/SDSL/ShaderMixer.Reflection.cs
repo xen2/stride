@@ -381,7 +381,7 @@ public partial class ShaderMixer
                         effectResourceBinding.SlotStart = slot;
                         effectResourceBinding.SlotCount = arraySize;
 
-                        context.Add(new OpDecorate(variable.ResultId, Specification.Decoration.DescriptorSet, [0]));
+                        context.Add(new OpDecorate(variable.ResultId, Specification.Decoration.DescriptorSet, [options.TextureArrayDescriptorSet && arraySize > 1 ? 1 : 0]));
                         context.Add(new OpDecorate(variable.ResultId, Specification.Decoration.Binding, [slot]));
 
                         slot += arraySize;

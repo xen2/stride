@@ -19,6 +19,11 @@ namespace Stride.Graphics
         internal uint[] DescriptorTypeCounts;
         internal DescriptorSetLayout DescriptorSetLayout;
 
+        // Set 1: the texture arrays, written once per command list (null layout when the effect has none)
+        internal VkDescriptorSetLayout NativeArrayDescriptorSetLayout;
+        internal uint[] ArrayDescriptorTypeCounts;
+        internal List<DescriptorSetInfo> ArrayBindingMapping;
+
         internal VkPipelineLayout NativeLayout;
         internal VkPipeline NativePipeline;
         internal int[] ResourceGroupMapping;
@@ -284,10 +289,13 @@ namespace Stride.Graphics
                 GraphicsDevice.Collect(NativePipeline);
                 GraphicsDevice.Collect(NativeLayout);
                 GraphicsDevice.Collect(NativeDescriptorSetLayout);
+                if (NativeArrayDescriptorSetLayout != VkDescriptorSetLayout.Null)
+                    GraphicsDevice.Collect(NativeArrayDescriptorSetLayout);
 
                 NativePipeline = VkPipeline.Null;
                 NativeLayout = VkPipelineLayout.Null;
                 NativeDescriptorSetLayout = VkDescriptorSetLayout.Null;
+                NativeArrayDescriptorSetLayout = VkDescriptorSetLayout.Null;
             }
 
             base.OnDestroyed(immediately);
@@ -323,8 +331,10 @@ namespace Stride.Graphics
 
             var maxBindingIndex = destinationBindings.Count > 0 ? destinationBindings.Max(x => x.Value.SlotStart + x.Value.SlotCount) : 0;
             var destinationEntries = new DescriptorSetLayoutBuilder.Entry[maxBindingIndex];
+            var arrayEntries = new DescriptorSetLayoutBuilder.Entry[maxBindingIndex];
 
             DescriptorBindingMapping = new List<DescriptorSetInfo>();
+            ArrayBindingMapping = new List<DescriptorSetInfo>();
 
             for (int i = 0; i < resourceGroups.Count; i++)
             {
@@ -346,7 +356,9 @@ namespace Stride.Graphics
 
                     if (destinationBindings.TryGetValue(sourceEntry.Key.Name, out var destinationBinding))
                     {
-                        destinationEntries[destinationBinding.SlotStart] = sourceEntry;
+                        // The shader has a texture array in set 1 (ShaderMixer.Options.TextureArrayDescriptorSet)
+                        var isArray = destinationBinding.SlotCount > 1;
+                        (isArray ? arrayEntries : destinationEntries)[destinationBinding.SlotStart] = sourceEntry;
 
                         // No need to update immutable samplers
                         if (sourceEntry.Class == EffectParameterClass.Sampler && sourceEntry.ImmutableSampler != null)
@@ -356,7 +368,7 @@ namespace Stride.Graphics
 
                         for (int element = 0; element < sourceEntry.ArraySize; element++)
                         {
-                            DescriptorBindingMapping.Add(new DescriptorSetInfo
+                            (isArray ? ArrayBindingMapping : DescriptorBindingMapping).Add(new DescriptorSetInfo
                             {
                                 SourceSet = layoutIndex,
                                 SourceBinding = firstSourceSlot + element,
@@ -370,20 +382,22 @@ namespace Stride.Graphics
                 }
             }
 
-            // Create descriptor set layout
+            // Create descriptor set layouts
             NativeDescriptorSetLayout = DescriptorSetLayout.CreateNativeDescriptorSetLayout(GraphicsDevice, destinationEntries, out DescriptorTypeCounts);
+            if (ArrayBindingMapping.Count > 0)
+                NativeArrayDescriptorSetLayout = DescriptorSetLayout.CreateNativeDescriptorSetLayout(GraphicsDevice, arrayEntries, out ArrayDescriptorTypeCounts);
 
             // Create pipeline layout
             // Push constants: one range of the full size for all stages, the same in every layout, so the values stay
             // valid between two pipelines with push constants (layouts "compatible for push constants")
             HasPushConstants = pipelineStateDescription.EffectBytecode.Reflection.PushConstants is not null;
             var pushConstantRange = new VkPushConstantRange { stageFlags = VkShaderStageFlags.All, offset = 0, size = CommandList.PushConstantsSize };
-            var nativeDescriptorSetLayout = NativeDescriptorSetLayout;
+            var nativeDescriptorSetLayouts = stackalloc VkDescriptorSetLayout[2] { NativeDescriptorSetLayout, NativeArrayDescriptorSetLayout };
             var pipelineLayoutCreateInfo = new VkPipelineLayoutCreateInfo
             {
                 sType = VkStructureType.PipelineLayoutCreateInfo,
-                setLayoutCount = 1,
-                pSetLayouts = &nativeDescriptorSetLayout,
+                setLayoutCount = ArrayBindingMapping.Count > 0 ? 2u : 1u,
+                pSetLayouts = nativeDescriptorSetLayouts,
                 pushConstantRangeCount = HasPushConstants ? 1u : 0u,
                 pPushConstantRanges = HasPushConstants ? &pushConstantRange : null,
             };

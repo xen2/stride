@@ -893,7 +893,7 @@ Vulkan/RenderTests.SwitchEveryCaseReturns strict=f62ee3a6f0ef legal=8cda9b60eeb7
 Vulkan/RenderTests.SwitchGenericLabels strict=0556f8a116e7 legal=ebea4e4b3310 reflection=05b3765fcecb explain=7720cd36d792
 Vulkan/RenderTests.Swizzle strict=1a801fd4ce2b legal=0541ba2681e5 reflection=76ead63e1c3a explain=6363d8e8b11b
 Vulkan/RenderTests.TernaryOperator strict=0320142bd0ad legal=3dcd09bf9727 reflection=38f0e14a7a23 explain=cafcab50f588
-Vulkan/RenderTests.TextureArray strict=d4f2fc029c35 legal=571c5cc7fadb reflection=4948f1a4f44c explain=fb2a57ce15ad
+Vulkan/RenderTests.TextureArray strict=d427ea134d36 legal=d7869b6a13ae reflection=4948f1a4f44c explain=fb2a57ce15ad
 Vulkan/RenderTests.TextureLinks strict=2cf1290d2f32 legal=12dddea76720 reflection=9a6a1c5fd0d7 explain=a41649adbae3
 Vulkan/RenderTests.TextureLoad strict=d0359b36e77c legal=c46d5707bf87 reflection=ebaa3e403945 explain=6ab0cbab3cfb
 Vulkan/RenderTests.TextureOffsetAfterUnroll strict=9c7148ff5245 legal=9c7148ff5245 reflection=4cf3b7c53ec9 explain=490e6c25087f

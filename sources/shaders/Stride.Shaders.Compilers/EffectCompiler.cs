@@ -179,7 +179,9 @@ namespace Stride.Shaders.Compiler
             ResourcesRegisterSeparate: platform is GraphicsPlatform.Direct3D11,
             StripGoogleUserType: platform is GraphicsPlatform.Vulkan,
             // Vulkan and D3D12 (spirv_to_dxil) read the SPIR-V layout; D3D11 packs the HLSL like Direct3D already
-            Direct3DStructuredBufferLayout: platform is GraphicsPlatform.Vulkan or GraphicsPlatform.Direct3D12);
+            Direct3DStructuredBufferLayout: platform is GraphicsPlatform.Vulkan or GraphicsPlatform.Direct3D12,
+            // Vulkan writes a descriptor set for each draw: texture arrays have a set of their own, written once
+            TextureArrayDescriptorSet: platform is GraphicsPlatform.Vulkan);
 
         public override TaskOrResult<EffectBytecodeCompilerResult> Compile(EffectSource effect, EffectCompilerParameters effectParameters, CompilerParameters compilerParameters, ObjectId mixinObjectId)
         {

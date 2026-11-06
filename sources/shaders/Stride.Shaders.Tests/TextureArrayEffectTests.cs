@@ -1,16 +1,18 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using System.Runtime.InteropServices;
 using Stride.Core.IO;
 using Stride.Graphics;
 using Stride.Rendering;
 using Stride.Shaders.Compiler;
+using static Stride.Shaders.Spirv.Specification;
 
 namespace Stride.Shaders.Parsers.Tests;
 
 /// <summary>
 /// Texture arrays through the effect compiler. On Direct3D 11, FXC indexes a texture array with a constant only: a literal, or a
-/// generic once the methods are inlined; any other index is error SDSL0268.
+/// generic once the methods are inlined; any other index is error SDSL0268. On Vulkan, texture arrays are in descriptor set 1.
 /// </summary>
 public class TextureArrayEffectTests : IDisposable
 {
@@ -85,6 +87,19 @@ public class TextureArrayEffectTests : IDisposable
             Assert.True(entry.Stages.HasFlag(ShaderStageFlags.Pixel), entry.ToString());
             var pixelSlots = bytecode.Reflection.ResourceBindings.Where(x => x.KeyInfo.KeyName == entry.KeyInfo.KeyName && x.Stage == ShaderStage.Pixel).Select(x => x.SlotStart - entry.SlotStart).Order();
             Assert.Equal([1, 3], pixelSlots);
+        }
+
+        // On Vulkan, the array is in descriptor set 1, and the sampler and the cbuffer in set 0
+        if (platform == GraphicsPlatform.Vulkan)
+        {
+            var words = MemoryMarshal.Cast<byte, uint>(bytecode.Stages[0].Data);
+            var sets = new List<uint>();
+            for (var w = 5; w < words.Length; w += (int)(words[w] >> 16))
+            {
+                if ((Op)(words[w] & 0xFFFF) == Op.OpDecorate && words[w + 2] == (uint)Decoration.DescriptorSet)
+                    sets.Add(words[w + 3]);
+            }
+            Assert.Equal([0u, 0u, 1u], sets.Order());
         }
     }
 
