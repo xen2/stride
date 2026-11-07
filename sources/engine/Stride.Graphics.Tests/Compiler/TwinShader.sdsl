@@ -1,0 +1,44 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+namespace Stride.Graphics.Tests
+{
+    shader TwinShader
+    {
+        import SpriteBase;
+
+        [CSharp] enum class TwinChannel : uint { R, G, B };
+
+        // Not std430: b is at 4 in C# and in a structured buffer on every API (std430 would put it at 16)
+        [CSharp] struct TwinRecord { float a; float3 b; TwinChannel channel; float2 e; float f; };
+
+        // In a cbuffer, as in C#: b is at 4, c at 16
+        [CSharp] struct TwinLight { float a; float3 b; float4 c; };
+
+        rgroup PerMaterial
+        {
+            [Link("TwinTest.Records")]
+            module StructuredBuffer<TwinRecord> Records;
+        }
+
+        cbuffer PerMaterial
+        {
+            [Link("TwinTest.Index")]
+            module uint Index;
+            [Link("TwinTest.Light")]
+            module TwinLight Light;
+        };
+
+        // Index 0 reads the cbuffer, the others the structured buffer
+        module override float4 Shading()
+        {
+            if (Index == 0)
+                return float4(Light.b, Light.a + Light.c.w);
+
+            var record = Records[Index - 1];
+            var rgb = record.b;
+            if (record.channel == TwinChannel.R)
+                rgb = float3(rgb.r, 0, 0);
+            return float4(rgb, record.a + record.f + record.e.x - record.e.y);
+        }
+    };
+}

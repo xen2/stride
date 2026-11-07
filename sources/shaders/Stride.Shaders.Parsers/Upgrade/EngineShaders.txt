@@ -426,6 +426,7 @@ TransformationSkinningInstanced	0	shader	-	-	TransformationSkinning,Transformati
 TransformationWAndVP	0	shader	-	-	PositionHStream4,TransformationBase,PositionStream4		Stride.Rendering.TransformationWAndVP		ComputeShadingPosition,PostTransformPosition,PreTransformPosition	
 TransformationWAndVPInstanced	0	shader	-	-	TransformationWAndVP,PositionHStream4,TransformationInstancing,PositionStream4		Stride.Rendering.TransformationWAndVPInstanced		PreTransformPosition	
 TripleRhombiCombineShader	0	shader	-	-	ImageEffectShader		Stride.Rendering.Images.TripleRhombiCombineShader	RhombiTapOffsets	Shading	
+TwinShader	0	shader	-	-	SpriteBase		Stride.Graphics.Tests.TwinShader	Index,Light,Records	Shading	
 UIEffectShader	1	shader	-	-	ShaderBase,Texturing		Stride.Rendering.UIEffectShader		PSMain,VSMain	
 UnorderedAccessOnlyTextureShader	0	shader	-	-	ComputeShaderBase		Stride.Graphics.Tests.UnorderedAccessOnlyTextureShader	Output	Compute	
 UnorderedAccessReverseIncrementTestShader	0	shader	-	-	ComputeShaderBase		Stride.Graphics.Tests.UnorderedAccessReverseIncrementTestShader	Count,Data	Compute	
@@ -573,6 +574,7 @@ TextureArrayThirdElementEffect	0	effect	-	-			Stride.Graphics.Tests.TextureArray
 TextureArrayTwoGroupsEffect	0	effect	-	-			Stride.Graphics.Tests.TextureArrayTwoGroupsEffect	
 ToGlslEffect	0	effect	-	-			Test.ToGlslEffect	
 ToneMapEffect	0	effect	-	-			Stride.Rendering.Images.ToneMapEffect	
+TwinEffect	0	effect	-	-			Stride.Graphics.Tests.TwinEffect	
 Voxel2x2x2MipmapEffect	0	effect	-	-			Stride.Rendering.Voxels.Voxel2x2x2MipmapEffect	
 VoxelVisualizationRawEffect	0	effect	-	-			Stride.Rendering.Voxels.Debug.VoxelVisualizationRawEffect	
 VoxelVisualizationViewEffect	0	effect	-	-			Stride.Rendering.Voxels.Debug.VoxelVisualizationViewEffect	
