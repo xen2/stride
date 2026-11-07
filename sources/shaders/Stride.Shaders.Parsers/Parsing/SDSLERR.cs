@@ -172,6 +172,13 @@ public static class SDSLErrorMessages
     public const string SDSL0284 = "SDSL0284: enum {0} is outside a shader. An enum is declared in a shader or a module, like a struct, and classes that inherit or import it see it.";
     public const string SDSL0285 = "SDSL0285: {0}<{1}>: an enum can't be the element of a typed buffer or a texture. Use {0}<{2}>, and cast what you read: ({1})value.";
 
+    // C# twins: [CSharp] on an enum or a struct. SDSL0286 is found when a class compiles, SDSL0287 to SDSL0290 when the C# code is generated
+    public const string SDSL0286 = "SDSL0286: [CSharp] on {0} {1}: {2}.";
+    public const string SDSL0287 = "SDSL0287: [CSharp(\"{1}\")] on enum {0}: {2}. Check the full name (a nested type is written Outer+Inner), and that the project references the assembly that declares it.";
+    public const string SDSL0288 = "SDSL0288: enum {0} doesn't match the C# enum {1}: {2}. Change one of them, or write [CSharp(\"{1}\", SkipValueCheck = true)] if the difference is wanted.";
+    public const string SDSL0289 = "SDSL0289: Field {1} of the [CSharp] struct {0} has type {2}, {3}.";
+    public const string SDSL0290 = "SDSL0290: Field {1} of the [CSharp] struct {0} has type {2}, but C# has no type {2}. Add [CSharp] to {2} where it is declared{3}.";
+
     // HLSL warnings: valid HLSL that is probably a mistake, reported when a class compiles
     public const string SDSL0219 = "SDSL0219: comma expression ({0}): the values before the last are dropped, the result is {1}. To build a vector, write its type: float4(...).";
     public const string SDSL0220 = "SDSL0220: {0} on {1} is ignored: Stride lays out cbuffers and binds resources itself. Remove it.";

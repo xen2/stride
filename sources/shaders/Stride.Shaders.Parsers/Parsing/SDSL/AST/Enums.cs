@@ -35,6 +35,11 @@ public partial class ShaderEnum(Identifier name, TextLocation info) : ShaderElem
     public List<ShaderEnumValue> Values { get; set; } = [];
 
     /// <summary>
+    /// The attributes written before <c>enum</c>: <c>[CSharp]</c> (<see cref="CSharpTypeAttribute"/>).
+    /// </summary>
+    public List<ShaderAttribute> Attributes { get; set; } = [];
+
+    /// <summary>
     /// Checks the declaration (SDSL0270 to SDSL0274) and declares the <see cref="EnumType"/> in the class.
     /// </summary>
     public override void ProcessSymbol(SymbolTable table, SpirvContext context)

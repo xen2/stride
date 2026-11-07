@@ -27,11 +27,14 @@ public class EffectGenerator : IIncrementalGenerator
             var (_, candidates, declared, _) = Generate(x.Left, null, x.Right);
             return (Candidates: string.Join("\n", candidates), Declared: string.Join("\n", declared));
         });
+        // A declared name that starts with % is an enum or struct of a file and its C# twin (EffectCodeWriter.CSharpAnswers)
         var existingTypes = firstPass.Collect().Combine(context.CompilationProvider).Select((x, _) => string.Join("\n", x.Left
             .SelectMany(names => names.Candidates.Split('\n'))
-            .Where(name => name.Length > 0 && CSharpNameExists(x.Right, name))
-            .Concat(x.Left.SelectMany(names => names.Declared.Split('\n')).Where(name => name.Length > 0).Select(name => $"{name}Keys#"))
-            .Concat(x.Left.SelectMany(names => names.Declared.Split('\n')).Where(name => name.Length > 0).GroupBy(name => name).Where(names => names.Count() > 1).Select(names => $"{names.Key}Keys*"))
+            .Where(name => name.Length > 0)
+            .SelectMany(name => CSharpAnswersOf(x.Right, name))
+            .Concat(x.Left.SelectMany(names => names.Declared.Split('\n')).Where(name => name.Length > 0 && name[0] != '%').Select(name => $"{name}Keys#"))
+            .Concat(x.Left.SelectMany(names => names.Declared.Split('\n')).Where(name => name.Length > 0 && name[0] != '%').GroupBy(name => name).Where(names => names.Count() > 1).Select(names => $"{names.Key}Keys*"))
+            .Concat(x.Left.SelectMany(names => names.Declared.Split('\n')).Where(name => name.Length > 0 && name[0] == '%'))
             .Distinct()
             .OrderBy(name => name, StringComparer.Ordinal)));
 
@@ -41,7 +44,7 @@ public class EffectGenerator : IIncrementalGenerator
         {
             var existing = new HashSet<string>(x.Left.Right.Split('\n'));
             var file = x.Left.Left.Left;
-            var generated = Generate(file, existing.Contains, x.Left.Left.Right, x.Right);
+            var generated = Generate(file, existing.Contains, x.Left.Left.Right, x.Right, AnswersByQuestion(existing));
             // The compiler doesn't show an #error of generated code when the project's own code has errors, which it has as soon as
             // this file generates nothing: the errors are diagnostics of the shader file instead
             foreach (var error in generated.Errors)
@@ -84,8 +87,9 @@ public class EffectGenerator : IIncrementalGenerator
     /// <param name="csharpTypeExists">Whether a C# name exists (see <see cref="EffectCodeWriter.CSharpTypeExists"/>).</param>
     /// <param name="implicitUsings">The implicit usings, separated by commas.</param>
     /// <param name="referencedLayers">The referenced assemblies that hold a layer (see <see cref="EffectCodeWriter.ReferencedLayers"/>), separated by commas.</param>
-    /// <returns>The code, the C# names it depends on, the shaders and effects it writes, and its errors with their line and column (0 when unknown).</returns>
-    public static (string Text, IEnumerable<string> Candidates, IEnumerable<string> Declared, IReadOnlyList<(string Message, int Line, int Column)> Errors) Generate(AdditionalText file, Func<string, bool>? csharpTypeExists, string implicitUsings, string referencedLayers = "")
+    /// <param name="csharpAnswers">The answers about C# twins (see <see cref="EffectCodeWriter.CSharpAnswers"/>).</param>
+    /// <returns>The code, the C# names it depends on, the shaders, effects and C# twins it writes, and its errors with their line and column (0 when unknown).</returns>
+    public static (string Text, IEnumerable<string> Candidates, IEnumerable<string> Declared, IReadOnlyList<(string Message, int Line, int Column)> Errors) Generate(AdditionalText file, Func<string, bool>? csharpTypeExists, string implicitUsings, string referencedLayers = "", IReadOnlyDictionary<string, string>? csharpAnswers = null)
     {
         var isSdfx = Path.GetExtension(file.Path).Equals(".sdfx", StringComparison.OrdinalIgnoreCase);
 
@@ -117,6 +121,7 @@ public class EffectGenerator : IIncrementalGenerator
             {
                 FileName = Path.GetFileName(file.Path),
                 CSharpTypeExists = csharpTypeExists,
+                CSharpAnswers = csharpAnswers,
                 ImplicitUsings = implicitUsings.Split(',', StringSplitOptions.RemoveEmptyEntries),
                 ReferencedLayers = referencedLayers.Split(',', StringSplitOptions.RemoveEmptyEntries),
             };
@@ -131,6 +136,46 @@ public class EffectGenerator : IIncrementalGenerator
         {
             return ($"#error Exception while running {nameof(EffectGenerator)} {e}", [], [], [($"Exception while running {nameof(EffectGenerator)} {e}", 0, 0)]);
         }
+    }
+
+    // The answers of the compilation to a question of a file: the name when it exists (see EffectCodeWriter.CSharpTypeExists), or, for a
+    // question about a C# twin, the question and its answer (see EffectCodeWriter.CSharpAnswers)
+    private static IEnumerable<string> CSharpAnswersOf(Compilation compilation, string name)
+    {
+        if (name.EndsWith("~", StringComparison.Ordinal))
+        {
+            if (compilation.GetTypeByMetadataName(name.TrimEnd('~')) is not { } type)
+                return [];
+            if (type.TypeKind != TypeKind.Enum || type.EnumUnderlyingType is not { } underlyingType)
+                return [$"{name}notenum"];
+            var values = type.GetMembers().OfType<IFieldSymbol>().Where(x => x.HasConstantValue).Select(x => $"{x.Name}={Convert.ToInt64(x.ConstantValue, System.Globalization.CultureInfo.InvariantCulture)}");
+            return [$"{name}{underlyingType.ToDisplayString()}:{string.Join(",", values)}"];
+        }
+
+        // A twin generated from a shader in another project has the GeneratedCode attribute of this generator
+        if (name.EndsWith("?", StringComparison.Ordinal))
+        {
+            var generatorName = typeof(EffectCodeWriter).Assembly.GetName().Name;
+            return compilation.GetTypeByMetadataName(name.TrimEnd('?')) is { TypeKind: TypeKind.Enum or TypeKind.Struct } type
+                && type.GetAttributes().Any(x => x.AttributeClass?.Name == "GeneratedCodeAttribute" && x.ConstructorArguments is [{ Value: string tool }, ..] && tool == generatorName)
+                ? [$"{name}{(type.TypeKind == TypeKind.Enum ? "enum" : "struct")}"]
+                : [];
+        }
+
+        return CSharpNameExists(compilation, name) ? [name] : [];
+    }
+
+    // The answers about C# twins, by question: "Full.Name~", "Name?" and "%Name="
+    private static Dictionary<string, string> AnswersByQuestion(IEnumerable<string> answers)
+    {
+        var result = new Dictionary<string, string>();
+        foreach (var answer in answers)
+        {
+            var end = answer.StartsWith("%", StringComparison.Ordinal) ? answer.IndexOf('=') : answer.IndexOfAny(['~', '?']);
+            if (end > 0)
+                result.TryAdd(answer[..(end + 1)], answer[(end + 1)..]);
+        }
+        return result;
     }
 
     // A name ending in a dot is a namespace (see EffectCodeWriter.CSharpTypeExists)

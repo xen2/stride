@@ -9,7 +9,7 @@ using Stride.Shaders.Spirv;
 
 namespace Stride.Shaders.Parsing.SDFX;
 
-public class EffectCodeWriter : ShaderWriter
+public partial class EffectCodeWriter : ShaderWriter
 {
     private const string DefaultNameSpace = "Stride.Rendering";
 
@@ -131,11 +131,15 @@ public class EffectCodeWriter : ShaderWriter
     public override void VisitShaderEnum(ShaderEnum shaderEnum)
     {
         // Register the enum in the table, for the keys of its type
-        shaderEnum.ProcessSymbol(table, table.Context);
+        if (processedTypes.Add(shaderEnum))
+            shaderEnum.ProcessSymbol(table, table.Context);
     }
 
     public override void VisitShaderStruct(ShaderStruct shaderStruct)
     {
+        if (!processedTypes.Add(shaderStruct))
+            return;
+
         // Register struct in table
         if (shaderStruct.Kind == ShaderStructKind.Plain)
         {
@@ -195,15 +199,15 @@ public class EffectCodeWriter : ShaderWriter
         }
 
         // An enum of the shaders has no C# type
-        if (variableType == null && parameterType is EnumType)
+        if (variableType == null && parameterType is EnumType or ExternalType && CSharpTwinOf(parameterType.ToString()) is ("enum", null))
         {
             WriteLine($"// No key for {name}: the enum {parameterType} has no C# type");
             isProcessingColor = false;
             return;
         }
 
-        // A struct key needs a C# struct of the same name
-        if (variableType == null && parameterType is StructType or ExternalType)
+        // A struct key needs a C# struct of the same name, or a [CSharp] type
+        if (variableType == null && parameterType is StructType or ExternalType && CSharpTwinOf(parameterType.ToString()) is not (_, { }))
         {
             var candidates = CSharpTypeNames(parameterType.ToString());
             CSharpTypeCandidates.UnionWith(candidates);
@@ -273,6 +277,7 @@ public class EffectCodeWriter : ShaderWriter
         VectorType { BaseType.Type: Scalar.Int or Scalar.UInt, Size: var n } => $"Int{n}",
         MatrixType { Rows: 4, Columns: 4, BaseType.Type: Scalar.Float } => "Matrix",
         ArrayType a => $"{ToCSharpType(a.BaseType)}[]",
+        EnumType or StructType or ExternalType when CSharpTwinOf(type.ToString()) is (_, { } twin) => twin,
         BufferType or StructuredBufferType or AppendStructuredBufferType or ConsumeStructuredBufferType or ByteAddressBufferType => "Buffer",
         TextureType => "Texture",
         SamplerType => "SamplerState",
@@ -938,6 +943,8 @@ public class EffectCodeWriter : ShaderWriter
     public override void VisitShaderClass(ShaderClass shaderClass)
     {
         var fullName = ShaderNames.Combine(currentShaderNamespace, shaderClass.Name);
+
+        WriteCSharpTypes(shaderClass);
 
         // A class written by hand without partial: C# can't take a second part with only the handle
         var handWritten = $"{currentNamespace}.{shaderClass.Name}Keys!";

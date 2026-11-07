@@ -735,6 +735,23 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             table.AddError(new(text.Info, string.Format(SDSLErrorMessages.SDSL0255, "Replaces", Name.Name, text.Value)));
         else if (FindAttribute("Replaces") is { } replaces && ShaderReplacement.Target(this) == null)
             table.AddError(new(replaces.Info, string.Format(SDSLErrorMessages.SDSL0135, "Replaces", Name.Name, "on a class, [Replaces] takes the full name of one class, and replaces that whole class. To drop a contributor from a chain, put [Drops(Mixins = { Name })] on an override")));
+        // The arguments of [CSharp], whose C# twins the generator writes
+        foreach (var element in Elements)
+        {
+            var (attributes, kind, typeName, isPlain) = element switch
+            {
+                ShaderEnum e => (e.Attributes, "enum", e.Name.Name, true),
+                ShaderStruct s => (s.Attributes, "struct", s.TypeName.Name, s.Kind == ShaderStructKind.Plain),
+                _ => (null, "", "", false),
+            };
+            if (attributes is not { Count: > 0 })
+                continue;
+            var attributeErrors = new List<(string Message, TextLocation Location)>();
+            CSharpTypeAttribute.Read(attributes, kind, typeName, isPlain, attributeErrors);
+            foreach (var (message, location) in attributeErrors)
+                table.AddError(new(location, message));
+        }
+
         // Enums, then structs (plain and partial views), in the order they contain each other
         foreach (var enumElement in Elements.OfType<ShaderEnum>())
             enumElement.ProcessSymbol(table, context);

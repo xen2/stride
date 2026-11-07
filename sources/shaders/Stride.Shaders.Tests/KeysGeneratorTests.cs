@@ -365,9 +365,16 @@ public class KeysGeneratorTests
     }
 
     // Runs the generator on the shader and compiles its output with the C# source
-    private static (string Generated, List<string> Errors) Build(string shader, string csharp) => Build([("KeysGeneratorCheck.sdsl", shader)], csharp);
+    internal static (string Generated, List<string> Errors) Build(string shader, string csharp) => Build([("KeysGeneratorCheck.sdsl", shader)], csharp);
 
-    private static (string Generated, List<string> Errors) Build((string Path, string Text)[] files, string csharp)
+    internal static (string Generated, List<string> Errors) Build((string Path, string Text)[] files, string csharp)
+    {
+        var (generated, errors, _) = BuildCompilation(files, csharp);
+        return (generated, errors);
+    }
+
+    // Also gives the compilation with the generated code, to emit it
+    internal static (string Generated, List<string> Errors, Compilation Output) BuildCompilation((string Path, string Text)[] files, string csharp)
     {
         // The assemblies the generated keys use
         var references = new[] { typeof(object), typeof(Stride.Rendering.ParameterKeys), typeof(Stride.Core.Mathematics.Vector4), typeof(Stride.Graphics.Texture), typeof(Stride.Core.DataContractAttribute), typeof(Stride.Shaders.ShaderMixinSource), typeof(Stride.Shaders.ShaderMixinContext) }
@@ -382,7 +389,7 @@ public class KeysGeneratorTests
 
         var generated = string.Join("\n", driver.GetRunResult().GeneratedTrees.Select(x => x.ToString()));
         var errors = generatorDiagnostics.Concat(output.GetDiagnostics()).Where(x => x.Severity == DiagnosticSeverity.Error).Select(x => x.ToString()).ToList();
-        return (generated, errors);
+        return (generated, errors, output);
     }
 
     private sealed class ShaderText(string path, string text) : AdditionalText

@@ -250,6 +250,11 @@ public partial class ShaderStruct(Identifier typename, TextLocation info) : Shad
     public List<ShaderStructMember> Members { get; set; } = [];
     public ShaderStructKind Kind { get; set; }
 
+    /// <summary>
+    /// The attributes written before <c>struct</c>: <c>[CSharp]</c> (<see cref="CSharpTypeAttribute"/>).
+    /// </summary>
+    public List<ShaderAttribute> Attributes { get; set; } = [];
+
     public override void ProcessSymbol(SymbolTable table, SpirvContext context)
     {
         // Called by PartialStructs.DeclareStructs, after the structs this one contains; a partial struct is declared there as a view
@@ -276,7 +281,9 @@ public partial class ShaderStruct(Identifier typename, TextLocation info) : Shad
 
         // Register in the SPIR-V context immediately so that CBuffer.ProcessSymbol can reference
         // this struct type as a member type before the Compile phase runs.
-        context.DeclareStructuredType((StructType)Type, context.Bound++);
+        // (The key generator doesn't resolve the types of other files, so it has no SPIR-V of them.)
+        if (table.ResolveExternalTypes)
+            context.DeclareStructuredType((StructType)Type, context.Bound++);
     }
 
     public void Compile(SymbolTable table, ShaderClass shaderClass, CompilerUnit compiler)

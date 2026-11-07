@@ -26,15 +26,9 @@ public record struct ShaderElementParsers : IParser<ShaderElement>
             parsed = buffer;
             return true;
         }
-        else if (ShaderEnumParser.Enum(ref scanner, result, out var enumElement))
+        else if (TypeWithAttributes(ref scanner, result, out var typeElement))
         {
-            parsed = enumElement;
-            return true;
-        }
-        else if (Struct(ref scanner, result, out var structElement))
-        {
-            Parsers.FollowedBy(ref scanner, Tokens.Char(';'), withSpaces: true, advance: true);
-            parsed = structElement;
+            parsed = typeElement;
             return true;
         }
         else
@@ -69,6 +63,33 @@ public record struct ShaderElementParsers : IParser<ShaderElement>
     public static bool Struct<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderStruct parsed, in ParseError? orError = null)
         where TScanner : struct, IScanner
         => new ShaderStructParser().Match(ref scanner, result, out parsed, in orError);
+
+    /// <summary>
+    /// An enum or a struct, with the attributes written before it (<c>[CSharp]</c>). Attributes followed by anything else are
+    /// read by that element.
+    /// </summary>
+    public static bool TypeWithAttributes<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderElement parsed, in ParseError? orError = null)
+        where TScanner : struct, IScanner
+    {
+        var position = scanner.Position;
+        var hasAttributes = ShaderAttributeListParser.AttributeList(ref scanner, result, out var attributes) && Parsers.Spaces0(ref scanner, result, out _);
+        if (ShaderEnumParser.Enum(ref scanner, result, out var enumElement))
+        {
+            if (hasAttributes)
+                enumElement.Attributes = attributes!.Attributes;
+            parsed = enumElement;
+            return true;
+        }
+        if (Struct(ref scanner, result, out var structElement))
+        {
+            Parsers.FollowedBy(ref scanner, Tokens.Char(';'), withSpaces: true, advance: true);
+            if (hasAttributes)
+                structElement.Attributes = attributes!.Attributes;
+            parsed = structElement;
+            return true;
+        }
+        return Parsers.Exit(ref scanner, result, out parsed, position, orError);
+    }
 
 
     public static bool AnySamplers<TScanner>(ref TScanner scanner, ParseResult result, [MaybeNullWhen(false)] out ShaderElement parsed, in ParseError? orError = null)
