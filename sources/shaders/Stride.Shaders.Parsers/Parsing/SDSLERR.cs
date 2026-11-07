@@ -178,6 +178,8 @@ public static class SDSLErrorMessages
     public const string SDSL0288 = "SDSL0288: enum {0} doesn't match the C# enum {1}: {2}. Change one of them, or write [CSharp(\"{1}\", SkipValueCheck = true)] if the difference is wanted.";
     public const string SDSL0289 = "SDSL0289: Field {1} of the [CSharp] struct {0} has type {2}, {3}.";
     public const string SDSL0290 = "SDSL0290: Field {1} of the [CSharp] struct {0} has type {2}, but C# has no type {2}. Add [CSharp] to {2} where it is declared{3}.";
+    // Found when an effect is mixed
+    public const string SDSL0291 = "SDSL0291: {0} of the cbuffer {1} is the [CSharp] struct {2}, whose field {3} is at offset {4} in a cbuffer and {5} in C#. Add a padding field before {3} in {2}{6}, or write [CSharp(SkipLayoutCheck = true)] on {2} if another C# struct fills this cbuffer.";
 
     // HLSL warnings: valid HLSL that is probably a mistake, reported when a class compiles
     public const string SDSL0219 = "SDSL0219: comma expression ({0}): the values before the last are dropped, the result is {1}. To build a vector, write its type: float4(...).";

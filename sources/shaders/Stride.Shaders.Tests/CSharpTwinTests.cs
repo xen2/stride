@@ -151,7 +151,8 @@ public class CSharpTwinTests : IDisposable
     [InlineData("[CSharp(SkipValueCheck = true)] enum class Mode : uint { Off };", "SDSL0286: [CSharp] on enum Mode: SkipValueCheck is for an enum mapped to a C# enum written by hand, as in [CSharp(\"Full.Name\", SkipValueCheck = true)]: a generated enum has the values of Mode.")]
     [InlineData("[CSharp(\"Game.Record\")] struct Record { float a; };", "SDSL0286: [CSharp] on struct Record: a struct can't be mapped to a C# struct yet. Write [CSharp], and the C# struct is generated.")]
     [InlineData("[CSharp(SkipValueCheck = true)] struct Record { float a; };", "SDSL0286: [CSharp] on struct Record: SkipValueCheck is for an enum mapped to a C# enum.")]
-    [InlineData("[CSharp(Strict = true)] enum class Mode : uint { Off };", "SDSL0286: [CSharp] on enum Mode: Strict is not an argument of [CSharp]: it takes the full name of a C# enum, and SkipValueCheck = true.")]
+    [InlineData("[CSharp(Strict = true)] enum class Mode : uint { Off };", "SDSL0286: [CSharp] on enum Mode: Strict is not an argument of [CSharp]: it takes the full name of a C# enum and SkipValueCheck = true on an enum, SkipLayoutCheck = true on a struct.")]
+    [InlineData("[CSharp(SkipLayoutCheck = true)] enum class Mode : uint { Off };", "SDSL0286: [CSharp] on enum Mode: SkipLayoutCheck is for a struct in a cbuffer: an enum is a 32-bit int or uint everywhere.")]
     [InlineData("[CSharp] partial struct Record { float a; };", "SDSL0286: [CSharp] on struct Record: the fields of a partial struct depend on the effect, so it has no C# twin.")]
     [InlineData("[CSharp] [CSharp] enum class Mode : uint { Off };", "SDSL0286: [CSharp] on enum Mode: write [CSharp] once.")]
     [InlineData("[Shared] enum class Mode : uint { Off };", "SDSL0217: Attribute [Shared] on enum Mode does nothing: the compiler only knows [CSharp] there. Check its spelling.")]
@@ -203,7 +204,7 @@ public class CSharpTwinTests : IDisposable
         Assert.Empty(errors);
         Assert.Contains("public global::Stride.Shaders.Tests.Keys.SlotOp op;", generated);
         Assert.Contains("ValueParameterKey<global::Stride.Shaders.Tests.Keys.SlotOp> Op", generated);
-        // Not the C# Stride.Graphics.Blend of the generated usings either: an enum of the shaders has no key
+        // An enum of another file without [CSharp] has no key, whatever C# type has its name
         Assert.Contains("// No key for View: the enum DebugView has no C# type", generated);
 
         var withShadersOnlyField = shader.Replace("LayerRecord layer;", "DebugView view;");
@@ -296,6 +297,70 @@ public class CSharpTwinTests : IDisposable
 
         Assert.Equal(fields.Select(x => (x.Name, (int)Marshal.OffsetOf(record, x.Name))), fields.Select(x => (x.Name, offsets[x.Name])));
         Assert.Equal(Marshal.SizeOf(record), stride);
+    }
+
+    /// <summary>
+    /// A cbuffer packs a struct in 16-byte rows: a <c>[CSharp]</c> struct whose fields move there is an error when the effect is mixed,
+    /// on every API, unless a padding field makes both layouts the same or <c>SkipLayoutCheck = true</c> says C# fills it another way.
+    /// </summary>
+    [Theory]
+    [InlineData(GraphicsPlatform.Direct3D11)]
+    [InlineData(GraphicsPlatform.Direct3D12)]
+    [InlineData(GraphicsPlatform.Vulkan)]
+    public void CBufferLaysOutATwinAsCSharp(GraphicsPlatform platform)
+    {
+        const string fields = "float3 direction; float3 color;";
+        var (ok, log, _) = MixCBuffer($"[CSharp] struct Light {{ {fields} }};", "Light MainLight;", platform, value: "MainLight.color");
+        Assert.False(ok);
+        Assert.Contains("SDSL0291: MainLight of the cbuffer PerDraw is the [CSharp] struct Light, whose field color is at offset 16 in a cbuffer and 12 in C#. Add a padding field before color in Light, such as float pad0;, or write [CSharp(SkipLayoutCheck = true)] on Light if another C# struct fills this cbuffer.", log);
+
+        // Inside an array, and inside another struct
+        (ok, log, _) = MixCBuffer($"[CSharp] struct Light {{ {fields} }}; struct Scene {{ float4 ambient; Light lights[2]; }};", "Scene MainScene;", platform, value: "MainScene.lights[1].color");
+        Assert.False(ok);
+        Assert.Contains("SDSL0291: MainScene.lights[] of the cbuffer PerDraw is the [CSharp] struct Light, whose field color is at offset 16 in a cbuffer and 12 in C#.", log);
+
+        (ok, log, var bytecode) = MixCBuffer("[CSharp] struct Light { float3 direction; float pad0; float3 color; };", "Light MainLight;", platform, value: "MainLight.color");
+        Assert.True(ok, log);
+        var validation = Stride.Shaders.Spirv.Tools.Spv.ValidateBinary(bytecode, targetVulkan: platform == GraphicsPlatform.Vulkan);
+        Assert.True(validation.IsValid, validation.Output);
+
+        (ok, log, _) = MixCBuffer($"[CSharp(SkipLayoutCheck = true)] struct Light {{ {fields} }};", "Light MainLight;", platform, value: "MainLight.color");
+        Assert.True(ok, log);
+
+        // Not a twin: no C# layout to match
+        (ok, log, _) = MixCBuffer($"struct Light {{ {fields} }};", "Light MainLight;", platform, value: "MainLight.color");
+        Assert.True(ok, log);
+    }
+
+    // A twin whose cbuffer and structured buffer layouts agree can be in both. (On Direct3D 11, the SPIR-V of a structured buffer
+    // keeps std430, which differs here: one struct in both is an error there, with or without [CSharp].)
+    [Theory]
+    [InlineData(GraphicsPlatform.Direct3D12)]
+    [InlineData(GraphicsPlatform.Vulkan)]
+    public void TwinInACBufferAndAStructuredBuffer(GraphicsPlatform platform)
+    {
+        var (ok, log, _) = MixCBuffer("[CSharp] struct Record { float a; float3 b; uint c; float2 e; float f; };", "Record Current;", platform, "rgroup PerMaterial { StructuredBuffer<Record> Records; }", "Records[0].b + Current.b");
+        Assert.True(ok, log);
+    }
+
+    // value: a float3 that reads the member
+    private (bool Ok, string Log, byte[] Bytecode) MixCBuffer(string declarations, string member, GraphicsPlatform platform, string resources = "", string value = "float3(0, 0, 0)")
+    {
+        Write("TwinCBuffer", $$"""
+            shader TwinCBuffer
+            {
+                stream float4 ColorTarget : SV_Target0;
+                {{declarations}}
+                cbuffer PerDraw { uint Index; {{member}} };
+                {{resources}}
+                void PSMain() { streams.ColorTarget = float4({{value}}, float(Index)); }
+            };
+            """);
+        var mixer = new ShaderMixer(new ShaderLoader(sourceDir.FullName));
+        mixer.ShaderLoader.LoadExternalBuffer(TestShader.FullName("TwinCBuffer"), [], out _, out _, out _);
+        var log = new LoggerResult();
+        var ok = mixer.MergeSDSL(new ShaderClassSource(TestShader.FullName("TwinCBuffer")), EffectCompiler.GetMixerOptions(platform), log, out var bytecode, out _, out _, out _);
+        return (ok && !log.HasErrors, string.Join(Environment.NewLine, log.Messages.Select(m => m.Text)), ok ? bytecode.ToArray() : []);
     }
 
     // The member offsets of a struct, and the stride of the structured buffer of it

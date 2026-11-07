@@ -757,6 +757,11 @@
               }
             ],
             "version": "1.0"
+          },
+          {
+            "enumerant": "CSharpLayoutSDSL",
+            "value": 8082,
+            "version": "1.0"
           }
         ]
     },

@@ -698,6 +698,7 @@ public static partial class Specification
         PatchConstantFuncSDSL = 8070,
         PartialStructSDSL = 8080,
         PartialFieldSDSL = 8081,
+        CSharpLayoutSDSL = 8082,
     }
 
     public enum BuiltIn

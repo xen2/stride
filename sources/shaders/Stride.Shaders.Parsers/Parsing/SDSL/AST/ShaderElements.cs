@@ -282,8 +282,14 @@ public partial class ShaderStruct(Identifier typename, TextLocation info) : Shad
         // Register in the SPIR-V context immediately so that CBuffer.ProcessSymbol can reference
         // this struct type as a member type before the Compile phase runs.
         // (The key generator doesn't resolve the types of other files, so it has no SPIR-V of them.)
-        if (table.ResolveExternalTypes)
-            context.DeclareStructuredType((StructType)Type, context.Bound++);
+        if (!table.ResolveExternalTypes)
+            return;
+        var id = context.Bound++;
+        context.DeclareStructuredType((StructType)Type, id);
+
+        // The mixer checks that a cbuffer lays out a [CSharp] struct as its C# twin (the class compile reports the errors of the attribute)
+        if (CSharpTypeAttribute.Read(Attributes, "struct", TypeName.Name, true, []) is { SkipLayoutCheck: false })
+            context.Add(new OpDecorate(id, Specification.Decoration.CSharpLayoutSDSL, []));
     }
 
     public void Compile(SymbolTable table, ShaderClass shaderClass, CompilerUnit compiler)

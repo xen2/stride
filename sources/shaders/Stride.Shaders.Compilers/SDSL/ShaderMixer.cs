@@ -147,6 +147,8 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         // Before the cbuffer reflection, which then sees only Uniform cbuffers
         if (pushConstantsVariable is int pushConstantsVariableId && !ProcessPushConstants(globalContext, context, temp, pushConstantsVariableId, pushConstantsParts, log))
             return false;
+        if (!CheckCSharpStructsInCBuffers(context, temp, log))
+            return false;
         ComputeCBufferReflection(globalContext, context, temp);
 
         // From this point, assume ShaderInfo.StartInstruction/EndInstruction are not valid anymore, as we add instructions without updating them
@@ -1568,6 +1570,7 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                     or Decoration.PatchConstantFuncSDSL
                     or Decoration.LinkIdSDSL or Decoration.LinkSDSL or Decoration.ColorSDSL or Decoration.LogicalGroupSDSL or Decoration.ResourceGroupSDSL or Decoration.ResourceGroupIdSDSL
                     or Decoration.SamplerStateSDSL
+                    or Decoration.CSharpLayoutSDSL
                     // Matrix layout of a member variable (moved to the Globals cbuffer); only valid on struct members in SPIR-V
                     or Decoration.RowMajor or Decoration.ColMajor)
                 return true;
