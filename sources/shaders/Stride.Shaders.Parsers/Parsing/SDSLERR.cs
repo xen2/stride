@@ -166,6 +166,8 @@ public static class SDSLErrorMessages
     public const string SDSL0278 = "SDSL0278: {0}::{1}: '::' is not part of the language. Write {0}.{1}.";
     public const string SDSL0279 = "SDSL0279: {0} is both the enum {0} and {1} here, so {0}.{2} could mean either. Rename {1}.";
     public const string SDSL0280 = "SDSL0280: The enum {0} has no value {1}. Its values: {2}.";
+    public const string SDSL0281 = "SDSL0281: case {0}: {1}.";
+    public const string SDSL0282 = "SDSL0282: This switch on {0} has no default, and no case for {1}. Add a case for each, or a default.";
     public const string SDSL0283 = "SDSL0283: {0} declares generic parameter {1} of the enum type {2}, which is not supported yet. Declare <int {1}> or <uint {1}>, and cast it where it is used: ({2}){1}.";
     public const string SDSL0284 = "SDSL0284: enum {0} is outside a shader. An enum is declared in a shader or a module, like a struct, and classes that inherit or import it see it.";
     public const string SDSL0285 = "SDSL0285: {0}<{1}>: an enum can't be the element of a typed buffer or a texture. Use {0}<{2}>, and cast what you read: ({1})value.";

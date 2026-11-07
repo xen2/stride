@@ -10,8 +10,8 @@ using Spv = Stride.Shaders.Spirv.Tools.Spv;
 namespace Stride.Shaders.Parsers.Tests;
 
 /// <summary>
-/// <c>enum class X : uint { A, B }</c>: values written <c>X.A</c>, which convert only with a cast and compare with == and !=.
-/// The mixer makes an enum its int or uint. Every mistake is an error (SDSL0270 to SDSL0285).
+/// <c>enum class X : uint { A, B }</c>: values written <c>X.A</c>, which convert only with a cast, compare with == and !=, and
+/// name every value in a switch with no default. The mixer makes an enum its int or uint. Every mistake is an error (SDSL0270 to SDSL0285).
 /// </summary>
 public class EnumTests : IDisposable
 {
@@ -230,6 +230,17 @@ public class EnumTests : IDisposable
     [Fact]
     public void ValueThatDoesNotExist()
         => AssertStatementError("var value = Channel.Q;", "SDSL0280: The enum Channel has no value Q. Its values: All, R, G.");
+
+    [Theory]
+    [InlineData("switch (Channel.R) { case 1: break; default: break; }", "SDSL0281: case 1: the switch is on Channel, so a case is one of its values, such as Channel.All.")]
+    [InlineData("switch (Channel.R) { case Other.X: break; default: break; }", "SDSL0281: case Other.X: the switch is on Channel, so a case is one of its values, such as Channel.All.")]
+    [InlineData("uint value = 1; switch (value) { case Channel.R: break; default: break; }", "SDSL0281: case Channel.R: Channel.R is a value of the enum Channel, and the switch is on uint. Switch on a Channel, or cast: switch ((Channel)value).")]
+    public void CaseLabelOfTheSelectorEnum(string statement, string expected)
+        => AssertStatementError(statement, expected);
+
+    [Fact]
+    public void SwitchWithNoDefaultNamesEveryValue()
+        => AssertStatementError("switch (Channel.R) { case Channel.All: case Channel.G: break; }", "SDSL0282: This switch on Channel has no default, and no case for Channel.R. Add a case for each, or a default.");
 
     [Fact]
     public void EnumGenericParameter()

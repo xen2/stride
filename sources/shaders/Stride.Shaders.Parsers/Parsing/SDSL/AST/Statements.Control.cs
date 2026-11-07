@@ -206,6 +206,11 @@ public partial class SwitchStatement(Expression selector, TextLocation info) : F
                     defaultBlockId = sectionBlockIds[i];
                 else if (label is not CaseLabel caseLabel || !caseLabel.Value.TryCompileConstantInteger(table, context, out var caseConstant, out var caseValue))
                     table.AddError(new(label.Info, "case label must be a constant integer expression"));
+                // On an enum, each case is one of its values; a value of an enum is no case of a number
+                else if (context.ReverseTypes[caseConstant.TypeId] is var labelType && (selectorEnum != null ? labelType != selectorEnum : labelType is EnumType))
+                    table.AddError(new(caseLabel.Value.Info, string.Format(SDSLErrorMessages.SDSL0281, caseLabel.Value, selectorEnum != null
+                        ? $"the switch is on {selectorEnum}, so a case is one of its values, such as {selectorEnum}.{selectorEnum.Values.FirstOrDefault().Name}"
+                        : $"{caseLabel.Value} is a value of the enum {labelType}, and the switch is on {Selector.ValueType}. Switch on a {labelType}, or cast: switch (({labelType})value)")));
                 // Two constants with different names can have the same value
                 else if (caseValue != null && labels.Exists(x => x.Value == caseValue))
                     table.AddError(new(label.Info, $"case label has the same value ({caseValue}) as a previous label of this switch"));
@@ -213,6 +218,11 @@ public partial class SwitchStatement(Expression selector, TextLocation info) : F
                     labels.Add((caseConstant.Id, caseValue, sectionBlockIds[i]));
             }
         }
+
+        // Without a default, a switch on an enum names every value, so a new value finds the switches that forget it
+        if (selectorEnum != null && defaultBlockId == mergeBlock
+            && selectorEnum.Values.Where(x => !labels.Exists(label => label.Value == (int)x.Value)).Select(x => $"{selectorEnum}.{x.Name}").ToList() is { Count: > 0 } missing)
+            table.AddError(new(Info, string.Format(SDSLErrorMessages.SDSL0282, selectorEnum, string.Join(", ", missing))));
 
         // Emit selection merge + switch
         builder.Insert(new OpSelectionMerge(mergeBlock, Specification.SelectionControlMask.None));
