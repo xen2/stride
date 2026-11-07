@@ -124,7 +124,7 @@ public record struct PrimaryParsers : IParser<Expression>
         var position = scanner.Position;
         if (
             LiteralsParser.IdentifierBase(ref scanner, result, out var identifier)
-            && Parsers.FollowedBy(ref scanner, Tokens.Char('.'), withSpaces: true)
+            && (Parsers.FollowedBy(ref scanner, Tokens.Char('.'), withSpaces: true) || Parsers.FollowedBy(ref scanner, Tokens.Literal("::"), withSpaces: true))
         )
         {
             parsed = identifier;

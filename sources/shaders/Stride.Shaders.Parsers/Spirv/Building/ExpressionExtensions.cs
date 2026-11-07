@@ -92,8 +92,9 @@ public static class ExpressionExtensions
     public static bool TryCompileConstantInteger(this Expression expression, SymbolTable table, SpirvContext context, out SpirvValue constant, out int? value)
     {
         value = null;
+        // A value of an enum is its number (a case label of a switch on the enum)
         if (!expression.TryCompileConstantValue(table, context, out constant)
-            || context.ReverseTypes[constant.TypeId] is not ScalarType { Type: Scalar.Int or Scalar.UInt })
+            || context.ReverseTypes[constant.TypeId] is not (ScalarType { Type: Scalar.Int or Scalar.UInt } or EnumType))
             return false;
 
         if (context.TryGetConstantValue(constant.Id, out var evaluated, out _))

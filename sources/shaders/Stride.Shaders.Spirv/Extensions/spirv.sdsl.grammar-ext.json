@@ -368,6 +368,18 @@
       ]
     },
     {
+      "opname": "OpTypeEnumSDSL",
+      "opcode": 8036,
+      "class": "Miscellaneous",
+      "operands": [
+        { "kind": "IdResult" },
+        { "kind": "LiteralString", "name": "enumName" },
+        { "kind": "LiteralString", "name": "owner" },
+        { "kind": "LiteralInteger", "name": "signedness" },
+        { "kind": "LiteralString", "name": "values" }
+      ]
+    },
+    {
       "opname": "OpTypePatchSDSL",
       "opcode": 8025,
       "class": "Miscellaneous",

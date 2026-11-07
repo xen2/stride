@@ -209,7 +209,9 @@ public static partial class Spv
             };
             if (buffer.TryGetInstructionById(typeId, out var typeInst))
             {
-                if (typeInst.Op == Op.OpTypeInt)
+                if (typeInst.Op == Op.OpTypeEnumSDSL)
+                    _ = ((OpTypeEnumSDSL)typeInst).Signedness == 1 ? AppendLiteralNumber(operand.ToLiteral<int>()) : AppendLiteralNumber(operand.ToLiteral<uint>());
+                else if (typeInst.Op == Op.OpTypeInt)
                 {
                     var type = (OpTypeInt)typeInst;
                     _ = type switch

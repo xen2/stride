@@ -190,6 +190,7 @@ public partial class SpirvContext
             ByteAddressBufferType b => RegisterByteAddressBufferType(b),
             SampledImage si => Buffer.AddData(new OpTypeSampledImage(id, GetOrRegister(si.ImageType))).IdResult,
             GenericParameterType g => Buffer.AddData(new OpTypeGenericSDSL(id, g.Kind)).IdResult,
+            EnumType e => Buffer.AddData(new OpTypeEnumSDSL(id, e.Name, e.Owner, e.UnderlyingType == ScalarType.Int ? 1 : 0, e.ValuesToString())).IdResult,
             StreamsType s => Buffer.AddData(new OpTypeStreamsSDSL(id, s.Kind)).IdResult,
             GeometryStreamType so => Buffer.AddData(new OpTypeGeometryStreamOutputSDSL(id, GetOrRegister(so.BaseType), so.Kind)).IdResult,
             PatchType patch => Buffer.AddData(new OpTypePatchSDSL(id, GetOrRegister(patch.BaseType), patch.Kind, patch.Size)).IdResult,

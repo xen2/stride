@@ -787,6 +787,7 @@ public static partial class Specification
         OpTypeGenericSDSL = 8022,
         OpTypeStreamsSDSL = 8023,
         OpTypeGeometryStreamOutputSDSL = 8024,
+        OpTypeEnumSDSL = 8036,
         OpTypePatchSDSL = 8025,
         OpForeachSDSL = 8026,
         OpForeachEndSDSL = 8027,

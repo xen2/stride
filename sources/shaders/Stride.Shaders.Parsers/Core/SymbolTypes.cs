@@ -1,3 +1,4 @@
+using Stride.Shaders.Parsing;
 using Stride.Shaders.Parsing.Analysis;
 using Stride.Shaders.Parsing.SDSL.AST;
 using Stride.Shaders.Spirv;
@@ -92,6 +93,10 @@ public abstract record SymbolType()
         }
 
         // Note: templateTypeName is resolved lazily (because it might not be a buffer type and we don't need to resolve it)
+
+        // The element of a typed buffer or a texture is what the format gives: never an enum
+        if (templateTypeName?.Type is EnumType enumElement && (name is "Buffer" or "RWBuffer" || name.StartsWith("Texture") || name.StartsWith("RWTexture")))
+            throw new StatementCompileException(new(templateTypeName.Info, string.Format(SDSLErrorMessages.SDSL0285, name, enumElement.Name, enumElement.UnderlyingType)));
 
         // Preserves the full vector/scalar type (e.g. float2 stays float2). Defaults to float4 when no template given (HLSL default).
         static SymbolType ResolveReturnType(TypeName? templateTypeName)
@@ -243,6 +248,69 @@ public sealed partial record ScalarType(Scalar Type) : SymbolType()
         _ => throw new ArgumentOutOfRangeException()
     };
 }
+/// <summary>
+/// A value of an <see cref="EnumType"/>: its name and its number.
+/// </summary>
+/// <param name="Name">The name of the value.</param>
+/// <param name="Value">The number it is stored as.</param>
+public readonly record struct EnumValue(string Name, long Value);
+
+/// <summary>
+/// An <c>enum class</c>: a closed set of named <c>int</c> or <c>uint</c> values, declared in the class <paramref name="Owner"/>.
+/// </summary>
+/// <remarks>
+/// A class keeps it in its SPIR-V (OpTypeEnumSDSL), so that its rules hold in the classes that use it. The mixer makes it its
+/// <paramref name="UnderlyingType"/>.
+/// </remarks>
+/// <param name="Name">The name of the enum.</param>
+/// <param name="Owner">The full name of the class that declares it.</param>
+/// <param name="UnderlyingType">The type a value is stored as: <c>int</c> or <c>uint</c>.</param>
+/// <param name="Values">The values, in declaration order.</param>
+public sealed partial record EnumType(string Name, string Owner, ScalarType UnderlyingType, IReadOnlyList<EnumValue> Values) : SymbolType()
+{
+    // One enum per declaration, with the same values wherever it is seen
+    public bool Equals(EnumType? other) => other is not null && Name == other.Name && Owner == other.Owner;
+
+    public override int GetHashCode() => HashCode.Combine(Name, Owner);
+
+    /// <summary>
+    /// Finds a value by name.
+    /// </summary>
+    /// <param name="name">The name of the value.</param>
+    /// <param name="value">The value, when found.</param>
+    /// <returns>Whether the enum has a value of that name.</returns>
+    public bool TryGetValue(string name, out EnumValue value)
+    {
+        foreach (var item in Values)
+        {
+            if (item.Name == name)
+            {
+                value = item;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>
+    /// The values as OpTypeEnumSDSL stores them: <c>Name=Number</c>, separated by commas.
+    /// </summary>
+    public string ValuesToString() => string.Join(",", Values.Select(x => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{x.Name}={x.Value}")));
+
+    /// <summary>
+    /// Reads the values that <see cref="ValuesToString"/> stores.
+    /// </summary>
+    /// <param name="values">The stored values.</param>
+    /// <returns>The values, in declaration order.</returns>
+    public static List<EnumValue> ParseValues(string values)
+        => [.. values.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => x.Split('=')).Select(x => new EnumValue(x[0], long.Parse(x[1], System.Globalization.CultureInfo.InvariantCulture)))];
+
+    public override string ToId() => Name;
+    public override string ToString() => Name;
+}
+
 public sealed partial record VectorType(ScalarType BaseType, int Size) : SymbolType()
 {
     public int Size { get; } = Size >= 2 ? Size : throw new ArgumentException("Argument must be at least 2.", nameof(Size));
@@ -582,6 +650,12 @@ public sealed partial record ShaderDefinition(string Name, ConstantExpression[] 
     public List<(Symbol Symbol, FunctionFlagsMask Flags)> Methods { get; init; } = [];
 
     public List<(StructuredType Type, int ImportedId)> StructTypes { get; init; } = [];
+
+    /// <summary>
+    /// The enums the class declares.
+    /// </summary>
+    public List<EnumType> EnumTypes { get; init; } = [];
+
     public List<ShaderDefinition> InheritedShaders { get; init; } = [];
 
     public static Symbol ImportSymbol(SymbolTable table, SpirvContext context, Symbol symbol)

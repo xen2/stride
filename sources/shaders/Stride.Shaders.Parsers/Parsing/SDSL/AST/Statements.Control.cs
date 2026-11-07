@@ -178,7 +178,8 @@ public partial class SwitchStatement(Expression selector, TextLocation info) : F
 
         // Compile selector (must be a 32-bit integer scalar: the case labels are written as 32-bit literals)
         var selectorValue = Selector.CompileAsValue(table, compiler);
-        if (Selector.ValueType is not ScalarType { Type: Scalar.Int or Scalar.UInt })
+        var selectorEnum = Selector.ValueType as EnumType;
+        if (Selector.ValueType is not ScalarType { Type: Scalar.Int or Scalar.UInt } && selectorEnum == null)
             table.AddError(new(Selector.Info, "switch selector must evaluate to an int or uint scalar"));
 
         // Pre-allocate block IDs: one per section + merge block

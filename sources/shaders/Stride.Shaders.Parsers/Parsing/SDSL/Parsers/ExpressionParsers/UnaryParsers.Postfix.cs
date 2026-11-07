@@ -16,11 +16,26 @@ public record struct PostfixParser : IParser<Expression>
         var position = scanner.Position;
         if (PrimaryParsers.Primary(ref scanner, result, out parsed))
         {
-            if (Parsers.FollowedByAny(ref scanner, ["[", ".", "++", "--"], out _, withSpaces: true))
+            if (Parsers.FollowedByAny(ref scanner, ["[", ".", "::", "++", "--"], out _, withSpaces: true))
             {
                 parsed = new AccessorChainExpression(parsed, parsed.Info);
-                while (!scanner.IsEof && Parsers.FollowedByAny(ref scanner, ["[", ".", "++", "--"], out var matched, withSpaces: true, advance: true))
+                while (!scanner.IsEof && Parsers.FollowedByAny(ref scanner, ["[", ".", "::", "++", "--"], out var matched, withSpaces: true, advance: true))
                 {
+                    // C++'s X::A: the error names X.A, and the rest is read as if it were written so
+                    if (matched == "::")
+                    {
+                        var scopeStart = scanner.Position - 2;
+                        var chain = (AccessorChainExpression)parsed;
+                        var left = chain.Accessors.Count > 0 ? chain.Accessors[^1].ToString() : chain.Source.ToString();
+                        var rightStart = scanner.Position;
+                        Parsers.Spaces0(ref scanner, result, out _);
+                        var right = LiteralsParser.Identifier(ref scanner, result, out var rightName) ? rightName.Name : "...";
+                        scanner.Position = rightStart;
+                        if (!result.Errors.Exists(x => x.Location.Position == scopeStart && x.Message.StartsWith("SDSL0278")))
+                            result.Errors.Add(new(string.Format(SDSLErrorMessages.SDSL0278, left, right), scanner[scopeStart], scanner.Memory) { IsAboutToken = true });
+                        matched = ".";
+                    }
+
                     if (matched == "[")
                     {
                         if (!Parsers.FollowedByDel(ref scanner, result, ExpressionParser.Expression, out Expression? indexer, withSpaces: true, advance: true))

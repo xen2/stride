@@ -1,4 +1,4 @@
-using Stride.Shaders.Core;
+﻿using Stride.Shaders.Core;
 using Stride.Shaders.Parsing.SDSL.AST;
 using System;
 using System.Collections.Generic;
@@ -38,6 +38,7 @@ partial class SpirvBuilder
         {
             ScalarType { Type: Scalar.Int or Scalar.UInt or Scalar.Float or Scalar.Boolean } => (4, 4),
             ScalarType { Type: Scalar.Int64 or Scalar.UInt64 or Scalar.Double } => (8, 8),
+            EnumType => (4, 4),
             StructuredType s => StructSizeInBuffer(s, alignmentRules),
             // StructuredBuffer uses std430 vector alignment (2×scalar for vec2, 4×scalar for vec3/vec4)
             // to satisfy Vulkan's relaxed block layout rule that a vector must not straddle a
@@ -174,6 +175,7 @@ partial class SpirvBuilder
     {
         ScalarType { Type: Scalar.Int or Scalar.UInt or Scalar.Float or Scalar.Boolean or Scalar.Half } => 4,
         ScalarType { Type: Scalar.Int64 or Scalar.UInt64 or Scalar.Double } => 8,
+        EnumType => 4,
         VectorType { Size: 2, BaseType: var bt } => 2 * StorageBufferBaseAlignment(bt),
         VectorType { Size: 3 or 4, BaseType: var bt } => 4 * StorageBufferBaseAlignment(bt),
         MatrixType m => StorageBufferBaseAlignment(new VectorType(m.BaseType, MatrixLayoutVectors(m, typeModifier).VectorSize)),
@@ -224,7 +226,7 @@ partial class SpirvBuilder
     {
         switch (type)
         {
-            case ScalarType:
+            case ScalarType or EnumType:
                 offsets.Add(offset);
                 break;
             case VectorType v:

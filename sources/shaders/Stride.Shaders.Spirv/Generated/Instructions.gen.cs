@@ -132211,6 +132211,170 @@ public ref partial struct OpTypeGeometryStreamOutputSDSL : IMemoryInstruction
     public static implicit operator OpTypeGeometryStreamOutputSDSL(OpDataIndex odi) => new(odi);
 }
 
+public ref partial struct OpTypeEnumSDSL : IMemoryInstruction
+{
+    private ref OpData opData;
+    public ref OpData OpData => ref opData;
+
+    public MemoryOwner<int> InstructionMemory
+    {
+        get
+        {
+            if (!Unsafe.IsNullRef(ref OpData))
+                return OpData.Memory;
+            else
+                return field;
+        }
+
+        private set
+        {
+            if (!Unsafe.IsNullRef(ref OpData))
+            {
+                OpData.Memory.Dispose();
+                OpData.Memory = value;
+            }
+            else
+                field = value;
+        }
+    }
+
+    public OpTypeEnumSDSL()
+    {
+        InstructionMemory = MemoryOwner<int>.Allocate(1);
+        InstructionMemory.Span[0] = (int)Op.OpTypeEnumSDSL | (1 << 16);
+    }
+
+    public OpTypeEnumSDSL(OpDataIndex index)
+    {
+        InitializeProperties(ref index.Data);
+        opData = ref index.Data;
+    }
+
+    public OpTypeEnumSDSL(ref OpData data)
+    {
+        InitializeProperties(ref data);
+        opData = ref data;
+    }
+
+    public int ResultId
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public string EnumName
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public string Owner
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public int Signedness
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public string Values
+    {
+        get;
+        set
+        {
+            field = value;
+            if (InstructionMemory is not null)
+                UpdateInstructionMemory();
+        }
+    }
+
+    public static implicit operator int (OpTypeEnumSDSL inst) => inst.ResultId;
+    public OpTypeEnumSDSL(int resultId, string enumName, string owner, int signedness, string values)
+    {
+        ResultId = resultId;
+        EnumName = enumName;
+        Owner = owner;
+        Signedness = signedness;
+        Values = values;
+        UpdateInstructionMemory();
+        opData = ref Unsafe.NullRef<OpData>();
+    }
+
+    public void Attach(OpDataIndex index)
+    {
+        opData = ref index.Data;
+    }
+
+    public void UpdateInstructionMemory()
+    {
+        InstructionMemory ??= MemoryOwner<int>.Empty;
+        Span<int> instruction = [(int)Op.OpTypeEnumSDSL, ResultId, ..EnumName.AsDisposableLiteralValue().Words, ..Owner.AsDisposableLiteralValue().Words, ..Signedness.AsDisposableLiteralValue().Words, ..Values.AsDisposableLiteralValue().Words];
+        instruction[0] |= instruction.Length << 16;
+        if (instruction.Length == InstructionMemory.Length)
+            instruction.CopyTo(InstructionMemory.Span);
+        else
+        {
+            var tmp = MemoryOwner<int>.Allocate(instruction.Length);
+            instruction.CopyTo(tmp.Span);
+            InstructionMemory?.Dispose();
+            InstructionMemory = tmp;
+        }
+    }
+
+    private void InitializeProperties(ref OpData data)
+    {
+        foreach (var o in data)
+        {
+            switch (o.Name)
+            {
+                case "resultId":
+                    ResultId = o.ToLiteral<int>();
+                    break;
+                case "enumName":
+                    EnumName = o.ToLiteral<string>();
+                    break;
+                case "owner":
+                    Owner = o.ToLiteral<string>();
+                    break;
+                case "signedness":
+                    Signedness = o.ToLiteral<int>();
+                    break;
+                case "values":
+                    Values = o.ToLiteral<string>();
+                    break;
+                // We ignore unrecognized operands
+                default:
+                    break;
+            }
+        }
+    }
+
+    public static implicit operator OpTypeEnumSDSL(OpDataIndex odi) => new(odi);
+}
+
 public ref partial struct OpTypePatchSDSL : IMemoryInstruction
 {
     private ref OpData opData;

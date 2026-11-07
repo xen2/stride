@@ -26,6 +26,11 @@ public record struct ShaderElementParsers : IParser<ShaderElement>
             parsed = buffer;
             return true;
         }
+        else if (ShaderEnumParser.Enum(ref scanner, result, out var enumElement))
+        {
+            parsed = enumElement;
+            return true;
+        }
         else if (Struct(ref scanner, result, out var structElement))
         {
             Parsers.FollowedBy(ref scanner, Tokens.Char(';'), withSpaces: true, advance: true);

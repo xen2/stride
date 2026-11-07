@@ -267,6 +267,11 @@ public partial class ShaderStruct(Identifier typename, TextLocation info) : Shad
         }
 
         Type = new StructType(TypeName.ToString(), fields);
+        if (table.DeclaredTypes.TryGetValue(TypeName.ToString(), out var existing) && existing is EnumType enumType)
+        {
+            table.AddError(new(TypeName.Info, string.Format(SDSLErrorMessages.SDSL0274, TypeName, enumType.Owner == table.CurrentShader?.Name ? $"in {ShaderNames.ShortName(enumType.Owner)}" : $"in {table.CurrentShader?.ShortName} and in {ShaderNames.ShortName(enumType.Owner)}")));
+            return;
+        }
         table.DeclaredTypes.Add(TypeName.ToString(), Type);
 
         // Register in the SPIR-V context immediately so that CBuffer.ProcessSymbol can reference
@@ -464,6 +469,7 @@ public sealed partial class CBuffer(string name, TextLocation info) : ShaderBuff
     public static bool IsPushConstantMemberType(SymbolType? type) => type switch
     {
         ScalarType { Type: Scalar.Int or Scalar.UInt or Scalar.Float } => true,
+        EnumType => true,
         VectorType { BaseType.Type: Scalar.Int or Scalar.UInt or Scalar.Float, Size: 2 or 4 } => true,
         _ => false,
     };

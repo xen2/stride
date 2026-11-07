@@ -129,6 +129,22 @@ public partial class SpirvBuilder
 
     public static (SymbolType OperandType, SymbolType ResultType)? AnalyzeBinaryOperation(SymbolTable table, SymbolType leftType, Operator op, SymbolType rightType, TextLocation info)
     {
+        // An enum takes == and != with a value of the same enum, nothing else
+        if (leftType is EnumType || rightType is EnumType)
+        {
+            if (op is not (Operator.Equals or Operator.NotEquals))
+            {
+                table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0276, op.ToSymbol(), leftType as EnumType ?? rightType)));
+                return null;
+            }
+            if (leftType != rightType)
+            {
+                table.AddError(new(info, string.Format(SDSLErrorMessages.SDSL0275, rightType, leftType)));
+                return null;
+            }
+            return (leftType, ScalarType.Boolean);
+        }
+
         static bool IsComplexType(SymbolType type) => type is StreamsType or StructType;
 
         // struct or streams types
@@ -292,6 +308,18 @@ public partial class SpirvBuilder
 
         var resultTypeId = context.GetOrRegister(resultType);
 
+        // The mixer makes an enum an int or uint, which these compare
+        if (operandType is EnumType)
+        {
+            if (op == Operator.Equals)
+                Buffer.Insert(Position++, new OpIEqual(resultTypeId, resultId, left.Id, right.Id));
+            else
+                Buffer.Insert(Position++, new OpINotEqual(resultTypeId, resultId, left.Id, right.Id));
+            if (name is not null)
+                context.AddName(resultId, name);
+            return new(resultId, resultTypeId, name);
+        }
+
         // Refresh types (after convert)
         leftType = context.ReverseTypes[left.TypeId];
         rightType = context.ReverseTypes[right.TypeId];
@@ -388,6 +416,10 @@ public partial class SpirvBuilder
     {
         if (castType == valueType)
             return 0;
+
+        // An enum converts only with a cast
+        if (castType is EnumType || valueType is EnumType)
+            return int.MaxValue;
 
         if (castType is StructType || valueType is StructType)
             throw new NotImplementedException($"Can't cast between structures (cast from {valueType} to {castType})");
@@ -493,6 +525,10 @@ public partial class SpirvBuilder
         // No conversion necessary?
         if (castType == valueType)
             return value;
+
+        // An enum converts only with a cast (CastExpression)
+        if (castType is EnumType || valueType is EnumType)
+            throw Enums.ImplicitConversion(valueType, castType);
 
         if (castType is StructType || valueType is StructType)
             throw new NotImplementedException($"Can't cast between structures (cast from {valueType} to {castType})");

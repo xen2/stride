@@ -199,6 +199,13 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
         LowerIntegerMatrices(context);
         new TypeDuplicateHelper(context).RemoveDuplicateImageTypes(temp);
 
+        // Enums are lowered when each class is merged (MergeClassInBuffers)
+        foreach (var inst in context)
+        {
+            if (inst.Op == Op.OpTypeEnumSDSL)
+                throw new InvalidOperationException($"Enum {((OpTypeEnumSDSL)inst).EnumName} was declared after the classes were merged");
+        }
+
         foreach (var inst in context)
             temp.Add(inst.Data);
 
@@ -703,6 +710,15 @@ public partial class ShaderMixer(IExternalShaderLoader shaderLoader)
                 }
 
                 var i2 = new OpData(i.Data.Memory.Span);
+
+                // An enum becomes the int or uint it is stored as, then merges with that type: no backend sees an enum
+                if (i2.Op == Op.OpTypeEnumSDSL)
+                {
+                    var typeEnum = new OpTypeEnumSDSL(ref i2);
+                    var lowered = new OpData(new OpTypeInt(typeEnum.ResultId, 32, typeEnum.Signedness).InstructionMemory);
+                    i2.Dispose();
+                    i2 = lowered;
+                }
 
                 if (offset > 0)
                     OffsetIds(i2, offset);

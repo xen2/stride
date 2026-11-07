@@ -339,6 +339,10 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             {
                 RegisterType(typeGeneric.ResultId, new GenericParameterType(typeGeneric.Kind));
             }
+            else if (instruction.Op == Op.OpTypeEnumSDSL && (OpTypeEnumSDSL)instruction is { } typeEnum)
+            {
+                RegisterType(typeEnum.ResultId, new EnumType(typeEnum.EnumName, typeEnum.Owner, typeEnum.Signedness == 1 ? ScalarType.Int : ScalarType.UInt, EnumType.ParseValues(typeEnum.Values)));
+            }
             else if (instruction.Op == Op.OpTypeStreamsSDSL && (OpTypeStreamsSDSL)instruction is { } typeStreams)
             {
                 RegisterType(typeStreams.ResultId, new StreamsType(typeStreams.Kind));
@@ -462,6 +466,11 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             {
                 structTypes.Add(((StructuredType)shaderBuffers.Context.ReverseTypes[typeStructInstruction.ResultId], -1));
             }
+            // A class also declares the enums of other classes it uses: only its own are its types
+            else if (i.Op == Op.OpTypeEnumSDSL && shaderBuffers.Context.ReverseTypes[((OpTypeEnumSDSL)i).ResultId] is EnumType { Owner: var owner } enumType && owner == classSource.ClassName)
+            {
+                shaderType.EnumTypes.Add(enumType);
+            }
             else if (i.Op == Op.OpDecorate)
             {
                 // OpDecorate binary layout: [header][target][decoration][params...]
@@ -582,6 +591,12 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             for (int i = 0; i < Generics.Parameters.Count; i++)
             {
                 var genericParameter = Generics.Parameters[i];
+                // Generics are read before the class's own enums are declared: the error, then an int so the rest is checked
+                if (Elements.OfType<ShaderEnum>().Any(x => x.Name.Name == genericParameter.TypeName.Name))
+                {
+                    table.AddError(new(genericParameter.TypeName.Info, string.Format(SDSLErrorMessages.SDSL0283, Name, genericParameter.Name, genericParameter.TypeName.Name)));
+                    Generics.Parameters[i] = genericParameter = genericParameter with { TypeName = new TypeName("int", genericParameter.TypeName.Info) };
+                }
                 ProcessGenericSymbol(table, context, i, genericParameter);
                 openGenerics[i] = new GenericParamExpr(i, fullName);
                 var genericParameterType = genericParameter.TypeName.Type;
@@ -720,7 +735,9 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             table.AddError(new(text.Info, string.Format(SDSLErrorMessages.SDSL0255, "Replaces", Name.Name, text.Value)));
         else if (FindAttribute("Replaces") is { } replaces && ShaderReplacement.Target(this) == null)
             table.AddError(new(replaces.Info, string.Format(SDSLErrorMessages.SDSL0135, "Replaces", Name.Name, "on a class, [Replaces] takes the full name of one class, and replaces that whole class. To drop a contributor from a chain, put [Drops(Mixins = { Name })] on an override")));
-        // Structs (plain and partial views) first, in the order they contain each other
+        // Enums, then structs (plain and partial views), in the order they contain each other
+        foreach (var enumElement in Elements.OfType<ShaderEnum>())
+            enumElement.ProcessSymbol(table, context);
         if (!PartialStructs.DeclareStructs(table, context, this))
             return;
 
@@ -894,6 +911,8 @@ public partial class ShaderClass(Identifier name, TextLocation info) : ShaderDec
             if (structType.Type is not StructType { PartialOwner: not null })
                 table.DeclaredTypes.TryAdd(structType.Type.Name, structType.Type);
         }
+        foreach (var enumType in shaderType.EnumTypes)
+            table.DeclaredTypes.TryAdd(enumType.Name, enumType);
 
 
         if (addToRoot)

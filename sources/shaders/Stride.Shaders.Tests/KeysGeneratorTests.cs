@@ -302,6 +302,32 @@ public class KeysGeneratorTests
         Assert.Contains("using Stride.Core.Mathematics;", generated);
     }
 
+    // An enum of the shaders has no C# type: its member has no key, and a C# type of the same name isn't taken for it
+    [Fact]
+    public void EnumMemberHasNoKey()
+    {
+        var shader = """
+            namespace Stride.Shaders.Tests.Keys;
+
+            shader KeysGeneratorCheck
+            {
+                enum class Blend : uint { Off, On };
+                struct Pick { Blend blend; float weight; };
+                cbuffer PerDraw
+                {
+                    Blend Mode;
+                    float Weight;
+                };
+            };
+            """;
+
+        var (generated, errors) = Build(shader, "");
+
+        Assert.Empty(errors);
+        Assert.Contains("// No key for Mode: the enum Blend has no C# type", generated);
+        Assert.Contains("ValueParameterKey<float> Weight", generated);
+    }
+
     // A texture array has one key, set with an array of textures
     [Fact]
     public void TextureArrayKeyBuilds()

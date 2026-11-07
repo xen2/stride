@@ -40,7 +40,7 @@ public class PushConstantTests : IDisposable
 
     // SDSL0129: only 32-bit scalars and 2- or 4-component vectors of them
     [Theory]
-    [InlineData("float3", "SDSL0129: PcCheck: member Value of the [PushConstant] cbuffer PerDraw has type float3. A push-constant member is an int, uint or float, or a 2- or 4-component vector of them (for example uint2 or float4). Change the type, or move the member to another cbuffer.")]
+    [InlineData("float3", "SDSL0129: PcCheck: member Value of the [PushConstant] cbuffer PerDraw has type float3. A push-constant member is an int, uint, float or enum, or a 2- or 4-component vector of int, uint or float (for example uint2 or float4). Change the type, or move the member to another cbuffer.")]
     [InlineData("bool", "SDSL0129: PcCheck: member Value of the [PushConstant] cbuffer PerDraw has type bool.")]
     [InlineData("double", "SDSL0129: PcCheck: member Value of the [PushConstant] cbuffer PerDraw has type double.")]
     [InlineData("float4x4", "SDSL0129: PcCheck: member Value of the [PushConstant] cbuffer PerDraw has type float4x4.")]

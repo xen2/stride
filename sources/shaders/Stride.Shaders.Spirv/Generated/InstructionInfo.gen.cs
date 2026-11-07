@@ -3306,6 +3306,11 @@ public partial class InstructionInfo
         Instance.Register(Op.OpTypeGeometryStreamOutputSDSL, OperandKind.IdResult, OperandQuantifier.One, "resultId", "Miscellaneous", []);
         Instance.Register(Op.OpTypeGeometryStreamOutputSDSL, OperandKind.IdRef, OperandQuantifier.One, "baseType", "Miscellaneous", []);
         Instance.Register(Op.OpTypeGeometryStreamOutputSDSL, OperandKind.GeometryStreamOutputKindSDSL, OperandQuantifier.One, "kind", "Miscellaneous", []);
+        Instance.Register(Op.OpTypeEnumSDSL, OperandKind.IdResult, OperandQuantifier.One, "resultId", "Miscellaneous", []);
+        Instance.Register(Op.OpTypeEnumSDSL, OperandKind.LiteralString, OperandQuantifier.One, "enumName", "Miscellaneous", []);
+        Instance.Register(Op.OpTypeEnumSDSL, OperandKind.LiteralString, OperandQuantifier.One, "owner", "Miscellaneous", []);
+        Instance.Register(Op.OpTypeEnumSDSL, OperandKind.LiteralInteger, OperandQuantifier.One, "signedness", "Miscellaneous", []);
+        Instance.Register(Op.OpTypeEnumSDSL, OperandKind.LiteralString, OperandQuantifier.One, "values", "Miscellaneous", []);
         Instance.Register(Op.OpTypePatchSDSL, OperandKind.IdResult, OperandQuantifier.One, "resultId", "Miscellaneous", []);
         Instance.Register(Op.OpTypePatchSDSL, OperandKind.IdRef, OperandQuantifier.One, "baseType", "Miscellaneous", []);
         Instance.Register(Op.OpTypePatchSDSL, OperandKind.PatchTypeKindSDSL, OperandQuantifier.One, "kind", "Miscellaneous", []);

@@ -125,6 +125,12 @@ public class EffectCodeWriter : ShaderWriter
         return true;
     }
 
+    public override void VisitShaderEnum(ShaderEnum shaderEnum)
+    {
+        // Register the enum in the table, for the keys of its type
+        shaderEnum.ProcessSymbol(table, table.Context);
+    }
+
     public override void VisitShaderStruct(ShaderStruct shaderStruct)
     {
         // Register struct in table
@@ -183,6 +189,14 @@ public class EffectCodeWriter : ShaderWriter
             {
                 parameterKeyType = "Value";
             }
+        }
+
+        // An enum of the shaders has no C# type
+        if (variableType == null && parameterType is EnumType)
+        {
+            WriteLine($"// No key for {name}: the enum {parameterType} has no C# type");
+            isProcessingColor = false;
+            return;
         }
 
         // A struct key needs a C# struct of the same name
@@ -952,7 +966,7 @@ public class EffectCodeWriter : ShaderWriter
             currentClassHasKeys = false;
             foreach (var decl in shaderClass.Elements)
             {
-                if (decl is ShaderMember or ShaderStruct or ShaderSamplerState)
+                if (decl is ShaderMember or ShaderEnum or ShaderStruct or ShaderSamplerState)
                 {
                     VisitNode(decl);
                 }

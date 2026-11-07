@@ -73,6 +73,7 @@ public static class Reserved
             "DomainShader",
             "dword",
             "else",
+            "enum",
             "export",
             "extern",
             "false",

@@ -99,6 +99,8 @@ public abstract record ConstantExpression
                 var operand = inst.Data.Get("value");
                 if (buffer.TryGetInstructionById(typeId, out var typeInst))
                 {
+                    if (typeInst.Op == Op.OpTypeEnumSDSL && context.ReverseTypes.TryGetValue(typeId, out var enumType) && enumType is EnumType e)
+                        return new EnumConstExpr(e, e.UnderlyingType == ScalarType.Int ? operand.ToLiteral<int>() : operand.ToLiteral<uint>());
                     if (typeInst.Op == Op.OpTypeInt)
                     {
                         var type = (OpTypeInt)typeInst;
@@ -235,6 +237,28 @@ public sealed record IntConstExpr(long Value, ScalarType Type) : ConstantExpress
     }
 
     public override string ToString() => Type.Type == Scalar.UInt64 ? ((ulong)Value).ToString() : Value.ToString();
+}
+
+/// <summary>
+/// A value of an enum, such as a <c>static const</c> of an enum type seen from another class.
+/// </summary>
+/// <param name="Type">The enum.</param>
+/// <param name="Value">The number of the value.</param>
+public sealed record EnumConstExpr(EnumType Type, long Value) : ConstantExpression
+{
+    public override int Emit(SpirvContext context)
+    {
+        TryEvaluate(out var value);
+        return context.CompileConstant(Type, value!).Id;
+    }
+
+    public override bool TryEvaluate(out object? value)
+    {
+        value = Type.UnderlyingType == ScalarType.Int ? (int)Value : (object)(uint)Value;
+        return true;
+    }
+
+    public override string ToString() => Type.Values.FirstOrDefault(x => x.Value == Value).Name is { } name ? $"{Type.Name}.{name}" : $"({Type.Name}){Value}";
 }
 
 /// <summary>

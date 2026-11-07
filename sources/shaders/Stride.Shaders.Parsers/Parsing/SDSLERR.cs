@@ -154,6 +154,22 @@ public static class SDSLErrorMessages
     public const string SDSL0267 = "SDSL0267: NonUniformResourceIndex is not supported yet: the index of a texture array must be the same for the whole draw. Index with a value that is the same for the whole draw, such as a cbuffer member or a push constant.";
     public const string SDSL0268 = "SDSL0268: On Direct3D 11, a texture array index must be a constant once the methods are inlined: FXC can't index textures with a value. Use a literal, a static const value or a generic parameter, with one shader permutation per value.";
 
+    // Enums
+    public const string SDSL0270 = "SDSL0270: enum {0} is not an enum class. Write enum class {0} : uint (or : int): its values are written {0}.Value and never become numbers by themselves.";
+    public const string SDSL0271 = "SDSL0271: enum class {0} {1}. Write enum class {0} : uint or : int: an enum is stored as a 32-bit int or uint, the same on every API.";
+    public const string SDSL0272 = "SDSL0272: {0}.{1} = {2}: the value of an enum is an integer literal from {3} to {4} ({5}).";
+    public const string SDSL0273 = "SDSL0273: {0}.{1} is {2}, like {0}.{3}. Give each value of an enum its own number.";
+    public const string SDSL0274 = "SDSL0274: {0} is declared twice ({1}). Rename one of them.";
+    public const string SDSL0275 = "SDSL0275: A value of type {0} can't become {1} by itself. Cast it: ({1})value.";
+    public const string SDSL0276 = "SDSL0276: Operator {0} doesn't apply to the enum {1}. An enum takes == and != with a value of the same enum; for flags or arithmetic, use a uint, and cast: (uint)value.";
+    public const string SDSL0277 = "SDSL0277: Can't cast {0} to {1}: {2}.";
+    public const string SDSL0278 = "SDSL0278: {0}::{1}: '::' is not part of the language. Write {0}.{1}.";
+    public const string SDSL0279 = "SDSL0279: {0} is both the enum {0} and {1} here, so {0}.{2} could mean either. Rename {1}.";
+    public const string SDSL0280 = "SDSL0280: The enum {0} has no value {1}. Its values: {2}.";
+    public const string SDSL0283 = "SDSL0283: {0} declares generic parameter {1} of the enum type {2}, which is not supported yet. Declare <int {1}> or <uint {1}>, and cast it where it is used: ({2}){1}.";
+    public const string SDSL0284 = "SDSL0284: enum {0} is outside a shader. An enum is declared in a shader or a module, like a struct, and classes that inherit or import it see it.";
+    public const string SDSL0285 = "SDSL0285: {0}<{1}>: an enum can't be the element of a typed buffer or a texture. Use {0}<{2}>, and cast what you read: ({1})value.";
+
     // HLSL warnings: valid HLSL that is probably a mistake, reported when a class compiles
     public const string SDSL0219 = "SDSL0219: comma expression ({0}): the values before the last are dropped, the result is {1}. To build a vector, write its type: float4(...).";
     public const string SDSL0220 = "SDSL0220: {0} on {1} is ignored: Stride lays out cbuffers and binds resources itself. Remove it.";
@@ -186,7 +202,7 @@ public static class SDSLErrorMessages
     // Push constants
     // SDSL0129-0130 are found when a class compiles, SDSL0131-0134 when an effect is mixed
 
-    public const string SDSL0129 = "SDSL0129: {0}: member {2} of the [PushConstant] cbuffer {1} has type {3}. A push-constant member is an int, uint or float, or a 2- or 4-component vector of them (for example uint2 or float4). Change the type, or move the member to another cbuffer.";
+    public const string SDSL0129 = "SDSL0129: {0}: member {2} of the [PushConstant] cbuffer {1} has type {3}. A push-constant member is an int, uint, float or enum, or a 2- or 4-component vector of int, uint or float (for example uint2 or float4). Change the type, or move the member to another cbuffer.";
     public const string SDSL0130 = "SDSL0130: {0}: the [PushConstant] cbuffer {1} has instance members, so each composition instance of {0} would get its own copy, but an effect has one push-constant block. Mark its members 'module', or mark {0} [Root] if it is only mixed at the root of an effect.";
     public const string SDSL0131 = "SDSL0131: the push constants of this effect take {0} bytes, more than the {1}-byte limit: {2}. Remove members, or move some of them to another cbuffer.";
     public const string SDSL0132 = "SDSL0132: cbuffer {0} is [PushConstant] in {1} but not in {2}. Add [PushConstant] in {2}, or rename one of them.";

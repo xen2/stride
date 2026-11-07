@@ -168,9 +168,6 @@ namespace Stride.Shaders.Compiler
             effect.AddMacro("GRAPHICS_PROFILE_LEVEL_11_0", (int)GraphicsProfile.Level_11_0);
             effect.AddMacro("GRAPHICS_PROFILE_LEVEL_11_1", (int)GraphicsProfile.Level_11_1);
             effect.AddMacro("GRAPHICS_PROFILE_LEVEL_11_2", (int)GraphicsProfile.Level_11_2);
-
-            // In .sdsl, class has been renamed to shader to avoid ambiguities with HLSL
-            effect.AddMacro("class", "shader");
         }
 
         public static ShaderMixer.Options GetMixerOptions(GraphicsPlatform platform) => new(

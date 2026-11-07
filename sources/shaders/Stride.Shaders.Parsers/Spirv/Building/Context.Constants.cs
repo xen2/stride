@@ -132,6 +132,12 @@ public partial class SpirvContext
         var operand = i.Data.Get("value");
         if (Buffer.TryGetInstructionById(typeId, out var typeInst))
         {
+            // A value of an enum is stored as its underlying type, a 32-bit int or uint
+            if (typeInst.Op == Specification.Op.OpTypeEnumSDSL)
+            {
+                value = ((OpTypeEnumSDSL)typeInst).Signedness == 1 ? operand.ToLiteral<int>() : operand.ToLiteral<uint>();
+                return true;
+            }
             if (typeInst.Op == Specification.Op.OpTypeInt)
             {
                 var type = (OpTypeInt)typeInst;

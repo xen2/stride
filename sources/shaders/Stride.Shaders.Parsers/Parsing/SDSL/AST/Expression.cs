@@ -614,11 +614,19 @@ public partial class PrefixExpression(Operator op, Expression expression, TextLo
             case Operator.Not:
                 Expression.ProcessSymbol(table, expectedType);
                 Type = Expression.ValueType;
+                if (Type is EnumType enumType)
+                    table.AddError(new(Info, string.Format(SDSLErrorMessages.SDSL0276, Operator.ToSymbol(), enumType)));
                 break;
             case Operator.BitwiseNot:
             case Operator.Plus:
             case Operator.Minus:
                 Expression.ProcessSymbol(table, expectedType);
+                if (Expression.ValueType is EnumType operandEnum)
+                {
+                    table.AddError(new(Info, string.Format(SDSLErrorMessages.SDSL0276, Operator.ToSymbol(), operandEnum)));
+                    Type = operandEnum;
+                    break;
+                }
                 Type = PromoteBoolean(Expression.ValueType!);
                 break;
             default:
@@ -774,6 +782,9 @@ public partial class CastExpression(TypeName typeName, Operator op, Expression e
                 return context.CreateDefaultConstantComposite(castType);
             throw new NotImplementedException($"Can't cast from {Expression.ValueType} to {castType} (only (StructType)0 zero-initialization is supported)");
         }
+
+        if (castType is EnumType || Expression.ValueType is EnumType)
+            return Enums.Cast(builder, context, value, castType, Info);
 
         return builder.Convert(context, value, castType);
     }
@@ -1027,6 +1038,14 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
 
     public override void ProcessSymbol(SymbolTable table, SymbolType? expectedType = null)
     {
+        // SlotChannel.R: the value of an enum, then the rest of the chain
+        if (Source is Identifier { Name: not ("this" or "base" or "streams"), MemberOnly: false } enumName && Accessors.Count > 0
+            && Enums.TryResolveValue(table, enumName, Accessors[0], Info) is { } enumValue)
+        {
+            Source = enumValue;
+            Accessors.RemoveAt(0);
+        }
+
         ResolveThisMember(table);
         ResolveDottedClassName(table);
 
@@ -1101,6 +1120,8 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
     private static SpirvValue CompileIndex(IndexerExpression indexer, SymbolTable table, CompilerUnit compiler)
     {
         var value = indexer.Index.CompileAsValue(table, compiler);
+        if (compiler.Context.ReverseTypes[value.TypeId] is EnumType enumType)
+            throw new StatementCompileException(new(indexer.Index.Info, string.Format(SDSLErrorMessages.SDSL0275, enumType, ScalarType.UInt)));
         return compiler.Context.ReverseTypes[value.TypeId].IsFloating() ? compiler.Builder.Convert(compiler.Context, value, ScalarType.Int) : value;
     }
 
@@ -1740,6 +1761,8 @@ public partial class AccessorChainExpression(Expression source, TextLocation inf
                     {
                         if (compiler == null)
                         {
+                            if (type is EnumType enumType)
+                                throw new StatementCompileException(new(Info, string.Format(SDSLErrorMessages.SDSL0276, postfix.Operator.ToSymbol(), enumType)));
                             accessor.Type = type;
                             break;
                         }
@@ -1967,11 +1990,24 @@ public partial class TernaryExpression(Expression cond, Expression left, Express
     {
         Condition.ProcessSymbol(table);
 
+        if (Condition.ValueType is EnumType conditionEnum)
+            throw new StatementCompileException(new(Condition.Info, string.Format(SDSLErrorMessages.SDSL0275, conditionEnum, ScalarType.Boolean)));
         if (Condition.ValueType!.GetElementType() is not ScalarType)
             table.AddError(new(Condition.Info, SDSLErrorMessages.SDSL0106));
 
         Left.ProcessSymbol(table);
         Right.ProcessSymbol(table);
+
+        // Both values of one enum: the result is of that enum
+        if (Left.ValueType is EnumType || Right.ValueType is EnumType)
+        {
+            if (Left.ValueType != Right.ValueType)
+                table.AddError(new(Info, string.Format(SDSLErrorMessages.SDSL0275, Right.ValueType, Left.ValueType)));
+            if (Condition.ValueType is not ScalarType)
+                table.AddError(new(Condition.Info, SDSLErrorMessages.SDSL0106));
+            Type = Left.ValueType;
+            return;
+        }
 
         var scalarType = SpirvBuilder.FindCommonBaseTypeForBinaryOperation(Left.ValueType!.GetElementType(), Right.ValueType!.GetElementType());
         Type = (Condition.ValueType, Left.ValueType, Right.ValueType) switch

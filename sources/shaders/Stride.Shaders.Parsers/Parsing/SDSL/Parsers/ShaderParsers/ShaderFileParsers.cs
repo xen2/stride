@@ -79,7 +79,10 @@ public record struct ShaderFileParser : IParser<ShaderFile>
         var position = scanner.Position;
         var isBlock = Parsers.SequenceOf(ref scanner, ["extend", "shader"]);
         scanner.Position = position;
+        var isEnum = ShaderEnumParser.Enum(ref scanner, new ParseResult(), out var outsideEnum);
+        scanner.Position = position;
         return new(isBlock ? string.Format(SDSLErrorMessages.SDSL0256, "...", "a block goes inside an effect, and is about that effect")
+            : isEnum ? string.Format(SDSLErrorMessages.SDSL0284, outsideEnum!.Name)
             : previous is ShaderClass shaderClass && shaderClass.Info.TextSpan.TrimEnd().TrimEnd(';').TrimEnd().EndsWith("}")
             ? string.Format(SDSLErrorMessages.SDSL0049, shaderClass.Name)
             : otherwise, scanner[scanner.Position], scanner.Memory);
