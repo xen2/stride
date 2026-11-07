@@ -202,7 +202,7 @@ namespace Stride.Assets.Tests
 
             // Rename the asset: its relative path changes, so the emit must re-run (guards against
             // the custom array comparer over-caching) and reflect the renamed constant.
-            var renamed = new TestAdditionalText(Path.Combine(AssetFolder, "Water.sdtex"), "");
+            var renamed = new TestAdditionalText(Asset("Water.sdtex").Path, "");
             result = result.ReplaceAdditionalText(texts[0], renamed)
                 .RunGenerators(CreateCompilation("public class TestDummy { }"));
 
@@ -234,9 +234,10 @@ namespace Stride.Assets.Tests
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         // The generator types and includes assets purely by extension, so the file content is
-        // irrelevant (never read); only the path and its StrideAssetFolder root matter.
+        // irrelevant (never read); only the path and its StrideAssetFolder root matter. The paths are
+        // Windows paths on every OS, so they are joined with '\' and not Path.Combine.
         private static (string Path, string Content) Asset(string relativePath)
-            => (Path.Combine(AssetFolder, relativePath), "");
+            => (AssetFolder + @"\" + relativePath, "");
 
         private static (string Path, string Content) Map(string content)
             => (@"C:\maps\Test.AssetContentTypeMap.txt", content);
