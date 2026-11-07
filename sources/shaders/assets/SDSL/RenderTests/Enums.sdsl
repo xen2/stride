@@ -1,0 +1,45 @@
+// PSMain(ExpectedResult=#FF000005, cbuffer.Test=(Mode=0, Offset=-1))
+// PSMain(ExpectedResult=#00FF0006, cbuffer.Test=(Mode=1, Offset=1))
+// PSMain(ExpectedResult=#0000FF06, cbuffer.Test=(Mode=5, Offset=1))
+// PSMain(ExpectedResult=#00000006, cbuffer.Test=(Mode=6, Offset=1))
+
+namespace Stride.Shaders.Tests;
+
+// The values of uint and int enums from a cbuffer, through a switch that names every value, a struct, casts and ==
+shader Enums
+{
+    enum class Channel : uint { R, G, B = 5, A };
+    enum class Sign : int { Minus = -1, Plus = 1 };
+    struct Pick { Channel channel; Sign sign; };
+
+    stream float4 ColorTarget : SV_Target0;
+    static const Channel First = Channel.R;
+
+    cbuffer Test
+    {
+        Channel Mode;
+        Sign Offset;
+    };
+
+    float3 Select(Channel channel)
+    {
+        switch (channel)
+        {
+            case Channel.R: return float3(1, 0, 0);
+            case Channel.G: return float3(0, 1, 0);
+            case Channel.B: return float3(0, 0, 1);
+            case Channel.A: return float3(0, 0, 0);
+        }
+        return float3(0.5, 0.5, 0.5);
+    }
+
+    void PSMain()
+    {
+        Pick pick;
+        pick.channel = Mode;
+        pick.sign = Offset == Sign.Plus ? Sign.Plus : (Sign)(-1);
+        // 5 when the channel is the first and the sign is minus, otherwise 6 (for A, 6 is also its number)
+        var alpha = pick.channel == First && pick.sign == Sign.Minus ? 5u : (uint)Channel.A;
+        streams.ColorTarget = float4(Select(pick.channel), float(alpha) / 255.0);
+    }
+};

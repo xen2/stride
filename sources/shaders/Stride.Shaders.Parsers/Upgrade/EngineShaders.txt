@@ -129,6 +129,7 @@ DynamicTexture	2	module	-	-			Stride.Rendering.DynamicTexture	Texture
 DynamicTextureCube	2	shader	-	-			Stride.Rendering.DynamicTextureCube	CubeMap		
 DynamicTextureStream	1	shader	-	-			Stride.Rendering.DynamicTextureStream			
 EffectCompiling	0	shader	-	-	ShadingBase		Stride.Rendering.EffectCompiling		Shading	
+EnumShader	0	shader	-	-	SpriteBase		Stride.Graphics.Tests.EnumShader	Index,Mode,Slots	Shading	
 EnvironmentLight	0	shader	compose	-	ShadowGroup,LightStream,NormalStream		Stride.Rendering.Lights.EnvironmentLight			
 EnvironmentLightArray	0	module	-	-			Stride.Rendering.Lights.EnvironmentLightArray			
 FXAAShader	0	shader	-	-	ImageEffectShader		Stride.Rendering.FXAAShader		Shading	
@@ -519,6 +520,7 @@ CustomEffect	0	effect	-	-			Stride.Graphics.Tests.CustomEffect
 CustomSubEffect	0	effect	-	-			Stride.Graphics.Tests.CustomSubEffect	
 DepthAwareDirectionalBlurEffect	0	effect	-	-			Stride.Rendering.Images.DepthAwareDirectionalBlurEffect	
 DepthMinMaxEffect	0	effect	-	-			Stride.Rendering.Images.DepthMinMaxEffect	
+EnumEffect	0	effect	-	-			Stride.Graphics.Tests.EnumEffect	
 FXAAShaderEffect	0	effect	-	-			Stride.Rendering.Images.FXAAShaderEffect	
 FlareArtifactEffect	0	effect	-	-			Stride.Rendering.Images.FlareArtifactEffect	
 GaussianBlurEffect	0	effect	-	-			Stride.Rendering.Images.GaussianBlurEffect	

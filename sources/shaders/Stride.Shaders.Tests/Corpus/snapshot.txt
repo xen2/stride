@@ -45,6 +45,7 @@ Direct3D11/RenderTests.ConstantTypeConversion strict=3a0f329696ea legal=81c247a1
 Direct3D11/RenderTests.ContinueInSwitch strict=7ed0cf1b02a1 legal=7c68ce6949a1 reflection=e3b0c44298fc explain=adcb0b52611e
 Direct3D11/RenderTests.DoWhile strict=ec80718951ee legal=c589fa651bd6 reflection=e3b0c44298fc explain=ccbaa6abdd24
 Direct3D11/RenderTests.EmptyStatements strict=044bcba85511 legal=74d69c4e610a reflection=e3b0c44298fc explain=5c8e6420fd03
+Direct3D11/RenderTests.Enums strict=02ac86d47117 legal=4ca0c1e4d833 reflection=b7c679fc5438 explain=12c1c75ebe75
 Direct3D11/RenderTests.ExtensionPointEntry strict=3d2e5feb941d legal=f0fef86380f8 reflection=ca914904170c explain=edd10ef37b37
 Direct3D11/RenderTests.ExtensionPointExtend strict=7c56a6f0155c legal=842b725fe492 reflection=ca914904170c explain=57e2be1588a5
 Direct3D11/RenderTests.ExtensionPointJoinedPhase strict=a726a98c27de legal=b9e0007e75b3 reflection=ca914904170c explain=2f4823ca41e2
@@ -785,6 +786,7 @@ Vulkan/RenderTests.ConstantTypeConversion strict=6085ef40a0a6 legal=69daafe14e82
 Vulkan/RenderTests.ContinueInSwitch strict=4d6d02a42587 legal=c894bf517d6b reflection=e3b0c44298fc explain=adcb0b52611e
 Vulkan/RenderTests.DoWhile strict=57902f738d4c legal=ed56658a4c49 reflection=e3b0c44298fc explain=ccbaa6abdd24
 Vulkan/RenderTests.EmptyStatements strict=035a0989b85e legal=9ec84ec8893a reflection=e3b0c44298fc explain=5c8e6420fd03
+Vulkan/RenderTests.Enums strict=97b7519df327 legal=21bbeab2f292 reflection=b7c679fc5438 explain=12c1c75ebe75
 Vulkan/RenderTests.ExtensionPointEntry strict=bc389f2329d5 legal=59e9de690d40 reflection=ca914904170c explain=edd10ef37b37
 Vulkan/RenderTests.ExtensionPointExtend strict=24b1d74a783e legal=1e6c5fc8f44d reflection=ca914904170c explain=57e2be1588a5
 Vulkan/RenderTests.ExtensionPointJoinedPhase strict=59d834ffc692 legal=783494ee19c1 reflection=ca914904170c explain=2f4823ca41e2
