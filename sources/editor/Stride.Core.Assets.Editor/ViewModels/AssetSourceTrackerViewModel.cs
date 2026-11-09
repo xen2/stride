@@ -167,6 +167,12 @@ public sealed class AssetSourceTrackerViewModel : DispatcherViewModel, IAssetSou
 
         using (sourceTracker.SourceFileChanged.LinkTo(bufferBlock))
         {
+            // Tracking hashes the source files through the file version cache of the machine, which takes seconds to read
+            // when it is large: read it out of the UI thread first
+            await Task.Run(() => FileVersionManager.Instance, token);
+            if (token.IsCancellationRequested || IsDestroyed)
+                return;
+
             sourceTracker.EnableTracking = true;
             while (!IsDestroyed)
             {

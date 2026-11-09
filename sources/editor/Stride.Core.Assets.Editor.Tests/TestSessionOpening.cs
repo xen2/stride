@@ -104,8 +104,9 @@ public sealed class TestSessionOpening
     {
         var fixture = await EditorSessionFixture.OpenAsync(("Textures/Wood", "wood"));
         var packageSession = fixture.Session.PackageSession;
-        // The session follows the changes of the source files of its assets, with a file watcher and a thread
-        Assert.True(packageSession.SourceTracker.EnableTracking);
+        // The session follows the changes of the source files of its assets, with a file watcher and a thread, once it has read
+        // the file version cache in the background
+        Assert.True(SpinWait.SpinUntil(() => packageSession.SourceTracker.EnableTracking, TimeSpan.FromSeconds(30)));
 
         fixture.Dispose();
 
