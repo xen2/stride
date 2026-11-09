@@ -17,22 +17,20 @@ namespace Stride.Core.Presentation.Interop
         // ReSharper disable InconsistentNaming
         public const int CLIPBRD_E_CANT_OPEN = unchecked((int)0x800401D0);
         public const int CLIPBRD_E_CANT_SET = unchecked((int)0x800401D2);
+        private const uint CF_UNICODETEXT = 13;
         // ReSharper restore InconsistentNaming
 
         /// <summary>
-        /// Similar to <see cref="Clipboard.ContainsText()"/> but don't throw if the clipboard cannot be open.
+        /// Similar to <see cref="Clipboard.ContainsText()"/>, but doesn't open the clipboard, so it doesn't wait when another window has it open.
         /// </summary>
         /// <returns><c>true</c> if the Clipboard contains data in the <see cref="DataFormats.UnicodeText"/> data format; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// <see cref="Clipboard.ContainsText()"/> opens the clipboard and, while another window has it open, tries again 10 times 100 ms apart.
+        /// </remarks>
         public static bool ContainsText()
         {
-            try
-            {
-                return Clipboard.ContainsText();
-            }
-            catch (COMException e) when (e.HResult == CLIPBRD_E_CANT_OPEN)
-            {
-                return false;
-            }
+            // The system also reports the text formats it can convert to Unicode text
+            return IsClipboardFormatAvailable(CF_UNICODETEXT);
         }
 
         /// <summary>
@@ -86,5 +84,9 @@ namespace Stride.Core.Presentation.Interop
                 e.Ignore();
             }
         }
+
+        [DllImport(ExternDll.User32)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsClipboardFormatAvailable(uint format);
     }
 }
