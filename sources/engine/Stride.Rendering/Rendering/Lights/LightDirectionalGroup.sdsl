@@ -22,7 +22,7 @@ namespace Stride.Rendering.Lights
         /// </summary>
         override void PrepareDirectLightCore(int lightIndex)
         {
-            streams.lightColor = Lights[lightIndex].Color * 0.5;
+            streams.lightColor = Lights[lightIndex].Color * 0.25;
             // TODO: Add support for disk based Directional light
             streams.lightDirectionWS = -Lights[lightIndex].DirectionWS;
         }
