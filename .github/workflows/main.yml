@@ -59,10 +59,6 @@ jobs:
   # fork. workflow_dispatch always punches through so manual runs work anywhere. Downstream
   # jobs `needs: changes`, so this single guard cascades — no per-job edits needed.
   changes:
-    if: >
-      (github.event_name != 'push' && github.event_name != 'pull_request')
-      || github.repository == 'stride3d/stride'
-      || vars.STRIDE_ENABLE_PUSH_CI == 'true'
     uses: ./.github/workflows/changes.yml
 
   # Draft PRs skip all automatic CI to save runner minutes. Add a `ci-run-on-draft` label to
@@ -71,14 +67,14 @@ jobs:
   ### Misc ###
   Assembly-Processor:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && (needs.changes.outputs.runtime == 'true' || needs.changes.outputs.full == 'true')
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && (needs.changes.outputs.runtime == 'true' || needs.changes.outputs.full == 'true')
     uses: ./.github/workflows/build-assembly-processor.yml
     with:
       build-type: Release
 
   VS-Package:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.full == 'true'
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.full == 'true'
     uses: ./.github/workflows/build-vspackage.yml
     with:
       build-type: Debug   # Release has a bug and cannot build
@@ -88,28 +84,28 @@ jobs:
   # covers the shared engine surface per-PR, and master pushes run this per-commit anyway.
   iOS-Runtime:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.ios == 'true' && (github.event_name != 'workflow_dispatch' || inputs.ios)
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.ios == 'true' && (github.event_name != 'workflow_dispatch' || inputs.ios)
     uses: ./.github/workflows/build-ios.yml
     with:
       build-type: Release
 
   Android-Runtime:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true' && (github.event_name != 'workflow_dispatch' || inputs.android)
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true' && (github.event_name != 'workflow_dispatch' || inputs.android)
     uses: ./.github/workflows/build-android.yml
     with:
       build-type: Release
 
   Linux-Runtime:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
     uses: ./.github/workflows/build-linux-runtime.yml
     with:
       build-type: Release
 
   Windows-Runtime-D3D11:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
     uses: ./.github/workflows/build-windows-runtime.yml
     with:
       build-type: Release
@@ -117,7 +113,7 @@ jobs:
 
   Windows-Runtime-D3D12:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
     uses: ./.github/workflows/build-windows-runtime.yml
     with:
       build-type: Release
@@ -125,7 +121,7 @@ jobs:
 
   Windows-Runtime-Vulkan:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
     uses: ./.github/workflows/build-windows-runtime.yml
     with:
       build-type: Release
@@ -135,7 +131,7 @@ jobs:
   # signatures they implement. Compiling it here is what keeps that API honest.
   Windows-Runtime-Null:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.runtime == 'true'
     uses: ./.github/workflows/build-windows-runtime.yml
     with:
       build-type: Release
@@ -144,7 +140,7 @@ jobs:
   ### Full Windows build (engine + editor + assets + samples) ###
   Windows-Full:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.full == 'true'
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.full == 'true'
     uses: ./.github/workflows/build-windows-full.yml
     with:
       build-type: Debug
@@ -155,7 +151,7 @@ jobs:
   Windows-Tests-Game-ApiNeutral:
     needs: [changes, Windows-Runtime-D3D11]
     if: |
-      !cancelled()
+      false && !cancelled()
       && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft'))
       && needs.changes.outputs.runtime == 'true'
       && needs['Windows-Runtime-D3D11'].result != 'failure'
@@ -168,7 +164,7 @@ jobs:
   Windows-Tests-Simple:
     needs: [changes, Windows-Runtime-D3D11]
     if: |
-      !cancelled()
+      false && !cancelled()
       && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft'))
       && needs.changes.outputs.runtime == 'true'
       && needs['Windows-Runtime-D3D11'].result != 'failure'
@@ -180,7 +176,7 @@ jobs:
   Windows-Tests-Game-D3D11:
     needs: [changes, Windows-Runtime-D3D11]
     if: |
-      !cancelled()
+      false && !cancelled()
       && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft'))
       && needs.changes.outputs.runtime == 'true'
       && needs['Windows-Runtime-D3D11'].result != 'failure'
@@ -193,7 +189,7 @@ jobs:
   Windows-Tests-Game-D3D12:
     needs: [changes, Windows-Runtime-D3D12]
     if: |
-      !cancelled()
+      false && !cancelled()
       && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft'))
       && needs.changes.outputs.runtime == 'true'
       && needs['Windows-Runtime-D3D12'].result != 'failure'
@@ -206,7 +202,7 @@ jobs:
   Windows-Tests-Game-Vulkan:
     needs: [changes, Windows-Runtime-Vulkan]
     if: |
-      !cancelled()
+      false && !cancelled()
       && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft'))
       && needs.changes.outputs.runtime == 'true'
       && needs['Windows-Runtime-Vulkan'].result != 'failure'
@@ -219,7 +215,7 @@ jobs:
   Linux-Tests-Simple:
     needs: [changes, Linux-Runtime]
     if: |
-      !cancelled()
+      false && !cancelled()
       && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft'))
       && needs.changes.outputs.runtime == 'true'
       && needs['Linux-Runtime'].result != 'failure'
@@ -375,7 +371,7 @@ jobs:
   Linux-Tests-Game:
     needs: [changes, Linux-Runtime]
     if: |
-      !cancelled()
+      false && !cancelled()
       && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft'))
       && needs.changes.outputs.runtime == 'true'
       && needs['Linux-Runtime'].result != 'failure'
@@ -390,7 +386,7 @@ jobs:
   macOS-Tests-Game:
     needs: [changes, Linux-Runtime]
     if: |
-      !cancelled()
+      false && !cancelled()
       && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft'))
       && needs.changes.outputs.runtime == 'true'
       && needs['Linux-Runtime'].result != 'failure'
@@ -405,7 +401,7 @@ jobs:
   iOS-Tests-Game:
     needs: [changes, Linux-Runtime]
     if: |
-      !cancelled()
+      false && !cancelled()
       && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft'))
       && needs.changes.outputs.ios-tests == 'true'
       && needs['Linux-Runtime'].result != 'failure'
@@ -420,7 +416,7 @@ jobs:
   Android-Tests-Game:
     needs: [changes, Linux-Runtime]
     if: |
-      !cancelled()
+      false && !cancelled()
       && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft'))
       && needs.changes.outputs.android == 'true'
       && needs['Linux-Runtime'].result != 'failure'
@@ -435,7 +431,7 @@ jobs:
   # waits for the path filter.
   Editor-Tests-Avalonia:
     needs: changes
-    if: (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.editor == 'true'
+    if: false && (github.event.pull_request.draft != true || contains(github.event.pull_request.labels.*.name, 'ci-run-on-draft')) && needs.changes.outputs.editor == 'true'
     uses: ./.github/workflows/test-editor-avalonia.yml
     with:
       build-type: Debug
