@@ -161,6 +161,7 @@ jobs:
               - '.github/workflows/test-windows-simple.yml'
               - '.github/workflows/test-linux-game.yml'
               - '.github/workflows/test-linux-simple.yml'
+              - '.github/workflows/test-shader-corpus.yml'
               - '.github/workflows/test-macos-game.yml'
               - '.github/actions/setup-vulkan-windows/**'
               - '.github/actions/stride-checkout/**'
