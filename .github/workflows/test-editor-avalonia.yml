@@ -23,6 +23,10 @@ on:
         description: 'Rerun the filtered test set up to N times, stop on first failure (flake hunting). 1 = single run (default).'
         type: number
         default: 1
+      shards:
+        description: 'Test processes run at once (blank = 4). Several counts ("2 3 4 5") run the tests once per count on the same runner, to compare their times.'
+        type: string
+        default: ''
   workflow_call:
     inputs:
       build-type:
@@ -34,6 +38,9 @@ on:
       repeat:
         default: 1
         type: number
+      shards:
+        default: ''
+        type: string
 
 concurrency:
   # A manual run never cancels or queues behind another one
@@ -87,21 +94,125 @@ jobs:
             -p:Configuration="$BUILD_TYPE" \
             -p:StridePlatforms=${{ matrix.platform }} \
             -p:ContinuousIntegrationBuild=false
-      - name: Test
+      # The test times depend on the machine: its processor and memory go in the summary next to them.
+      - name: Runner
         run: |
-          FILTER="${{ github.event.inputs.test-filter || inputs.test-filter }}"
-          REPEAT="${{ github.event.inputs.repeat || inputs.repeat || '1' }}"
-          FILTER_ARG=()
-          if [ -n "$FILTER" ]; then FILTER_ARG=(--filter "$FILTER"); fi
+          if [ "$RUNNER_OS" = Linux ]; then
+            cpu=$(lscpu | sed -n 's/^Model name: *//p' | head -n 1)
+            memory=$(free -g | awk '/^Mem:/ { print $2 }')
+          else
+            cpu=$(powershell -NoProfile -Command '(Get-CimInstance Win32_Processor | Select-Object -First 1).Name' | tr -d '\r')
+            memory=$(powershell -NoProfile -Command '[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)' | tr -d '\r')
+          fi
+          echo "**Runner:** $cpu, $(nproc) logical processors, $memory GB" | tee -a "$GITHUB_STEP_SUMMARY"
+      # The tests of each project run one after the other in their process (the plugin registry, the object database and
+      # the application are per process), and the Game Studio tests alone take about 10 minutes. The classes of every
+      # project are split into shards, each one run by a dotnet test of its own: the folders of the tests are already
+      # apart (per test, and per process for the settings of the Game Studio tests). A filtered run (flake hunting)
+      # stays one dotnet test of the whole filter.
+      - name: Test
+        env:
+          TEST_FILTER: ${{ github.event.inputs.test-filter || inputs.test-filter }}
+          REPEAT: ${{ github.event.inputs.repeat || inputs.repeat || '1' }}
+          SHARDS: ${{ github.event.inputs.shards || inputs.shards || '4' }}
+        run: |
+          COMMON=(--no-build --settings "$EDITOR_RUNSETTINGS" --results-directory TestResults
+            --blame-hang-timeout 5m --blame-hang-dump-type full -p:Configuration="$BUILD_TYPE")
+
+          if [ -n "$TEST_FILTER" ]; then
+            for i in $(seq 1 "$REPEAT"); do
+              echo "=== Test run $i / $REPEAT ==="
+              dotnet test "$EDITOR_SOLUTION" "${COMMON[@]}" --logger:"trx;LogFilePrefix=run-$i" --filter "$TEST_FILTER" \
+                || { ec=$?; echo "Run $i failed (exit $ec); stopping."; exit $ec; }
+            done
+            exit 0
+          fi
+
+          mkdir -p TestResults/logs
+          # The classes of the tests, with their project and their test count. A listed test is <namespace>.<class>.<method>,
+          # with the arguments of a theory after it; the namespace of a class starts with the name of its project.
+          dotnet test "$EDITOR_SOLUTION" --no-build -p:Configuration="$BUILD_TYPE" --list-tests > TestResults/logs/list.log \
+            || { ec=$?; cat TestResults/logs/list.log; exit $ec; }
+          tr -d '\r' < TestResults/logs/list.log \
+            | awk '/^    [A-Za-z_]/ { name = $1; sub(/\(.*/, "", name); sub(/\.[^.]*$/, "", name); count[name]++ }
+                   END { for (c in count) { project = c; sub(/\.Tests\..*/, ".Tests", project); print project, count[c], c } }' \
+            | sort -k1,1 -k2,2nr -k3,3 > TestResults/logs/classes.txt
+          if [ ! -s TestResults/logs/classes.txt ]; then echo "No test was listed."; cat TestResults/logs/list.log; exit 1; fi
+
+          # The filters of N shards: each class, the largest of its project first, goes to the shard with the fewest tests of
+          # that project (on a tie, the fewest tests in all), so that every shard runs its part of each project.
+          shard_filters() {
+            awk -v shards="$1" '
+              { best = 0
+                for (s = 1; s < shards; s++)
+                  if (load[$1, s] < load[$1, best] || (load[$1, s] == load[$1, best] && total[s] < total[best])) best = s
+                load[$1, best] += $2; total[best] += $2
+                filter[best] = filter[best] (filter[best] == "" ? "" : "|") "FullyQualifiedName~" $3 "." }
+              END { for (s = 0; s < shards; s++) if (filter[s] != "") print filter[s] }' TestResults/logs/classes.txt
+          }
+
+          # The use of the processors every 5 seconds while the marker file exists: busy %, and threads waiting for one.
+          cat > "$RUNNER_TEMP/sample-cpu.ps1" <<'EOF'
+          param($Marker)
+          while (Test-Path $Marker) {
+            $samples = (Get-Counter '\Processor(_Total)\% Processor Time', '\System\Processor Queue Length' -SampleInterval 5 -MaxSamples 1).CounterSamples
+            '{0:F0} {1}' -f $samples[0].CookedValue, $samples[1].CookedValue
+          }
+          EOF
+          sample_cpu() {
+            if [ "$RUNNER_OS" = Linux ]; then
+              # vmstat counts the running threads as runnable too
+              while [ -f "$1" ]; do vmstat 5 2 | tail -n 1 | awk -v cpus="$(nproc)" '{ print $13 + $14, ($1 > cpus ? $1 - cpus : 0) }'; done
+            else
+              powershell -NoProfile -File "$RUNNER_TEMP/sample-cpu.ps1" "$1" | tr -d '\r'
+            fi
+          }
+          minutes() { printf '%d:%02d' $(($1 / 60)) $(($1 % 60)); }
+
+          {
+            echo "## Test times"
+            echo "| Run | Shards | Step | Each shard | Processors |"
+            echo "|---|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
           for i in $(seq 1 "$REPEAT"); do
-            echo "=== Test run $i / $REPEAT ==="
-            dotnet test "$EDITOR_SOLUTION" \
-              --no-build \
-              --settings "$EDITOR_RUNSETTINGS" \
-              --logger:"trx;LogFilePrefix=run-$i" --results-directory TestResults \
-              --blame-hang-timeout 5m --blame-hang-dump-type full \
-              -p:Configuration="$BUILD_TYPE" \
-              "${FILTER_ARG[@]}" || { ec=$?; echo "Run $i failed (exit $ec); stopping."; exit $ec; }
+            for n in $SHARDS; do
+              tag="run-$i-shards-$n"
+              echo "=== Test run $i / $REPEAT, $n shards ==="
+              mapfile -t FILTERS < <(shard_filters "$n")
+              marker="$RUNNER_TEMP/$tag.sampling"
+              touch "$marker"
+              sample_cpu "$marker" > "TestResults/logs/$tag-cpu.log" &
+              sampler=$!
+              start=$SECONDS
+              names=(); pids=()
+              for s in "${!FILTERS[@]}"; do
+                names+=("$tag-$((s + 1))")
+                ( started=$SECONDS
+                  dotnet test "$EDITOR_SOLUTION" "${COMMON[@]}" --logger:"trx;LogFilePrefix=${names[-1]}" --filter "${FILTERS[$s]}"
+                  ec=$?
+                  echo $((SECONDS - started)) > "TestResults/logs/${names[-1]}.seconds"
+                  exit $ec ) > "TestResults/logs/${names[-1]}.log" 2>&1 &
+                pids+=($!)
+              done
+
+              failed=0
+              for k in "${!pids[@]}"; do
+                if wait "${pids[$k]}"; then ec=0; else ec=$?; failed=$ec; fi
+                echo "::group::${names[$k]} (exit $ec)"
+                cat "TestResults/logs/${names[$k]}.log"
+                echo "::endgroup::"
+              done
+              elapsed=$((SECONDS - start))
+              rm -f "$marker"
+              wait "$sampler"
+
+              shards=$(for name in "${names[@]}"; do cat "TestResults/logs/$name.seconds"; done | sort -n \
+                | while read -r seconds; do minutes "$seconds"; echo; done | paste -sd ' ')
+              processors=$(awk '{ busy += $1; waiting += $2; n++ }
+                END { if (n) printf "%.0f %% busy, %.1f threads waiting", busy / n, waiting / n }' "TestResults/logs/$tag-cpu.log")
+              echo "| $i | $n | $(minutes "$elapsed") | $shards | $processors |" >> "$GITHUB_STEP_SUMMARY"
+              if [ "$failed" -ne 0 ]; then echo "Run $i with $n shards failed (exit $failed); stopping."; exit $failed; fi
+            done
           done
       - name: Publish Test Report
         if: always()
