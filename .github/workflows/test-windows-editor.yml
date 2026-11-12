@@ -1,0 +1,293 @@
+name: Test Editor (Avalonia)
+
+# Builds the cross-platform (Avalonia) editor and runs its test projects on Linux and Windows, in shards.
+# With the coverage input (manual runs), the tests run in one dotnet test instead, with a coverage report of the
+# editor-side assemblies (no threshold: the summary is informative).
+# The WPF editor stays covered by build-windows-full.yml (its build), test-editor-wpf.yml (its tests)
+# and test-gamestudio-screenshots.yml (its screenshots).
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-type:
+        description: Build Configuration
+        default: Debug
+        type: choice
+        options:
+          - Debug
+          - Release
+      test-filter:
+        description: 'dotnet test --filter expression (blank = all tests)'
+        type: string
+        default: ''
+      repeat:
+        description: 'Rerun the filtered test set up to N times, stop on first failure (flake hunting). 1 = single run (default).'
+        type: number
+        default: 1
+      shards:
+        description: 'Test processes run at once (blank = 3). Several counts ("2 3 4") run the tests once per count on the same runner, to compare their times.'
+        type: string
+        default: ''
+      coverage:
+        description: 'Collect code coverage: the tests run in one dotnet test, without shards'
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      build-type:
+        default: Debug
+        type: string
+      test-filter:
+        default: ''
+        type: string
+      repeat:
+        default: 1
+        type: number
+      shards:
+        default: ''
+        type: string
+      coverage:
+        default: false
+        type: boolean
+
+concurrency:
+  # A manual run never cancels or queues behind another one; a coverage run and a test run of the same commit run both
+  group: test-editor-avalonia-${{ github.event.pull_request.number || (github.event_name == 'workflow_dispatch' && github.run_id) || github.sha }}-${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}${{ inputs.coverage && '-coverage' || '' }}
+  cancel-in-progress: true
+
+env:
+  # The solution filter of the Avalonia editor and its tests (a subset of Stride.slnx).
+  EDITOR_SOLUTION: sources/Stride.Editor.Avalonia.slnf
+  # Coverage restricted to the editor-side assemblies.
+  EDITOR_RUNSETTINGS: tests/editor-coverage.runsettings
+  REPORTGENERATOR_VERSION: 5.4.18
+  BUILD_TYPE: ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}
+  COVERAGE: ${{ inputs.coverage && 'true' || 'false' }}
+
+jobs:
+  Editor-Tests:
+    name: ${{ matrix.name }} (Editor Avalonia, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}${{ inputs.coverage && ', coverage' || '' }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-24.04
+            platform: Linux
+          - name: Windows
+            os: windows-2025-vs2026
+            platform: Windows
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          lfs: true
+          submodules: true
+          ref: ${{ github.ref }}
+      - name: Install dependencies
+        if: runner.os == 'Linux'
+        # lld links the native code the filter builds (Stride.Native.targets, Stride.CrashReport); the Vulkan
+        # loader for the tests that open a graphics device
+        run: sudo apt-get update && sudo apt-get install -y libvulkan1 lld
+      # ContinuousIntegrationBuild=false keeps the real source paths in the pdbs (CI=true maps them to /_/),
+      # so that the coverage report finds the sources; this job ships no package.
+      - name: Build
+        run: |
+          dotnet build "$EDITOR_SOLUTION" \
+            -nr:false \
+            -v:m -p:WarningLevel=0 \
+            -p:Configuration="$BUILD_TYPE" \
+            -p:StridePlatforms=${{ matrix.platform }} \
+            -p:ContinuousIntegrationBuild=false
+      # The test times depend on the machine: its processor and memory go in the summary next to them.
+      - name: Runner
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then
+            cpu=$(lscpu | sed -n 's/^Model name: *//p' | head -n 1)
+            memory=$(free -g | awk '/^Mem:/ { print $2 }')
+          else
+            cpu=$(powershell -NoProfile -Command '(Get-CimInstance Win32_Processor | Select-Object -First 1).Name' | tr -d '\r')
+            memory=$(powershell -NoProfile -Command '[math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)' | tr -d '\r')
+          fi
+          echo "**Runner:** $cpu, $(nproc) logical processors, $memory GB" | tee -a "$GITHUB_STEP_SUMMARY"
+      # The tests of each project run one after the other in their process (the plugin registry, the object database and
+      # the application are per process), and the Game Studio tests alone take about 10 minutes. The classes of every
+      # project are split into shards, each one run by a dotnet test of its own: the folders and the settings of the
+      # tests are apart (per test, per process). On 4 processors, 3 shards cut the step by about 30% on both OSes; 4 gain
+      # little more and 5 run out of memory on Linux.
+      # A filtered run (flake hunting) and a coverage run stay one dotnet test: the coverage collector does not hold up
+      # with several test runs at once (test processes stuck at startup, microsoft/codecoverage#249 and #253).
+      - name: Test
+        env:
+          TEST_FILTER: ${{ github.event.inputs.test-filter || inputs.test-filter }}
+          REPEAT: ${{ github.event.inputs.repeat || inputs.repeat || '1' }}
+          SHARDS: ${{ github.event.inputs.shards || inputs.shards || '3' }}
+        run: |
+          COMMON=(--no-build --results-directory TestResults
+            --blame-hang-timeout 5m --blame-hang-dump-type full -p:Configuration="$BUILD_TYPE")
+
+          # tmp: one test process without coverage, with coverage, then without again, on the same runner
+          {
+            echo "## Coverage cost (one test process)"
+            echo "| Run | Coverage | Step |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          k=0
+          for mode in off on off; do
+            k=$((k + 1))
+            ARGS=("${COMMON[@]}")
+            if [ "$mode" = on ]; then ARGS+=(--settings "$EDITOR_RUNSETTINGS"); fi
+            echo "=== Run $k, coverage $mode ==="
+            start=$SECONDS
+            dotnet test "$EDITOR_SOLUTION" "${ARGS[@]}" --logger:"trx;LogFilePrefix=run-$k-coverage-$mode" || echo "Run $k failed (exit $?)"
+            elapsed=$((SECONDS - start))
+            echo "| $k | $mode | $((elapsed / 60)) min $((elapsed % 60)) s |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit 0
+
+          if [ -n "$TEST_FILTER" ] || [ "$COVERAGE" = true ]; then
+            FILTER=()
+            if [ -n "$TEST_FILTER" ]; then FILTER=(--filter "$TEST_FILTER"); fi
+            if [ "$COVERAGE" = true ]; then COMMON+=(--settings "$EDITOR_RUNSETTINGS"); fi
+            for i in $(seq 1 "$REPEAT"); do
+              echo "=== Test run $i / $REPEAT ==="
+              dotnet test "$EDITOR_SOLUTION" "${COMMON[@]}" --logger:"trx;LogFilePrefix=run-$i" "${FILTER[@]}" \
+                || { ec=$?; echo "Run $i failed (exit $ec); stopping."; exit $ec; }
+            done
+            exit 0
+          fi
+
+          mkdir -p TestResults/logs
+          # The classes of the tests, with their project and their test count. A listed test is <namespace>.<class>.<method>,
+          # with the arguments of a theory after it; the namespace of a class starts with the name of its project.
+          dotnet test "$EDITOR_SOLUTION" --no-build -p:Configuration="$BUILD_TYPE" --list-tests > TestResults/logs/list.log \
+            || { ec=$?; cat TestResults/logs/list.log; exit $ec; }
+          tr -d '\r' < TestResults/logs/list.log \
+            | awk '/^    [A-Za-z_]/ { name = $1; sub(/\(.*/, "", name); sub(/\.[^.]*$/, "", name); count[name]++ }
+                   END { for (c in count) { project = c; sub(/\.Tests\..*/, ".Tests", project); print project, count[c], c } }' \
+            | sort -k1,1 -k2,2nr -k3,3 > TestResults/logs/classes.txt
+          if [ ! -s TestResults/logs/classes.txt ]; then echo "No test was listed."; cat TestResults/logs/list.log; exit 1; fi
+
+          # The filters of N shards: each class, the largest of its project first, goes to the shard with the fewest tests of
+          # that project (on a tie, the fewest tests in all), so that every shard runs its part of each project.
+          shard_filters() {
+            awk -v shards="$1" '
+              { best = 0
+                for (s = 1; s < shards; s++)
+                  if (load[$1, s] < load[$1, best] || (load[$1, s] == load[$1, best] && total[s] < total[best])) best = s
+                load[$1, best] += $2; total[best] += $2
+                filter[best] = filter[best] (filter[best] == "" ? "" : "|") "FullyQualifiedName~" $3 "." }
+              END { for (s = 0; s < shards; s++) if (filter[s] != "") print filter[s] }' TestResults/logs/classes.txt
+          }
+
+          # The use of the processors every 5 seconds while the marker file exists: busy %, and threads waiting for one.
+          cat > "$RUNNER_TEMP/sample-cpu.ps1" <<'EOF'
+          param($Marker)
+          while (Test-Path $Marker) {
+            $samples = (Get-Counter '\Processor(_Total)\% Processor Time', '\System\Processor Queue Length' -SampleInterval 5 -MaxSamples 1).CounterSamples
+            '{0:F0} {1}' -f $samples[0].CookedValue, $samples[1].CookedValue
+          }
+          EOF
+          sample_cpu() {
+            if [ "$RUNNER_OS" = Linux ]; then
+              # vmstat counts the running threads as runnable too
+              while [ -f "$1" ]; do vmstat 5 2 | tail -n 1 | awk -v cpus="$(nproc)" '{ print $13 + $14, ($1 > cpus ? $1 - cpus : 0) }'; done
+            else
+              powershell -NoProfile -File "$RUNNER_TEMP/sample-cpu.ps1" "$1" | tr -d '\r'
+            fi
+          }
+          minutes() { printf '%d:%02d' $(($1 / 60)) $(($1 % 60)); }
+
+          {
+            echo "## Test times"
+            echo "| Run | Shards | Step | Each shard | Processors |"
+            echo "|---|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for i in $(seq 1 "$REPEAT"); do
+            for n in $SHARDS; do
+              tag="run-$i-shards-$n"
+              echo "=== Test run $i / $REPEAT, $n shards ==="
+              mapfile -t FILTERS < <(shard_filters "$n")
+              marker="$RUNNER_TEMP/$tag.sampling"
+              touch "$marker"
+              sample_cpu "$marker" > "TestResults/logs/$tag-cpu.log" &
+              sampler=$!
+              start=$SECONDS
+              names=(); pids=()
+              for s in "${!FILTERS[@]}"; do
+                names+=("$tag-$((s + 1))")
+                ( started=$SECONDS
+                  dotnet test "$EDITOR_SOLUTION" "${COMMON[@]}" --logger:"trx;LogFilePrefix=${names[-1]}" --filter "${FILTERS[$s]}"
+                  ec=$?
+                  echo $((SECONDS - started)) > "TestResults/logs/${names[-1]}.seconds"
+                  exit $ec ) > "TestResults/logs/${names[-1]}.log" 2>&1 &
+                pids+=($!)
+              done
+
+              failed=0
+              for k in "${!pids[@]}"; do
+                if wait "${pids[$k]}"; then ec=0; else ec=$?; failed=$ec; fi
+                echo "::group::${names[$k]} (exit $ec)"
+                cat "TestResults/logs/${names[$k]}.log"
+                echo "::endgroup::"
+              done
+              elapsed=$((SECONDS - start))
+              rm -f "$marker"
+              wait "$sampler"
+
+              shards=$(for name in "${names[@]}"; do cat "TestResults/logs/$name.seconds"; done | sort -n \
+                | while read -r seconds; do minutes "$seconds"; echo; done | paste -sd ' ')
+              processors=$(awk '{ busy += $1; waiting += $2; n++ }
+                END { if (n) printf "%.0f %% busy, %.1f threads waiting", busy / n, waiting / n }' "TestResults/logs/$tag-cpu.log")
+              echo "| $i | $n | $(minutes "$elapsed") | $shards | $processors |" >> "$GITHUB_STEP_SUMMARY"
+              if [ "$failed" -ne 0 ]; then echo "Run $i with $n shards failed (exit $failed); stopping."; exit $failed; fi
+            done
+          done
+      - name: Publish Test Report
+        if: always()
+        uses: phoenix-actions/test-reporting@v16
+        with:
+          name: 'Test Report: ${{ matrix.name }} Editor Avalonia'
+          path: TestResults/*.trx
+          reporter: dotnet-trx
+          output-to: step-summary
+          list-tests: 'failed'
+      # ReportGenerator as a pinned dotnet tool rather than its action: the same command runs locally,
+      # and no further third-party action is needed.
+      - name: Coverage report
+        if: always() && env.COVERAGE == 'true'
+        run: |
+          shopt -s globstar nullglob
+          REPORTS=(TestResults/**/*.cobertura.xml)
+          if [ ${#REPORTS[@]} -eq 0 ]; then echo "No coverage file found."; exit 0; fi
+          dotnet tool install dotnet-reportgenerator-globaltool --version "$REPORTGENERATOR_VERSION" --tool-path .tools
+          IFS=';'
+          .tools/reportgenerator \
+            "-reports:${REPORTS[*]}" \
+            -targetdir:CoverageReport \
+            "-reporttypes:Html;Cobertura;MarkdownSummaryGithub" \
+            "-filefilters:-*/obj/*" \
+            "-title:Editor Avalonia (${{ matrix.name }})"
+          # Generated sources (obj/) are left out above; the method coverage row only links to ReportGenerator Pro.
+          {
+            echo "## Coverage: ${{ matrix.name }} Editor Avalonia"
+            tail -n +2 CoverageReport/SummaryGithub.md | grep -v 'Method coverage:'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-editor-avalonia-${{ matrix.platform }}
+          path: TestResults/
+          if-no-files-found: ignore
+      - name: Upload coverage report
+        if: always() && env.COVERAGE == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-editor-avalonia-${{ matrix.platform }}
+          path: CoverageReport/
+          if-no-files-found: ignore

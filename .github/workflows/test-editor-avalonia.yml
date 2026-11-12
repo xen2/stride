@@ -68,7 +68,7 @@ jobs:
   Editor-Tests:
     name: ${{ matrix.name }} (Editor Avalonia, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}${{ inputs.coverage && ', coverage' || '' }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 100
     strategy:
       fail-fast: false
       matrix:
@@ -129,6 +129,25 @@ jobs:
         run: |
           COMMON=(--no-build --results-directory TestResults
             --blame-hang-timeout 5m --blame-hang-dump-type full -p:Configuration="$BUILD_TYPE")
+
+          # tmp: one test process without coverage, with coverage, then without again, on the same runner
+          {
+            echo "## Coverage cost (one test process)"
+            echo "| Run | Coverage | Step |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          k=0
+          for mode in off on off; do
+            k=$((k + 1))
+            ARGS=("${COMMON[@]}")
+            if [ "$mode" = on ]; then ARGS+=(--settings "$EDITOR_RUNSETTINGS"); fi
+            echo "=== Run $k, coverage $mode ==="
+            start=$SECONDS
+            dotnet test "$EDITOR_SOLUTION" "${ARGS[@]}" --logger:"trx;LogFilePrefix=run-$k-coverage-$mode" || echo "Run $k failed (exit $?)"
+            elapsed=$((SECONDS - start))
+            echo "| $k | $mode | $((elapsed / 60)) min $((elapsed % 60)) s |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit 0
 
           if [ -n "$TEST_FILTER" ] || [ "$COVERAGE" = true ]; then
             FILTER=()
