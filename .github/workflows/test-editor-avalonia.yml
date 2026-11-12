@@ -1,7 +1,8 @@
 name: Test Editor (Avalonia)
 
-# Builds the cross-platform (Avalonia) editor and runs its test projects on Linux and Windows,
-# with a coverage report of the editor-side assemblies (no threshold: the summary is informative).
+# Builds the cross-platform (Avalonia) editor and runs its test projects on Linux and Windows, in shards.
+# With the coverage input (manual runs), the tests run in one dotnet test instead, with a coverage report of the
+# editor-side assemblies (no threshold: the summary is informative).
 # The WPF editor stays covered by build-windows-full.yml (its build), test-editor-wpf.yml (its tests)
 # and test-gamestudio-screenshots.yml (its screenshots).
 
@@ -24,9 +25,13 @@ on:
         type: number
         default: 1
       shards:
-        description: 'Test processes run at once (blank = 4). Several counts ("2 3 4 5") run the tests once per count on the same runner, to compare their times.'
+        description: 'Test processes run at once (blank = 3). Several counts ("2 3 4") run the tests once per count on the same runner, to compare their times.'
         type: string
         default: ''
+      coverage:
+        description: 'Collect code coverage: the tests run in one dotnet test, without shards'
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       build-type:
@@ -41,10 +46,13 @@ on:
       shards:
         default: ''
         type: string
+      coverage:
+        default: false
+        type: boolean
 
 concurrency:
-  # A manual run never cancels or queues behind another one
-  group: test-editor-avalonia-${{ github.event.pull_request.number || (github.event_name == 'workflow_dispatch' && github.run_id) || github.sha }}-${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}
+  # A manual run never cancels or queues behind another one; a coverage run and a test run of the same commit run both
+  group: test-editor-avalonia-${{ github.event.pull_request.number || (github.event_name == 'workflow_dispatch' && github.run_id) || github.sha }}-${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}${{ inputs.coverage && '-coverage' || '' }}
   cancel-in-progress: true
 
 env:
@@ -54,10 +62,11 @@ env:
   EDITOR_RUNSETTINGS: tests/editor-coverage.runsettings
   REPORTGENERATOR_VERSION: 5.4.18
   BUILD_TYPE: ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}
+  COVERAGE: ${{ inputs.coverage && 'true' || 'false' }}
 
 jobs:
   Editor-Tests:
-    name: ${{ matrix.name }} (Editor Avalonia, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
+    name: ${{ matrix.name }} (Editor Avalonia, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}${{ inputs.coverage && ', coverage' || '' }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
@@ -107,22 +116,27 @@ jobs:
           echo "**Runner:** $cpu, $(nproc) logical processors, $memory GB" | tee -a "$GITHUB_STEP_SUMMARY"
       # The tests of each project run one after the other in their process (the plugin registry, the object database and
       # the application are per process), and the Game Studio tests alone take about 10 minutes. The classes of every
-      # project are split into shards, each one run by a dotnet test of its own: the folders of the tests are already
-      # apart (per test, and per process for the settings of the Game Studio tests). A filtered run (flake hunting)
-      # stays one dotnet test of the whole filter.
+      # project are split into shards, each one run by a dotnet test of its own: the folders and the settings of the
+      # tests are apart (per test, per process). On 4 processors, 3 shards cut the step by about 30% on both OSes; 4 gain
+      # little more and 5 run out of memory on Linux.
+      # A filtered run (flake hunting) and a coverage run stay one dotnet test: the coverage collector does not hold up
+      # with several test runs at once (test processes stuck at startup, microsoft/codecoverage#249 and #253).
       - name: Test
         env:
           TEST_FILTER: ${{ github.event.inputs.test-filter || inputs.test-filter }}
           REPEAT: ${{ github.event.inputs.repeat || inputs.repeat || '1' }}
-          SHARDS: ${{ github.event.inputs.shards || inputs.shards || '4' }}
+          SHARDS: ${{ github.event.inputs.shards || inputs.shards || '3' }}
         run: |
-          COMMON=(--no-build --settings "$EDITOR_RUNSETTINGS" --results-directory TestResults
+          COMMON=(--no-build --results-directory TestResults
             --blame-hang-timeout 5m --blame-hang-dump-type full -p:Configuration="$BUILD_TYPE")
 
-          if [ -n "$TEST_FILTER" ]; then
+          if [ -n "$TEST_FILTER" ] || [ "$COVERAGE" = true ]; then
+            FILTER=()
+            if [ -n "$TEST_FILTER" ]; then FILTER=(--filter "$TEST_FILTER"); fi
+            if [ "$COVERAGE" = true ]; then COMMON+=(--settings "$EDITOR_RUNSETTINGS"); fi
             for i in $(seq 1 "$REPEAT"); do
               echo "=== Test run $i / $REPEAT ==="
-              dotnet test "$EDITOR_SOLUTION" "${COMMON[@]}" --logger:"trx;LogFilePrefix=run-$i" --filter "$TEST_FILTER" \
+              dotnet test "$EDITOR_SOLUTION" "${COMMON[@]}" --logger:"trx;LogFilePrefix=run-$i" "${FILTER[@]}" \
                 || { ec=$?; echo "Run $i failed (exit $ec); stopping."; exit $ec; }
             done
             exit 0
@@ -226,7 +240,7 @@ jobs:
       # ReportGenerator as a pinned dotnet tool rather than its action: the same command runs locally,
       # and no further third-party action is needed.
       - name: Coverage report
-        if: always()
+        if: always() && env.COVERAGE == 'true'
         run: |
           shopt -s globstar nullglob
           REPORTS=(TestResults/**/*.cobertura.xml)
@@ -252,7 +266,7 @@ jobs:
           path: TestResults/
           if-no-files-found: ignore
       - name: Upload coverage report
-        if: always()
+        if: always() && env.COVERAGE == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-editor-avalonia-${{ matrix.platform }}
