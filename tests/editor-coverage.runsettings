@@ -13,10 +13,6 @@
         <Configuration>
           <Format>cobertura</Format>
           <CodeCoverage>
-            <!-- In memory on every OS: static instrumentation (the default on Linux and macOS) rewrites the DLLs of the
-                 output folder, which the shards of a test project share -->
-            <EnableStaticManagedInstrumentation>False</EnableStaticManagedInstrumentation>
-            <EnableDynamicManagedInstrumentation>True</EnableDynamicManagedInstrumentation>
             <ModulePaths>
               <Include>
                 <!-- Stride.Editor*, Stride.Core.Assets.Editor*, Stride.Assets.Editor*, the plugin editors (Stride.<Plugin>.Editor*) -->
