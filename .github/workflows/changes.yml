@@ -163,6 +163,7 @@ jobs:
               - '.github/workflows/test-linux-game.yml'
               - '.github/workflows/test-linux-simple.yml'
               - '.github/workflows/test-macos-game.yml'
+              - '.github/actions/coverage-lane/**'
               - '.github/actions/setup-vulkan-windows/**'
               - '.github/actions/stride-checkout/**'
               - '.github/actions/stride-workload/**'
@@ -215,9 +216,12 @@ jobs:
               - 'tests/infra/Stride.*/**'
               - 'tests/enduser/Stride.Templates.Tests/**'
               - 'Stride.slnx'
-              # The workflows of the full build and of the WPF editor tests, and the check the build runs: an edit runs them
+              # The workflows of the full build and of the WPF editor tests, their coverage settings and step, and the
+              # check the build runs: an edit runs them
               - '.github/workflows/build-windows-full.yml'
               - '.github/workflows/test-editor-wpf.yml'
+              - 'tests/coverage.runsettings'
+              - '.github/actions/coverage-lane/**'
               - 'build/check-graphics-api-compat.ps1'
             # The Avalonia editor job: the folders of the projects sources/Stride.Editor.Avalonia.slnf builds,
             # engine included (the filter compiles it, and the editor tests run on top of it), and its build inputs
@@ -246,5 +250,6 @@ jobs:
               - 'deps/**'
               - 'global.json'
               - 'nuget.config'
-              - 'tests/editor-coverage.runsettings'
+              - 'tests/coverage.runsettings'
               - '.github/workflows/test-editor-avalonia.yml'
+              - '.github/actions/coverage-lane/**'
