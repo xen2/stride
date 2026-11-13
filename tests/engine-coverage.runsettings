@@ -16,6 +16,9 @@
           <ManagedVanguardLogLevel>Info</ManagedVanguardLogLevel>
           <Format>cobertura</Format>
           <CodeCoverage>
+            <!-- tmp: on Linux the collector instruments statically even when dynamic works: force dynamic only -->
+            <EnableStaticManagedInstrumentation>False</EnableStaticManagedInstrumentation>
+            <EnableDynamicManagedInstrumentation>True</EnableDynamicManagedInstrumentation>
             <ModulePaths>
               <Include>
                 <ModulePath>.*[\\/]Stride\.[\w.]*\.(dll|exe)$</ModulePath>
