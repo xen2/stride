@@ -96,7 +96,8 @@ jobs:
   Game-GraphicsApi:
     name: Windows (${{ matrix.graphics-api }}, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
     runs-on: windows-2025-vs2026
-    timeout-minutes: 20
+    # tmp: four test runs in one job
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -187,6 +188,28 @@ jobs:
         if: (success() || failure()) && env.STRIDE_TEST_TARGET != ''
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
+          # tmp: the same tests with Vulkan synchronization validation on, off, on, then off, on the same runner
+          # (the first run is cold: shader and effect caches)
+          "## Vulkan sync validation cost`n" | Add-Content $env:GITHUB_STEP_SUMMARY
+          "| Run | Sync validation | Step | Exit |`n|---|---|---|---|" | Add-Content $env:GITHUB_STEP_SUMMARY
+          $i = 0
+          foreach ($sync in '1', '', '1', '') {
+            $i++
+            $env:STRIDE_VULKAN_SYNC_VALIDATION = $sync
+            $label = if ($sync) { 'on' } else { 'off' }
+            Write-Host "=== Run $i, sync validation $label ==="
+            $start = Get-Date
+            dotnet test $env:STRIDE_TEST_TARGET `
+              --no-build `
+              --logger:"trx;LogFilePrefix=run-$i-sync-$label" --results-directory TestResults `
+              --blame-hang-timeout 5m --blame-hang-dump-type full `
+              -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} `
+              -p:StrideGraphicsApis=${{ matrix.graphics-api }} `
+              -p:StrideGraphicsApi=${{ matrix.graphics-api }} `
+              -- RunConfiguration.MaxCpuCount=1
+            "| $i | $label | $([int]((Get-Date) - $start).TotalSeconds) s | $LASTEXITCODE |" | Add-Content $env:GITHUB_STEP_SUMMARY
+          }
+          exit 0
           $repeat = [int]("${{ github.event.inputs.repeat || inputs.repeat || '1' }}")
           $filterArgs = if ($env:STRIDE_TEST_FILTER) { @('--filter', $env:STRIDE_TEST_FILTER) } else { @() }
           for ($i = 1; $i -le $repeat; $i++) {
