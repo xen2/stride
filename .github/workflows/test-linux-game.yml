@@ -173,8 +173,8 @@ jobs:
         if: success() || failure()
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
-          # tmp: off, off, on, off, on on the same runner, no coverage logs: the first run is cold, runs 2 and 4 show
-          # the noise between warm runs, runs 3 and 5 give two samples of the coverage cost
+          # tmp: off, off, Graphics+Games filter, full filter on the same runner, no coverage logs: the first run is cold
+          # (warm-up), run 2 is the warm baseline, runs 3 and 4 give the cost of each filter
           {
             echo "## Coverage cost (Linux Game)"
             echo
@@ -184,11 +184,13 @@ jobs:
             echo "|---|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
           k=0
-          for mode in off off dynamic off dynamic; do
+          for mode in off off graphics full; do
             k=$((k + 1))
             COV=()
-            if [ "$mode" != off ]; then
+            if [ "$mode" = graphics ]; then
               COV=(--settings tests/engine-coverage-graphics.runsettings)
+            elif [ "$mode" = full ]; then
+              COV=(--settings tests/engine-coverage.runsettings)
             fi
             echo "=== Run $k, coverage $mode ==="
             start=$SECONDS
