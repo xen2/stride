@@ -1,15 +1,15 @@
 name: Coverage report of a test lane
 description: >-
-  Merges the Cobertura files of a test lane's dotnet test run into one Cobertura and an HTML report with ReportGenerator,
-  writes the coverage summary to the step summary, and uploads both as the coverage-<lane> artifact, which
-  coverage-report.yml merges across the lanes. Does nothing when the run left no coverage file.
+  Merges the Cobertura files of a test lane's dotnet test run into one with ReportGenerator, writes the coverage
+  summary to the step summary, and uploads the Cobertura as the coverage-<lane> artifact, which coverage-report.yml
+  merges across the lanes. Does nothing when the run left no coverage file.
 
 inputs:
   lane:
     description: Name of the lane in the artifact name (coverage-<lane>), as in its test-results artifact
     required: true
   title:
-    description: Title of the report and of the step summary section
+    description: Title of the step summary section
     required: true
   results-directory:
     description: The --results-directory of the dotnet test run
@@ -19,8 +19,9 @@ runs:
   using: composite
   steps:
     # ReportGenerator as a pinned dotnet tool rather than its action: the same command runs locally, and no further
-    # third-party action is needed. Generated sources (obj/) are left out; the method coverage row of the summary only
-    # links to ReportGenerator Pro.
+    # third-party action is needed. No HTML report here: for a lane with the full filter it takes minutes to write and
+    # 1.6 GB to upload; coverage-report.yml writes one for the PR. Generated sources (obj/) are left out; the method
+    # coverage row of the summary only links to ReportGenerator Pro.
     - name: Coverage report
       id: report
       shell: pwsh
@@ -38,14 +39,13 @@ runs:
         & (Join-Path $tools reportgenerator) `
           "-reports:$(($reports.FullName) -join ';')" `
           "-targetdir:$output" `
-          "-reporttypes:Html;Cobertura;MarkdownSummaryGithub" `
-          "-filefilters:-*\obj\*;-*/obj/*" `
-          "-title:$env:REPORT_TITLE"
+          "-reporttypes:Cobertura;MarkdownSummaryGithub" `
+          "-filefilters:-*\obj\*;-*/obj/*"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         $summary = Get-Content (Join-Path $output SummaryGithub.md) | Select-Object -Skip 1 | Where-Object { $_ -notmatch 'Method coverage:' }
         @("## Coverage: $env:REPORT_TITLE") + $summary | Add-Content $env:GITHUB_STEP_SUMMARY
         "directory=$output" >> $env:GITHUB_OUTPUT
-    - name: Upload coverage report
+    - name: Upload coverage
       if: steps.report.outputs.directory != ''
       uses: actions/upload-artifact@v7
       with:
