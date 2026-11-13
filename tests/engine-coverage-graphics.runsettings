@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  tmp: run settings to measure the cost of code coverage restricted to Stride.Graphics and Stride.Games,
+  the filter proposed for the lanes of the graphics APIs other than the default one.
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <CodeCoverage>
+            <EnableStaticManagedInstrumentation>False</EnableStaticManagedInstrumentation>
+            <EnableDynamicManagedInstrumentation>True</EnableDynamicManagedInstrumentation>
+            <ModulePaths>
+              <Include>
+                <ModulePath>.*[\\/]Stride\.Graphics\.dll$</ModulePath>
+                <ModulePath>.*[\\/]Stride\.Games\.dll$</ModulePath>
+              </Include>
+            </ModulePaths>
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

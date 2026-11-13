@@ -188,7 +188,7 @@ jobs:
             k=$((k + 1))
             COV=()
             if [ "$mode" != off ]; then
-              COV=(--settings tests/engine-coverage.runsettings)
+              COV=(--settings tests/engine-coverage-graphics.runsettings)
             fi
             echo "=== Run $k, coverage $mode ==="
             start=$SECONDS
