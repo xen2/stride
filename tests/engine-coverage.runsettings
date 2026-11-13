@@ -9,11 +9,6 @@
     <DataCollectors>
       <DataCollector friendlyName="Code Coverage">
         <Configuration>
-          <!-- tmp: collector logs, @LOGDIR@ is replaced per run by the workflow (a folder, ending with /) -->
-          <CoverageFileLogPath>@LOGDIR@</CoverageFileLogPath>
-          <CoverageLogLevel>Messages</CoverageLogLevel>
-          <InstrumentationLogLevel>Messages</InstrumentationLogLevel>
-          <ManagedVanguardLogLevel>Info</ManagedVanguardLogLevel>
           <Format>cobertura</Format>
           <CodeCoverage>
             <!-- tmp: on Linux the collector instruments statically even when dynamic works: force dynamic only -->

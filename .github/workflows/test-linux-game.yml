@@ -173,7 +173,8 @@ jobs:
         if: success() || failure()
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
-          # tmp: one test process without coverage, with dynamic coverage, then without again, on the same runner
+          # tmp: off, off, on, off, on on the same runner, no coverage logs: the first run is cold, runs 2 and 4 show
+          # the noise between warm runs, runs 3 and 5 give two samples of the coverage cost
           {
             echo "## Coverage cost (Linux Game)"
             echo
@@ -183,21 +184,11 @@ jobs:
             echo "|---|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
           k=0
-          for mode in off dynamic off; do
+          for mode in off off dynamic off dynamic; do
             k=$((k + 1))
             COV=()
-            unset MicrosoftInstrumentationEngine_LogLevel MicrosoftInstrumentationEngine_FileLogPath
             if [ "$mode" != off ]; then
-              # CLR Instrumentation Engine logs of its own, in case the run settings give none again
-              export MicrosoftInstrumentationEngine_LogLevel=Messages
-              export MicrosoftInstrumentationEngine_FileLogPath="$PWD/TestResults/clrie-run-$k/"
-              mkdir -p "$PWD/TestResults/clrie-run-$k"
-              # Collector logs go to TestResults/covlog-run-$k/, test platform logs to TestResults/diag-run-$k/
-              settings=tests/engine-coverage.runsettings
-              if [ "$mode" = static ]; then settings=tests/engine-coverage-static.runsettings; fi
-              mkdir -p "$PWD/TestResults/covlog-run-$k" "$PWD/TestResults/diag-run-$k"
-              sed "s|@LOGDIR@|$PWD/TestResults/covlog-run-$k/|" "$settings" > "$RUNNER_TEMP/coverage-run-$k.runsettings"
-              COV=(--settings "$RUNNER_TEMP/coverage-run-$k.runsettings" --diag "TestResults/diag-run-$k/log.txt")
+              COV=(--settings tests/engine-coverage.runsettings)
             fi
             echo "=== Run $k, coverage $mode ==="
             start=$SECONDS
