@@ -38,7 +38,7 @@ jobs:
   Linux-Tests:
     name: Linux (Simple, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 100
     steps:
       # Full checkout: the Simple test solutions build Stride.Templates.*, which
       # preprocesses template content from samples/.
@@ -59,9 +59,36 @@ jobs:
             -v:m -p:WarningLevel=0 \
             -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} \
             -p:StridePlatforms=Linux \
-            -p:StrideGraphicsApis=Vulkan
+            -p:StrideGraphicsApis=Vulkan \
+            -p:ContinuousIntegrationBuild=false
       - name: Test
         run: |
+          # tmp: one test process without coverage, with coverage, then without again, on the same runner
+          {
+            echo "## Coverage cost (Linux Simple)"
+            echo
+            echo "**Runner:** $(lscpu | sed -n 's/^Model name: *//p' | head -n 1), $(nproc) logical processors"
+            echo
+            echo "| Run | Coverage | Step | Exit |"
+            echo "|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          k=0
+          for mode in off on off; do
+            k=$((k + 1))
+            COV=()
+            if [ "$mode" = on ]; then COV=(--settings tests/engine-coverage.runsettings); fi
+            echo "=== Run $k, coverage $mode ==="
+            start=$SECONDS
+            ec=0
+            dotnet test sources/Stride.Tests.Simple.Linux.slnf \
+              --no-build \
+              --logger:"trx;LogFilePrefix=run-$k-coverage-$mode" --results-directory TestResults \
+              --blame-hang-timeout 5m --blame-hang-dump-type full \
+              -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} \
+              "${COV[@]}" || ec=$?
+            echo "| $k | $mode | $((SECONDS - start)) s | $ec |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit 0
           FILTER="${{ github.event.inputs.test-filter || inputs.test-filter }}"
           REPEAT="${{ github.event.inputs.repeat || inputs.repeat || '1' }}"
           FILTER_ARG=()

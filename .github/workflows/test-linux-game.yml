@@ -68,7 +68,7 @@ jobs:
   Linux-Tests-Game:
     name: Linux (Vulkan, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 100
     env:
       STRIDE_GRAPHICS_SOFTWARE_RENDERING: "1"
       STRIDE_MAX_PARALLELISM: "8"
@@ -146,7 +146,8 @@ jobs:
             -v:m -p:WarningLevel=0 \
             -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} \
             -p:StridePlatforms=Linux \
-            -p:StrideGraphicsApis=Vulkan
+            -p:StrideGraphicsApis=Vulkan \
+            -p:ContinuousIntegrationBuild=false
       - name: Upload build binlog
         # failure() so we still get the binlog when Build dies (most useful case)
         if: failure() || inputs.upload-binlog
@@ -159,6 +160,34 @@ jobs:
         if: success() || failure()
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
+          # tmp: one test process without coverage, with coverage, then without again, on the same runner
+          {
+            echo "## Coverage cost (Linux Game)"
+            echo
+            echo "**Runner:** $(lscpu | sed -n 's/^Model name: *//p' | head -n 1), $(nproc) logical processors"
+            echo
+            echo "| Run | Coverage | Step | Exit |"
+            echo "|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          k=0
+          for mode in off on off; do
+            k=$((k + 1))
+            COV=()
+            if [ "$mode" = on ]; then COV=(--settings tests/engine-coverage.runsettings); fi
+            echo "=== Run $k, coverage $mode ==="
+            start=$SECONDS
+            ec=0
+            dotnet test "$STRIDE_TEST_TARGET" \
+              --no-build \
+              --logger:"trx;LogFilePrefix=run-$k-coverage-$mode" --results-directory TestResults \
+              --blame-hang-timeout 5m --blame-hang-dump-type full \
+              -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} \
+              -p:StrideGraphicsApis=Vulkan \
+              "${COV[@]}" \
+              -- RunConfiguration.MaxCpuCount=1 || ec=$?
+            echo "| $k | $mode | $((SECONDS - start)) s | $ec |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit 0
           REPEAT="${{ github.event.inputs.repeat || inputs.repeat || '1' }}"
           FILTER_ARG=()
           if [ -n "$STRIDE_TEST_FILTER" ]; then FILTER_ARG=(--filter "$STRIDE_TEST_FILTER"); fi
