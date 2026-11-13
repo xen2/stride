@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  tmp: run settings to measure the cost of code coverage on the Simple and Game test lanes.
+  Collects Cobertura coverage with Microsoft Code Coverage (shipped with Microsoft.NET.Test.Sdk),
+  restricted to the Stride assemblies: test assemblies and test helpers stay out.
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <CodeCoverage>
+            <ModulePaths>
+              <Include>
+                <ModulePath>.*[\\/]Stride\.[\w.]*\.(dll|exe)$</ModulePath>
+              </Include>
+              <Exclude>
+                <!-- Stride.*.Tests, Stride.Graphics.Tests.10_0, Stride.CrashReport.TestProbe, Stride.TestRunner -->
+                <ModulePath>.*Test[\w.]*\.(dll|exe)$</ModulePath>
+                <ModulePath>.*[\\/]Stride\.Graphics\.Regression\.dll$</ModulePath>
+                <ModulePath>.*[\\/]Stride\.[\w.]*AutoTesting\.dll$</ModulePath>
+              </Exclude>
+            </ModulePaths>
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

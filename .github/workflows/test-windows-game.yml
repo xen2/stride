@@ -96,7 +96,7 @@ jobs:
   Game-GraphicsApi:
     name: Windows (${{ matrix.graphics-api }}, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
     runs-on: windows-2025-vs2026
-    timeout-minutes: 20
+    timeout-minutes: 100
     strategy:
       fail-fast: false
       matrix:
@@ -174,7 +174,8 @@ jobs:
             -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} `
             -p:StridePlatforms=Windows `
             -p:StrideGraphicsApis=${{ matrix.graphics-api }} `
-            -p:StrideGraphicsApi=${{ matrix.graphics-api }}
+            -p:StrideGraphicsApi=${{ matrix.graphics-api }} `
+            -p:ContinuousIntegrationBuild=false
       - name: Upload build binlog
         # failure() so we still get the binlog when Build dies (most useful case)
         if: failure() || inputs.upload-binlog
@@ -187,6 +188,29 @@ jobs:
         if: (success() || failure()) && env.STRIDE_TEST_TARGET != ''
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
+          # tmp: one test process without coverage, with coverage, then without again, on the same runner
+          $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
+          "## Coverage cost (Windows Game ${{ matrix.graphics-api }})`n`n**Runner:** $cpu, $env:NUMBER_OF_PROCESSORS logical processors`n`n| Run | Coverage | Step | Exit |`n|---|---|---|---|" >> $env:GITHUB_STEP_SUMMARY
+          $k = 0
+          foreach ($mode in 'off', 'on', 'off') {
+            $k++
+            $cov = if ($mode -eq 'on') { @('--settings', 'tests/engine-coverage.runsettings') } else { @() }
+            Write-Host "=== Run $k, coverage $mode ==="
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            dotnet test $env:STRIDE_TEST_TARGET `
+              --no-build `
+              --logger:"trx;LogFilePrefix=run-$k-coverage-$mode" --results-directory TestResults `
+              --blame-hang-timeout 5m --blame-hang-dump-type full `
+              -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} `
+              -p:StrideGraphicsApis=${{ matrix.graphics-api }} `
+              -p:StrideGraphicsApi=${{ matrix.graphics-api }} `
+              @cov `
+              -- RunConfiguration.MaxCpuCount=1
+            $ec = $LASTEXITCODE
+            $s = [int]$sw.Elapsed.TotalSeconds
+            "| $k | $mode | $s s | $ec |" >> $env:GITHUB_STEP_SUMMARY
+          }
+          exit 0
           $repeat = [int]("${{ github.event.inputs.repeat || inputs.repeat || '1' }}")
           $filterArgs = if ($env:STRIDE_TEST_FILTER) { @('--filter', $env:STRIDE_TEST_FILTER) } else { @() }
           for ($i = 1; $i -le $repeat; $i++) {

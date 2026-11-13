@@ -42,7 +42,7 @@ jobs:
   Editor-Tests:
     name: Windows (Editor WPF, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
     runs-on: windows-2025-vs2026
-    timeout-minutes: 30
+    timeout-minutes: 100
     steps:
       # Full checkout: Game Studio builds Stride.Templates.*, which preprocesses template content from samples/.
       - uses: actions/checkout@v7
@@ -58,9 +58,30 @@ jobs:
             -v:m -p:WarningLevel=0 `
             -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} `
             -p:StridePlatforms=Windows `
-            -p:StrideGraphicsApis=Direct3D11
+            -p:StrideGraphicsApis=Direct3D11 `
+            -p:ContinuousIntegrationBuild=false
       - name: Test
         run: |
+          # tmp: one test process without coverage, with coverage, then without again, on the same runner
+          $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
+          "## Coverage cost (Windows Editor WPF)`n`n**Runner:** $cpu, $env:NUMBER_OF_PROCESSORS logical processors`n`n| Run | Coverage | Step | Exit |`n|---|---|---|---|" >> $env:GITHUB_STEP_SUMMARY
+          $k = 0
+          foreach ($mode in 'off', 'on', 'off') {
+            $k++
+            $cov = if ($mode -eq 'on') { @('--settings', 'tests/engine-coverage.runsettings') } else { @() }
+            Write-Host "=== Run $k, coverage $mode ==="
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            dotnet test sources\Stride.Tests.Editor.Wpf.slnf `
+              --no-build `
+              --logger:"trx;LogFilePrefix=run-$k-coverage-$mode" --results-directory TestResults `
+              --blame-hang-timeout 5m --blame-hang-dump-type full `
+              -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} `
+              @cov
+            $ec = $LASTEXITCODE
+            $s = [int]$sw.Elapsed.TotalSeconds
+            "| $k | $mode | $s s | $ec |" >> $env:GITHUB_STEP_SUMMARY
+          }
+          exit 0
           $filter = "${{ github.event.inputs.test-filter || inputs.test-filter }}"
           $repeat = [int]("${{ github.event.inputs.repeat || inputs.repeat || '1' }}")
           $filterArgs = if ($filter) { @('--filter', $filter) } else { @() }
