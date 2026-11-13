@@ -156,11 +156,24 @@ jobs:
           name: build-binlog-linux-game
           path: build.binlog
           if-no-files-found: ignore
+      - name: Check the coverage profiler's native dependencies
+        # tmp: why the dynamic profiler doesn't initialize (it asks for glibc >= 2.27 and libxml2)
+        run: |
+          ldd --version | head -n 1
+          echo "--- libxml2 in the linker cache"
+          ldconfig -p | grep -i libxml2 || echo "no libxml2 in the linker cache"
+          echo "--- libxml2 packages"
+          dpkg -l | grep -i libxml2 || echo "no libxml2 package"
+          echo "--- native libraries of Microsoft.CodeCoverage"
+          for so in $(find ~/.nuget/packages/microsoft.codecoverage -name '*.so' | sort); do
+            echo "== $so"
+            ldd "$so" | grep -E 'not found|xml' || echo "   all resolved, no libxml2"
+          done
       - name: Test
         if: success() || failure()
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
-          # tmp: one test process without coverage, with dynamic coverage, with static coverage, then without again, on the same runner
+          # tmp: one test process without coverage, with dynamic coverage, then without again, on the same runner
           {
             echo "## Coverage cost (Linux Game)"
             echo
@@ -170,10 +183,15 @@ jobs:
             echo "|---|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
           k=0
-          for mode in off dynamic static off; do
+          for mode in off dynamic off; do
             k=$((k + 1))
             COV=()
+            unset MicrosoftInstrumentationEngine_LogLevel MicrosoftInstrumentationEngine_FileLogPath
             if [ "$mode" != off ]; then
+              # CLR Instrumentation Engine logs of its own, in case the run settings give none again
+              export MicrosoftInstrumentationEngine_LogLevel=Messages
+              export MicrosoftInstrumentationEngine_FileLogPath="$PWD/TestResults/clrie-run-$k/"
+              mkdir -p "$PWD/TestResults/clrie-run-$k"
               # Collector logs go to TestResults/covlog-run-$k/, test platform logs to TestResults/diag-run-$k/
               settings=tests/engine-coverage.runsettings
               if [ "$mode" = static ]; then settings=tests/engine-coverage-static.runsettings; fi
