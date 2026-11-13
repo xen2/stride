@@ -9,6 +9,11 @@
     <DataCollectors>
       <DataCollector friendlyName="Code Coverage">
         <Configuration>
+          <!-- tmp: collector logs, @LOGDIR@ is replaced per run by the workflow (a folder, ending with /) -->
+          <CoverageFileLogPath>@LOGDIR@</CoverageFileLogPath>
+          <CoverageLogLevel>Messages</CoverageLogLevel>
+          <InstrumentationLogLevel>Errors</InstrumentationLogLevel>
+          <ManagedVanguardLogLevel>Info</ManagedVanguardLogLevel>
           <Format>cobertura</Format>
           <CodeCoverage>
             <ModulePaths>

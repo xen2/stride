@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  tmp: run settings to measure the cost of code coverage with static instrumentation on the Game test lanes:
+  same as engine-coverage.runsettings, but the assemblies are rewritten on disk before the tests run
+  instead of being instrumented by the profiler as they load.
+  Collects Cobertura coverage with Microsoft Code Coverage (shipped with Microsoft.NET.Test.Sdk),
+  restricted to the Stride assemblies: test assemblies and test helpers stay out.
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <!-- tmp: collector logs, @LOGDIR@ is replaced per run by the workflow (a folder, ending with /) -->
+          <CoverageFileLogPath>@LOGDIR@</CoverageFileLogPath>
+          <CoverageLogLevel>Messages</CoverageLogLevel>
+          <InstrumentationLogLevel>Errors</InstrumentationLogLevel>
+          <ManagedVanguardLogLevel>Info</ManagedVanguardLogLevel>
+          <Format>cobertura</Format>
+          <CodeCoverage>
+            <EnableStaticManagedInstrumentation>True</EnableStaticManagedInstrumentation>
+            <EnableDynamicManagedInstrumentation>False</EnableDynamicManagedInstrumentation>
+            <ModulePaths>
+              <Include>
+                <ModulePath>.*[\\/]Stride\.[\w.]*\.(dll|exe)$</ModulePath>
+              </Include>
+              <Exclude>
+                <!-- Stride.*.Tests, Stride.Graphics.Tests.10_0, Stride.CrashReport.TestProbe, Stride.TestRunner -->
+                <ModulePath>.*Test[\w.]*\.(dll|exe)$</ModulePath>
+                <ModulePath>.*[\\/]Stride\.Graphics\.Regression\.dll$</ModulePath>
+                <ModulePath>.*[\\/]Stride\.[\w.]*AutoTesting\.dll$</ModulePath>
+              </Exclude>
+            </ModulePaths>
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
