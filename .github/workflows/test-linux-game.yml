@@ -160,20 +160,27 @@ jobs:
         if: success() || failure()
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
-          # tmp: one test process without coverage, with coverage, then without again, on the same runner
+          # tmp: one test process without coverage, with dynamic coverage, with static coverage, then without again, on the same runner
           {
             echo "## Coverage cost (Linux Game)"
             echo
             echo "**Runner:** $(lscpu | sed -n 's/^Model name: *//p' | head -n 1), $(nproc) logical processors"
             echo
-            echo "| Run | Coverage | Step | Exit |"
+            echo "| Run | Coverage mode | Step | Exit |"
             echo "|---|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
           k=0
-          for mode in off on off; do
+          for mode in off dynamic static off; do
             k=$((k + 1))
             COV=()
-            if [ "$mode" = on ]; then COV=(--settings tests/engine-coverage.runsettings); fi
+            if [ "$mode" != off ]; then
+              # Collector logs go to TestResults/covlog-run-$k/, test platform logs to TestResults/diag-run-$k/
+              settings=tests/engine-coverage.runsettings
+              if [ "$mode" = static ]; then settings=tests/engine-coverage-static.runsettings; fi
+              mkdir -p "$PWD/TestResults/covlog-run-$k" "$PWD/TestResults/diag-run-$k"
+              sed "s|@LOGDIR@|$PWD/TestResults/covlog-run-$k/|" "$settings" > "$RUNNER_TEMP/coverage-run-$k.runsettings"
+              COV=(--settings "$RUNNER_TEMP/coverage-run-$k.runsettings" --diag "TestResults/diag-run-$k/log.txt")
+            fi
             echo "=== Run $k, coverage $mode ==="
             start=$SECONDS
             ec=0

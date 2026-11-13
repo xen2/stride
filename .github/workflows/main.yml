@@ -1,6 +1,7 @@
 name: CI
 
-# tmp: only the test lanes, each one running its tests without coverage, with coverage, then without again
+# tmp: only the Linux and macOS Game lanes, each one running its tests without coverage, with dynamic coverage,
+# with static coverage, then without again
 
 on:
   workflow_dispatch:
@@ -11,39 +12,6 @@ permissions:
   pull-requests: read
 
 jobs:
-  Windows-Tests-Simple:
-    uses: ./.github/workflows/test-windows-simple.yml
-    with:
-      build-type: Debug
-
-  Linux-Tests-Simple:
-    uses: ./.github/workflows/test-linux-simple.yml
-    with:
-      build-type: Debug
-
-  Windows-Tests-Game-ApiNeutral:
-    uses: ./.github/workflows/test-windows-game-api-neutral.yml
-    with:
-      build-type: Debug
-
-  Windows-Tests-Game-D3D11:
-    uses: ./.github/workflows/test-windows-game.yml
-    with:
-      build-type: Debug
-      graphics-api: Direct3D11
-
-  Windows-Tests-Game-D3D12:
-    uses: ./.github/workflows/test-windows-game.yml
-    with:
-      build-type: Debug
-      graphics-api: Direct3D12
-
-  Windows-Tests-Game-Vulkan:
-    uses: ./.github/workflows/test-windows-game.yml
-    with:
-      build-type: Debug
-      graphics-api: Vulkan
-
   Linux-Tests-Game:
     uses: ./.github/workflows/test-linux-game.yml
     with:
@@ -51,10 +19,5 @@ jobs:
 
   macOS-Tests-Game:
     uses: ./.github/workflows/test-macos-game.yml
-    with:
-      build-type: Debug
-
-  Editor-Tests-Wpf:
-    uses: ./.github/workflows/test-editor-wpf.yml
     with:
       build-type: Debug
