@@ -21,6 +21,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AdvancedInputTest.cs" />
+    <Compile Include="DiagMaskedStateAlloc.cs" />
     <Compile Include="GCMeasurement.cs" />
     <Compile Include="HeadlessInput.cs" />
     <Compile Include="TestGCMeasurement.cs" />
