@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -258,6 +259,9 @@ static class ShaderCorpus
     /// <param name="extraFile">Found by its file name before the index (a RenderTests file).</param>
     sealed class IndexShaderLoader(Dictionary<string, string> index, string? extraFile = null) : ShaderLoaderBase(new ShaderCache())
     {
+        // Each file is read once, as ShaderSourceManager does: the cache checks load every cached class again
+        readonly ConcurrentDictionary<string, (string Code, ObjectId Hash)> files = new();
+
         bool TryFind(string name, out string path)
         {
             if (extraFile != null && Path.GetFileNameWithoutExtension(extraFile) == name)
@@ -279,13 +283,17 @@ static class ShaderCorpus
                 return false;
             }
 
-            var fileData = File.ReadAllBytes(path);
-            hash = ObjectId.FromBytes(fileData);
-            // StreamReader skips the UTF-8 BOM
-            using var reader = new StreamReader(new MemoryStream(fileData), Encoding.UTF8);
-            code = reader.ReadToEnd();
+            (code, hash) = files.GetOrAdd(path, Read);
             filename = path;
             return true;
+        }
+
+        static (string Code, ObjectId Hash) Read(string path)
+        {
+            var fileData = File.ReadAllBytes(path);
+            // StreamReader skips the UTF-8 BOM
+            using var reader = new StreamReader(new MemoryStream(fileData), Encoding.UTF8);
+            return (reader.ReadToEnd(), ObjectId.FromBytes(fileData));
         }
     }
 }
