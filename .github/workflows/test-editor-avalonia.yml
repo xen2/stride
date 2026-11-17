@@ -52,7 +52,7 @@ jobs:
   Editor-Tests:
     name: ${{ matrix.name }} (Editor Avalonia, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
@@ -101,33 +101,50 @@ jobs:
           # The test classes of the shell whose name starts with one of the letters, or with none of them
           starting() { local f= l; for l in "$@"; do f+="${f:+|}FullyQualifiedName~$NS.$l"; done; echo "$f"; }
           not_starting() { local f= l; for l in "$@"; do f+="${f:+&}FullyQualifiedName!~$NS.$l"; done; echo "$f"; }
-          # Starts the tests of a part in the background: name, project or solution, filter
+          # tmp benchmark: 2, 3 and 4 parts on the same runner, each twice (2 3 4 4 3 2), balanced on the test times
+          # per first letter; the first part runs with the other test projects, the last one takes the other letters
+          timing=$log/timing.md
+          { echo "| Run | Parts | Wall (s) | Per part (s) |"; echo "|---|---|---|---|"; } > $timing
+          # Starts the tests of a part in the background and writes its seconds: name, project or solution, filter
           run_part() {
-            local filter=$3
-            if [ -n "$FILTER" ]; then filter="($FILTER)&($filter)"; fi
-            dotnet test "$2" \
-              --no-build \
-              --settings "$EDITOR_RUNSETTINGS" \
-              --logger:"trx;LogFilePrefix=run-$i-$1" --results-directory TestResults \
-              --blame-hang-timeout 5m --blame-hang-dump-type full \
-              -p:Configuration="$BUILD_TYPE" \
-              --filter "$filter" > $log/run-$i-$1.log 2>&1 &
+            ( t=$(date +%s)
+              dotnet test "$2" \
+                --no-build \
+                --settings "$EDITOR_RUNSETTINGS" \
+                --logger:"trx;LogFilePrefix=run-$i-$1" --results-directory TestResults \
+                --blame-hang-timeout 5m --blame-hang-dump-type full \
+                -p:Configuration="$BUILD_TYPE" \
+                --filter "$3" > $log/run-$i-$1.log 2>&1
+              rc=$?; echo $(( $(date +%s) - t )) > $log/run-$i-$1.sec; exit $rc ) &
             parts+=("$1"); pids+=($!)
           }
-          for i in $(seq 1 "$REPEAT"); do
-            echo "=== Test run $i / $REPEAT ==="
+          # One split: the letters of each part but the last, space-separated
+          split() {
+            local n=$(( $# + 1 )) all= k=1 set t0=$(date +%s) per=
             parts=(); pids=()
-            run_part editor "$EDITOR_SOLUTION" "FullyQualifiedName!~$NS.|$(starting {A..D})"
-            run_part shell-e-r "$SHELL_TESTS" "$(starting {E..R})"
-            run_part shell-s "$SHELL_TESTS" "$(starting S)"
-            run_part shell-rest "$SHELL_TESTS" "$(not_starting {A..S})"
-            status=0
-            for k in "${!parts[@]}"; do
-              wait ${pids[$k]} || { echo "::error::Run $i: the tests of part '${parts[$k]}' failed"; status=1; }
+            for set in "$@"; do
+              if [ $k -eq 1 ]; then run_part p1 "$EDITOR_SOLUTION" "FullyQualifiedName!~$NS.|$(starting $set)"
+              else run_part p$k "$SHELL_TESTS" "$(starting $set)"; fi
+              all+="$set "; k=$((k+1))
             done
-            for part in "${parts[@]}"; do echo "::group::${part}"; cat $log/run-$i-$part.log; echo "::endgroup::"; done
-            if [ $status -ne 0 ]; then echo "Run $i failed; stopping."; exit $status; fi
-          done
+            run_part p$k "$SHELL_TESTS" "$(not_starting $all)"
+            for j in "${!parts[@]}"; do
+              wait ${pids[$j]} || { echo "::error::Run $i ($n parts): part ${parts[$j]} failed"; status=1; }
+            done
+            for p in "${parts[@]}"; do per+="$p=$(cat $log/run-$i-$p.sec) "; done
+            echo "| $i | $n | $(( $(date +%s) - t0 )) | $per|" >> $timing
+            for p in "${parts[@]}"; do echo "::group::Run $i ($n parts) $p"; cat $log/run-$i-$p.log; echo "::endgroup::"; done
+            i=$((i+1))
+          }
+          status=0; i=1
+          split "S U C"
+          split "S C" "P R U"
+          split "S R" "U A" "P D E"
+          split "S R" "U A" "P D E"
+          split "S C" "P R U"
+          split "S U C"
+          cat $timing; cat $timing >> $GITHUB_STEP_SUMMARY
+          exit $status
       - name: Publish Test Report
         if: always()
         uses: phoenix-actions/test-reporting@v16
