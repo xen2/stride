@@ -52,7 +52,7 @@ jobs:
   Editor-Tests:
     name: ${{ matrix.name }} (Editor Avalonia, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 75
+    timeout-minutes: 100
     strategy:
       fail-fast: false
       matrix:
@@ -100,41 +100,49 @@ jobs:
           # The test classes of the shell whose name starts with one of the letters, or with none of them
           starting() { local f= l; for l in "$@"; do f+="${f:+|}FullyQualifiedName~$NS.$l"; done; echo "$f"; }
           not_starting() { local f= l; for l in "$@"; do f+="${f:+&}FullyQualifiedName!~$NS.$l"; done; echo "$f"; }
-          # tmp benchmark: 2, 3 and 4 parts on the same runner, each twice (2 3 4 4 3 2), balanced on the test times
-          # per first letter; the first part runs with the other test projects, the last one takes the other letters
+          # tmp benchmark: 1 (as on master), 2, 3 and 4 parts on the same runner, each twice (1 2 3 4 4 3 2 1), balanced
+          # on the test times per first letter; the first part runs with the other test projects, the last one takes
+          # the other letters
           timing=$log/timing.md
+          if [ "$RUNNER_OS" = Windows ]; then cpu=$(powershell -NoProfile -Command "(Get-CimInstance Win32_Processor).Name")
+          else cpu=$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2); fi
           # The coverage collector rewrites the instrumented assemblies in the folder a test process runs from (static
           # instrumentation on Linux): each process of the shell tests but the first runs from a copy of its own
           shell_out=(bin/Tests/$NS/*/"$BUILD_TYPE")
           [ ${#shell_out[@]} -eq 1 ] && [ -d "$shell_out" ] || { echo "::error::Not one output folder of $NS: ${shell_out[*]}"; exit 1; }
           t=$(date +%s)
           for k in 2 3 4; do cp -r "$shell_out" "$shell_out-p$k"; done
-          { echo "Copies of $shell_out ($(du -sh "$shell_out" | cut -f1)): $(( $(date +%s) - t )) s for 3"; echo; } > $timing
+          { echo "Runner: $RUNNER_NAME, $(nproc) CPUs,$cpu"; echo
+            echo "Copies of $shell_out ($(du -sh "$shell_out" | cut -f1)): $(( $(date +%s) - t )) s for 3"; echo; } > $timing
           { echo "| Run | Parts | Wall (s) | Per part (s) |"; echo "|---|---|---|---|"; } >> $timing
           # Starts the tests of a part in the background and writes its seconds: name, solution or test assembly, filter
           run_part() {
-            local config=()
+            local config=() filter=()
             [[ $2 == *.dll ]] || config=(--no-build -p:Configuration="$BUILD_TYPE")
+            [ -z "$3" ] || filter=(--filter "$3")
             ( t=$(date +%s)
               dotnet test "$2" \
                 --settings "$EDITOR_RUNSETTINGS" \
                 --logger:"trx;LogFilePrefix=run-$i-$1" --results-directory TestResults \
                 --blame-hang-timeout 5m --blame-hang-dump-type full \
-                "${config[@]}" \
-                --filter "$3" > $log/run-$i-$1.log 2>&1
+                "${config[@]}" "${filter[@]}" > $log/run-$i-$1.log 2>&1
               rc=$?; echo $(( $(date +%s) - t )) > $log/run-$i-$1.sec; exit $rc ) &
             parts+=("$1"); pids+=($!)
           }
-          # One split: the letters of each part but the last, space-separated
+          # One split: the letters of each part but the last, space-separated; none = one process, as on master
           split() {
             local n=$(( $# + 1 )) all= k=1 set t0=$(date +%s) per=
             parts=(); pids=()
-            for set in "$@"; do
-              if [ $k -eq 1 ]; then run_part p1 "$EDITOR_SOLUTION" "FullyQualifiedName!~$NS.|$(starting $set)"
-              else run_part p$k "$shell_out-p$k/$NS.dll" "$(starting $set)"; fi
-              all+="$set "; k=$((k+1))
-            done
-            run_part p$k "$shell_out-p$k/$NS.dll" "$(not_starting $all)"
+            if [ $# -eq 0 ]; then
+              run_part p1 "$EDITOR_SOLUTION" ""
+            else
+              for set in "$@"; do
+                if [ $k -eq 1 ]; then run_part p1 "$EDITOR_SOLUTION" "FullyQualifiedName!~$NS.|$(starting $set)"
+                else run_part p$k "$shell_out-p$k/$NS.dll" "$(starting $set)"; fi
+                all+="$set "; k=$((k+1))
+              done
+              run_part p$k "$shell_out-p$k/$NS.dll" "$(not_starting $all)"
+            fi
             for j in "${!parts[@]}"; do
               wait ${pids[$j]} || { echo "::error::Run $i ($n parts): part ${parts[$j]} failed"; status=1; }
             done
@@ -144,12 +152,14 @@ jobs:
             i=$((i+1))
           }
           status=0; i=1
+          split
           split "S U C"
           split "S C" "P R U"
           split "S R" "U A" "P D E"
           split "S R" "U A" "P D E"
           split "S C" "P R U"
           split "S U C"
+          split
           cat $timing; cat $timing >> $GITHUB_STEP_SUMMARY
           exit $status
       - name: Publish Test Report
