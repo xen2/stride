@@ -95,7 +95,6 @@ jobs:
         run: |
           FILTER="${{ github.event.inputs.test-filter || inputs.test-filter }}"
           REPEAT="${{ github.event.inputs.repeat || inputs.repeat || '1' }}"
-          SHELL_TESTS=sources/editor/Stride.GameStudio.Avalonia.Tests/Stride.GameStudio.Avalonia.Tests.csproj
           NS=Stride.GameStudio.Avalonia.Tests
           log=TestResults/console; mkdir -p $log
           # The test classes of the shell whose name starts with one of the letters, or with none of them
@@ -104,16 +103,24 @@ jobs:
           # tmp benchmark: 2, 3 and 4 parts on the same runner, each twice (2 3 4 4 3 2), balanced on the test times
           # per first letter; the first part runs with the other test projects, the last one takes the other letters
           timing=$log/timing.md
-          { echo "| Run | Parts | Wall (s) | Per part (s) |"; echo "|---|---|---|---|"; } > $timing
-          # Starts the tests of a part in the background and writes its seconds: name, project or solution, filter
+          # The coverage collector rewrites the instrumented assemblies in the folder a test process runs from (static
+          # instrumentation on Linux): each process of the shell tests but the first runs from a copy of its own
+          shell_out=(bin/Tests/$NS/*/"$BUILD_TYPE")
+          [ ${#shell_out[@]} -eq 1 ] && [ -d "$shell_out" ] || { echo "::error::Not one output folder of $NS: ${shell_out[*]}"; exit 1; }
+          t=$(date +%s)
+          for k in 2 3 4; do cp -r "$shell_out" "$shell_out-p$k"; done
+          { echo "Copies of $shell_out ($(du -sh "$shell_out" | cut -f1)): $(( $(date +%s) - t )) s for 3"; echo; } > $timing
+          { echo "| Run | Parts | Wall (s) | Per part (s) |"; echo "|---|---|---|---|"; } >> $timing
+          # Starts the tests of a part in the background and writes its seconds: name, solution or test assembly, filter
           run_part() {
+            local config=()
+            [[ $2 == *.dll ]] || config=(--no-build -p:Configuration="$BUILD_TYPE")
             ( t=$(date +%s)
               dotnet test "$2" \
-                --no-build \
                 --settings "$EDITOR_RUNSETTINGS" \
                 --logger:"trx;LogFilePrefix=run-$i-$1" --results-directory TestResults \
                 --blame-hang-timeout 5m --blame-hang-dump-type full \
-                -p:Configuration="$BUILD_TYPE" \
+                "${config[@]}" \
                 --filter "$3" > $log/run-$i-$1.log 2>&1
               rc=$?; echo $(( $(date +%s) - t )) > $log/run-$i-$1.sec; exit $rc ) &
             parts+=("$1"); pids+=($!)
@@ -124,10 +131,10 @@ jobs:
             parts=(); pids=()
             for set in "$@"; do
               if [ $k -eq 1 ]; then run_part p1 "$EDITOR_SOLUTION" "FullyQualifiedName!~$NS.|$(starting $set)"
-              else run_part p$k "$SHELL_TESTS" "$(starting $set)"; fi
+              else run_part p$k "$shell_out-p$k/$NS.dll" "$(starting $set)"; fi
               all+="$set "; k=$((k+1))
             done
-            run_part p$k "$SHELL_TESTS" "$(not_starting $all)"
+            run_part p$k "$shell_out-p$k/$NS.dll" "$(not_starting $all)"
             for j in "${!parts[@]}"; do
               wait ${pids[$j]} || { echo "::error::Run $i ($n parts): part ${parts[$j]} failed"; status=1; }
             done
