@@ -107,7 +107,7 @@ namespace Stride.Samples.Tests
             Assert.False(File.Exists(winforms),
                 $"System.Windows.Forms.dll should have been trimmed with WinFormsBackendEnabled=false, but it's present: {winforms}");
 
-            if (SampleQueue.Release(PublishedSample) && Environment.GetEnvironmentVariable("STRIDE_TESTS_KEEP") != "1")
+            if (PreparedSamples.Release(PublishedSample) && Environment.GetEnvironmentVariable("STRIDE_TESTS_KEEP") != "1")
             {
                 var sampleDir = Path.Combine(worktree, ScreenshotRunner.SamplesGeneratedDirName, PublishedSample);
                 if (Directory.Exists(sampleDir))
@@ -180,7 +180,7 @@ namespace Stride.Samples.Tests
             // test uses the same sample. Skip on failure so the post-mortem still has the regenerated
             // project for local debugging. STRIDE_TESTS_KEEP=1 also preserves the dir on pass (for
             // ad-hoc poking at the built sample).
-            if (SampleQueue.Release(name) && Environment.GetEnvironmentVariable("STRIDE_TESTS_KEEP") != "1")
+            if (PreparedSamples.Release(name) && Environment.GetEnvironmentVariable("STRIDE_TESTS_KEEP") != "1")
             {
                 var sampleDir = Path.Combine(worktree, ScreenshotRunner.SamplesGeneratedDirName, name);
                 if (Directory.Exists(sampleDir))

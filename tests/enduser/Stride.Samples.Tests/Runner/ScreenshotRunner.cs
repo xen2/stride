@@ -92,7 +92,7 @@ public static class ScreenshotRunner
         }
 
         EnsureSamplesGeneratedTargets(worktreeRoot);
-        var regenResult = SampleQueue.Take(fixture, worktreeRoot);
+        var regenResult = PreparedSamples.Take(fixture, worktreeRoot);
         if (regenResult is not null)
             return regenResult;
 
@@ -114,7 +114,7 @@ public static class ScreenshotRunner
             ?? throw new InvalidOperationException($"No fixture in tests/enduser/Stride.Samples.Tests/Fixtures/<{sampleName}>.cs.");
 
         EnsureSamplesGeneratedTargets(worktreeRoot);
-        var regenResult = SampleQueue.Take(fixture, worktreeRoot);
+        var regenResult = PreparedSamples.Take(fixture, worktreeRoot);
         if (regenResult is not null)
             throw new InvalidOperationException($"Regen failed for '{sampleName}': {regenResult.Detail}");
 
@@ -519,25 +519,18 @@ public static class ScreenshotRunner
     /// Lives above the per-sample dir because SampleGenerator wipes the sample dir at the start of
     /// regeneration. Next to it goes the NuGet config of the repository's samples: a sample written for an
     /// older engine restores that release before its upgrade, so Stride.* also comes from nuget.org there.
-    /// Each file is written only when it changes: the samples prepared ahead read them meanwhile.
     /// </summary>
     private static void EnsureSamplesGeneratedTargets(string worktreeRoot)
     {
         var samplesGeneratedDir = Path.Combine(worktreeRoot, SamplesGeneratedDirName);
         Directory.CreateDirectory(samplesGeneratedDir);
-        WriteIfChanged(Path.Combine(samplesGeneratedDir, "nuget.config"), File.ReadAllText(Path.Combine(worktreeRoot, "samples", "nuget.config")));
+        File.Copy(Path.Combine(worktreeRoot, "samples", "nuget.config"), Path.Combine(samplesGeneratedDir, "nuget.config"), overwrite: true);
 
         var templatePath = Path.Combine(worktreeRoot, "tests", "enduser", "Stride.Samples.Tests", "Templates", "SampleAutoTesting.targets.template");
         var content = File.ReadAllText(templatePath)
             .Replace("$STRIDE_DEV_VERSION$", GetStrideDevVersion(worktreeRoot));
 
-        WriteIfChanged(Path.Combine(samplesGeneratedDir, "Directory.Build.targets"), content);
-    }
-
-    private static void WriteIfChanged(string path, string content)
-    {
-        if (!File.Exists(path) || File.ReadAllText(path) != content)
-            File.WriteAllText(path, content);
+        File.WriteAllText(Path.Combine(samplesGeneratedDir, "Directory.Build.targets"), content);
     }
 
     /// <summary>
