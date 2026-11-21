@@ -92,12 +92,11 @@ public static class ScreenshotRunner
         }
 
         EnsureSamplesGeneratedTargets(worktreeRoot);
-        var sampleDir = Path.Combine(worktreeRoot, SamplesGeneratedDirName, fixture.SampleName);
-        var regenResult = RegenerateSample(fixture, sampleDir);
+        var regenResult = SampleQueue.Take(fixture, worktreeRoot);
         if (regenResult is not null)
             return regenResult;
 
-        return RunSample(sampleDir, captureRoot, headless, configuration, aot);
+        return RunSample(SampleDirectory(worktreeRoot, fixture.SampleName), captureRoot, headless, configuration, aot);
     }
 
     /// <summary>
@@ -115,10 +114,11 @@ public static class ScreenshotRunner
             ?? throw new InvalidOperationException($"No fixture in tests/enduser/Stride.Samples.Tests/Fixtures/<{sampleName}>.cs.");
 
         EnsureSamplesGeneratedTargets(worktreeRoot);
-        var sampleDir = Path.Combine(worktreeRoot, SamplesGeneratedDirName, fixture.SampleName);
-        var regenResult = RegenerateSample(fixture, sampleDir);
+        var regenResult = SampleQueue.Take(fixture, worktreeRoot);
         if (regenResult is not null)
             throw new InvalidOperationException($"Regen failed for '{sampleName}': {regenResult.Detail}");
+
+        var sampleDir = SampleDirectory(worktreeRoot, fixture.SampleName);
 
         // Force the requested feature switches for the trimmer, scoped to this sample (Directory.Build.props
         // is auto-imported by the per-platform project under it). Written after regen, which wipes sampleDir.
@@ -137,6 +137,9 @@ public static class ScreenshotRunner
 
         return Path.Combine(sampleDir, "Bin", HostPlatform.Folder, configuration, HostPlatform.Rid, "publish");
     }
+
+    /// <summary>The folder a sample is regenerated in.</summary>
+    internal static string SampleDirectory(string worktreeRoot, string sampleName) => Path.Combine(worktreeRoot, SamplesGeneratedDirName, sampleName);
 
     /// <summary>Returns the catalog of discovered fixtures (cached per <paramref name="worktreeRoot"/>).</summary>
     public static IReadOnlyList<DiscoveredFixture> LoadFixtures(string worktreeRoot)
@@ -474,7 +477,7 @@ public static class ScreenshotRunner
     /// fixture file into <c>&lt;targetDir&gt;/&lt;SampleName&gt;.Game/Tests/ScreenshotTest.cs</c>.
     /// Returns null on success; a failure SampleResult on regen error.
     /// </summary>
-    private static SampleResult? RegenerateSample(DiscoveredFixture fixture, string targetDir)
+    internal static SampleResult? RegenerateSample(DiscoveredFixture fixture, string targetDir)
     {
         Console.WriteLine($"[{fixture.SampleName}] regenerating from template {fixture.TemplateId}");
         var stopwatch = Stopwatch.StartNew();
@@ -508,18 +511,25 @@ public static class ScreenshotRunner
     /// Lives above the per-sample dir because SampleGenerator wipes the sample dir at the start of
     /// regeneration. Next to it goes the NuGet config of the repository's samples: a sample written for an
     /// older engine restores that release before its upgrade, so Stride.* also comes from nuget.org there.
+    /// Each file is written only when it changes: the samples prepared ahead read them meanwhile.
     /// </summary>
     private static void EnsureSamplesGeneratedTargets(string worktreeRoot)
     {
         var samplesGeneratedDir = Path.Combine(worktreeRoot, SamplesGeneratedDirName);
         Directory.CreateDirectory(samplesGeneratedDir);
-        File.Copy(Path.Combine(worktreeRoot, "samples", "nuget.config"), Path.Combine(samplesGeneratedDir, "nuget.config"), overwrite: true);
+        WriteIfChanged(Path.Combine(samplesGeneratedDir, "nuget.config"), File.ReadAllText(Path.Combine(worktreeRoot, "samples", "nuget.config")));
 
         var templatePath = Path.Combine(worktreeRoot, "tests", "enduser", "Stride.Samples.Tests", "Templates", "SampleAutoTesting.targets.template");
         var content = File.ReadAllText(templatePath)
             .Replace("$STRIDE_DEV_VERSION$", GetStrideDevVersion(worktreeRoot));
 
-        File.WriteAllText(Path.Combine(samplesGeneratedDir, "Directory.Build.targets"), content);
+        WriteIfChanged(Path.Combine(samplesGeneratedDir, "Directory.Build.targets"), content);
+    }
+
+    private static void WriteIfChanged(string path, string content)
+    {
+        if (!File.Exists(path) || File.ReadAllText(path) != content)
+            File.WriteAllText(path, content);
     }
 
     /// <summary>

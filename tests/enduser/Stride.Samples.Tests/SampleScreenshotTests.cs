@@ -29,6 +29,7 @@ namespace Stride.Samples.Tests
     public class ScreenshotsCollection { }
 
     [Collection("Screenshots")]
+    [TestCaseOrderer(SampleRunOrderer.TypeName, SampleRunOrderer.AssemblyName)]
     public class SampleScreenshotTests
     {
         private readonly ITestOutputHelper output;

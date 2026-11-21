@@ -1,0 +1,32 @@
+// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
+// Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Stride.SampleScreenshotRunner;
+using Xunit.Abstractions;
+using Xunit.Sdk;
+
+namespace Stride.Samples.Tests
+{
+    /// <summary>
+    /// Runs the tests by name, and gives the samples of the <see cref="SampleScreenshotTests.Sample"/> rows to
+    /// <see cref="SampleQueue"/> in that order, so each one is prepared ahead of its test.
+    /// </summary>
+    public sealed class SampleRunOrderer : ITestCaseOrderer
+    {
+        public const string TypeName = "Stride.Samples.Tests.SampleRunOrderer";
+        public const string AssemblyName = "Stride.Samples.Tests";
+
+        public IEnumerable<TTestCase> OrderTestCases<TTestCase>(IEnumerable<TTestCase> testCases) where TTestCase : ITestCase
+        {
+            var ordered = testCases.OrderBy(x => x.DisplayName, StringComparer.Ordinal).ToList();
+            SampleQueue.Plan(ordered
+                .Where(x => x.TestMethod.Method.Name == nameof(SampleScreenshotTests.Sample))
+                .Select(x => x.TestMethodArguments?.FirstOrDefault())
+                .OfType<string>());
+            return ordered;
+        }
+    }
+}

@@ -22,17 +22,34 @@ namespace Stride.Samples.Generator;
 /// Caller is responsible for arranging the MSBuild environment via
 /// <c>PackageSessionPublicHelper.FindAndSetMSBuildVersion()</c> and registering project
 /// templates via <c>DotNetNewTemplateBridge.RegisterProjectTemplates()</c> before invoking this.
+/// Several samples can be generated at once: their upgrades, in processes of their own, run side by side.
 /// </summary>
 public static class SampleGenerator
 {
     private const int RestoreTimeoutSeconds = 600;
     private const int UpgradeTimeoutSeconds = 900;
 
+    // The template engine and MSBuild's project evaluation are not made for parallel use: the work done in this process runs one at a time
+    private static readonly object InProcessLock = new();
+
     public static PackageSession Generate(UDirectory outputPath, Guid templateGuid, string sampleName, LoggerResult logger)
     {
         if (!outputPath.IsAbsolute)
             outputPath = UPath.Combine(Environment.CurrentDirectory, outputPath);
 
+        PackageSession session;
+        lock (InProcessLock)
+            session = GenerateFiles(outputPath, templateGuid, sampleName, logger);
+
+        // A sample on the engine's version skips this: the generator already moved it to this build
+        if (DotNetNewTemplateGenerator.IsOlderContent(outputPath.ToOSPath()))
+            Upgrade(outputPath.ToOSPath(), sampleName, logger);
+
+        return session;
+    }
+
+    private static PackageSession GenerateFiles(UDirectory outputPath, Guid templateGuid, string sampleName, LoggerResult logger)
+    {
         Console.WriteLine($"Bootstrapping: {sampleName}");
 
         var session = new PackageSession();
@@ -86,10 +103,6 @@ public static class SampleGenerator
         if (logger.HasErrors)
             throw new InvalidOperationException($"Error generating sample {sampleName} from template:\r\n{logger.ToText()}");
 
-        // A sample on the engine's version skips this: the generator already moved it to this build
-        if (DotNetNewTemplateGenerator.IsOlderContent(outputPath.ToOSPath()))
-            Upgrade(outputPath.ToOSPath(), sampleName, logger);
-
         return session;
     }
 
@@ -114,8 +127,11 @@ public static class SampleGenerator
                 throw new InvalidOperationException($"The restore of {sampleName} before its upgrade failed (exit code {restore.ExitCode}); see {log}:\n{Tail(restore.Output)}");
 
             Console.WriteLine($"[{sampleName}] NOT upgraded: no feed has the Stride version it is written for. Its references move to {StridePackageUpgrader.CurrentVersion} as they are.");
-            foreach (var project in Directory.EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories))
-                StridePackageUpgrader.UpgradeProjectVersions(project, logger);
+            lock (InProcessLock)
+            {
+                foreach (var project in Directory.EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories))
+                    StridePackageUpgrader.UpgradeProjectVersions(project, logger);
+            }
             return;
         }
 
