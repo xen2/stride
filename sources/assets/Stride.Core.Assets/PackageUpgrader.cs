@@ -24,6 +24,12 @@ public abstract class PackageUpgrader
     public const string UpgradeRecordItem = "StridePackageUpgradeRecord";
 
     /// <summary>
+    /// The steps the upgrader runs on a project upgraded from <paramref name="fromVersion"/>, in the order they run, for the
+    /// <see cref="UpgradeReport"/>. Empty by default: an upgrader without declared steps reports only its failures.
+    /// </summary>
+    public virtual IReadOnlyList<UpgradeStepInfo> GetUpgradeSteps(PackageVersion fromVersion) => [];
+
+    /// <summary>
     /// Performs a preprocessing step of package migration, before assembly references are loaded.
     /// </summary>
     /// <param name="loadParameters">The load parameters.</param>

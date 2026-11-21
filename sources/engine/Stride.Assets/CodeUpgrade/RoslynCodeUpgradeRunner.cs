@@ -56,10 +56,10 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
         }
     }
 
-    // Each pending upgrader's code steps that apply to the version its project is upgraded from
-    private static List<(PendingCodeUpgrade Pending, List<CodeStep> Steps)> GetPlans(IReadOnlyList<PendingCodeUpgrade> pending)
+    // Each pending upgrader's code steps that apply to the version its project is upgraded from, with their IDs
+    private static List<(PendingCodeUpgrade Pending, List<(CodeStep Step, string Id)> Steps)> GetPlans(IReadOnlyList<PendingCodeUpgrade> pending)
     {
-        var plans = new List<(PendingCodeUpgrade Pending, List<CodeStep> Steps)>();
+        var plans = new List<(PendingCodeUpgrade Pending, List<(CodeStep Step, string Id)> Steps)>();
         foreach (var item in pending)
         {
             if (item.Upgrader is not ICodeUpgradeProvider provider)
@@ -69,9 +69,9 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
             provider.DeclareUpgrades(registry);
 
             // Gate: the change landed at GateVersion, so migrate any project coming from below it.
-            var applicable = registry.CodeUpgrades
-                .Where(registration => item.FromVersion.Version < registration.GateVersion.Version)
-                .SelectMany(registration => registration.Steps)
+            var applicable = registry.GetSteps(item.Upgrader.Attribute.Name)
+                .Where(step => step.Declaration is CodeStep && item.FromVersion.Version < step.GateVersion.Version)
+                .Select(step => ((CodeStep)step.Declaration, step.Id))
                 .ToList();
             if (applicable.Count > 0)
                 plans.Add((item, applicable));
@@ -79,8 +79,45 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
         return plans;
     }
 
+    /// <summary>
+    /// Folds <paramref name="steps"/> over the project <paramref name="projectId"/>, each on the solution the previous one
+    /// left, and reports in <paramref name="report"/> what each did. A step that throws is skipped alone: the others still apply.
+    /// </summary>
+    internal static async Task<Solution> ApplyStepsAsync(Solution solution, ProjectId projectId, IReadOnlyList<(CodeStep Step, string Id)> steps,
+        UpgraderReport? report, string projectName, ILogger log, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<ProjectId> targets = [projectId];
+        foreach (var (step, id) in steps)
+        {
+            var result = report?.Find(id);
+            Solution upgraded;
+            try
+            {
+                upgraded = await step.Upgrade(solution, targets, cancellationToken);
+            }
+            catch (Exception e) when (e is not NotImplementedException)
+            {
+                if (result is not null)
+                {
+                    result.Status = UpgradeStepStatus.Failed;
+                    result.Error = e.Message;
+                }
+                log.Warning($"{id}: Code upgrade: the step \"{step.Title}\" of [{projectName}] failed and was skipped; its code is left unchanged.", e);
+                continue;
+            }
+
+            if (result is not null)
+            {
+                result.Status = UpgradeStepStatus.Done;
+                result.ChangedFiles = upgraded.GetChanges(solution).GetProjectChanges().Sum(x => x.GetChangedDocuments().Count());
+            }
+            solution = upgraded;
+        }
+        return solution;
+    }
+
     // Returns false, having written nothing, when the workspace lacks a project
-    private static async Task<bool> RunAsync(UFile? solutionPath, List<(PendingCodeUpgrade Pending, List<CodeStep> Steps)> plans, UpgradeBackup? backup, ILogger log)
+    private static async Task<bool> RunAsync(UFile? solutionPath, List<(PendingCodeUpgrade Pending, List<(CodeStep Step, string Id)> Steps)> plans, UpgradeBackup? backup, ILogger log)
     {
         var cancellationToken = CancellationToken.None;
 
@@ -125,21 +162,7 @@ internal sealed class RoslynCodeUpgradeRunner : ICodeUpgradeRunner
 
         var solution = originalSolution;
         foreach (var ((pendingItem, steps), projectId) in plans.Zip(projectIds))
-        {
-            IReadOnlyList<ProjectId> targets = [projectId];
-            foreach (var step in steps)
-            {
-                // A failing step is skipped alone: the others of the project still apply
-                try
-                {
-                    solution = await step.Upgrade(solution, targets, cancellationToken);
-                }
-                catch (Exception e) when (e is not NotImplementedException)
-                {
-                    log.Warning($"Code upgrade: the step \"{step.Title}\" of [{pendingItem.ProjectFullPath.GetFileName()}] failed and was skipped; its code is left unchanged.", e);
-                }
-            }
-        }
+            solution = await ApplyStepsAsync(solution, projectId, steps, pendingItem.Report, pendingItem.ProjectFullPath.GetFileName(), log, cancellationToken);
 
         // Write back only the documents that actually changed, preserving each file's original encoding.
         var changedCount = 0;

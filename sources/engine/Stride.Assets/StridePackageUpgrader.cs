@@ -29,7 +29,7 @@ using static Stride.Assets.CodeUpgrades;
 
 namespace Stride.Assets
 {
-    [PackageUpgrader(new[] { "Stride.Foundation", "Stride.Core", "Stride.Engine" }, "4.0.0.0", CurrentVersion, Name = UpgraderName)]
+    [PackageUpgrader(new[] { "Stride.Foundation", "Stride.Core", "Stride.Engine" }, "4.0.0.0", CurrentVersion, Name = UpgraderName, HelpLinkFormat = "https://doc.stride3d.net/latest/en/upgrade/{version}.html#{id}")]
     public partial class StridePackageUpgrader : CodePackageUpgrader
     {
         // Should match Stride.nupkg

@@ -126,18 +126,18 @@ public sealed class UpgradeRegistry
         foreach (var registration in codeUpgrades)
         {
             foreach (var step in registration.Steps)
-                Add(registration.GateVersion, 'C', step.Title, step.IsRetired);
+                Add(registration.GateVersion, 'C', step.Title, step.IsRetired, step);
         }
         foreach (var registration in projectUpgrades)
-            Add(registration.GateVersion, 'P', registration.Title, registration.IsRetired);
+            Add(registration.GateVersion, 'P', registration.Title, registration.IsRetired, registration);
         return steps;
 
-        void Add(PackageVersion gateVersion, char kind, string title, bool isRetired)
+        void Add(PackageVersion gateVersion, char kind, string title, bool isRetired, object declaration)
         {
             var gate = FormatGate(gateVersion.Version);
             var index = counts.GetValueOrDefault((gate, kind)) + 1;
             counts[(gate, kind)] = index;
-            steps.Add(new DeclaredUpgradeStep($"{upgraderName}-{gate}-{kind}{index}", gateVersion, title, isRetired));
+            steps.Add(new DeclaredUpgradeStep($"{upgraderName}-{gate}-{kind}{index}", gateVersion, title, isRetired, declaration));
         }
     }
 
@@ -152,6 +152,7 @@ public sealed class UpgradeRegistry
 internal sealed record CodeUpgradeRegistration(PackageVersion GateVersion, IReadOnlyList<CodeStep> Steps);
 
 /// <summary>
-/// A declared step of an upgrader, with its ID (see <see cref="UpgradeRegistry.GetSteps"/>).
+/// A declared step of an upgrader, with its ID (see <see cref="UpgradeRegistry.GetSteps"/>) and its declaration: the
+/// <see cref="CodeStep"/> or the <see cref="ProjectUpgradeRegistration"/>.
 /// </summary>
-internal sealed record DeclaredUpgradeStep(string Id, PackageVersion GateVersion, string Title, bool IsRetired);
+internal sealed record DeclaredUpgradeStep(string Id, PackageVersion GateVersion, string Title, bool IsRetired, object Declaration);

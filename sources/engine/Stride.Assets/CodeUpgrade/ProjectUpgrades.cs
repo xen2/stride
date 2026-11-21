@@ -118,8 +118,10 @@ public sealed class ProjectUpgradeContext
     }
 
     /// <summary>Applies the file changes of the step that returned.</summary>
-    internal void ApplyChanges()
+    /// <returns>The number of files changed.</returns>
+    internal int ApplyChanges()
     {
+        var changedFiles = 0;
         foreach (var (path, apply, doneMessage) in pendingChanges)
         {
             try
@@ -131,10 +133,12 @@ public sealed class ProjectUpgradeContext
                 UnitFailed(path, e);
                 continue;
             }
+            changedFiles++;
             if (doneMessage is not null)
                 Log.Info(doneMessage);
         }
         pendingChanges.Clear();
+        return changedFiles;
     }
 }
 

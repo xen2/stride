@@ -11,6 +11,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using Stride.Assets;
+using Stride.Core;
+using Stride.Core.Assets;
+using Stride.Core.Diagnostics;
 using Xunit;
 using static Stride.Assets.CodeUpgrades;
 
@@ -38,7 +41,22 @@ public class TestCodeUpgrade
     // documentationMode: the one the project is opened with; None for a project that generates no documentation file
     private static async Task<string> ApplyAsync(string source, DocumentationMode documentationMode, params CodeStep[] steps)
     {
-        using var workspace = new AdhocWorkspace();
+        var (workspace, solution, projectId, documentId) = CreateSolution(source, documentationMode);
+        using var _ = workspace;
+
+        IReadOnlyList<ProjectId> targets = [projectId];
+        foreach (var step in steps)
+            solution = await step.Upgrade(solution, targets, CancellationToken.None);
+
+        var document = solution.GetDocument(documentId);
+        var text = await document.GetTextAsync();
+        return text.ToString();
+    }
+
+    // A project of one document, opened as the runner opens it
+    private static (AdhocWorkspace Workspace, Solution Solution, ProjectId ProjectId, DocumentId DocumentId) CreateSolution(string source, DocumentationMode documentationMode)
+    {
+        var workspace = new AdhocWorkspace();
         var projectId = ProjectId.CreateNewId();
         var projectInfo = ProjectInfo.Create(projectId, VersionStamp.Create(), "TestProject", "TestProject", LanguageNames.CSharp)
             .WithMetadataReferences(FrameworkReferences())
@@ -52,14 +70,7 @@ public class TestCodeUpgrade
         var solution = workspace.CurrentSolution.AddDocument(documentId, "Test.cs", SourceText.From(source), filePath: Path.Combine(Path.GetTempPath(), "Test.cs"));
         // As the runner opens it
         solution = RoslynCodeUpgradeRunner.ParseDocumentationComments(solution);
-
-        IReadOnlyList<ProjectId> targets = [projectId];
-        foreach (var step in steps)
-            solution = await step.Upgrade(solution, targets, CancellationToken.None);
-
-        var document = solution.GetDocument(documentId);
-        var text = await document.GetTextAsync();
-        return text.ToString();
+        return (workspace, solution, projectId, documentId);
     }
 
     // No error, and every cref names something
@@ -680,6 +691,37 @@ public class TestCodeUpgrade
         // The unrelated same-named method is untouched.
         Assert.Contains("o.UnsetRenderTargets()", result);
         AssertCompiles(result);
+    }
+
+    // The runner's fold: a step that throws is reported failed and changes nothing, and the steps after it still run
+    [Fact]
+    public async Task TheFoldReportsWhatEachStepDid()
+    {
+        var source = """
+            namespace TestNs
+            {
+                class Target { public void Old() { } }
+                class Usage { void A(Target t) => t.Old(); }
+            }
+            """;
+        var (workspace, solution, projectId, documentId) = CreateSolution(source, DocumentationMode.Parse);
+        using var _ = workspace;
+        List<(CodeStep Step, string Id)> steps =
+        [
+            (Rewrite(MemberRename("TestNs.Target", "Old", "New")), "My-1.0.0-C1"),
+            (Custom("Throws", (input, targets, cancellationToken) => throw new InvalidOperationException("The step throws")), "My-1.0.0-C2"),
+            (Custom("Changes nothing", (input, targets, cancellationToken) => Task.FromResult(input)), "My-1.0.0-C3"),
+        ];
+        var report = new UpgraderReport("My", new PackageVersion("0.9.0"), new PackageVersion("1.0.0"), steps.Select(x => new UpgradeStepInfo(x.Id, x.Step.Title, null)));
+        var log = new LoggerResult();
+
+        solution = await RoslynCodeUpgradeRunner.ApplyStepsAsync(solution, projectId, steps, report, "Test.csproj", log, CancellationToken.None);
+
+        Assert.Equal([UpgradeStepStatus.Done, UpgradeStepStatus.Failed, UpgradeStepStatus.Done], report.Steps.Select(x => x.Status));
+        Assert.Equal([1, 0, 0], report.Steps.Select(x => x.ChangedFiles));
+        Assert.Equal("The step throws", report.Steps[1].Error);
+        Assert.Contains(log.Messages, x => x.Type == LogMessageType.Warning && x.Text.StartsWith("My-1.0.0-C2: ", StringComparison.Ordinal));
+        Assert.Contains("t.New()", (await solution.GetDocument(documentId).GetTextAsync()).ToString());
     }
 
     [Theory]
