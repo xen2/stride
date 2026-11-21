@@ -1210,6 +1210,43 @@ public sealed partial class PackageSession : IDisposable, IAssetFinder
     {
         LoadMissingDependencies(log, loadParameters);
         LoadMissingAssets(log, [.. Packages], loadParameters);
+        PublishUpgradeReports(log);
+    }
+
+    // Logs what the upgrade did to each project upgraded by this load, the steps one line each (verbose when all are done),
+    // and adds it to the upgrade-report.md of the project when the upgrade left something, or when the file is already there.
+    // The file is not in the upgrade backup: restoring the backup keeps it.
+    private void PublishUpgradeReports(ILogger log)
+    {
+        var time = DateTime.Now;
+        foreach (var project in UpgradeReport.Projects.Where(x => !x.IsPublished))
+        {
+            project.IsPublished = true;
+            var hasLeftovers = project.HasLeftovers;
+            log.Info($"{project.ProjectFullPath.GetFileName()}: {UpgradeReportWriter.FormatSummary(project)}");
+            foreach (var line in UpgradeReportWriter.FormatStepLines(project))
+            {
+                if (hasLeftovers)
+                    log.Info(line);
+                else
+                    log.Verbose(line);
+            }
+
+            var reportPath = Path.Combine(project.ProjectFullPath.GetFullDirectory().ToOSPath(), UpgradeReportWriter.FileName);
+            try
+            {
+                var existingText = File.Exists(reportPath) ? File.ReadAllText(reportPath) : null;
+                if (!hasLeftovers && existingText is null)
+                    continue;
+                File.WriteAllText(reportPath, UpgradeReportWriter.AddToProjectFile(existingText, project, time));
+                if (hasLeftovers)
+                    log.Warning($"The upgrade of [{project.ProjectFullPath.GetFileName()}] left items to do by hand: see [{reportPath}].");
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                log.Error($"Could not write the upgrade report [{reportPath}]", ex);
+            }
+        }
     }
 
     // Constructs the copy-on-write upgrade backup the first time an upgrade-enabled load runs, mirroring the

@@ -340,6 +340,67 @@ public class TestUpgradedVersionRecord : IDisposable
     }
 
     [Fact]
+    public void ACleanUpgradeLogsOneLineAndWritesNoReportFile()
+    {
+        var game = WriteProject("Game", """<PackageReference Include="UpgradeRecord.Succeeds" Version="1.0.0" />""");
+
+        var result = LoadAndSave(game);
+
+        Assert.Contains(result.Messages, x => x.Type == LogMessageType.Info && x.Text == "Game.csproj: Succeeds 1.0.0 to 2.0.0: done");
+        Assert.False(File.Exists(ReportFile(game)));
+    }
+
+    [Fact]
+    public void AnUpgradeThatLeftItemsWritesThemInTheReportFile()
+    {
+        var game = WriteProject("Game", """<PackageReference Include="UpgradeRecord.SecondStepThrows" Version="1.0.0" />""");
+
+        var result = LoadAndSave(game);
+
+        Assert.Contains(result.Messages, x => x.Type == LogMessageType.Info && x.Text == "Game.csproj: UpgradeRecord.SecondStepThrows 1.0.0 to 2.0.0: 2 items left");
+        Assert.Contains(result.Messages, x => x.Type == LogMessageType.Info && x.Text == "  not run  UpgradeRecord.SecondStepThrows-2.0.0-P3 Third");
+        Assert.Contains(result.Messages, x => x.Type == LogMessageType.Warning && x.Text.Contains("The upgrade of [Game.csproj] left items to do by hand", StringComparison.Ordinal));
+        var text = File.ReadAllText(ReportFile(game));
+        Assert.StartsWith("# Upgrade report: Game.csproj\n", text);
+        Assert.Contains(" · UpgradeRecord.SecondStepThrows 1.0.0 → 2.0.0 · 2 items left\n", text);
+        Assert.Contains("### Failed\n\n- [ ] `UpgradeRecord.SecondStepThrows-2.0.0-P2` Second\n", text);
+        Assert.Contains("### Not run\n\n- [ ] `UpgradeRecord.SecondStepThrows-2.0.0-P3` Third\n", text);
+        Assert.Contains("<summary>Done (1)</summary>\n\n- `UpgradeRecord.SecondStepThrows-2.0.0-P1` First (2 files)\n", text);
+    }
+
+    [Fact]
+    public void AFileAStepLeftIsInTheReportFile()
+    {
+        var game = WriteProject("Game", """<PackageReference Include="UpgradeRecord.FileFails" Version="1.0.0" />""");
+
+        LoadAndSave(game);
+
+        Assert.Contains("### Partial\n\n- [ ] `UpgradeRecord.FileFails-2.0.0-P1` Write files\n  - `Reported.txt` is left unchanged\n  - `Missing.txt` is left unchanged\n", File.ReadAllText(ReportFile(game)));
+    }
+
+    [Fact]
+    public void ACleanUpgradeAddsItsSectionToAnExistingReportFile()
+    {
+        var game = WriteProject("Game", """<PackageReference Include="UpgradeRecord.Succeeds" Version="1.0.0" />""");
+        File.WriteAllText(ReportFile(game), "# Upgrade report: Game.csproj\n\nIntro.\n\n## 2026-11-21 14:32 · Succeeds 0.9.0 → 1.0.0 · 1 item left\n");
+
+        LoadAndSave(game);
+
+        var text = File.ReadAllText(ReportFile(game));
+        Assert.Matches(@"^# Upgrade report: Game\.csproj\n\nIntro\.\n\n## [0-9-]+ [0-9:]+ · Succeeds 1\.0\.0 → 2\.0\.0 · done\n\nNo step\.\n\n## 2026-11-21 14:32 · Succeeds 0\.9\.0 → 1\.0\.0 · 1 item left\n$", text);
+    }
+
+    [Fact]
+    public void ARefusedUpgradeWritesNoReportFile()
+    {
+        var game = WriteProject("Game", """<PackageReference Include="UpgradeRecord.SecondStepThrows" Version="1.0.0" />""");
+
+        LoadAndSave(game, parameters => parameters.PackageUpgradeRequested = (_, _) => PackageUpgradeRequestedAnswer.DoNotUpgrade);
+
+        Assert.False(File.Exists(ReportFile(game)));
+    }
+
+    [Fact]
     public void AFailedReferenceBumpIsReportedWithoutStep()
     {
         var game = WriteProject("Game", """<PackageReference Include="UpgradeRecord.BumpFails" Version="1.0.0" />""");
@@ -530,6 +591,8 @@ public class TestUpgradedVersionRecord : IDisposable
         => XDocument.Load(project).Descendants("PackageReference").Single(x => (string?)x.Attribute("Include") == package).Attribute("Version")?.Value;
 
     private static string[] ReadFiles(params string[] files) => files.Select(File.ReadAllText).ToArray();
+
+    private static string ReportFile(string project) => Path.Combine(Path.GetDirectoryName(project)!, UpgradeReportWriter.FileName);
 
     // An error that holds all the texts
     private static void AssertError(LoggerResult result, params string[] texts)

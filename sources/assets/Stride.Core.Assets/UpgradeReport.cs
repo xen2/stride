@@ -120,6 +120,12 @@ public sealed class ProjectUpgradeReport
 
     /// <summary>The upgraders that upgraded the project, in the order they ran.</summary>
     public List<UpgraderReport> Upgraders { get; } = [];
+
+    /// <summary>Whether the upgrade left something to do by hand: a step that failed, was partial or did not run.</summary>
+    public bool HasLeftovers => Upgraders.SelectMany(x => x.Steps).Any(x => x.Status != UpgradeStepStatus.Done);
+
+    // The session logged the report and wrote upgrade-report.md: a later load of the missing references does not again
+    internal bool IsPublished { get; set; }
 }
 
 /// <summary>
