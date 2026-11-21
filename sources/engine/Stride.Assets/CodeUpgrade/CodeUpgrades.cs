@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -73,6 +74,13 @@ public static partial class CodeUpgrades
     /// <param name="title">What the step changes, in one line of Markdown.</param>
     /// <param name="upgrade">The migration.</param>
     public static CodeStep Custom(string title, CodeUpgrade upgrade) => new(title, upgrade);
+
+    /// <summary>
+    /// A step that was removed: it keeps the place of that step in its gate, so the IDs of the next steps stay, and does
+    /// nothing. A step is never deleted from a gate; only a whole gate may go.
+    /// </summary>
+    /// <param name="title">The title of the removed step.</param>
+    public static CodeStep Retired(string title) => new(title, static (solution, _, _) => Task.FromResult(solution)) { IsRetired = true };
 
     /// <summary>
     /// Migrates a property that became a (parameterless) method: <c>x.Foo</c> → <c>x.Foo()</c>.

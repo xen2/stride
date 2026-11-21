@@ -38,6 +38,9 @@ public sealed record CodeStep(string Title, CodeUpgrade Upgrade)
 
     /// <summary>The migration.</summary>
     public CodeUpgrade Upgrade { get; init; } = Upgrade ?? throw new ArgumentNullException(nameof(Upgrade));
+
+    /// <summary>Whether the step was retired: it keeps the place of a removed step, so the IDs of the next steps stay, and does nothing.</summary>
+    public bool IsRetired { get; internal init; }
 }
 
 /// <summary>
@@ -96,9 +99,59 @@ public sealed class UpgradeRegistry
         ArgumentNullException.ThrowIfNull(upgrade);
         projectUpgrades.Add(new ProjectUpgradeRegistration(new PackageVersion(version), title, upgrade));
     }
+
+    /// <summary>
+    /// Declares a project step that was removed: it keeps the place of that step at <paramref name="version"/>, so the IDs of
+    /// the next steps stay, and does nothing. A step is never deleted from a gate; only a whole gate may go.
+    /// </summary>
+    /// <param name="version">The gate of the removed step.</param>
+    /// <param name="title">The title of the removed step.</param>
+    public void RetiredProject(string version, string title)
+    {
+        ArgumentNullException.ThrowIfNull(version);
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        projectUpgrades.Add(new ProjectUpgradeRegistration(new PackageVersion(version), title, static _ => { }, IsRetired: true));
+    }
+
+    /// <summary>
+    /// The declared steps, code steps first, each with its ID <c>&lt;upgrader name&gt;-&lt;gate&gt;-&lt;kind&gt;&lt;index&gt;</c>,
+    /// e.g. <c>Stride-4.5.0-P2</c>: <c>C</c> for a code step and <c>P</c> for a project step, numbered from 1 among the steps of
+    /// that kind and gate, in declaration order. The IDs are stable, since steps are only ever appended to a gate.
+    /// </summary>
+    internal IReadOnlyList<DeclaredUpgradeStep> GetSteps(string upgraderName)
+    {
+        var steps = new List<DeclaredUpgradeStep>();
+        var counts = new Dictionary<(string Gate, char Kind), int>();
+
+        foreach (var registration in codeUpgrades)
+        {
+            foreach (var step in registration.Steps)
+                Add(registration.GateVersion, 'C', step.Title, step.IsRetired);
+        }
+        foreach (var registration in projectUpgrades)
+            Add(registration.GateVersion, 'P', registration.Title, registration.IsRetired);
+        return steps;
+
+        void Add(PackageVersion gateVersion, char kind, string title, bool isRetired)
+        {
+            var gate = FormatGate(gateVersion.Version);
+            var index = counts.GetValueOrDefault((gate, kind)) + 1;
+            counts[(gate, kind)] = index;
+            steps.Add(new DeclaredUpgradeStep($"{upgraderName}-{gate}-{kind}{index}", gateVersion, title, isRetired));
+        }
+    }
+
+    // The gate in a step ID: 4.5.0.0 -> 4.5.0, with the fourth part only when it isn't 0
+    internal static string FormatGate(Version version)
+        => $"{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}" + (version.Revision > 0 ? $".{version.Revision}" : "");
 }
 
 /// <summary>
 /// One <c>Code</c> registration: the gate version the change landed at, and the steps to run.
 /// </summary>
 internal sealed record CodeUpgradeRegistration(PackageVersion GateVersion, IReadOnlyList<CodeStep> Steps);
+
+/// <summary>
+/// A declared step of an upgrader, with its ID (see <see cref="UpgradeRegistry.GetSteps"/>).
+/// </summary>
+internal sealed record DeclaredUpgradeStep(string Id, PackageVersion GateVersion, string Title, bool IsRetired);
