@@ -13,14 +13,32 @@ namespace Stride.Assets;
 /// <summary>
 /// A single source-code migration over a <see cref="Solution"/>: it receives the solution and the
 /// projects being upgraded and returns the (possibly) modified solution. This is the primitive the
-/// runner folds — every higher-level helper (<see cref="CodeUpgrades.Rewrite"/>,
-/// <see cref="CodeUpgrades.Custom"/>) ultimately produces one of these.
+/// runner folds — every higher-level helper (<see cref="CodeUpgrades.Rewrite(SymbolRewrite[])"/>,
+/// <see cref="CodeUpgrades.Custom"/>) ultimately produces one of these, inside a <see cref="CodeStep"/>.
 /// </summary>
+/// <remarks>
+/// A migration must work on the code as the user wrote it, and never rely on what an earlier migration changed:
+/// the runner may later run each migration on the original solution and merge their edits.
+/// </remarks>
 /// <param name="solution">The solution opened against the from-version closure (symbols resolve at the old version).</param>
 /// <param name="targets">The projects to migrate (their <see cref="ProjectId"/>s).</param>
 /// <param name="cancellationToken">The cancellation token.</param>
 /// <returns>The updated solution.</returns>
 public delegate Task<Solution> CodeUpgrade(Solution solution, IReadOnlyList<ProjectId> targets, CancellationToken cancellationToken);
+
+/// <summary>
+/// One step of a code upgrade: a migration, and the title the upgrade report and the upgrade guide show for it.
+/// </summary>
+/// <param name="Title">What the step changes, in one line of Markdown, e.g. <c>Rename `CommandList.UnsetRenderTargets` to `ResetTargets`</c>.</param>
+/// <param name="Upgrade">The migration.</param>
+public sealed record CodeStep(string Title, CodeUpgrade Upgrade)
+{
+    /// <summary>What the step changes, in one line of Markdown.</summary>
+    public string Title { get; init; } = !string.IsNullOrWhiteSpace(Title) ? Title : throw new ArgumentException("A code step needs a title.", nameof(Title));
+
+    /// <summary>The migration.</summary>
+    public CodeUpgrade Upgrade { get; init; } = Upgrade ?? throw new ArgumentNullException(nameof(Upgrade));
+}
 
 /// <summary>
 /// Implemented by a <see cref="Stride.Core.Assets.PackageUpgrader"/> that migrates user source code
@@ -55,20 +73,12 @@ public sealed class UpgradeRegistry
     /// which the API changed). They run for any project upgraded from below that version.
     /// </summary>
     /// <param name="version">The version at which the API change landed (e.g. <c>"4.4.0.0"</c>).</param>
-    /// <param name="upgrades">The migrations to apply, run in order (each folded over the solution).</param>
-    /// <param name="resolveSince">
-    /// Optional EXACT version at which the rule's OLD symbols resolve — distinct from the gate
-    /// <paramref name="version"/> (which decides <em>whether</em> a rule runs). Defaults to the project's
-    /// from-version. Reserved for chained upgrades, where a rule matches a member introduced <em>after</em>
-    /// the from-version and so needs an intermediate restore to bind. NOT IMPLEMENTED yet: a value above
-    /// the from-version throws <see cref="NotImplementedException"/>; at or below it is a no-op.
-    /// </param>
-    public void Code(string version, IReadOnlyList<CodeUpgrade> upgrades, string resolveSince = null)
+    /// <param name="steps">The steps to apply, run in order (each folded over the solution).</param>
+    public void Code(string version, IReadOnlyList<CodeStep> steps)
     {
         ArgumentNullException.ThrowIfNull(version);
-        ArgumentNullException.ThrowIfNull(upgrades);
-        codeUpgrades.Add(new CodeUpgradeRegistration(new PackageVersion(version), upgrades,
-            resolveSince is null ? null : new PackageVersion(resolveSince)));
+        ArgumentNullException.ThrowIfNull(steps);
+        codeUpgrades.Add(new CodeUpgradeRegistration(new PackageVersion(version), steps));
     }
 
     /// <summary>
@@ -77,17 +87,18 @@ public sealed class UpgradeRegistry
     /// NEW-version project (after the reference bump), with the project loaded once and saved once.
     /// </summary>
     /// <param name="version">The version at which the structural change landed (e.g. <c>"4.4.0.0"</c>).</param>
+    /// <param name="title">What the step changes, in one line of Markdown, shown in the upgrade report and the upgrade guide.</param>
     /// <param name="upgrade">The structural action to apply.</param>
-    public void Project(string version, ProjectUpgrade upgrade)
+    public void Project(string version, string title, ProjectUpgrade upgrade)
     {
         ArgumentNullException.ThrowIfNull(version);
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentNullException.ThrowIfNull(upgrade);
-        projectUpgrades.Add(new ProjectUpgradeRegistration(new PackageVersion(version), upgrade));
+        projectUpgrades.Add(new ProjectUpgradeRegistration(new PackageVersion(version), title, upgrade));
     }
 }
 
 /// <summary>
-/// One <c>Code</c> registration: the gate version the change landed at, the migrations to run, and the
-/// optional exact version their OLD symbols resolve at (<c>null</c> = the project's from-version).
+/// One <c>Code</c> registration: the gate version the change landed at, and the steps to run.
 /// </summary>
-internal sealed record CodeUpgradeRegistration(PackageVersion GateVersion, IReadOnlyList<CodeUpgrade> Upgrades, PackageVersion ResolveSince = null);
+internal sealed record CodeUpgradeRegistration(PackageVersion GateVersion, IReadOnlyList<CodeStep> Steps);

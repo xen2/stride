@@ -53,6 +53,6 @@ public sealed class ProjectUpgradeContext
 }
 
 /// <summary>
-/// One <c>Project</c> registration: the gate version the change landed at, and the structural action to run.
+/// One <c>Project</c> registration: the gate version the change landed at, its title, and the structural action to run.
 /// </summary>
-internal sealed record ProjectUpgradeRegistration(PackageVersion GateVersion, ProjectUpgrade Upgrade);
+internal sealed record ProjectUpgradeRegistration(PackageVersion GateVersion, string Title, ProjectUpgrade Upgrade);

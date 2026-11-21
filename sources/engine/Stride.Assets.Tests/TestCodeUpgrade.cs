@@ -33,10 +33,10 @@ public class TestCodeUpgrade
         }
     }
 
-    private static Task<string> ApplyAsync(string source, params CodeUpgrade[] upgrades) => ApplyAsync(source, DocumentationMode.Parse, upgrades);
+    private static Task<string> ApplyAsync(string source, params CodeStep[] steps) => ApplyAsync(source, DocumentationMode.Parse, steps);
 
     // documentationMode: the one the project is opened with; None for a project that generates no documentation file
-    private static async Task<string> ApplyAsync(string source, DocumentationMode documentationMode, params CodeUpgrade[] upgrades)
+    private static async Task<string> ApplyAsync(string source, DocumentationMode documentationMode, params CodeStep[] steps)
     {
         using var workspace = new AdhocWorkspace();
         var projectId = ProjectId.CreateNewId();
@@ -54,8 +54,8 @@ public class TestCodeUpgrade
         solution = RoslynCodeUpgradeRunner.ParseDocumentationComments(solution);
 
         IReadOnlyList<ProjectId> targets = [projectId];
-        foreach (var upgrade in upgrades)
-            solution = await upgrade(solution, targets, CancellationToken.None);
+        foreach (var step in steps)
+            solution = await step.Upgrade(solution, targets, CancellationToken.None);
 
         var document = solution.GetDocument(documentId);
         var text = await document.GetTextAsync();
@@ -524,7 +524,7 @@ public class TestCodeUpgrade
         }
         """;
 
-    private static readonly CodeUpgrade MoveUpgrade = Rewrite(
+    private static readonly CodeStep MoveUpgrade = Rewrite(
         StaticMemberMove("TestNs.Old", "AllocateMemory", "TestNs.New", "Allocate"),
         StaticMemberMove("TestNs.Old", "FreeMemory", "TestNs.New", "Free"),
         StaticMemberMove("TestNs.Old", "Swap", "TestNs.New"),
@@ -998,7 +998,7 @@ public class TestCodeUpgrade
         }
         """;
 
-    private static readonly CodeUpgrade EffectKeysUpgrade = AddAttributeToStaticFieldHolders("Stride.Rendering.ParameterKey", "Stride.Rendering.EffectKeysAttribute");
+    private static readonly CodeStep EffectKeysUpgrade = AddAttributeToStaticFieldHolders("Stride.Rendering.ParameterKey", "Stride.Rendering.EffectKeysAttribute");
 
     [Fact]
     public async Task AddAttributeToStaticFieldHoldersMarksTypesWithStaticKeyFields()
@@ -1174,7 +1174,7 @@ public class TestCodeUpgrade
 
         """;
 
-    private static readonly CodeUpgrade DispatcherUpgrade = DispatcherCallbacksToStaticLambdas();
+    private static readonly CodeStep DispatcherUpgrade = DispatcherCallbacksToStaticLambdas();
 
     [Fact]
     public async Task DispatcherCallbacksMoveCapturesToTheState()
