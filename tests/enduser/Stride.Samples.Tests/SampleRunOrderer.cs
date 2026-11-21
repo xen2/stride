@@ -11,8 +11,8 @@ using Xunit.Sdk;
 namespace Stride.Samples.Tests
 {
     /// <summary>
-    /// Runs the tests by name, and gives the samples of the <see cref="SampleScreenshotTests.Sample"/> rows to
-    /// <see cref="SampleQueue"/> in that order, so each one is prepared ahead of its test.
+    /// Runs the tests by name, and gives the sample of each test to <see cref="SampleQueue"/> in that order, so each
+    /// sample is prepared ahead of its first test, once.
     /// </summary>
     public sealed class SampleRunOrderer : ITestCaseOrderer
     {
@@ -22,10 +22,7 @@ namespace Stride.Samples.Tests
         public IEnumerable<TTestCase> OrderTestCases<TTestCase>(IEnumerable<TTestCase> testCases) where TTestCase : ITestCase
         {
             var ordered = testCases.OrderBy(x => x.DisplayName, StringComparer.Ordinal).ToList();
-            SampleQueue.Plan(ordered
-                .Where(x => x.TestMethod.Method.Name == nameof(SampleScreenshotTests.Sample))
-                .Select(x => x.TestMethodArguments?.FirstOrDefault())
-                .OfType<string>());
+            SampleQueue.Plan(ordered.Select(x => SampleScreenshotTests.SampleOf(x)).OfType<string>());
             return ordered;
         }
     }

@@ -120,11 +120,12 @@ public static class ScreenshotRunner
 
         var sampleDir = SampleDirectory(worktreeRoot, fixture.SampleName);
 
-        // Force the requested feature switches for the trimmer, scoped to this sample (Directory.Build.props
-        // is auto-imported by the per-platform project under it). Written after regen, which wipes sampleDir.
+        // Force the requested feature switches for the trimmer, for this publish only (Directory.Build.props
+        // is auto-imported by the per-platform project under it): a later test may take the folder.
         var options = string.Join(Environment.NewLine, switches.Select(kv =>
             $"    <RuntimeHostConfigurationOption Include=\"{kv.Key}\" Value=\"{kv.Value}\" Trim=\"true\" />"));
-        File.WriteAllText(Path.Combine(sampleDir, "Directory.Build.props"),
+        var switchesProps = Path.Combine(sampleDir, "Directory.Build.props");
+        File.WriteAllText(switchesProps,
             $"<Project>{Environment.NewLine}  <ItemGroup>{Environment.NewLine}{options}{Environment.NewLine}  </ItemGroup>{Environment.NewLine}</Project>{Environment.NewLine}");
 
         var platformCsproj = Path.Combine(sampleDir, $"{fixture.SampleName}.{HostPlatform.Folder}", $"{fixture.SampleName}.{HostPlatform.Folder}.csproj");
@@ -132,8 +133,15 @@ public static class ScreenshotRunner
         var publishLog = Path.Combine(sampleDir, "publish-trimmed.log");
         Console.WriteLine($"[{fixture.SampleName}] trimmed publish (Configuration={configuration}, StrideGraphicsApi={graphicsApi})...");
         var args = $"publish \"{platformCsproj}\" -c {configuration} -r {HostPlatform.Rid} -p:PublishTrimmed=true -p:SelfContained=true -p:StrideGraphicsApi={graphicsApi}";
-        if (!RunProcess("dotnet", args, publishLog, sampleDir, env: null, AotPublishTimeoutSeconds))
-            throw new InvalidOperationException($"Trimmed publish failed for '{sampleName}'; see {publishLog}");
+        try
+        {
+            if (!RunProcess("dotnet", args, publishLog, sampleDir, env: null, AotPublishTimeoutSeconds))
+                throw new InvalidOperationException($"Trimmed publish failed for '{sampleName}'; see {publishLog}");
+        }
+        finally
+        {
+            File.Delete(switchesProps);
+        }
 
         return Path.Combine(sampleDir, "Bin", HostPlatform.Folder, configuration, HostPlatform.Rid, "publish");
     }
