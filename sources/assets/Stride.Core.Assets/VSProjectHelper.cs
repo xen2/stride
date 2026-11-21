@@ -47,6 +47,20 @@ public static class VSProjectHelper
         }
     }
 
+    /// <summary>Shuts down the idle MSBuild nodes this process can reach, so none outlives it.</summary>
+    public static void ShutdownBuildNodes()
+    {
+        buildGate.Wait();
+        try
+        {
+            mainBuildManager.ShutdownAllNodes();
+        }
+        finally
+        {
+            buildGate.Release();
+        }
+    }
+
     public static Guid GetProjectGuid(MicrosoftProject project)
     {
         ArgumentNullException.ThrowIfNull(project);

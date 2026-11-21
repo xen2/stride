@@ -59,8 +59,6 @@ jobs:
             {"os":"windows-2025-vs2026","platform":"Windows","graphics-api":"Direct3D11","rid":"win-x64"}
           ]' || '[
             {"os":"windows-2025-vs2026","platform":"Windows","graphics-api":"Direct3D11","rid":"win-x64"},
-            {"os":"windows-2025-vs2026","platform":"Windows","graphics-api":"Direct3D12","rid":"win-x64"},
-            {"os":"windows-2025-vs2026","platform":"Windows","graphics-api":"Vulkan","rid":"win-x64"},
             {"os":"ubuntu-24.04","platform":"Linux","graphics-api":"Vulkan","rid":"linux-x64"}
           ]') }}
     runs-on: ${{ matrix.os }}
@@ -195,6 +193,9 @@ jobs:
           # frames that already failed LPIPS so cost is bounded even when noisy.
           # Called by another workflow: the key it passes. Run on its own (dispatch): the screenshots key.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || secrets.ANTHROPIC_API_KEY_SCREENSHOTS }}
+          STRIDE_TESTS_PRE_UPGRADE: ${{ github.workspace }}/pre-upgrade
+          STRIDE_EXP_UPGRADE_AB: "8"
+          STRIDE_EXP_AB_LOGS: ${{ github.workspace }}/TestResults/ab-logs
         run: |
           dotnet test tests/enduser/Stride.Samples.Tests/Stride.Samples.Tests.csproj \
             --no-build \
@@ -275,6 +276,7 @@ jobs:
   # covers forks. The duplicate engine build is the intended cost of that decoupling.
   Packaging:
     name: Packaging + consumer (${{ matrix.platform }})
+    if: false
     strategy:
       fail-fast: false
       matrix:

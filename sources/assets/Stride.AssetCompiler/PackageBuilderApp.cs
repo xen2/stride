@@ -300,6 +300,10 @@ namespace Stride.AssetCompiler
                 {
                     PackageSessionPublicHelper.FindAndSetMSBuildVersion();
 
+                    // EXPERIMENT: the nodes this upgrade reuses end with it
+                    if (Environment.GetEnvironmentVariable("STRIDE_EXP_SHUTDOWN_NODES") == "1")
+                        AppDomain.CurrentDomain.ProcessExit += (_, _) => VSProjectHelper.ShutdownBuildNodes();
+
                     // Prefer the whole solution: a project referencing Stride only transitively is detected only
                     // while every project is still pre-bump. Resolve a bare .csproj to its .sln, else upgrade it alone.
                     var upgradeTarget = options.PackageFile;
@@ -330,7 +334,8 @@ namespace Stride.AssetCompiler
                         || upgradeTarget.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
                         ? upgradeTarget
                         : System.IO.Path.ChangeExtension(upgradeTarget, ".csproj");
-                    if (System.IO.File.Exists(restoreTarget))
+                    // EXPERIMENT: the session load restores the solution again
+                    if (System.IO.File.Exists(restoreTarget) && Environment.GetEnvironmentVariable("STRIDE_EXP_SKIP_CLI_RESTORE") != "1")
                     {
                         var psi = new System.Diagnostics.ProcessStartInfo
                         {

@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using System.Diagnostics;
+using Stride.Samples.Generator;
 
 namespace Stride.SampleScreenshotRunner;
 
@@ -94,6 +95,13 @@ internal static class PreparedSamples
         foreach (var fixture in toPrepare)
             failures[fixture.SampleName] = ScreenshotRunner.RegenerateSample(fixture, ScreenshotRunner.SampleDirectory(worktreeRoot, fixture.SampleName));
         Console.WriteLine($"Prepared {failures.Count} samples in {watch.Elapsed.TotalSeconds:F0} s");
+
+        // EXPERIMENT: the upgrade variants, side by side on this machine
+        if (Environment.GetEnvironmentVariable("STRIDE_TESTS_PRE_UPGRADE") is { Length: > 0 } preUpgrade
+            && int.TryParse(Environment.GetEnvironmentVariable("STRIDE_EXP_UPGRADE_AB"), out var abSamples))
+        {
+            SampleGenerator.MeasureUpgradeVariants(preUpgrade, Path.Combine(worktreeRoot, ScreenshotRunner.SamplesGeneratedDirName, "_ab"), abSamples);
+        }
 
         var toBuild = failures.Where(x => x.Value is null).Select(x => x.Key).ToList();
         watch.Restart();
