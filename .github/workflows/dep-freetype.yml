@@ -43,18 +43,26 @@ jobs:
             -DFT_DISABLE_ZLIB=ON
           cmake --build freetype-build --config Release
 
+      # The .pdb, when the build makes one, is kept as an artifact of the run: it would ship next to the DLL in every game.
       - name: Collect output
         shell: pwsh
         run: |
-          New-Item -Path "out/${{ matrix.rid }}" -ItemType Directory -Force
+          New-Item -Path "out/${{ matrix.rid }}", "symbols/${{ matrix.rid }}" -ItemType Directory -Force
           Copy-Item freetype-build/Release/freetype.dll "out/${{ matrix.rid }}/"
-          Copy-Item freetype-build/Release/freetype.pdb "out/${{ matrix.rid }}/" -ErrorAction SilentlyContinue
+          Copy-Item freetype-build/Release/freetype.pdb "symbols/${{ matrix.rid }}/" -ErrorAction SilentlyContinue
 
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
           name: freetype-${{ matrix.rid }}
           path: out/${{ matrix.rid }}/
+
+      - name: Upload symbols
+        uses: actions/upload-artifact@v7
+        with:
+          name: symbols-freetype-${{ matrix.rid }}
+          path: symbols/${{ matrix.rid }}/
+          if-no-files-found: ignore
 
   build-linux:
     name: Build FreeType (Linux x64)
@@ -172,16 +180,26 @@ jobs:
             -DFT_DISABLE_ZLIB=ON
           cmake --build freetype-build -- -j$(nproc)
 
+      # The NDK toolchain compiles with -g: ship the library without its debug info (the symbol table stays), and
+      # keep the full library as an artifact of the run.
       - name: Collect output
         run: |
-          mkdir -p out/${{ matrix.rid }}
-          cp freetype-build/libfreetype.so out/${{ matrix.rid }}/
+          mkdir -p out/${{ matrix.rid }} symbols/${{ matrix.rid }}
+          cp freetype-build/libfreetype.so symbols/${{ matrix.rid }}/
+          $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip --strip-debug \
+            -o out/${{ matrix.rid }}/libfreetype.so freetype-build/libfreetype.so
 
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
           name: freetype-${{ matrix.rid }}
           path: out/${{ matrix.rid }}/
+
+      - name: Upload symbols
+        uses: actions/upload-artifact@v7
+        with:
+          name: symbols-freetype-${{ matrix.rid }}
+          path: symbols/${{ matrix.rid }}/
 
   build-ios:
     name: Build FreeType (${{ matrix.rid }})

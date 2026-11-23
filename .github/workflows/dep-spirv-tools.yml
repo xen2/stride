@@ -355,15 +355,24 @@ jobs:
             -DSPIRV_TOOLS_SOURCE_DIR=$PWD/spirv-tools-src
           cmake --build _build --target stride_spirv_tools
 
+      # The NDK toolchain compiles with -g: the package gets the library without its debug info (the symbol table
+      # stays), and the full library is kept as an artifact of the run, outside the pack job's spirv-tools-* pattern.
       - name: Collect output
         run: |
-          mkdir -p spirv-tools-out
-          cp _build/libstride_spirv_tools.so spirv-tools-out/
+          mkdir -p spirv-tools-out spirv-tools-symbols
+          cp _build/libstride_spirv_tools.so spirv-tools-symbols/
+          $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip --strip-debug \
+            -o spirv-tools-out/libstride_spirv_tools.so _build/libstride_spirv_tools.so
 
       - uses: actions/upload-artifact@v7
         with:
           name: spirv-tools-${{ matrix.rid }}
           path: spirv-tools-out/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: symbols-spirv-tools-${{ matrix.rid }}
+          path: spirv-tools-symbols/
 
   # ---------------------------------------------------------------------------
   # Pack NuGet from all artifacts.
