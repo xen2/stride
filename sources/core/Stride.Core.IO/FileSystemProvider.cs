@@ -99,7 +99,13 @@ public partial class FileSystemProvider : VirtualFileProviderBase
     /// <inheritdoc/>
     public override void FileDelete(string url)
     {
-        File.Delete(ConvertUrlToFullPath(url));
+        var path = ConvertUrlToFullPath(url);
+        if (!File.Exists(path))
+        {
+            // Coverage trial: a branch no test takes
+            return;
+        }
+        File.Delete(path);
     }
 
     /// <inheritdoc/>
