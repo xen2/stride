@@ -32,6 +32,16 @@
                 <ModulePath>.*[\\/]Stride\.ScreenshotComparator[\w.]*\.dll$</ModulePath>
               </Exclude>
             </ModulePaths>
+            <!-- Generated code and data, not code anyone writes or tests: build outputs (obj/, named per platform, so
+                 they never merge across lanes), the checked-in SPIR-V tables (*.gen.cs, 84k lines, a fifth of the
+                 total) and the shader bytecode arrays (Shaders.Bytecodes/*.Level_9_1.cs). -->
+            <Sources>
+              <Exclude>
+                <Source>.*[\\/]obj[\\/].*</Source>
+                <Source>.*\.gen\.cs$</Source>
+                <Source>.*Bytecodes[\\/][^\\/]*\.Level_\w+\.cs$</Source>
+              </Exclude>
+            </Sources>
           </CodeCoverage>
         </Configuration>
       </DataCollector>

@@ -20,6 +20,13 @@
                 <ModulePath>.*[\\/]Stride\.Games\.dll$</ModulePath>
               </Include>
             </ModulePaths>
+            <!-- See coverage.runsettings (no *.gen.cs in these two assemblies). -->
+            <Sources>
+              <Exclude>
+                <Source>.*[\\/]obj[\\/].*</Source>
+                <Source>.*Bytecodes[\\/][^\\/]*\.Level_\w+\.cs$</Source>
+              </Exclude>
+            </Sources>
           </CodeCoverage>
         </Configuration>
       </DataCollector>
