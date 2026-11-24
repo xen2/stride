@@ -225,6 +225,26 @@ public class FileSystemProviderTests
     }
 
     [Fact]
+    public void FileDelete_MissingFile_DoesNotThrow()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "stride_test_" + Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var provider = new FileSystemProvider("/test_" + Guid.NewGuid().ToString("N")[..8], tempDir);
+
+        try
+        {
+            provider.FileDelete("missing.txt");
+            Assert.False(provider.FileExists("missing.txt"));
+        }
+        finally
+        {
+            provider.Dispose();
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+        }
+    }
+
+    [Fact]
     public void FileMove_ToOtherProvider_MovesFile()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "stride_test_" + Guid.NewGuid().ToString());
