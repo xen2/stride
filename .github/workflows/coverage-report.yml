@@ -166,3 +166,11 @@ jobs:
           else
             gh api -X POST "repos/$repo/issues/$number/comments" -F body=@out/comment.md > /dev/null
           fi
+
+      # The report as files, for tools: `gh run download <id> -n coverage-report` (a step summary has no API)
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage-report
+          path: out/
+          if-no-files-found: ignore

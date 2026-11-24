@@ -43,6 +43,9 @@ runs:
         # The commit the lane tested: on a PR, the merge commit, whose first parent is the base coverage-report.yml
         # compares with
         git rev-parse HEAD | Set-Content (Join-Path $output commit.txt)
+        # The effect cache files the lane restored (.github/actions/effect-cache), when it has one: with none, the
+        # tests compile every shader, which covers more of the compiler. The report says when two runs differ.
+        if ($env:STRIDE_EFFECT_CACHE_FILES) { $env:STRIDE_EFFECT_CACHE_FILES | Set-Content (Join-Path $output effect-cache.txt) }
         $summary = Get-Content (Join-Path $output SummaryGithub.md) | Select-Object -Skip 1 | Where-Object { $_ -notmatch 'Method coverage:' }
         @("## Coverage: $env:REPORT_TITLE") + $summary | Add-Content $env:GITHUB_STEP_SUMMARY
         "directory=$output" >> $env:GITHUB_OUTPUT

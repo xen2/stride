@@ -6,7 +6,7 @@ for a PR, the run's diff and the artifacts of the base commit's master run (for 
   result.json  what to post: {"kind": "none" | "code" | "tests" | "push", "comment": markdown,
                "check": {"title", "summary", "annotations"}}
   comment.md   the comment of the PR, as in result.json
-  summary.md   the step summary of the report job: the comment and the coverage of every assembly
+  summary.md   the step summary of the report job: the comment, and the coverage of every assembly and of each lane
 The artifacts come from PR code, so everything read from them is data: assembly names, paths and lane names are
 checked before they reach a comment. Standard library only, so it runs on any runner and locally:
   python3 .github/scripts/coverage-report.py --current <dir> [--baseline <dir>] [--diff <file>] --out <dir>
@@ -67,10 +67,11 @@ def repo_path(filename):
 
 
 class Lane:
-    """Coverage of one lane: per (assembly, file), line -> covered."""
+    """Coverage of one lane: per (assembly, file), line -> covered, and the effect cache files it restored."""
 
     def __init__(self, path):
         self.files = defaultdict(dict)
+        self.restored_effects = restored_effects(os.path.dirname(path))
         assembly = None
         for event, element in ET.iterparse(path, events=("start", "end")):
             if event == "start" and element.tag == "package":
@@ -86,6 +87,16 @@ class Lane:
                 element.clear()
             elif event == "end" and element.tag == "package":
                 element.clear()
+
+
+def restored_effects(directory):
+    """The effect cache files the lane restored (effect-cache.txt), or None when it has no effect cache."""
+    try:
+        with open(os.path.join(directory, "effect-cache.txt"), encoding="utf-8-sig") as file:
+            text = file.read().strip()
+    except OSError:
+        return None
+    return int(text) if re.fullmatch(r"[0-9]{1,9}", text) else None
 
 
 def load(directory):
@@ -241,46 +252,118 @@ def difference(now, before):
     return now[0] - before[0], (100 * now[0] / now[1] if now[1] else 0) - (100 * before[0] / before[1] if before[1] else 0)
 
 
+def cache_mismatch(current, baseline):
+    """The lanes both runs have where one run restored no effect cache and the other restored one. A lane without
+    one compiles every shader, which runs more of the shader compiler and of the preview code: the two can't be
+    compared. Lanes with no effect cache, and runs from before effect-cache.txt, always match."""
+    def state(lane):
+        return None if lane.restored_effects is None else lane.restored_effects > 0
+
+    return [key for key in current if key in baseline
+            and None not in (state(current[key]), state(baseline[key])) and state(current[key]) != state(baseline[key])]
+
+
 def changes(current, baseline):
-    """The lanes both runs have, and over them the change of each assembly and of all of them."""
-    common = [key for key in current if key in baseline]
+    """The lanes to compare (both runs have them, with the same effect cache state), the lanes left out for their
+    effect cache, and over the compared lanes the change of each assembly and of all of them."""
+    mismatched = cache_mismatch(current, baseline)
+    common = [key for key in current if key in baseline and key not in mismatched]
     if not common:
-        return common, {}, None
+        return common, mismatched, {}, None
     now = totals(merge(current[key] for key in common))
     before = totals(merge(baseline[key] for key in common))
     delta = {a: difference(now.get(a, [0, 0]), before.get(a, [0, 0])) for a in set(now) | set(before)}
-    return common, delta, difference(*([sum(v[i] for v in t.values()) for i in (0, 1)] for t in (now, before)))
+    return common, mismatched, delta, difference(*([sum(v[i] for v in t.values()) for i in (0, 1)] for t in (now, before)))
 
 
-def change_source(args, baseline, common, current):
+def change_source(args, baseline, common, mismatched, current):
     """The line that says what the change is against, or why none is shown."""
     if not baseline:
         return f"No change shown: {args.no_baseline}" if args.no_baseline else "No change shown: no base run."
+    if not common:
+        return ("No change shown: the effect cache differs in every lane both runs have." if mismatched
+                else "No change shown: the two runs have no lane in common.")
     change = f"Change against {args.base_label}" if args.base_label else "Change against the base commit"
     if set(common) != set(current):
-        change += f", over {lane_names(common)} (the lanes both runs have)"
+        same = " with the same effect cache" if mismatched else ""
+        change += f", over {lane_names(common)} (the lanes both runs have{same})"
     return change
 
 
-def table(total, covered_all, coverable_all, delta=None, change_all=None):
-    """Step summary table of every assembly, with columns of the change of its coverage and covered lines when there
-    is a base (blank when it didn't change)."""
-    def row(name, covered, coverable, change):
-        cells = [name, painted_percent(covered, coverable)]
-        if delta is not None:
-            moved = change and (change[0] or round(change[1], 1) != 0)
-            cells.append(painted_change(signed_points(change[1]), change[0]) if moved else "")
-        cells.append(str(covered))
-        if delta is not None:
-            cells.append(painted_change(signed_lines(change[0]), change[0]) if moved else "")
-        return "| " + " | ".join(cells + [str(coverable)]) + " |"
+def cache_warning(current, baseline, mismatched):
+    """The alert that names the lanes left out of the change for their effect cache, or None."""
+    if not mismatched:
+        return None
+    parts = []
+    if base_cold := [key for key in mismatched if baseline[key].restored_effects == 0]:
+        parts.append(f"{lane_names(base_cold)} (none in the base run)")
+    if current_cold := [key for key in mismatched if current[key].restored_effects == 0]:
+        parts.append(f"{lane_names(current_cold)} (none in this run)")
+    return (f"> [!WARNING]\n> Not in the change, as one of the runs had no effect cache there: {'; '.join(parts)}. "
+            "A lane without one compiles every shader, which runs more of the shader compiler and of the preview code.")
 
-    rows = ["", "| Assembly | Coverage | Change | Covered | Change | Coverable |" if delta is not None
-            else "| Assembly | Coverage | Covered | Coverable |",
-            "|---|--:|--:|--:|--:|--:|" if delta is not None else "|---|--:|--:|--:|"]
-    rows += [row(a, covered, coverable, (delta or {}).get(a)) for a, (covered, coverable) in sorted(total.items())]
-    rows.append(row("**All**", covered_all, coverable_all, change_all))
-    return rows
+
+def table(heading, rows, with_change, extra=None):
+    """Step summary table of (name, [covered, coverable], change, extra cell) rows: coverage and covered lines, with
+    columns of their change when there is a base (blank when it didn't change, n/a when the row has no base), and a
+    last column when extra names it."""
+    def row(name, counts, change, cell):
+        covered, coverable = counts
+        cells = [name, painted_percent(covered, coverable)]
+        moved = change and (change[0] or round(change[1], 1) != 0)
+        if with_change:
+            cells.append("n/a" if change is None else painted_change(signed_points(change[1]), change[0]) if moved else "")
+        cells.append(str(covered))
+        if with_change:
+            cells.append("n/a" if change is None else painted_change(signed_lines(change[0]), change[0]) if moved else "")
+        cells.append(str(coverable))
+        if extra:
+            cells.append(cell)
+        return "| " + " | ".join(cells) + " |"
+
+    names = [heading, "Coverage"] + ["Change"] * with_change + ["Covered"] + ["Change"] * with_change + ["Coverable"]
+    align = ["---"] + ["--:"] * (len(names) - 1)
+    if extra:
+        names.append(extra)
+        align.append("---")
+    return ["", "| " + " | ".join(names) + " |", "|" + "|".join(align) + "|"] + [row(*r) for r in rows]
+
+
+def assembly_table(total, covered_all, coverable_all, delta, change_all):
+    """Table of every assembly over the lanes that ran, with its change over the lanes both runs have."""
+    rows = [(a, counts, delta.get(a, (0, 0)), "") for a, counts in sorted(total.items())]
+    rows.append(("**All**", [covered_all, coverable_all], change_all, ""))
+    return table("Assembly", rows, bool(delta))
+
+
+def lane_table(current, baseline, mismatched):
+    """Table of each lane on its own, against the same lane in the base run, with the effect cache files each run
+    restored: a lane that restored none compiled every shader. The change of a mismatched lane is shown here, but
+    left out of the others."""
+    def counts(lane):
+        lines = [covered for lines in lane.files.values() for covered in lines.values()]
+        return [sum(lines), len(lines)]
+
+    def effects(lane):
+        if lane is None or lane.restored_effects is None:
+            return "?"
+        return "none" if lane.restored_effects == 0 else f"{lane.restored_effects} files"
+
+    extra = None
+    if any(lane.restored_effects is not None for lane in current.values()):
+        extra = "Effect cache, base → this run" if baseline else "Effect cache"
+    rows = []
+    for key in (key for key in LANES if key in current):
+        before = baseline.get(key)
+        now = counts(current[key])
+        cache = ""
+        if current[key].restored_effects is not None:
+            cache = f"{effects(before)} → {effects(current[key])}" if baseline else effects(current[key])
+            if key in mismatched:
+                cache += ", not in the change"
+        rows.append((LANES[key], now, difference(now, counts(before)) if before else None, cache))
+    return (["", "Each lane on its own: its coverable lines are those of the assemblies its tests load."]
+            + table("Lane", rows, bool(baseline), extra))
 
 
 def lane_names(keys):
@@ -298,7 +381,8 @@ def report(args):
     missing = [LANES[key] for key in LANES if key not in current]
     summary = []
 
-    common, delta, change_all = changes(current, baseline)
+    common, mismatched, delta, change_all = changes(current, baseline)
+    warning = cache_warning(current, baseline, mismatched)
 
     if not args.diff:
         head = f"## Coverage: {painted_percent(covered_all, coverable_all)} ({covered_all} of {coverable_all} lines)"
@@ -307,8 +391,11 @@ def report(args):
         summary += [head, "", f"Windows lanes: {ran or 'none'}" + (f" · not run: {', '.join(missing)}" if missing else "")]
         if args.ci_label:
             summary += ["", f"From the {args.ci_label}"]
-        summary += ["", change_source(args, baseline, common, current)]
-        return {"kind": "push"}, summary + table(total, covered_all, coverable_all, delta if common else None, change_all)
+        summary += ["", change_source(args, baseline, common, mismatched, current)]
+        if warning:
+            summary += ["", warning]
+        summary += assembly_table(total, covered_all, coverable_all, delta, change_all)
+        return {"kind": "push"}, summary + lane_table(current, baseline, mismatched)
 
     # Changed files: product code with coverage, product code no test loaded, or tests
     projects = read_projects(args.projects)
@@ -382,7 +469,7 @@ def report(args):
         return text
 
     lines = []
-    if changed_lines or coverable_changed:
+    if coverable_changed:
         head = f"**Coverage of changed lines: {painted_percent(covered_changed, coverable_changed)} ({covered_changed} of {coverable_changed})**"
         if coverable_changed - covered_changed:
             head += f" · {coverable_changed - covered_changed} not covered in {uncovered_files} file{'s' if uncovered_files != 1 else ''} (see the warnings)"
@@ -403,7 +490,7 @@ def report(args):
     if any(key not in current and key not in PUSH_LANES for key in LANES):
         measured += ", lanes this PR didn't start"
     lines.append(measured)
-    lines.append(change_source(args, baseline, common, current))
+    lines.append(change_source(args, baseline, common, mismatched, current))
     links = []
     if args.run_url:
         links.append(f"[Full report]({args.run_url})")
@@ -411,15 +498,17 @@ def report(args):
         links.append(f"[What is measured]({args.scope_url})")
     if links:
         lines.append(" · ".join(links))
-    comment = MARKER + "\n" + "  \n".join(lines) + "\n"
+    # The alert is a block of its own, after the lines
+    comment = MARKER + "\n" + "  \n".join(lines) + "\n" + (f"\n{warning}\n" if warning else "")
 
     title = (f"{percent(covered_changed, coverable_changed)} of changed lines covered" if coverable_changed
              else "No coverable line changed")
-    check_summary = plain("\n\n".join(lines))
+    check_summary = plain("\n\n".join(lines + ([warning] if warning else [])))
     if annotation_count > MAX_ANNOTATIONS:
         check_summary += f"\n\nThe first {MAX_ANNOTATIONS} of {annotation_count} warnings are shown."
     summary.append(comment.replace(MARKER + "\n", ""))
-    summary += table(total, covered_all, coverable_all, delta if common else None, change_all)
+    summary += assembly_table(total, covered_all, coverable_all, delta, change_all)
+    summary += lane_table(current, baseline, mismatched)
     kind = "code" if changed_lines or changed_assemblies or not_loaded else "tests"
     return {"kind": kind, "comment": comment,
             "check": {"title": title, "summary": check_summary, "annotations": annotations}}, summary
