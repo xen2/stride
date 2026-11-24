@@ -1,0 +1,156 @@
+name: Coverage
+
+# Coverage report of a CI run. On a PR: the coverage of its changed lines, with a warning on each range that no test
+# runs (a neutral check run, never required), and of the assemblies it changes against the master run of its base
+# commit (one comment, edited on each push). On a master push: the totals, in the step summary.
+# On workflow_run so that fork PRs get a write token: it runs only the default branch's script, never PR code, and
+# reads the run's coverage artifacts and the PR's diff as data (.github/scripts/coverage-report.py).
+# tests/COVERAGE.md says what is measured.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  # The report of a CI run again, with the script of the chosen branch
+  workflow_dispatch:
+    inputs:
+      run-id:
+        description: Id of the CI run (a manual CI run gets the totals, as a push)
+        required: true
+        type: string
+
+permissions:
+  actions: read         # artifacts of the CI runs
+  checks: write         # the Coverage check run
+  contents: read
+  pull-requests: write  # the comment
+
+# A newer run of the same branch replaces the report
+concurrency:
+  group: coverage-${{ github.event.workflow_run.head_repository.full_name || 'run' }}-${{ github.event.workflow_run.head_branch || inputs.run-id }}
+  cancel-in-progress: true
+
+jobs:
+  Report:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'cancelled'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # The default branch's script (a manual run: its branch's), never the PR's: nothing of the PR is checked out
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+
+      - name: Report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id || inputs.run-id }}
+        run: |
+          repo="$GITHUB_REPOSITORY"
+          run_url="$GITHUB_SERVER_URL/$repo/actions/runs/$GITHUB_RUN_ID"
+          # The CI run, from the API for both triggers (no space in any of these fields)
+          read -r EVENT CONCLUSION WORKFLOW_ID HEAD_SHA HEAD_OWNER HEAD_BRANCH <<< "$(gh api "repos/$repo/actions/runs/$RUN_ID" \
+            --jq '"\(.event) \(.conclusion) \(.workflow_id) \(.head_sha) \(.head_repository.owner.login) \(.head_branch)"')"
+          case "$EVENT:$CONCLUSION" in
+            *:cancelled | *:skipped) echo "The CI run was $CONCLUSION: no report."; exit 0 ;;
+            pull_request:* | push:*) ;;
+            workflow_dispatch:*) EVENT=push ;;
+            *) echo "No report for a CI run of a $EVENT event."; exit 0 ;;
+          esac
+          if ! gh run download "$RUN_ID" -R "$repo" -p 'coverage-*' -D current 2>/dev/null || [ -z "$(ls -A current 2>/dev/null)" ]; then
+            echo "No coverage in this run: no Windows test lane ran."
+            exit 0
+          fi
+
+          if [ "$EVENT" = push ]; then
+            python3 .github/scripts/coverage-report.py --current current --out out
+            cat out/summary.md >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # The open PR whose head this run tested: none when the PR was closed or got a newer push, whose run reports
+          pr=$(gh api -X GET "repos/$repo/pulls" -f head="$HEAD_OWNER:$HEAD_BRANCH" -f state=open -f per_page=100 \
+            --jq "[.[] | select(.head.sha == \"$HEAD_SHA\")][0] | select(. != null) | \"\(.number) \(.base.sha)\"")
+          if [ -z "$pr" ]; then
+            echo "No open PR has $HEAD_SHA as its head: no report."
+            exit 0
+          fi
+          read -r number pr_base <<< "$pr"
+
+          # The lanes tested the merge commit of the PR into its base (commit.txt of the coverage artifacts): its first
+          # parent is the base to compare with, and its diff has the line numbers of the coverage. Without it, the
+          # PR's own diff against its base.
+          merge=$({ cat current/coverage-*/commit.txt 2>/dev/null || true; } | tr -d '\r' | awk '/^[0-9a-f]{40}$/' | sort | uniq -c | sort -rn | awk 'NR == 1 { print $2 }')
+          parents=$([ -n "$merge" ] && gh api "repos/$repo/commits/$merge" --jq '[.parents[].sha] | join(" ")' 2>/dev/null || true)
+          read -r base second <<< "$parents"
+          if [ -n "$base" ] && [ "$second" = "$HEAD_SHA" ]; then
+            tested="$merge"
+          else
+            echo "::notice::No merge commit of the PR in the coverage artifacts: using the PR's diff against its base."
+            base="$pr_base"
+            tested="$HEAD_SHA"
+          fi
+          if ! gh api -H 'Accept: application/vnd.github.diff' "repos/$repo/compare/$base...$tested" > pr.diff; then
+            echo "::warning::The diff of the PR could not be read (too large?): no report."
+            exit 0
+          fi
+          gh api "repos/$repo/git/trees/$tested?recursive=1" --jq '.tree[].path' > tree.txt
+
+          # The master run of the base, or of its nearest ancestor that CI ran (the commits it skips change no code)
+          baseline=() no_baseline= label=
+          for sha in $(gh api "repos/$repo/commits?sha=$base&per_page=30" --jq '.[].sha'); do
+            found=$(gh api "repos/$repo/actions/workflows/$WORKFLOW_ID/runs?head_sha=$sha&event=push&per_page=1" \
+              --jq '.workflow_runs[0] | select(. != null) | "\(.id) \(.conclusion) \(.html_url)"')
+            if [ -n "$found" ]; then break; fi
+          done
+          read -r base_run base_conclusion base_url <<< "$found"
+          if [ -z "$found" ]; then
+            no_baseline="no master run of the base \`${base:0:10}\` or of its last 30 ancestors."
+          elif [ "$base_conclusion" != success ]; then
+            no_baseline="the [master run]($base_url) of \`${sha:0:10}\` $([ "$base_conclusion" = null ] && echo "hasn't finished" || echo "ended in $base_conclusion")."
+          elif ! gh run download "$base_run" -R "$repo" -p 'coverage-*' -D base 2>/dev/null || [ -z "$(ls -A base 2>/dev/null)" ]; then
+            no_baseline="the [master run]($base_url) of \`${sha:0:10}\` has no coverage (expired?)."
+          else
+            baseline=(--baseline base)
+            label="master [\`${sha:0:10}\`]($base_url)"
+          fi
+
+          python3 .github/scripts/coverage-report.py --current current "${baseline[@]}" --diff pr.diff --projects tree.txt \
+            --base-label "$label" --no-baseline "$no_baseline" --run-url "$run_url" \
+            --scope-url "$GITHUB_SERVER_URL/$repo/blob/$base/tests/COVERAGE.md" --out out
+          cat out/summary.md >> "$GITHUB_STEP_SUMMARY"
+          kind=$(python3 -c 'import json; print(json.load(open("out/result.json"))["kind"])')
+          if [ "$kind" = none ]; then exit 0; fi
+
+          # Check run on the PR head, with the warnings 50 per call
+          python3 - "$HEAD_SHA" "$run_url" > check.jsonl <<'EOF'
+          import json, sys
+          check = json.load(open("out/result.json"))["check"]
+          annotations = check["annotations"]
+          for i in range(0, max(len(annotations), 1), 50):
+              output = {"title": check["title"], "summary": check["summary"], "annotations": annotations[i:i + 50]}
+              body = {"output": output}
+              if i == 0:
+                  body.update(name="Coverage", head_sha=sys.argv[1], status="completed", conclusion="neutral",
+                              details_url=sys.argv[2])
+              print(json.dumps(body))
+          EOF
+          check_id=
+          while IFS= read -r body; do
+            if [ -z "$check_id" ]; then
+              check_id=$(gh api -X POST "repos/$repo/check-runs" --input - --jq .id <<< "$body")
+            else
+              gh api -X PATCH "repos/$repo/check-runs/$check_id" --input - > /dev/null <<< "$body"
+            fi
+          done < check.jsonl
+
+          # One comment, edited on each push
+          comment=$(gh api "repos/$repo/issues/$number/comments" --paginate \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- coverage-report -->"))) | .id' | awk 'NR == 1')
+          if [ -n "$comment" ]; then
+            gh api -X PATCH "repos/$repo/issues/comments/$comment" -F body=@out/comment.md > /dev/null
+          else
+            gh api -X POST "repos/$repo/issues/$number/comments" -F body=@out/comment.md > /dev/null
+          fi
