@@ -51,8 +51,8 @@ jobs:
           repo="$GITHUB_REPOSITORY"
           run_url="$GITHUB_SERVER_URL/$repo/actions/runs/$GITHUB_RUN_ID"
           # The CI run, from the API for both triggers (no space in any of these fields)
-          read -r EVENT CONCLUSION WORKFLOW_ID HEAD_SHA HEAD_OWNER HEAD_BRANCH <<< "$(gh api "repos/$repo/actions/runs/$RUN_ID" \
-            --jq '"\(.event) \(.conclusion) \(.workflow_id) \(.head_sha) \(.head_repository.owner.login) \(.head_branch)"')"
+          read -r EVENT CONCLUSION WORKFLOW_ID HEAD_SHA HEAD_OWNER HEAD_BRANCH CI_URL <<< "$(gh api "repos/$repo/actions/runs/$RUN_ID" \
+            --jq '"\(.event) \(.conclusion) \(.workflow_id) \(.head_sha) \(.head_repository.owner.login) \(.head_branch) \(.html_url)"')"
           case "$EVENT:$CONCLUSION" in
             *:cancelled | *:skipped) echo "The CI run was $CONCLUSION: no report."; exit 0 ;;
             pull_request:* | push:*) ;;
@@ -64,8 +64,38 @@ jobs:
             exit 0
           fi
 
+          # The push run of $1, or of its nearest ancestor that CI ran (the commits it skips change no code), named $2:
+          # its coverage in base/ and base_sha, base_url set, or no_baseline says why there is none
+          find_base() {
+            baseline=() no_baseline= base_sha= base_url=
+            local found= base_run= conclusion=
+            for base_sha in $(gh api "repos/$repo/commits?sha=$1&per_page=30" --jq '.[].sha'); do
+              found=$(gh api "repos/$repo/actions/workflows/$WORKFLOW_ID/runs?head_sha=$base_sha&event=push&per_page=1" \
+                --jq '.workflow_runs[0] | select(. != null) | "\(.id) \(.conclusion) \(.html_url)"')
+              if [ -n "$found" ]; then break; fi
+            done
+            read -r base_run conclusion base_url <<< "$found"
+            if [ -z "$found" ]; then
+              no_baseline="no $2 of \`${1:0:10}\` or of its last 30 ancestors."
+            elif [ "$conclusion" != success ]; then
+              no_baseline="the [$2]($base_url) of \`${base_sha:0:10}\` $([ "$conclusion" = null ] && echo "hasn't finished" || echo "ended in $conclusion")."
+            elif ! gh run download "$base_run" -R "$repo" -p 'coverage-*' -D base 2>/dev/null || [ -z "$(ls -A base 2>/dev/null)" ]; then
+              no_baseline="the [$2]($base_url) of \`${base_sha:0:10}\` has no coverage (expired?)."
+            else
+              baseline=(--baseline base)
+            fi
+          }
+
           if [ "$EVENT" = push ]; then
-            python3 .github/scripts/coverage-report.py --current current --out out
+            parent=$(gh api "repos/$repo/commits/$HEAD_SHA" --jq '.parents[0].sha // empty')
+            if [ -n "$parent" ]; then
+              find_base "$parent" "CI run"
+            else
+              baseline=() no_baseline="the commit has no parent."
+            fi
+            python3 .github/scripts/coverage-report.py --current current "${baseline[@]}" \
+              --ci-label "[CI run]($CI_URL) of \`${HEAD_SHA:0:10}\` on \`$HEAD_BRANCH\`" \
+              --base-label "the [CI run]($base_url) of \`${base_sha:0:10}\`" --no-baseline "$no_baseline" --out out
             cat out/summary.md >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -98,27 +128,9 @@ jobs:
           fi
           gh api "repos/$repo/git/trees/$tested?recursive=1" --jq '.tree[].path' > tree.txt
 
-          # The master run of the base, or of its nearest ancestor that CI ran (the commits it skips change no code)
-          baseline=() no_baseline= label=
-          for sha in $(gh api "repos/$repo/commits?sha=$base&per_page=30" --jq '.[].sha'); do
-            found=$(gh api "repos/$repo/actions/workflows/$WORKFLOW_ID/runs?head_sha=$sha&event=push&per_page=1" \
-              --jq '.workflow_runs[0] | select(. != null) | "\(.id) \(.conclusion) \(.html_url)"')
-            if [ -n "$found" ]; then break; fi
-          done
-          read -r base_run base_conclusion base_url <<< "$found"
-          if [ -z "$found" ]; then
-            no_baseline="no master run of the base \`${base:0:10}\` or of its last 30 ancestors."
-          elif [ "$base_conclusion" != success ]; then
-            no_baseline="the [master run]($base_url) of \`${sha:0:10}\` $([ "$base_conclusion" = null ] && echo "hasn't finished" || echo "ended in $base_conclusion")."
-          elif ! gh run download "$base_run" -R "$repo" -p 'coverage-*' -D base 2>/dev/null || [ -z "$(ls -A base 2>/dev/null)" ]; then
-            no_baseline="the [master run]($base_url) of \`${sha:0:10}\` has no coverage (expired?)."
-          else
-            baseline=(--baseline base)
-            label="master [\`${sha:0:10}\`]($base_url)"
-          fi
-
+          find_base "$base" "master run"
           python3 .github/scripts/coverage-report.py --current current "${baseline[@]}" --diff pr.diff --projects tree.txt \
-            --base-label "$label" --no-baseline "$no_baseline" --run-url "$run_url" \
+            --base-label "master [\`${base_sha:0:10}\`]($base_url)" --no-baseline "$no_baseline" --run-url "$run_url" \
             --scope-url "$GITHUB_SERVER_URL/$repo/blob/$base/tests/COVERAGE.md" --out out
           cat out/summary.md >> "$GITHUB_STEP_SUMMARY"
           kind=$(python3 -c 'import json; print(json.load(open("out/result.json"))["kind"])')
