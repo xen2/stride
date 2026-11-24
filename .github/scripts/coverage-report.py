@@ -7,9 +7,12 @@ for a PR, the run's diff and the artifacts of the base commit's master run (for 
                "check": {"title", "summary", "annotations"}}
   comment.md   the comment of the PR, as in result.json
   summary.md   the step summary of the report job: the comment, and the coverage of every assembly and of each lane
+With --not-updated, writes only comment.md: the PR's comment of an earlier push (--previous), with a note on top that
+this push got no report.
 The artifacts come from PR code, so everything read from them is data: assembly names, paths and lane names are
 checked before they reach a comment. Standard library only, so it runs on any runner and locally:
   python3 .github/scripts/coverage-report.py --current <dir> [--baseline <dir>] [--diff <file>] --out <dir>
+  python3 .github/scripts/coverage-report.py --not-updated <reason> --previous <file> --head <sha> --out <dir>
 """
 
 import argparse
@@ -42,6 +45,9 @@ MAX_ASSEMBLIES = 12
 # 50 per API call; the check run gets them in several calls
 MAX_ANNOTATIONS = 200
 MARKER = "<!-- coverage-report -->"
+# The note on top of a comment that a push got no report, up to the blank line that ends it
+NOT_UPDATED_MARKER = "<!-- coverage-not-updated -->"
+NOT_UPDATED = re.compile(re.escape(NOT_UPDATED_MARKER) + r"\n(?:>.*\n)*\n")
 
 ASSEMBLY_NAME = re.compile(r"^[A-Za-z_][\w.]*$")
 # The workspace of the runner that wrote the paths: D:\a\stride\stride\, /home/runner/work/stride/stride/
@@ -67,11 +73,13 @@ def repo_path(filename):
 
 
 class Lane:
-    """Coverage of one lane: per (assembly, file), line -> covered, and the effect cache files it restored."""
+    """Coverage of one lane: per (assembly, file), line -> covered, the effect cache files it restored, and whether
+    its job had failed by then (None when the artifact doesn't say)."""
 
     def __init__(self, path):
         self.files = defaultdict(dict)
         self.restored_effects = restored_effects(os.path.dirname(path))
+        self.failed = job_failed(os.path.dirname(path))
         assembly = None
         for event, element in ET.iterparse(path, events=("start", "end")):
             if event == "start" and element.tag == "package":
@@ -97,6 +105,16 @@ def restored_effects(directory):
     except OSError:
         return None
     return int(text) if re.fullmatch(r"[0-9]{1,9}", text) else None
+
+
+def job_failed(directory):
+    """Whether the lane's job had failed before its coverage step (job-status.txt), or None when it doesn't say."""
+    try:
+        with open(os.path.join(directory, "job-status.txt"), encoding="utf-8-sig") as file:
+            status = file.read().strip()
+    except OSError:
+        return None
+    return {"success": False, "failure": True}.get(status)
 
 
 def load(directory):
@@ -264,34 +282,43 @@ def cache_mismatch(current, baseline):
 
 
 def changes(current, baseline):
-    """The lanes to compare (both runs have them, with the same effect cache state), the lanes left out for their
-    effect cache, and over the compared lanes the change of each assembly and of all of them."""
-    mismatched = cache_mismatch(current, baseline)
-    common = [key for key in current if key in baseline and key not in mismatched]
+    """The lanes to compare, the lanes both runs have that are left out (lane -> "failed" when its job failed in the
+    base run, "cache" when its effect cache state differs), and over the compared lanes the change of each assembly
+    and of all of them."""
+    left_out = {key: "failed" for key in current if key in baseline and baseline[key].failed}
+    left_out.update((key, "cache") for key in cache_mismatch(current, baseline) if key not in left_out)
+    common = [key for key in current if key in baseline and key not in left_out]
     if not common:
-        return common, mismatched, {}, None
+        return common, left_out, {}, None
     now = totals(merge(current[key] for key in common))
     before = totals(merge(baseline[key] for key in common))
     delta = {a: difference(now.get(a, [0, 0]), before.get(a, [0, 0])) for a in set(now) | set(before)}
-    return common, mismatched, delta, difference(*([sum(v[i] for v in t.values()) for i in (0, 1)] for t in (now, before)))
+    return common, left_out, delta, difference(*([sum(v[i] for v in t.values()) for i in (0, 1)] for t in (now, before)))
 
 
-def change_source(args, baseline, common, mismatched, current):
+def change_source(args, baseline, common, left_out, current):
     """The line that says what the change is against, or why none is shown."""
     if not baseline:
         return f"No change shown: {args.no_baseline}" if args.no_baseline else "No change shown: no base run."
+    failed = [key for key, reason in left_out.items() if reason == "failed"]
     if not common:
-        return ("No change shown: the effect cache differs in every lane both runs have." if mismatched
-                else "No change shown: the two runs have no lane in common.")
+        reasons = []
+        if failed:
+            reasons.append(f"{lane_names(failed)} failed in the base run")
+        if len(failed) != len(left_out):
+            reasons.append("the effect cache differs in " + lane_names(k for k, r in left_out.items() if r == "cache"))
+        return f"No change shown: {'; '.join(reasons) or 'the two runs have no lane in common'}."
     change = f"Change against {args.base_label}" if args.base_label else "Change against the base commit"
     if set(common) != set(current):
-        same = " with the same effect cache" if mismatched else ""
-        change += f", over {lane_names(common)} (the lanes both runs have{same})"
+        change += f", over {lane_names(common)}" + ("" if left_out else " (the lanes both runs have)")
+    if failed:
+        change += f". Not compared: {lane_names(failed)}, which failed in the base run"
     return change
 
 
-def cache_warning(current, baseline, mismatched):
+def cache_warning(current, baseline, left_out):
     """The alert that names the lanes left out of the change for their effect cache, or None."""
+    mismatched = [key for key, reason in left_out.items() if reason == "cache"]
     if not mismatched:
         return None
     parts = []
@@ -301,6 +328,17 @@ def cache_warning(current, baseline, mismatched):
         parts.append(f"{lane_names(current_cold)} (none in this run)")
     return (f"> [!WARNING]\n> Not in the change, as one of the runs had no effect cache there: {'; '.join(parts)}. "
             "A lane without one compiles every shader, which runs more of the shader compiler and of the preview code.")
+
+
+def not_updated(previous, reason, head, run_url):
+    """The comment of an earlier push with a note on top that this push got no report, or None when it isn't one."""
+    body = previous.replace("\r\n", "\n")
+    if not body.startswith(MARKER + "\n"):
+        return None
+    body = NOT_UPDATED.sub("", body[len(MARKER) + 1:], count=1)
+    run = f" ([report run]({run_url}))" if run_url else ""
+    return (f"{MARKER}\n{NOT_UPDATED_MARKER}\n> [!NOTE]\n> Not updated for `{head[:10]}`: {reason.rstrip('.')}{run}. "
+            f"What follows is of an earlier commit.\n\n{body}")
 
 
 def table(heading, rows, with_change, extra=None):
@@ -336,10 +374,10 @@ def assembly_table(total, covered_all, coverable_all, delta, change_all):
     return table("Assembly", rows, bool(delta))
 
 
-def lane_table(current, baseline, mismatched):
+def lane_table(current, baseline, left_out):
     """Table of each lane on its own, against the same lane in the base run, with the effect cache files each run
-    restored: a lane that restored none compiled every shader. The change of a mismatched lane is shown here, but
-    left out of the others."""
+    restored: a lane that restored none compiled every shader. The change of a lane left out of the others is shown
+    here, with why."""
     def counts(lane):
         lines = [covered for lines in lane.files.values() for covered in lines.values()]
         return [sum(lines), len(lines)]
@@ -359,9 +397,10 @@ def lane_table(current, baseline, mismatched):
         cache = ""
         if current[key].restored_effects is not None:
             cache = f"{effects(before)} → {effects(current[key])}" if baseline else effects(current[key])
-            if key in mismatched:
-                cache += ", not in the change"
-        rows.append((LANES[key], now, difference(now, counts(before)) if before else None, cache))
+        name = LANES[key]
+        if key in left_out:
+            name += " (not in the change: " + ("failed in the base run" if left_out[key] == "failed" else "effect cache") + ")"
+        rows.append((name, now, difference(now, counts(before)) if before else None, cache))
     return (["", "Each lane on its own: its coverable lines are those of the assemblies its tests load."]
             + table("Lane", rows, bool(baseline), extra))
 
@@ -381,8 +420,8 @@ def report(args):
     missing = [LANES[key] for key in LANES if key not in current]
     summary = []
 
-    common, mismatched, delta, change_all = changes(current, baseline)
-    warning = cache_warning(current, baseline, mismatched)
+    common, left_out, delta, change_all = changes(current, baseline)
+    warning = cache_warning(current, baseline, left_out)
 
     if not args.diff:
         head = f"## Coverage: {painted_percent(covered_all, coverable_all)} ({covered_all} of {coverable_all} lines)"
@@ -391,11 +430,11 @@ def report(args):
         summary += [head, "", f"Windows lanes: {ran or 'none'}" + (f" · not run: {', '.join(missing)}" if missing else "")]
         if args.ci_label:
             summary += ["", f"From the {args.ci_label}"]
-        summary += ["", change_source(args, baseline, common, mismatched, current)]
+        summary += ["", change_source(args, baseline, common, left_out, current)]
         if warning:
             summary += ["", warning]
         summary += assembly_table(total, covered_all, coverable_all, delta, change_all)
-        return {"kind": "push"}, summary + lane_table(current, baseline, mismatched)
+        return {"kind": "push"}, summary + lane_table(current, baseline, left_out)
 
     # Changed files: product code with coverage, product code no test loaded, or tests
     projects = read_projects(args.projects)
@@ -490,7 +529,7 @@ def report(args):
     if any(key not in current and key not in PUSH_LANES for key in LANES):
         measured += ", lanes this PR didn't start"
     lines.append(measured)
-    lines.append(change_source(args, baseline, common, mismatched, current))
+    lines.append(change_source(args, baseline, common, left_out, current))
     links = []
     if args.run_url:
         links.append(f"[Full report]({args.run_url})")
@@ -508,7 +547,7 @@ def report(args):
         check_summary += f"\n\nThe first {MAX_ANNOTATIONS} of {annotation_count} warnings are shown."
     summary.append(comment.replace(MARKER + "\n", ""))
     summary += assembly_table(total, covered_all, coverable_all, delta, change_all)
-    summary += lane_table(current, baseline, mismatched)
+    summary += lane_table(current, baseline, left_out)
     kind = "code" if changed_lines or changed_assemblies or not_loaded else "tests"
     return {"kind": kind, "comment": comment,
             "check": {"title": title, "summary": check_summary, "annotations": annotations}}, summary
@@ -516,7 +555,7 @@ def report(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--current", required=True, help="coverage-* artifacts of the run")
+    parser.add_argument("--current", help="coverage-* artifacts of the run")
     parser.add_argument("--baseline", help="coverage-* artifacts of the base commit's master run, or of the push's parent")
     parser.add_argument("--diff", help="diff of the PR (merge commit against its first parent); none for a push")
     parser.add_argument("--projects", help="repo paths of the base commit (git ls-tree), to find a file's project")
@@ -525,10 +564,22 @@ def main():
     parser.add_argument("--no-baseline", help="why the comment shows no change")
     parser.add_argument("--run-url", help="the report run, for the full report link")
     parser.add_argument("--scope-url", help="tests/COVERAGE.md")
+    parser.add_argument("--not-updated", help="why this push got no report, for the comment of an earlier push")
+    parser.add_argument("--previous", help="with --not-updated: the comment of the earlier push")
+    parser.add_argument("--head", help="with --not-updated: the head commit of the PR")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
-    result, summary = report(args)
     os.makedirs(args.out, exist_ok=True)
+    if args.not_updated:
+        with open(args.previous, encoding="utf-8") as file:
+            comment = not_updated(file.read(), args.not_updated, args.head, args.run_url)
+        if comment:
+            with open(os.path.join(args.out, "comment.md"), "w", encoding="utf-8") as file:
+                file.write(comment)
+        return
+    if not args.current:
+        parser.error("--current is required")
+    result, summary = report(args)
     with open(os.path.join(args.out, "result.json"), "w", encoding="utf-8") as file:
         json.dump(result, file, indent=1)
     with open(os.path.join(args.out, "summary.md"), "w", encoding="utf-8") as file:
