@@ -1,6 +1,6 @@
 # tests/
 
-Test projects that are not the unit tests of one assembly, and the reference images of the image-comparison tests.
+Test projects that are not the unit tests of one assembly, and the reference images of the image-comparison tests. (Coverage trial: a docs-only change, not to merge.)
 
 - Unit tests stay next to their code, in `sources/<area>/<Project>.Tests`.
 - Test infrastructure that the Stride build packs (`Stride.XunitRunner`, published on nuget.org, named `xunit.runner.stride` up to 4.4; `Stride.Graphics.Regression` and `Stride.TestRunner`) stays in `sources/`; the rest is in `infra/`.
