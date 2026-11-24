@@ -5,7 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading;
 using Xunit;
 
 namespace Stride.Packaging.Tests;
@@ -86,6 +88,10 @@ internal sealed record ExecResult(int ExitCode, string Output);
 
 internal static class Dotnet
 {
+    // Diagnostics: when set, every build, pack and restore writes a binlog to this folder
+    private static readonly string? BinlogDir = Environment.GetEnvironmentVariable("STRIDE_PACKAGING_BINLOG_DIR");
+    private static int binlogCount;
+
     /// <summary>
     /// Run a <c>dotnet</c> command in a case's temp tree, streaming output to the test log; returns exit code + captured output.
     /// It runs on the SDK the repo's global.json selects, and the asset compilers it starts hash files into the case's own
@@ -95,6 +101,16 @@ internal static class Dotnet
     {
         var caseDir = TestEnvironment.CaseDirectory(workingDir);
         TestEnvironment.WriteGlobalJson(caseDir);
+        var argList = args.ToList();
+        if (!string.IsNullOrEmpty(BinlogDir) && argList.Count > 0 && argList[0] is "build" or "pack" or "restore")
+        {
+            Directory.CreateDirectory(BinlogDir);
+            var test = TestContext.Current.TestMethod?.MethodName ?? "none";
+            var binlog = Path.Combine(BinlogDir, $"{Environment.ProcessId}-{Interlocked.Increment(ref binlogCount):D3}-{test}-{argList[0]}.binlog");
+            argList.Add($"-bl:{binlog}");
+            output.WriteLine($"Binlog: {binlog}");
+        }
+
         var psi = new ProcessStartInfo("dotnet")
         {
             UseShellExecute = false,
@@ -108,15 +124,21 @@ internal static class Dotnet
         psi.Environment.Remove("MSBuildExtensionsPath");
         psi.Environment.Remove("MSBuildSDKsPath");
         psi.Environment["STRIDE_FILE_VERSION_CACHE"] = Path.Combine(caseDir, "FileVersionTracker.cache");
-        foreach (var arg in args)
+        foreach (var arg in argList)
             psi.ArgumentList.Add(arg);
 
         var captured = new List<string>();
+        var detached = false;
         void Sink(string tag, string? data)
         {
             if (data is null) return;
-            lock (captured) captured.Add(data);
-            output.WriteLine($"[{tag}] {data}");
+            lock (captured)
+            {
+                // The test may be over by then, and its output helper throws
+                if (detached) return;
+                captured.Add(data);
+                output.WriteLine($"[{tag}] {data}");
+            }
         }
 
         using var proc = Process.Start(psi)!;
@@ -130,13 +152,53 @@ internal static class Dotnet
         if (!proc.WaitForExit(timeoutMin * 60_000))
         {
             try { proc.Kill(entireProcessTree: true); } catch { }
-            throw new TimeoutException($"`dotnet {string.Join(' ', args)}` timed out after {timeoutMin}min");
+            throw new TimeoutException($"`dotnet {string.Join(' ', argList)}` timed out after {timeoutMin}min");
         }
-        proc.WaitForExit(); // flush async readers
+
+        // The output ends once every process that inherited its pipes is gone, the children of the command included
+        var outputWait = Stopwatch.StartNew();
+        using (var outputEnd = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+        {
+            try
+            {
+                proc.WaitForExitAsync(outputEnd.Token).GetAwaiter().GetResult();
+                if (outputWait.Elapsed > TimeSpan.FromSeconds(2))
+                    output.WriteLine($"`dotnet {argList[0]}` output ended {outputWait.Elapsed.TotalSeconds:F0} s after its exit");
+            }
+            catch (OperationCanceledException)
+            {
+                lock (captured) detached = true;
+                output.WriteLine($"`dotnet {argList[0]}` exited with {proc.ExitCode}, but its output is still open {outputWait.Elapsed.TotalSeconds:F0} s later. "
+                    + $"It was pid {proc.Id}. Processes that may hold the output:");
+                output.WriteLine(ListBuildProcesses());
+            }
+        }
         TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
         string text;
         lock (captured) text = string.Join('\n', captured);
         return new ExecResult(proc.ExitCode, text);
+    }
+
+    /// <summary>The dotnet, MSBuild, compiler server and Stride processes of the machine, with their parents and command lines.</summary>
+    private static string ListBuildProcesses()
+    {
+        var psi = OperatingSystem.IsWindows()
+            ? new ProcessStartInfo("powershell", ["-NoProfile", "-NonInteractive", "-Command",
+                @"Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^(dotnet|MSBuild|VBCSCompiler|Stride.*)\.exe$' } | Sort-Object CreationDate | Format-List ProcessId,ParentProcessId,Name,CreationDate,CommandLine | Out-String -Width 8192"])
+            : new ProcessStartInfo("ps", ["-eo", "pid,ppid,lstart,args"]);
+        psi.UseShellExecute = false;
+        psi.RedirectStandardOutput = true;
+        try
+        {
+            using var proc = Process.Start(psi)!;
+            var text = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit();
+            return text;
+        }
+        catch (Exception e)
+        {
+            return $"Could not list the processes: {e.Message}";
+        }
     }
 }
 
