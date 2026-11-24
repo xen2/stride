@@ -20,8 +20,8 @@ runs:
   steps:
     # ReportGenerator as a pinned dotnet tool rather than its action: the same command runs locally, and no further
     # third-party action is needed. No HTML report here: for a lane with the full filter it takes minutes to write and
-    # 1.6 GB to upload; coverage-report.yml writes one for the PR. Generated sources (obj/) are left out; the method
-    # coverage row of the summary only links to ReportGenerator Pro.
+    # 1.6 GB to upload; coverage-report.yml writes one for the PR. The method coverage row of the summary only links to
+    # ReportGenerator Pro.
     - name: Coverage report
       id: report
       shell: pwsh
@@ -39,8 +39,7 @@ runs:
         & (Join-Path $tools reportgenerator) `
           "-reports:$(($reports.FullName) -join ';')" `
           "-targetdir:$output" `
-          "-reporttypes:Cobertura;MarkdownSummaryGithub" `
-          "-filefilters:-*\obj\*;-*/obj/*"
+          "-reporttypes:Cobertura;MarkdownSummaryGithub"
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         $summary = Get-Content (Join-Path $output SummaryGithub.md) | Select-Object -Skip 1 | Where-Object { $_ -notmatch 'Method coverage:' }
         @("## Coverage: $env:REPORT_TITLE") + $summary | Add-Content $env:GITHUB_STEP_SUMMARY
