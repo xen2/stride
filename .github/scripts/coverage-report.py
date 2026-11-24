@@ -2,7 +2,7 @@
 """Coverage report of a CI run, for coverage-report.yml.
 
 Reads the coverage-<lane> artifacts of the run (one Cobertura per lane, see .github/actions/coverage-lane) and,
-for a PR, the run's diff and the artifacts of the base commit's master run. Writes into --out:
+for a PR, the run's diff and the artifacts of the base commit's master run (for a push, of its parent's run). Writes into --out:
   result.json  what to post: {"kind": "none" | "code" | "tests" | "push", "comment": markdown,
                "check": {"title", "summary", "annotations"}}
   comment.md   the comment of the PR, as in result.json
@@ -125,9 +125,10 @@ def percent(covered, coverable):
 
 def paint(text, hue):
     """Text in a color of GitHub's math: hue 0 is red, 120 green, dark enough for the light and dark themes. In the
-    $`...`$ form, Markdown leaves the backslashes to the math (with $...$, it turns \\% into %, a LaTeX comment)."""
+    $`...`$ form, Markdown leaves the backslashes to the math (with $...$, it turns \\% into %, a LaTeX comment). Math
+    drops plain spaces, so they become \\ (a backslash and a space)."""
     r, g, b = (round(255 * c) for c in colorsys.hls_to_rgb(hue / 360, 0.42, 0.75))
-    text = text.replace("%", "\\%")
+    text = text.replace("%", "\\%").replace(" ", "\\ ")
     return f"$`\\color{{#{r:02x}{g:02x}{b:02x}}}{{\\mathsf{{{text}}}}}`$"
 
 
@@ -136,9 +137,23 @@ def painted_percent(covered, coverable):
     return paint(percent(covered, coverable), 120 * covered / coverable) if coverable else "n/a"
 
 
-def painted_change(text, lines):
+def signed_points(points):
+    return f"{points:+.1f}" if round(points, 1) != 0 else "0.0"
+
+
+def signed_lines(lines):
+    return f"{lines:+d}" if lines else "0"
+
+
+def painted_change(text, covered_change):
     """A change, green or red when its covered lines change by more than the noise of two runs."""
-    return paint(text, 120 if lines > 0 else 0) if abs(lines) > NOISE else text
+    return paint(text, 120 if covered_change > 0 else 0) if abs(covered_change) > NOISE else text
+
+
+def change_text(covered_change, points):
+    """A change in points and covered lines, painted."""
+    return painted_change(f"{signed_points(points)} points, {signed_lines(covered_change)} "
+                          f"line{'s' if abs(covered_change) != 1 else ''} covered", covered_change)
 
 
 # The painted text of the comment, plain for the check run, whose rendering of math isn't known
@@ -146,7 +161,7 @@ PAINTED = re.compile(r"\$`\\color\{#\w+\}\{\\mathsf\{(.*?)\}\}`\$")
 
 
 def plain(text):
-    return PAINTED.sub(lambda m: m[1].replace("\\%", "%"), text)
+    return PAINTED.sub(lambda m: m[1].replace("\\%", "%").replace("\\ ", " "), text)
 
 
 def read_diff(path):
@@ -221,17 +236,50 @@ def code(text):
     return "`" + re.sub(r"[`\r\n]", "?", text) + "`"
 
 
-def table(total, covered_all, coverable_all, delta=None):
-    """Step summary table of every assembly, with the change in covered lines when there is a base."""
-    change = delta is not None
-    rows = ["", "| Assembly | Coverage | Covered | Coverable |" + (" Change |" if change else ""),
-            "|---|--:|--:|--:|" + ("--:|" if change else "")]
-    for assembly, (covered, coverable) in sorted(total.items()):
-        row = f"| {assembly} | {painted_percent(covered, coverable)} | {covered} | {coverable} |"
-        if change:
-            row += f" {painted_change(f'{delta[assembly][0]:+d} lines', delta[assembly][0])} |" if assembly in delta else " |"
-        rows.append(row)
-    rows.append(f"| **All** | **{painted_percent(covered_all, coverable_all)}** | {covered_all} | {coverable_all} |" + (" |" if change else ""))
+def difference(now, before):
+    """The change from [covered, coverable] before to now: (covered lines, points)."""
+    return now[0] - before[0], (100 * now[0] / now[1] if now[1] else 0) - (100 * before[0] / before[1] if before[1] else 0)
+
+
+def changes(current, baseline):
+    """The lanes both runs have, and over them the change of each assembly and of all of them."""
+    common = [key for key in current if key in baseline]
+    if not common:
+        return common, {}, None
+    now = totals(merge(current[key] for key in common))
+    before = totals(merge(baseline[key] for key in common))
+    delta = {a: difference(now.get(a, [0, 0]), before.get(a, [0, 0])) for a in set(now) | set(before)}
+    return common, delta, difference(*([sum(v[i] for v in t.values()) for i in (0, 1)] for t in (now, before)))
+
+
+def change_source(args, baseline, common, current):
+    """The line that says what the change is against, or why none is shown."""
+    if not baseline:
+        return f"No change shown: {args.no_baseline}" if args.no_baseline else "No change shown: no base run."
+    change = f"Change against {args.base_label}" if args.base_label else "Change against the base commit"
+    if set(common) != set(current):
+        change += f", over {lane_names(common)} (the lanes both runs have)"
+    return change
+
+
+def table(total, covered_all, coverable_all, delta=None, change_all=None):
+    """Step summary table of every assembly, with columns of the change of its coverage and covered lines when there
+    is a base (blank when it didn't change)."""
+    def row(name, covered, coverable, change):
+        cells = [name, painted_percent(covered, coverable)]
+        if delta is not None:
+            moved = change and (change[0] or round(change[1], 1) != 0)
+            cells.append(painted_change(signed_points(change[1]), change[0]) if moved else "")
+        cells.append(str(covered))
+        if delta is not None:
+            cells.append(painted_change(signed_lines(change[0]), change[0]) if moved else "")
+        return "| " + " | ".join(cells + [str(coverable)]) + " |"
+
+    rows = ["", "| Assembly | Coverage | Change | Covered | Change | Coverable |" if delta is not None
+            else "| Assembly | Coverage | Covered | Coverable |",
+            "|---|--:|--:|--:|--:|--:|" if delta is not None else "|---|--:|--:|--:|"]
+    rows += [row(a, covered, coverable, (delta or {}).get(a)) for a, (covered, coverable) in sorted(total.items())]
+    rows.append(row("**All**", covered_all, coverable_all, change_all))
     return rows
 
 
@@ -250,11 +298,17 @@ def report(args):
     missing = [LANES[key] for key in LANES if key not in current]
     summary = []
 
+    common, delta, change_all = changes(current, baseline)
+
     if not args.diff:
-        summary.append(f"## Coverage: {painted_percent(covered_all, coverable_all)} ({covered_all} of {coverable_all} lines)")
-        summary.append("")
-        summary.append(f"Windows lanes: {ran or 'none'}" + (f" · not run: {', '.join(missing)}" if missing else ""))
-        return {"kind": "push"}, summary + table(total, covered_all, coverable_all)
+        head = f"## Coverage: {painted_percent(covered_all, coverable_all)} ({covered_all} of {coverable_all} lines)"
+        if change_all:
+            head += f" · {change_text(*change_all)}"
+        summary += [head, "", f"Windows lanes: {ran or 'none'}" + (f" · not run: {', '.join(missing)}" if missing else "")]
+        if args.ci_label:
+            summary += ["", f"From the {args.ci_label}"]
+        summary += ["", change_source(args, baseline, common, current)]
+        return {"kind": "push"}, summary + table(total, covered_all, coverable_all, delta if common else None, change_all)
 
     # Changed files: product code with coverage, product code no test loaded, or tests
     projects = read_projects(args.projects)
@@ -314,15 +368,7 @@ def report(args):
     annotation_count = len(annotations)
     annotations = annotations[:MAX_ANNOTATIONS]
 
-    # Change per assembly against the base, over the lanes both runs have
-    common = [key for key in current if key in baseline]
-    delta = {}
-    if common:
-        now = totals(merge(current[key] for key in common))
-        before = totals(merge(baseline[key] for key in common))
-        for assembly in set(now) | set(before):
-            n, b = now.get(assembly, [0, 0]), before.get(assembly, [0, 0])
-            delta[assembly] = (n[0] - b[0], (100 * n[0] / n[1] if n[1] else 0) - (100 * b[0] / b[1] if b[1] else 0))
+    # The assemblies the PR changes, then the others whose coverage changed by more than the noise
     listed = sorted(changed_assemblies & measured_assemblies)
     others = sorted((a for a, (lines, _) in delta.items() if abs(lines) > NOISE and a not in changed_assemblies and a in total),
                     key=lambda a: -abs(delta[a][0]))
@@ -332,8 +378,7 @@ def report(args):
         covered, coverable = total[assembly]
         text = f"{assembly} {painted_percent(covered, coverable)}"
         if assembly in delta:
-            change = f"{delta[assembly][1]:+.1f}" if round(delta[assembly][1], 1) != 0 else "0.0"
-            text += f" ({painted_change(change, delta[assembly][0])})"
+            text += f" ({change_text(*delta[assembly])})"
         return text
 
     lines = []
@@ -358,13 +403,7 @@ def report(args):
     if any(key not in current and key not in PUSH_LANES for key in LANES):
         measured += ", lanes this PR didn't start"
     lines.append(measured)
-    if not baseline:
-        lines.append(f"No change shown: {args.no_baseline}" if args.no_baseline else "No change shown: no base run.")
-    else:
-        change = f"Change against {args.base_label}" if args.base_label else "Change against the base commit"
-        if set(common) != set(current):
-            change += f", over {lane_names(common)} (the lanes both runs have)"
-        lines.append(change)
+    lines.append(change_source(args, baseline, common, current))
     links = []
     if args.run_url:
         links.append(f"[Full report]({args.run_url})")
@@ -380,7 +419,7 @@ def report(args):
     if annotation_count > MAX_ANNOTATIONS:
         check_summary += f"\n\nThe first {MAX_ANNOTATIONS} of {annotation_count} warnings are shown."
     summary.append(comment.replace(MARKER + "\n", ""))
-    summary += table(total, covered_all, coverable_all, delta if common else None)
+    summary += table(total, covered_all, coverable_all, delta if common else None, change_all)
     kind = "code" if changed_lines or changed_assemblies or not_loaded else "tests"
     return {"kind": kind, "comment": comment,
             "check": {"title": title, "summary": check_summary, "annotations": annotations}}, summary
@@ -389,10 +428,11 @@ def report(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--current", required=True, help="coverage-* artifacts of the run")
-    parser.add_argument("--baseline", help="coverage-* artifacts of the base commit's master run")
+    parser.add_argument("--baseline", help="coverage-* artifacts of the base commit's master run, or of the push's parent")
     parser.add_argument("--diff", help="diff of the PR (merge commit against its first parent); none for a push")
     parser.add_argument("--projects", help="repo paths of the base commit (git ls-tree), to find a file's project")
-    parser.add_argument("--base-label", help="markdown naming the base run, for the comment")
+    parser.add_argument("--ci-label", help="markdown naming the CI run of a push, for the totals")
+    parser.add_argument("--base-label", help="markdown naming the base run")
     parser.add_argument("--no-baseline", help="why the comment shows no change")
     parser.add_argument("--run-url", help="the report run, for the full report link")
     parser.add_argument("--scope-url", help="tests/COVERAGE.md")
