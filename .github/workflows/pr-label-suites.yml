@@ -11,8 +11,10 @@ name: PR Label Suites
 #   which then posts its status on every PR.
 # - Runs through pull_request, so it uses the PR's own workflow YAML; adding a label requires
 #   write access, so the label itself is the authorization.
-# - Each suite is its own non-required check. There is no aggregate gate: it could only report on
-#   the suites of its own run, and main.yml's required Gate is never recomputed here.
+# - Each suite is its own non-required check, and pr-label-suites-status.yml posts a commit status for
+#   it on the PR head (pending while it runs, then its verdict). There is no aggregate gate: it could
+#   only report on the suites of its own run, and main.yml's required Gate is never recomputed here.
+# - pr-label-suites-status.yml finds the suites by their job ids: rename one there too.
 #
 # Only list suites here that main.yml does NOT already run on a path filter, OR gate them on the
 # shared `changes` filter (see `ios`/`android`) so a forced run yields to main's run whenever main

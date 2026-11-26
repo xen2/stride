@@ -1,0 +1,137 @@
+name: PR Label Suites Status
+
+# Posts a commit status on the PR head for each suite of pr-label-suites.yml: pending once the suite
+# starts, then its verdict. A commit status shows on the PR as soon as it is posted, while a check run
+# that is not required shows only once it ends. Runs in base context over the run's job list only,
+# so it works on fork PRs too.
+
+on:
+  workflow_run:
+    workflows: ["PR Label Suites"]
+    types: [requested, completed]
+
+permissions:
+  actions: read     # read the jobs of the triggering run
+  statuses: write   # post the suite statuses on the PR head
+
+env:
+  # Caller job id in pr-label-suites.yml -> status context. A suite that runs has jobs named
+  # "<id> / ..."; a skipped one has a single job named "<id>".
+  SUITES: |
+    {
+      "enduser": "EndUser-Suite",
+      "editor": "GameStudio-Screenshots-Suite",
+      "ios": "iOS-Suite",
+      "android": "Android-Suite"
+    }
+
+jobs:
+  # Which suites run is known only once the `changes` job ends, so this waits for each suite to start
+  # or be skipped, and posts pending for each one that starts.
+  pending:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.action == 'requested'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Post pending statuses for the suites that start
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const suites = JSON.parse(process.env.SUITES);
+            const run = context.payload.workflow_run;
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const undecided = new Set(Object.keys(suites));
+            const deadline = Date.now() + 15 * 60 * 1000;
+            while (undecided.size > 0) {
+              const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun,
+                { ...repo, run_id: run.id, filter: 'latest', per_page: 100 });
+              // A completed run gets its verdict from the `verdict` job; one that never started
+              // (a fork PR waiting for approval) gets nothing
+              const { data: current } = await github.rest.actions.getWorkflowRun({ ...repo, run_id: run.id });
+              if (current.status === 'completed') {
+                core.info(`Run ended (${current.conclusion}) before these suites started or were skipped: ${[...undecided].join(', ')}`);
+                return;
+              }
+              for (const id of [...undecided]) {
+                if (jobs.some(job => job.name.startsWith(`${id} / `))) {
+                  await github.rest.repos.createCommitStatus({
+                    ...repo,
+                    sha: run.head_sha,
+                    context: suites[id],
+                    state: 'pending',
+                    target_url: run.html_url,
+                    description: 'Running',
+                  });
+                  undecided.delete(id);
+                } else if (jobs.some(job => job.name === id && job.conclusion === 'skipped')) {
+                  undecided.delete(id);
+                }
+              }
+              if (undecided.size === 0)
+                return;
+              if (Date.now() > deadline) {
+                core.warning(`Gave up waiting for these suites to start or be skipped: ${[...undecided].join(', ')}`);
+                return;
+              }
+              await new Promise(resolve => setTimeout(resolve, 10000));
+            }
+
+  verdict:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.action == 'completed'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Post the verdict of each suite that ran
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const suites = JSON.parse(process.env.SUITES);
+            const run = context.payload.workflow_run;
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const listJobs = run_id => github.paginate(github.rest.actions.listJobsForWorkflowRun,
+              { ...repo, run_id, filter: 'latest', per_page: 100 });
+            const jobs = await listJobs(run.id);
+            // Another run on this commit (a label added while a push run is going, say) that is still
+            // running a suite posts that suite's verdict itself
+            const { data: runs } = await github.rest.actions.listWorkflowRuns({
+              ...repo, workflow_id: run.workflow_id, head_sha: run.head_sha, per_page: 100,
+            });
+            const otherJobs = [];
+            for (const other of runs.workflow_runs.filter(r => r.id !== run.id && r.status !== 'completed'))
+              otherJobs.push(...(await listJobs(other.id)).map(job => ({ ...job, run_url: other.html_url })));
+            for (const [id, statusContext] of Object.entries(suites)) {
+              const prefix = `${id} / `;
+              const suiteJobs = jobs.filter(job => job.name.startsWith(prefix));
+              if (suiteJobs.length === 0)
+                continue;
+              const busy = otherJobs.find(job => job.name.startsWith(prefix) && job.status !== 'completed');
+              if (busy) {
+                core.info(`${statusContext}: left to ${busy.run_url}, which still runs it`);
+                continue;
+              }
+              const failed = suiteJobs.filter(job => !['success', 'skipped', 'neutral', 'cancelled'].includes(job.conclusion));
+              const cancelled = suiteJobs.some(job => job.conclusion === 'cancelled');
+              let state, description, target_url = run.html_url;
+              if (failed.length > 0) {
+                state = 'failure';
+                description = `Failed: ${failed.map(job => job.name.slice(prefix.length)).join(', ')}`;
+                target_url = failed[0].html_url;
+              } else if (cancelled) {
+                state = 'error';
+                description = 'Cancelled';
+              } else {
+                state = 'success';
+                description = 'Passed';
+              }
+              // A status description holds 140 characters
+              if (description.length > 140)
+                description = description.slice(0, 137) + '...';
+              core.info(`${statusContext}: ${state} (${description})`);
+              await github.rest.repos.createCommitStatus({
+                ...repo,
+                sha: run.head_sha,
+                context: statusContext,
+                state,
+                target_url,
+                description,
+              });
+            }

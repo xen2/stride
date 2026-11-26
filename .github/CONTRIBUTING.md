@@ -57,6 +57,9 @@ Labels run through the PR's own workflow ([`pr-label-suites.yml`](workflows/pr-l
 right away, even on a draft; every push re-runs all applied suites (on a draft, only with
 `ci-run-on-draft`). Removing a label only stops the re-runs.
 
+Each suite posts a status on the PR as soon as it starts, and its result when it ends:
+`EndUser-Suite`, `GameStudio-Screenshots-Suite`, `iOS-Suite` and `Android-Suite`.
+
 ## Earn Money by Contributing
 
 If you are a developer with solid experience in C#, rendering techniques, or game development, we want to hire you! We have allocated funds from supporters on [Open Collective](https://opencollective.com/stride3d) and can pay for work on certain projects. [More information is available here](https://doc.stride3d.net/latest/en/contributors/engine/bug-bounties.html).
