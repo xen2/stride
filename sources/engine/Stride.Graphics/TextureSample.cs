@@ -24,18 +24,30 @@ public class TextureSample
 
     public void Recreate(DataBox[] boxes)
     {
+        if (boxes == null)
+            throw new ArgumentNullException(nameof(boxes));
         OnRecreate(boxes);
         ReleaseStaging();
     }
 
     private void OnRecreate(DataBox[] boxes)
     {
+        foreach (var box in boxes)
+        {
+            if (box.DataPointer == IntPtr.Zero)
+                throw new ArgumentException("A box has no data.", nameof(boxes));
+        }
         staging = boxes;
     }
 
     private void ReleaseStaging()
     {
         staging = null;
+    }
+
+    public bool IsValid()
+    {
+        return staging != null && Width > 0;
     }
 }
 
