@@ -22,20 +22,22 @@ jobs:
           git fetch --depth 1 origin v1.4.2
           git checkout -q FETCH_HEAD
           ./fetchDependencies --ios
-          make ios > ../xcodebuild-ios.log 2>&1 || { tail -50 ../xcodebuild-ios.log; exit 1; }
+          make ios > ../make-ios.log 2>&1 || { tail -50 ../make-ios.log; exit 1; }
 
       - name: Probe
         if: always()
-        env: { XCODE_XCCONFIG_FILE: '${{ github.workspace }}/stride-src/.github/scripts/dep-debug-info.xcconfig' }
         run: |
           set +e
           has() { if otool -l "$1" 2>/dev/null | grep -q __debug_info; then echo "DWARF   $1"; else echo "no      $1"; fi; }
-          dd=~/Library/Developer/Xcode/DerivedData
-          a=mvk-src/Package/Release/MoltenVK/static/MoltenVK.xcframework/ios-arm64/libMoltenVK.a
-          echo "== archive members"; ar -t "$a" | head -20; ar -t "$a" | wc -l
-          echo "== prelinked objects"
-          for f in $(find $dd -path '*MoltenVK-iOS-static*' \( -name '*master*' -o -name '*prelink*' -o -name '*Master*' \) 2>/dev/null); do ls -la "$f"; has "$f"; done
-          echo "== settings"
-          (cd mvk-src && xcodebuild -project MoltenVK/MoltenVK.xcodeproj -target MoltenVK-iOS-static -configuration Release -sdk iphoneos -showBuildSettings 2>/dev/null | grep -E ' (GENERATE_MASTER_OBJECT_FILE|PRELINK_[A-Z_]+|KEEP_PRIVATE_EXTERNS|OTHER_LDFLAGS|LD_[A-Z_]+|LIBTOOLFLAGS|OTHER_LIBTOOLFLAGS|GCC_GENERATE_DEBUGGING_SYMBOLS|STRIP_[A-Z_]+|DEAD_CODE_STRIPPING) =' | sort -u)
-          echo "== prelink and libtool commands from the activity log"
-          for l in $(find $dd -name '*.xcactivitylog'); do gunzip -c "$l" | tr '\r' '\n' | grep -aE '(/ld|/clang|/clang\+\+|/libtool) .*(-r |-static )' | grep -a MoltenVK | cut -c1-2000 | head -4; done
+          log=mvk-src/xcodebuild.log
+          ls -la $log
+          echo "== prelink command"
+          grep -n -- '-master.o' $log | cut -c1-3000 | head -6
+          cmd=$(grep -E '/ld(-classic)? .* -r .*libMoltenVK\.a-arm64-master\.o|clang.* -r .*libMoltenVK\.a-arm64-master\.o' $log | grep -v 'iphonesimulator' | head -1)
+          echo "== flags of it"; echo "$cmd" | tr ' ' '\n' | grep -E '^-' | sort | uniq -c
+          if [ -n "$cmd" ]; then
+            master=$(echo "$cmd" | grep -oE '[^ ]*libMoltenVK\.a-arm64-master\.o' | head -1)
+            echo "== rerun as is"; eval "$(echo "$cmd" | sed "s|$master|/tmp/as-is.o|")"; has /tmp/as-is.o
+            echo "== rerun without -S"; eval "$(echo "$cmd" | sed "s|$master|/tmp/no-S.o|; s| -S | |g")"; has /tmp/no-S.o
+            echo "== rerun with -ld_classic"; eval "$(echo "$cmd" | sed "s|$master|/tmp/classic.o|; s| -S | |g; s| -r | -r -ld_classic |")"; has /tmp/classic.o
+          fi
