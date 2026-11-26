@@ -1,0 +1,25 @@
+{
+  "head": {
+    "sources/engine/Stride.Graphics/TextureSample.cs": {
+      "17": false, "18": false, "19": false, "20": false, "21": false, "22": false, "23": false,
+      "26": true, "27": true, "28": false, "29": true, "30": true, "31": true,
+      "34": true, "35": true, "37": true, "38": false, "40": true, "41": true,
+      "44": true, "45": true, "46": true,
+      "49": false, "50": false, "51": false
+    },
+    "sources/engine/Stride.Graphics/OtherSample.cs": {
+      "9": false, "10": false, "11": false
+    }
+  },
+  "base": {
+    "sources/engine/Stride.Graphics/TextureSample.cs": {
+      "17": true, "18": true, "19": false, "20": true, "21": true, "22": true, "23": true,
+      "26": true, "27": true, "28": true, "29": true,
+      "32": true, "33": true, "34": true,
+      "37": true, "38": true, "39": true
+    },
+    "sources/engine/Stride.Graphics/OtherSample.cs": {
+      "9": true, "10": true, "11": true
+    }
+  }
+}

@@ -1,0 +1,31 @@
+name: Coverage view test
+
+# Trial on xen2 only: open a PR from tmp/coverage-diff-view into tmp/coverage-diff-view-base to see the annotations
+# in Files changed.
+on:
+  push:
+    branches: [tmp/coverage-diff-view]
+  workflow_dispatch:
+
+permissions:
+  checks: write
+  contents: read
+
+jobs:
+  view:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Views
+        run: python3 .github/scripts/coverage-view-test.py "$(git rev-parse HEAD~1)" "$GITHUB_SHA" check.json summary.md
+
+      - name: Step summary
+        run: cat summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/$GITHUB_REPOSITORY/check-runs" --input check.json --jq '.html_url'
