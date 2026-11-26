@@ -33,11 +33,15 @@ jobs:
           ls -la $log
           echo "== prelink command"
           grep -n -- '-master.o' $log | cut -c1-3000 | head -6
-          cmd=$(grep -E '/ld(-classic)? .* -r .*libMoltenVK\.a-arm64-master\.o|clang.* -r .*libMoltenVK\.a-arm64-master\.o' $log | grep -v 'iphonesimulator' | head -1)
+          cmd=$(grep -E '^ +/.*/usr/bin/ld -r .*libMoltenVK\.a-arm64-master\.o' $log | head -1)
           echo "== flags of it"; echo "$cmd" | tr ' ' '\n' | grep -E '^-' | sort | uniq -c
           if [ -n "$cmd" ]; then
             master=$(echo "$cmd" | grep -oE '[^ ]*libMoltenVK\.a-arm64-master\.o' | head -1)
             echo "== rerun as is"; eval "$(echo "$cmd" | sed "s|$master|/tmp/as-is.o|")"; has /tmp/as-is.o
             echo "== rerun without -S"; eval "$(echo "$cmd" | sed "s|$master|/tmp/no-S.o|; s| -S | |g")"; has /tmp/no-S.o
-            echo "== rerun with -ld_classic"; eval "$(echo "$cmd" | sed "s|$master|/tmp/classic.o|; s| -S | |g; s| -r | -r -ld_classic |")"; has /tmp/classic.o
+            echo "== rerun with -ld_classic"; eval "$(echo "$cmd" | sed "s|$master|/tmp/classic.o|; s| -r | -r -ld_classic |")"; has /tmp/classic.o
+            echo "== one object alone"; o=$(echo "$cmd" | grep -oE '[^ ]*/MVKBuffer\.o' | head -1)
+            ld -r -arch arm64 "$o" -o /tmp/one.o; has /tmp/one.o
+            ld -r -ld_classic -arch arm64 "$o" -o /tmp/one-classic.o; has /tmp/one-classic.o
+            ld -v 2>&1 | head -2
           fi
