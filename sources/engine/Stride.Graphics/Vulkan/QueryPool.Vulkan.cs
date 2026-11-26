@@ -46,7 +46,7 @@ namespace Stride.Graphics
             fixed (long* dataPointer = &dataArray[0])
             {
                 // Read back all results
-                var result = GraphicsDevice.NativeDeviceApi.vkGetQueryPoolResults(GraphicsDevice.NativeDevice, NativeQueryPool, 0, (uint)QueryCount, (uint)QueryCount * 8, dataPointer, 8, VkQueryResultFlags.Bit64);
+                var result = GraphicsDevice.NativeDeviceApi.vkGetQueryPoolResults(NativeQueryPool, 0, (uint)QueryCount, (uint)QueryCount * 8, dataPointer, 8, VkQueryResultFlags.Bit64);
 
                 // Some queries are not ready yet
                 if (result == VkResult.NotReady)
@@ -82,7 +82,7 @@ namespace Stride.Graphics
                     throw new NotImplementedException();
             }
 
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateQueryPool(GraphicsDevice.NativeDevice, &createInfo, null, out NativeQueryPool));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateQueryPool(&createInfo, null, out NativeQueryPool));
 
             NeedsReset = true;
             UpdatingCommandList = null;

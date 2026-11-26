@@ -120,7 +120,7 @@ namespace Stride.Graphics
                 typeBits >>= 1;
             }
 
-            GraphicsDevice.NativeDeviceApi.vkAllocateMemory(GraphicsDevice.NativeDevice, &allocateInfo, null, out NativeMemory);
+            GraphicsDevice.NativeDeviceApi.vkAllocateMemory(&allocateInfo, null, out NativeMemory);
         }
 
         /// <inheritdoc/>

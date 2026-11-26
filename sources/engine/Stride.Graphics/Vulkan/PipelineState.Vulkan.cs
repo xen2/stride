@@ -77,7 +77,7 @@ namespace Stride.Graphics
             finally
             {
                 // Cleanup shader modules (since module is shared between each stage, cleaning first stage is enough)
-                GraphicsDevice.NativeDeviceApi.vkDestroyShaderModule(GraphicsDevice.NativeDevice, stages[0].module, allocator: null);
+                GraphicsDevice.NativeDeviceApi.vkDestroyShaderModule(stages[0].module, allocator: null);
                 FreeShaderStages(stages);
             }
         }
@@ -97,7 +97,7 @@ namespace Stride.Graphics
                     };
 
                     fixed (VkPipeline* nativePipelinePtr = &NativePipeline)
-                        GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateComputePipelines(GraphicsDevice.NativeDevice, GraphicsDevice.NativePipelineCache, 1, &createInfo, allocator: null, nativePipelinePtr));
+                        GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateComputePipelines(GraphicsDevice.NativePipelineCache, 1, &createInfo, allocator: null, nativePipelinePtr));
                 }
             }
             else
@@ -273,7 +273,7 @@ namespace Stride.Graphics
                         pTessellationState = &tessellationState,
                     };
                     fixed (VkPipeline* nativePipelinePtr = &NativePipeline)
-                        GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateGraphicsPipelines(GraphicsDevice.NativeDevice, GraphicsDevice.NativePipelineCache, createInfoCount: 1, &createInfo, allocator: null, nativePipelinePtr));
+                        GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateGraphicsPipelines(GraphicsDevice.NativePipelineCache, createInfoCount: 1, &createInfo, allocator: null, nativePipelinePtr));
                 }
             }
         }
@@ -397,7 +397,7 @@ namespace Stride.Graphics
                 setLayoutCount = 1,
                 pSetLayouts = &nativeDescriptorSetLayout
             };
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreatePipelineLayout(GraphicsDevice.NativeDevice, &pipelineLayoutCreateInfo, allocator: null, out NativeLayout));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreatePipelineLayout(&pipelineLayoutCreateInfo, allocator: null, out NativeLayout));
         }
 
         private unsafe VkPipelineShaderStageCreateInfo[] CreateShaderStages(PipelineStateDescription pipelineStateDescription)
@@ -412,7 +412,7 @@ namespace Stride.Graphics
             // Structured buffers in Direct3D's tight layout would read wrong values without scalarBlockLayout: refuse instead
             if (!GraphicsDevice.SupportsScalarBlockLayout && GraphicsDevice.TightStructuredBuffers(shaderBytecode) is { } tightBuffers)
                 throw new NotSupportedException($"Vulkan: structured buffer(s) {tightBuffers} use Direct3D's tight layout (float3 elements, or a size that is not a multiple of 16), which needs the Vulkan scalarBlockLayout feature; this device doesn't support it.");
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateShaderModule(GraphicsDevice.NativeDevice, shaderBytecode, allocator: null, out var shaderModule));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateShaderModule(shaderBytecode, allocator: null, out var shaderModule));
 
             for (int i = 0; i < stages.Length; i++)
             {

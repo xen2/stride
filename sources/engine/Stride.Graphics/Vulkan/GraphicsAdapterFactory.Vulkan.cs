@@ -43,13 +43,13 @@ namespace Stride.Graphics
             // Create the default instance to enumerate physical devices
             defaultInstance = new GraphicsAdapterFactoryInstance(false);
             uint physicalDevicesCount = 0;
-            defaultInstance.NativeInstanceApi.vkEnumeratePhysicalDevices(defaultInstance.NativeInstance, &physicalDevicesCount, null).CheckResult();
+            defaultInstance.NativeInstanceApi.vkEnumeratePhysicalDevices(&physicalDevicesCount, null).CheckResult();
 
             if (physicalDevicesCount == 0)
                 throw new Exception("Vulkan: Failed to find GPUs with Vulkan support");
 
             Span<VkPhysicalDevice> nativePhysicalDevices = stackalloc VkPhysicalDevice[(int)physicalDevicesCount];
-            defaultInstance.NativeInstanceApi.vkEnumeratePhysicalDevices(defaultInstance.NativeInstance, nativePhysicalDevices).CheckResult();
+            defaultInstance.NativeInstanceApi.vkEnumeratePhysicalDevices(nativePhysicalDevices).CheckResult();
             
             var physicalDevices = new List<(VkPhysicalDevice Device, VkPhysicalDeviceProperties Properties, VkPhysicalDeviceDriverProperties DriverProperties, long AdapterUid, int EnumerationIndex, bool HasValidLuid)>();
             for (int index = 0; index < nativePhysicalDevices.Length; index++)
@@ -417,7 +417,7 @@ namespace Stride.Graphics
                     pfnUserCallback = &DebugReport
                 };
 
-                NativeInstanceApi.vkCreateDebugUtilsMessengerEXT(NativeInstance, &createInfo, null, out debugReportCallback).CheckResult();
+                NativeInstanceApi.vkCreateDebugUtilsMessengerEXT(&createInfo, null, out debugReportCallback).CheckResult();
             }
         }
 
@@ -564,11 +564,11 @@ namespace Stride.Graphics
         {
             if (debugReportCallback != VkDebugUtilsMessengerEXT.Null)
             {
-                NativeInstanceApi.vkDestroyDebugUtilsMessengerEXT(NativeInstance, debugReportCallback, null);
+                NativeInstanceApi.vkDestroyDebugUtilsMessengerEXT(debugReportCallback, null);
                 debugReportCallback = VkDebugUtilsMessengerEXT.Null;
             }
 
-            NativeInstanceApi.vkDestroyInstance(NativeInstance, null);
+            NativeInstanceApi.vkDestroyInstance(null);
         }
     }
 }

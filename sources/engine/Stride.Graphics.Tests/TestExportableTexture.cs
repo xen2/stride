@@ -94,9 +94,7 @@ public class TestExportableTexture : GraphicTestGameBase
     /// </summary>
     private sealed unsafe class Importer : IDisposable
     {
-        private readonly VkInstance instance;
         private readonly VkInstanceApi instanceApi;
-        private readonly VkDevice device;
         private readonly VkDeviceApi api;
         private readonly VkQueue queue;
         private readonly VkImage image;
@@ -114,13 +112,13 @@ public class TestExportableTexture : GraphicTestGameBase
             vkInitialize().CheckResult();
             var appInfo = new VkApplicationInfo { apiVersion = new VkVersion(1, 3, 0) };
             var instanceInfo = new VkInstanceCreateInfo { pApplicationInfo = &appInfo };
-            vkCreateInstance(&instanceInfo, out instance).CheckResult();
+            vkCreateInstance(&instanceInfo, out var instance).CheckResult();
             instanceApi = GetApi(instance);
 
             uint count = 0;
-            instanceApi.vkEnumeratePhysicalDevices(instance, &count, null).CheckResult();
+            instanceApi.vkEnumeratePhysicalDevices(&count, null).CheckResult();
             var physicalDevices = new VkPhysicalDevice[count];
-            instanceApi.vkEnumeratePhysicalDevices(instance, physicalDevices).CheckResult();
+            instanceApi.vkEnumeratePhysicalDevices(physicalDevices).CheckResult();
             var physical = physicalDevices[0];
 
             var priority = 1.0f;
@@ -133,9 +131,9 @@ public class TestExportableTexture : GraphicTestGameBase
                 enabledExtensionCount = extensions.Length,
                 ppEnabledExtensionNames = extensions,
             };
-            instanceApi.vkCreateDevice(physical, &deviceInfo, null, out device).CheckResult();
+            instanceApi.vkCreateDevice(physical, &deviceInfo, null, out var device).CheckResult();
             api = new VkDeviceApi(instanceApi, in device);
-            api.vkGetDeviceQueue(device, 0, 0, out queue);
+            api.vkGetDeviceQueue(0, 0, out queue);
             instanceApi.vkGetPhysicalDeviceMemoryProperties(physical, out var memoryProperties);
 
             // The image as Avalonia's Vulkan compositor imports it: mutable format, a dedicated allocation bound to the fd
@@ -155,8 +153,8 @@ public class TestExportableTexture : GraphicTestGameBase
                 sharingMode = VkSharingMode.Exclusive,
                 initialLayout = VkImageLayout.Undefined,
             };
-            api.vkCreateImage(device, &imageInfo, null, out image).CheckResult();
-            api.vkGetImageMemoryRequirements(device, image, out var imageRequirements);
+            api.vkCreateImage(&imageInfo, null, out image).CheckResult();
+            api.vkGetImageMemoryRequirements(image, out var imageRequirements);
             var dedicated = new VkMemoryDedicatedAllocateInfo { image = image };
             var import = new VkImportMemoryFdInfoKHR { pNext = &dedicated, handleType = VkExternalMemoryHandleTypeFlags.OpaqueFD, fd = memoryFd };
             var imageAllocation = new VkMemoryAllocateInfo
@@ -165,31 +163,31 @@ public class TestExportableTexture : GraphicTestGameBase
                 allocationSize = memorySize,
                 memoryTypeIndex = FindMemoryType(memoryProperties, imageRequirements.memoryTypeBits, VkMemoryPropertyFlags.DeviceLocal),
             };
-            api.vkAllocateMemory(device, &imageAllocation, null, out imageMemory).CheckResult();
-            api.vkBindImageMemory(device, image, imageMemory, 0).CheckResult();
+            api.vkAllocateMemory(&imageAllocation, null, out imageMemory).CheckResult();
+            api.vkBindImageMemory(image, imageMemory, 0).CheckResult();
 
             ready = ImportSemaphore(readyFd);
             released = ImportSemaphore(releasedFd);
 
             var bufferInfo = new VkBufferCreateInfo { size = Width * Height * 4, usage = VkBufferUsageFlags.TransferDst, sharingMode = VkSharingMode.Exclusive };
-            api.vkCreateBuffer(device, &bufferInfo, null, out buffer).CheckResult();
-            api.vkGetBufferMemoryRequirements(device, buffer, out var bufferRequirements);
+            api.vkCreateBuffer(&bufferInfo, null, out buffer).CheckResult();
+            api.vkGetBufferMemoryRequirements(buffer, out var bufferRequirements);
             var bufferAllocation = new VkMemoryAllocateInfo
             {
                 allocationSize = bufferRequirements.size,
                 memoryTypeIndex = FindMemoryType(memoryProperties, bufferRequirements.memoryTypeBits, VkMemoryPropertyFlags.HostVisible | VkMemoryPropertyFlags.HostCoherent),
             };
-            api.vkAllocateMemory(device, &bufferAllocation, null, out bufferMemory).CheckResult();
-            api.vkBindBufferMemory(device, buffer, bufferMemory, 0).CheckResult();
+            api.vkAllocateMemory(&bufferAllocation, null, out bufferMemory).CheckResult();
+            api.vkBindBufferMemory(buffer, bufferMemory, 0).CheckResult();
 
             var poolInfo = new VkCommandPoolCreateInfo { flags = VkCommandPoolCreateFlags.ResetCommandBuffer, queueFamilyIndex = 0 };
-            api.vkCreateCommandPool(device, &poolInfo, null, out pool).CheckResult();
+            api.vkCreateCommandPool(&poolInfo, null, out pool).CheckResult();
             var allocateInfo = new VkCommandBufferAllocateInfo { commandPool = pool, level = VkCommandBufferLevel.Primary, commandBufferCount = 1 };
             VkCommandBuffer allocated;
-            api.vkAllocateCommandBuffers(device, &allocateInfo, &allocated).CheckResult();
+            api.vkAllocateCommandBuffers(&allocateInfo, &allocated).CheckResult();
             commandBuffer = allocated;
             var fenceInfo = new VkFenceCreateInfo();
-            api.vkCreateFence(device, &fenceInfo, null, out fence).CheckResult();
+            api.vkCreateFence(&fenceInfo, null, out fence).CheckResult();
         }
 
         /// <summary>
@@ -225,37 +223,37 @@ public class TestExportableTexture : GraphicTestGameBase
             };
             var submitFence = fence;
             api.vkQueueSubmit(queue, 1, &submit, submitFence).CheckResult();
-            api.vkWaitForFences(device, 1, &submitFence, true, ulong.MaxValue).CheckResult();
-            api.vkResetFences(device, 1, &submitFence).CheckResult();
+            api.vkWaitForFences(1, &submitFence, true, ulong.MaxValue).CheckResult();
+            api.vkResetFences(1, &submitFence).CheckResult();
 
             void* data;
-            api.vkMapMemory(device, bufferMemory, 0, Width * Height * 4, VkMemoryMapFlags.None, &data).CheckResult();
+            api.vkMapMemory(bufferMemory, 0, Width * Height * 4, VkMemoryMapFlags.None, &data).CheckResult();
             var pixel = *(uint*)data;
-            api.vkUnmapMemory(device, bufferMemory);
+            api.vkUnmapMemory(bufferMemory);
             return pixel;
         }
 
         public void Dispose()
         {
-            api.vkDeviceWaitIdle(device);
-            api.vkDestroyFence(device, fence, null);
-            api.vkDestroyCommandPool(device, pool, null);
-            api.vkDestroyBuffer(device, buffer, null);
-            api.vkFreeMemory(device, bufferMemory, null);
-            api.vkDestroySemaphore(device, ready, null);
-            api.vkDestroySemaphore(device, released, null);
-            api.vkDestroyImage(device, image, null);
-            api.vkFreeMemory(device, imageMemory, null);
-            api.vkDestroyDevice(device, null);
-            instanceApi.vkDestroyInstance(instance, null);
+            api.vkDeviceWaitIdle();
+            api.vkDestroyFence(fence, null);
+            api.vkDestroyCommandPool(pool, null);
+            api.vkDestroyBuffer(buffer, null);
+            api.vkFreeMemory(bufferMemory, null);
+            api.vkDestroySemaphore(ready, null);
+            api.vkDestroySemaphore(released, null);
+            api.vkDestroyImage(image, null);
+            api.vkFreeMemory(imageMemory, null);
+            api.vkDestroyDevice(null);
+            instanceApi.vkDestroyInstance(null);
         }
 
         private VkSemaphore ImportSemaphore(int fd)
         {
             var createInfo = new VkSemaphoreCreateInfo();
-            api.vkCreateSemaphore(device, &createInfo, null, out var semaphore).CheckResult();
+            api.vkCreateSemaphore(&createInfo, null, out var semaphore).CheckResult();
             var importInfo = new VkImportSemaphoreFdInfoKHR { semaphore = semaphore, handleType = VkExternalSemaphoreHandleTypeFlags.OpaqueFD, fd = fd };
-            api.vkImportSemaphoreFdKHR(device, &importInfo).CheckResult();
+            api.vkImportSemaphoreFdKHR(&importInfo).CheckResult();
             return semaphore;
         }
 

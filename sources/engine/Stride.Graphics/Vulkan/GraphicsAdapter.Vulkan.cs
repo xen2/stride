@@ -210,10 +210,10 @@ namespace Stride.Graphics
                 {
                     GraphicsAdapterFactoryInstance defaultInstance = GraphicsAdapterFactory.GetInstance(true);
                     uint physicalDevicesCount = 0;
-                    defaultInstance.NativeInstanceApi.vkEnumeratePhysicalDevices(defaultInstance.NativeInstance, &physicalDevicesCount, null).CheckResult();
+                    defaultInstance.NativeInstanceApi.vkEnumeratePhysicalDevices(&physicalDevicesCount, null).CheckResult();
 
                     Span<VkPhysicalDevice> nativePhysicalDevices = stackalloc VkPhysicalDevice[(int)physicalDevicesCount];
-                    defaultInstance.NativeInstanceApi.vkEnumeratePhysicalDevices(defaultInstance.NativeInstance, nativePhysicalDevices).CheckResult();
+                    defaultInstance.NativeInstanceApi.vkEnumeratePhysicalDevices(nativePhysicalDevices).CheckResult();
 
                     debugPhysicalDevice = nativePhysicalDevices[enumerationIndex];
                 }

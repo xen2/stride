@@ -147,7 +147,7 @@ public class TestResourceDebugNames : GraphicTestGameBase
     {
         reportedObjectNames.Clear();
         reportCount = 0;
-        var messenger = CreateMessenger(device);
+        var messenger = CreateMessenger();
         // Detached, the device's own messenger logs the provoked error without attributing it to the frame's scopes
         GraphicsDevice.DebugMessengerDevice = null;
         try
@@ -157,7 +157,7 @@ public class TestResourceDebugNames : GraphicTestGameBase
         finally
         {
             GraphicsDevice.DebugMessengerDevice = device;
-            DestroyMessenger(device, messenger);
+            DestroyMessenger(messenger);
         }
 
         Skip.If(reportCount == 0, "The Vulkan validation layer is not available.");
@@ -168,7 +168,7 @@ public class TestResourceDebugNames : GraphicTestGameBase
     private static unsafe void QueryLayout(GraphicsDevice device, Texture texture)
     {
         var subresource = new VkImageSubresource { aspectMask = VkImageAspectFlags.Color };
-        device.NativeDeviceApi.vkGetImageSubresourceLayout(device.NativeDevice, texture.NativeImage, &subresource, out _);
+        device.NativeDeviceApi.vkGetImageSubresourceLayout(texture.NativeImage, &subresource, out _);
     }
 
     // The buffer of a staging texture is not a texel buffer: the layer reports a view of it, with the buffer among its objects
@@ -181,12 +181,12 @@ public class TestResourceDebugNames : GraphicTestGameBase
             format = VkFormat.R8G8B8A8Unorm,
             range = (ulong) texture.SizeInBytes,
         };
-        device.NativeDeviceApi.vkCreateBufferView(device.NativeDevice, &createInfo, null, out var view);
+        device.NativeDeviceApi.vkCreateBufferView(&createInfo, null, out var view);
         if (view != VkBufferView.Null)
-            device.NativeDeviceApi.vkDestroyBufferView(device.NativeDevice, view, null);
+            device.NativeDeviceApi.vkDestroyBufferView(view, null);
     }
 
-    private static unsafe VkDebugUtilsMessengerEXT CreateMessenger(GraphicsDevice device)
+    private static unsafe VkDebugUtilsMessengerEXT CreateMessenger()
     {
         var createInfo = new VkDebugUtilsMessengerCreateInfoEXT
         {
@@ -195,15 +195,13 @@ public class TestResourceDebugNames : GraphicTestGameBase
             messageType = VkDebugUtilsMessageTypeFlagsEXT.Validation,
             pfnUserCallback = &CollectObjectNames,
         };
-        var instance = GraphicsAdapterFactory.GetInstance(enableValidation: true).NativeInstance;
-        device.NativeInstanceApi.vkCreateDebugUtilsMessengerEXT(instance, &createInfo, null, out var messenger);
+        GraphicsAdapterFactory.GetInstance(enableValidation: true).NativeInstanceApi.vkCreateDebugUtilsMessengerEXT(&createInfo, null, out var messenger);
         return messenger;
     }
 
-    private static unsafe void DestroyMessenger(GraphicsDevice device, VkDebugUtilsMessengerEXT messenger)
+    private static unsafe void DestroyMessenger(VkDebugUtilsMessengerEXT messenger)
     {
-        var instance = GraphicsAdapterFactory.GetInstance(enableValidation: true).NativeInstance;
-        device.NativeInstanceApi.vkDestroyDebugUtilsMessengerEXT(instance, messenger, null);
+        GraphicsAdapterFactory.GetInstance(enableValidation: true).NativeInstanceApi.vkDestroyDebugUtilsMessengerEXT(messenger, null);
     }
 
     [UnmanagedCallersOnly]

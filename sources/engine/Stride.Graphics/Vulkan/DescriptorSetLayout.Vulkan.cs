@@ -33,7 +33,7 @@ namespace Stride.Graphics
         /// <inheritdoc/>
         protected internal override unsafe void OnDestroyed(bool immediately = false)
         {
-            GraphicsDevice.NativeDeviceApi.vkDestroyDescriptorSetLayout(GraphicsDevice.NativeDevice, NativeLayout);
+            GraphicsDevice.NativeDeviceApi.vkDestroyDescriptorSetLayout(NativeLayout);
             NativeLayout = VkDescriptorSetLayout.Null;
 
             base.OnDestroyed(immediately);
@@ -93,7 +93,7 @@ namespace Stride.Graphics
                         bindingCount = (uint)usedBindingCount,
                         pBindings = usedBindingCount > 0 ? fBindings : null,
                     };
-                    device.CheckResult(device.NativeDeviceApi.vkCreateDescriptorSetLayout(device.NativeDevice, &createInfo, null, out var descriptorSetLayout));
+                    device.CheckResult(device.NativeDeviceApi.vkCreateDescriptorSetLayout(&createInfo, null, out var descriptorSetLayout));
                     return descriptorSetLayout;
                 }
             }

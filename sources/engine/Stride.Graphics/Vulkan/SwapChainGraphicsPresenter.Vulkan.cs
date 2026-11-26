@@ -145,8 +145,8 @@ namespace Stride.Graphics
             currentFrameIndex = (currentFrameIndex + 1) % kNumberOfFramesInFlight;
 
             // Wait for frame fence to be available
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkWaitForFences(GraphicsDevice.NativeDevice, frameFences[currentFrameIndex], VkBool32.True, ulong.MaxValue));
-            GraphicsDevice.NativeDeviceApi.vkResetFences(GraphicsDevice.NativeDevice, frameFences[currentFrameIndex]);
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkWaitForFences(frameFences[currentFrameIndex], VkBool32.True, ulong.MaxValue));
+            GraphicsDevice.NativeDeviceApi.vkResetFences(frameFences[currentFrameIndex]);
 
             AcquireNextImage();
         }
@@ -162,7 +162,7 @@ namespace Stride.Graphics
         private unsafe void AcquireNextImage()
         {
             // Get next image
-            var result = GraphicsDevice.NativeDeviceApi.vkAcquireNextImageKHR(GraphicsDevice.NativeDevice, swapChain, ulong.MaxValue, acquireSemaphores[currentFrameIndex], VkFence.Null, out currentBufferIndex);
+            var result = GraphicsDevice.NativeDeviceApi.vkAcquireNextImageKHR(swapChain, ulong.MaxValue, acquireSemaphores[currentFrameIndex], VkFence.Null, out currentBufferIndex);
             if (result == VkResult.ErrorOutOfDateKHR || result == VkResult.ErrorSurfaceLostKHR || result == VkResult.ErrorFullScreenExclusiveModeLostEXT)
             {
                 // No image acquired: the surface changed while the swapchain was being (re)created
@@ -247,7 +247,7 @@ namespace Stride.Graphics
         {
             DestroySwapchain();
 
-            GraphicsDevice.NativeInstanceApi.vkDestroySurfaceKHR(GraphicsDevice.NativeInstance, surface, null);
+            GraphicsDevice.NativeInstanceApi.vkDestroySurfaceKHR(surface, null);
             surface = VkSurfaceKHR.Null;
 
             base.OnDestroyed(immediately);
@@ -348,25 +348,25 @@ namespace Stride.Graphics
 
             foreach (var semaphore in submitSemaphores)
             {
-                GraphicsDevice.NativeDeviceApi.vkDestroySemaphore(GraphicsDevice.NativeDevice, semaphore);
+                GraphicsDevice.NativeDeviceApi.vkDestroySemaphore(semaphore);
             }
             submitSemaphores = null;
 
             foreach (var swapchainImage in swapchainImages)
             {
-                GraphicsDevice.NativeDeviceApi.vkDestroyImageView(GraphicsDevice.NativeDevice, swapchainImage.NativeColorAttachmentView, null);
+                GraphicsDevice.NativeDeviceApi.vkDestroyImageView(swapchainImage.NativeColorAttachmentView, null);
             }
             swapchainImages = null;
 
             for (int i = 0; i < kNumberOfFramesInFlight; i++)
             {
-                GraphicsDevice.NativeDeviceApi.vkDestroySemaphore(GraphicsDevice.NativeDevice, acquireSemaphores[i]);
-                GraphicsDevice.NativeDeviceApi.vkDestroyFence(GraphicsDevice.NativeDevice, frameFences[i]);
+                GraphicsDevice.NativeDeviceApi.vkDestroySemaphore(acquireSemaphores[i]);
+                GraphicsDevice.NativeDeviceApi.vkDestroyFence(frameFences[i]);
             }
             acquireSemaphores = null;
             frameFences = null;
 
-            GraphicsDevice.NativeDeviceApi.vkDestroySwapchainKHR(GraphicsDevice.NativeDevice, swapChain, null);
+            GraphicsDevice.NativeDeviceApi.vkDestroySwapchainKHR(swapChain, null);
             swapChain = VkSwapchainKHR.Null;
         }
 
@@ -542,7 +542,7 @@ namespace Stride.Graphics
                 hasWarnedFullScreenExclusiveUnavailable = true;
                 Log.Warning("VK_EXT_full_screen_exclusive is not available: the driver decides whether the full-screen window gets exclusive mode");
             }
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateSwapchainKHR(GraphicsDevice.NativeDevice, &swapchainCreateInfo, null, out var newSwapChain));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateSwapchainKHR(&swapchainCreateInfo, null, out var newSwapChain));
 
             DestroySwapchain();
 
@@ -556,7 +556,7 @@ namespace Stride.Graphics
             DestroySwapchain();
             if (surface != VkSurfaceKHR.Null)
             {
-                GraphicsDevice.NativeInstanceApi.vkDestroySurfaceKHR(GraphicsDevice.NativeInstance, surface, null);
+                GraphicsDevice.NativeInstanceApi.vkDestroySurfaceKHR(surface, null);
                 surface = VkSurfaceKHR.Null;
             }
             CreateSurface();
@@ -602,7 +602,7 @@ namespace Stride.Graphics
                     hinstance = Process.GetCurrentProcess().Handle,
                     hwnd = controlHandle,
                 };
-                GraphicsDevice.CheckResult(GraphicsDevice.NativeInstanceApi.vkCreateWin32SurfaceKHR(GraphicsDevice.NativeInstance, &surfaceCreateInfo, null, out surface));
+                GraphicsDevice.CheckResult(GraphicsDevice.NativeInstanceApi.vkCreateWin32SurfaceKHR(&surfaceCreateInfo, null, out surface));
             }
             else if (Platform.Type == PlatformType.Android)
             {
@@ -644,33 +644,33 @@ namespace Stride.Graphics
                 viewType = VkImageViewType.Image2D,
             };
 
-            GraphicsDevice.NativeDeviceApi.vkGetSwapchainImagesKHR(GraphicsDevice.NativeDevice, swapChain, out uint swapchainImageCount);
+            GraphicsDevice.NativeDeviceApi.vkGetSwapchainImagesKHR(swapChain, out uint swapchainImageCount);
             Span<VkImage> buffers = stackalloc VkImage[(int)swapchainImageCount];
-            GraphicsDevice.NativeDeviceApi.vkGetSwapchainImagesKHR(GraphicsDevice.NativeDevice, swapChain, buffers);
+            GraphicsDevice.NativeDeviceApi.vkGetSwapchainImagesKHR(swapChain, buffers);
             swapchainImages = new SwapChainImageInfo[buffers.Length];
 
             for (int index = 0; index < buffers.Length; index++)
             {
                 // Create image views
                 swapchainImages[index].NativeImage = createInfo.image = buffers[index];
-                GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateImageView(GraphicsDevice.NativeDevice, &createInfo, null, out swapchainImages[index].NativeColorAttachmentView));
+                GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateImageView(&createInfo, null, out swapchainImages[index].NativeColorAttachmentView));
             }
 
             // Create submit semaphores
             submitSemaphores = new VkSemaphore[buffers.Length];
             var semaphoreCreateInfo = new VkSemaphoreCreateInfo { sType = VkStructureType.SemaphoreCreateInfo };
             for (int i = 0; i < submitSemaphores.Length; ++i)
-                GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateSemaphore(GraphicsDevice.NativeDevice, &semaphoreCreateInfo, null, out submitSemaphores[i]));
+                GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateSemaphore(&semaphoreCreateInfo, null, out submitSemaphores[i]));
 
             frameFences = new VkFence[kNumberOfFramesInFlight];
             acquireSemaphores = new VkSemaphore[kNumberOfFramesInFlight];
             var fenceCreateInfo = new VkFenceCreateInfo { sType = VkStructureType.FenceCreateInfo };
             for (int i = 0; i < kNumberOfFramesInFlight; i++)
             {
-                GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateSemaphore(GraphicsDevice.NativeDevice, &semaphoreCreateInfo, null, out acquireSemaphores[i]));
+                GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateSemaphore(&semaphoreCreateInfo, null, out acquireSemaphores[i]));
                 // Make all fence except 0 as signaled (so that next Present()=>vkWaitForFences is not blocked when fetching secondary buffers for first time)
                 fenceCreateInfo.flags = i == 0 ? VkFenceCreateFlags.None : VkFenceCreateFlags.Signaled;
-                GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateFence(GraphicsDevice.NativeDevice, &fenceCreateInfo, null, out frameFences[i]));
+                GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateFence(&fenceCreateInfo, null, out frameFences[i]));
             }
 
             // Get next image

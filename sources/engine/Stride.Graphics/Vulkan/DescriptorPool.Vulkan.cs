@@ -61,7 +61,7 @@ namespace Stride.Graphics
             };
 
             VkDescriptorSet descriptorSet;
-            GraphicsDevice.NativeDeviceApi.vkAllocateDescriptorSets(GraphicsDevice.NativeDevice, &allocateInfo, &descriptorSet);
+            GraphicsDevice.NativeDeviceApi.vkAllocateDescriptorSets(&allocateInfo, &descriptorSet);
             return descriptorSet;
         }
 

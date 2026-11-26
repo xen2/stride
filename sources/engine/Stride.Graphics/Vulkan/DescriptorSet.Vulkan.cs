@@ -68,7 +68,7 @@ namespace Stride.Graphics
                 write.descriptorType = VkDescriptorType.SampledImage;
                 write.pImageInfo = &imageInfo;
 
-                GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(GraphicsDevice.NativeDevice, 1, &write, 0, null);
+                GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
             }
             else
             {
@@ -80,7 +80,7 @@ namespace Stride.Graphics
                     write.descriptorType = VkDescriptorType.UniformTexelBuffer;
                     write.pTexelBufferView = &bufferViewCopy;
 
-                    GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(GraphicsDevice.NativeDevice, 1, &write, 0, null);
+                    GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
                 }
                 else
                 {
@@ -109,7 +109,7 @@ namespace Stride.Graphics
                 pImageInfo = &imageInfo,
             };
 
-            GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(GraphicsDevice.NativeDevice, 1, &write, 0, null);
+            GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace Stride.Graphics
                 pBufferInfo = &bufferInfo
             };
             
-            GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(GraphicsDevice.NativeDevice, 1, &write, 0, null);
+            GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(1, &write, 0, null);
         }
 
         /// <summary>

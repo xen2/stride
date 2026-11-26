@@ -42,7 +42,7 @@
     <PackageVersion Include="Silk.NET.Windowing.Sdl" Version="$(SilkVersion)" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0" />
     <PackageVersion Include="System.Drawing.Common" Version="8.0.1" />
-    <PackageVersion Include="Vortice.Vulkan" Version="3.0.3" />
+    <PackageVersion Include="Vortice.Vulkan" Version="3.4.0" />
     <PackageVersion Include="WinPixEventRuntime" Version="1.0.240308001" />
   </ItemGroup>
   <!-- Other dependencies -->

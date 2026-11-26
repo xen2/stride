@@ -26,9 +26,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
     // being repeatedly initialized and torn down in one process, and reuse is much faster.
     private static VkInstanceApi instanceApi;
     private static VkDeviceApi deviceApi;
-    private static VkInstance instance;
     private static VkPhysicalDevice physicalDevice;
-    private static VkDevice device;
     private static uint queueFamily;
     private static VkQueue queue;
     private static VkCommandPool commandPool;
@@ -100,7 +98,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             flags = VkCommandPoolCreateFlags.ResetCommandBuffer,
             queueFamilyIndex = queueFamily,
         };
-        Check(deviceApi.vkCreateCommandPool(device, &commandPoolCreateInfo, null, out commandPool));
+        Check(deviceApi.vkCreateCommandPool(&commandPoolCreateInfo, null, out commandPool));
     }
 
     public override void SetupTest()
@@ -108,11 +106,11 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
         EnsureSharedContext();
 
         probe = new SpirvProbe(spirv);
-        Check(deviceApi.vkCreateShaderModule(device, spirv, null, out shaderModule));
+        Check(deviceApi.vkCreateShaderModule(spirv, null, out shaderModule));
         if (fallbackVertexSpirv != null)
         {
             fallbackVertexProbe = new SpirvProbe(fallbackVertexSpirv);
-            Check(deviceApi.vkCreateShaderModule(device, fallbackVertexSpirv, null, out fallbackVertexModule));
+            Check(deviceApi.vkCreateShaderModule(fallbackVertexSpirv, null, out fallbackVertexModule));
         }
     }
 
@@ -135,19 +133,18 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             result = vkCreateInstance(&createInfo, out createdInstance);
         }
         Check(result, "vkCreateInstance");
-        instance = createdInstance;
-        instanceApi = GetApi(instance);
+        instanceApi = GetApi(createdInstance);
     }
 
     private static void PickPhysicalDevice()
     {
         uint count = 0;
-        Check(instanceApi.vkEnumeratePhysicalDevices(instance, &count, null));
+        Check(instanceApi.vkEnumeratePhysicalDevices(&count, null));
         if (count == 0)
             throw new InvalidOperationException("No Vulkan physical device");
         var devices = new VkPhysicalDevice[count];
         fixed (VkPhysicalDevice* devicesPtr = devices)
-            Check(instanceApi.vkEnumeratePhysicalDevices(instance, &count, devicesPtr));
+            Check(instanceApi.vkEnumeratePhysicalDevices(&count, devicesPtr));
 
         // SPIR-V 1.4 modules require a Vulkan 1.2+ device.
         // Software rendering (see Module) selects a CPU device (Lavapipe); otherwise prefer real GPUs.
@@ -248,9 +245,9 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             enabledExtensionCount = ppEnabledExtensionNames.Length,
             ppEnabledExtensionNames = ppEnabledExtensionNames,
         };
-        Check(instanceApi.vkCreateDevice(physicalDevice, in createInfo, null, out device));
+        Check(instanceApi.vkCreateDevice(physicalDevice, in createInfo, null, out var device));
         deviceApi = new VkDeviceApi(instanceApi, in device);
-        deviceApi.vkGetDeviceQueue(device, queueFamily, 0, out queue);
+        deviceApi.vkGetDeviceQueue(queueFamily, 0, out queue);
     }
 
     private static uint FindMemoryType(uint typeBits, VkMemoryPropertyFlags required)
@@ -273,22 +270,22 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             usage = usage,
             sharingMode = VkSharingMode.Exclusive,
         };
-        Check(deviceApi.vkCreateBuffer(device, &createInfo, null, out var buffer));
-        deviceApi.vkGetBufferMemoryRequirements(device, buffer, out var requirements);
+        Check(deviceApi.vkCreateBuffer(&createInfo, null, out var buffer));
+        deviceApi.vkGetBufferMemoryRequirements(buffer, out var requirements);
         var allocateInfo = new VkMemoryAllocateInfo
         {
             sType = VkStructureType.MemoryAllocateInfo,
             allocationSize = requirements.size,
             memoryTypeIndex = FindMemoryType(requirements.memoryTypeBits, VkMemoryPropertyFlags.HostVisible | VkMemoryPropertyFlags.HostCoherent),
         };
-        Check(deviceApi.vkAllocateMemory(device, &allocateInfo, null, out var memory));
-        Check(deviceApi.vkBindBufferMemory(device, buffer, memory, 0));
+        Check(deviceApi.vkAllocateMemory(&allocateInfo, null, out var memory));
+        Check(deviceApi.vkBindBufferMemory(buffer, memory, 0));
         if (!data.IsEmpty)
         {
             void* mapped;
-            Check(deviceApi.vkMapMemory(device, memory, 0, size, 0, &mapped));
+            Check(deviceApi.vkMapMemory(memory, 0, size, 0, &mapped));
             data.CopyTo(new Span<byte>(mapped, (int)size));
-            deviceApi.vkUnmapMemory(device, memory);
+            deviceApi.vkUnmapMemory(memory);
         }
         buffers.Add(buffer);
         memories.Add(memory);
@@ -311,16 +308,16 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             initialLayout = VkImageLayout.Undefined,
             sharingMode = VkSharingMode.Exclusive,
         };
-        Check(deviceApi.vkCreateImage(device, &createInfo, null, out var image));
-        deviceApi.vkGetImageMemoryRequirements(device, image, out var requirements);
+        Check(deviceApi.vkCreateImage(&createInfo, null, out var image));
+        deviceApi.vkGetImageMemoryRequirements(image, out var requirements);
         var allocateInfo = new VkMemoryAllocateInfo
         {
             sType = VkStructureType.MemoryAllocateInfo,
             allocationSize = requirements.size,
             memoryTypeIndex = FindMemoryType(requirements.memoryTypeBits, VkMemoryPropertyFlags.DeviceLocal),
         };
-        Check(deviceApi.vkAllocateMemory(device, &allocateInfo, null, out var memory));
-        Check(deviceApi.vkBindImageMemory(device, image, memory, 0));
+        Check(deviceApi.vkAllocateMemory(&allocateInfo, null, out var memory));
+        Check(deviceApi.vkBindImageMemory(image, memory, 0));
 
         var viewCreateInfo = new VkImageViewCreateInfo
         {
@@ -330,7 +327,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             format = VkFormat.R8G8B8A8Unorm,
             subresourceRange = new VkImageSubresourceRange(VkImageAspectFlags.Color, 0, 1, 0, 1),
         };
-        Check(deviceApi.vkCreateImageView(device, &viewCreateInfo, null, out var view));
+        Check(deviceApi.vkCreateImageView(&viewCreateInfo, null, out var view));
 
         images.Add(image);
         imageViews.Add(view);
@@ -348,7 +345,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             commandBufferCount = 1,
         };
         VkCommandBuffer commandBuffer;
-        Check(deviceApi.vkAllocateCommandBuffers(device, &allocateInfo, &commandBuffer));
+        Check(deviceApi.vkAllocateCommandBuffers(&allocateInfo, &commandBuffer));
         var beginInfo = new VkCommandBufferBeginInfo
         {
             sType = VkStructureType.CommandBufferBeginInfo,
@@ -359,7 +356,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
         Check(deviceApi.vkEndCommandBuffer(commandBuffer));
 
         var fenceCreateInfo = new VkFenceCreateInfo { sType = VkStructureType.FenceCreateInfo };
-        Check(deviceApi.vkCreateFence(device, &fenceCreateInfo, null, out var fence));
+        Check(deviceApi.vkCreateFence(&fenceCreateInfo, null, out var fence));
         var submitInfo = new VkSubmitInfo
         {
             sType = VkStructureType.SubmitInfo,
@@ -367,9 +364,9 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             pCommandBuffers = &commandBuffer,
         };
         Check(deviceApi.vkQueueSubmit(queue, 1, &submitInfo, fence));
-        Check(deviceApi.vkWaitForFences(device, 1, &fence, true, ulong.MaxValue));
-        deviceApi.vkDestroyFence(device, fence, null);
-        deviceApi.vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+        Check(deviceApi.vkWaitForFences(1, &fence, true, ulong.MaxValue));
+        deviceApi.vkDestroyFence(fence, null);
+        deviceApi.vkFreeCommandBuffers(commandPool, 1, &commandBuffer);
     }
 
     private static void TransitionImage(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
@@ -452,7 +449,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                         offset = 0,
                         range = ulong.MaxValue,
                     };
-                    Check(deviceApi.vkCreateBufferView(device, &viewCreateInfo, null, out var texelView));
+                    Check(deviceApi.vkCreateBufferView(&viewCreateInfo, null, out var texelView));
                     bufferViews.Add(texelView);
                     writes.Add(((uint)binding.SlotStart, descriptorType, default, default, texelView));
                     break;
@@ -495,7 +492,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                         addressModeV = VkSamplerAddressMode.Repeat,
                         addressModeW = VkSamplerAddressMode.Repeat,
                     };
-                    Check(deviceApi.vkCreateSampler(device, &samplerCreateInfo, null, out var sampler));
+                    Check(deviceApi.vkCreateSampler(&samplerCreateInfo, null, out var sampler));
                     samplers.Add(sampler);
                     writes.Add(((uint)binding.SlotStart, descriptorType, default, new VkDescriptorImageInfo { sampler = sampler }, default));
                     break;
@@ -512,7 +509,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                 bindingCount = (uint)bindingsArray.Length,
                 pBindings = bindingsPtr,
             };
-            Check(deviceApi.vkCreateDescriptorSetLayout(device, &layoutCreateInfo, null, out descriptorSetLayout));
+            Check(deviceApi.vkCreateDescriptorSetLayout(&layoutCreateInfo, null, out descriptorSetLayout));
         }
 
         var setLayout = descriptorSetLayout;
@@ -522,7 +519,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             setLayoutCount = 1,
             pSetLayouts = &setLayout,
         };
-        Check(deviceApi.vkCreatePipelineLayout(device, &layoutCreate, null, out pipelineLayout));
+        Check(deviceApi.vkCreatePipelineLayout(&layoutCreate, null, out pipelineLayout));
 
         if (bindingsArray.Length > 0)
         {
@@ -536,7 +533,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                     poolSizeCount = (uint)poolSizesArray.Length,
                     pPoolSizes = poolSizesPtr,
                 };
-                Check(deviceApi.vkCreateDescriptorPool(device, &poolCreateInfo, null, out descriptorPool));
+                Check(deviceApi.vkCreateDescriptorPool(&poolCreateInfo, null, out descriptorPool));
             }
 
             var allocateInfo = new VkDescriptorSetAllocateInfo
@@ -547,7 +544,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                 pSetLayouts = &setLayout,
             };
             VkDescriptorSet allocatedSet;
-            Check(deviceApi.vkAllocateDescriptorSets(device, &allocateInfo, &allocatedSet));
+            Check(deviceApi.vkAllocateDescriptorSets(&allocateInfo, &allocatedSet));
             descriptorSet = allocatedSet;
 
             foreach (var write in writes)
@@ -566,7 +563,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                     pImageInfo = &imageInfo,
                     pTexelBufferView = &texelView,
                 };
-                deviceApi.vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, null);
+                deviceApi.vkUpdateDescriptorSets(1, &descriptorWrite, 0, null);
             }
         }
     }
@@ -682,7 +679,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             subpassCount = 1,
             pSubpasses = &subpass,
         };
-        Check(deviceApi.vkCreateRenderPass(device, &renderPassCreateInfo, null, out var renderPass));
+        Check(deviceApi.vkCreateRenderPass(&renderPassCreateInfo, null, out var renderPass));
         renderPasses.Add(renderPass);
 
         var colorViewLocal = colorView;
@@ -696,7 +693,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
             height = height,
             layers = 1,
         };
-        Check(deviceApi.vkCreateFramebuffer(device, &framebufferCreateInfo, null, out var framebuffer));
+        Check(deviceApi.vkCreateFramebuffer(&framebufferCreateInfo, null, out var framebuffer));
         framebuffers.Add(framebuffer);
 
         // Pipeline
@@ -787,7 +784,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                 subpass = 0,
             };
             VkPipeline createdPipeline;
-            Check(deviceApi.vkCreateGraphicsPipelines(device, VkPipelineCache.Null, 1, &pipelineCreateInfo, null, &createdPipeline));
+            Check(deviceApi.vkCreateGraphicsPipelines(VkPipelineCache.Null, 1, &pipelineCreateInfo, null, &createdPipeline));
             var pipeline = createdPipeline;
             pipelines.Add(pipeline);
 
@@ -837,9 +834,9 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
         }
 
         void* mapped;
-        Check(deviceApi.vkMapMemory(device, readbackMemory, 0, width * height * 4, 0, &mapped));
+        Check(deviceApi.vkMapMemory(readbackMemory, 0, width * height * 4, 0, &mapped));
         new ReadOnlySpan<byte>(mapped, (int)(width * height * 4)).CopyTo(result);
-        deviceApi.vkUnmapMemory(device, readbackMemory);
+        deviceApi.vkUnmapMemory(readbackMemory);
     }
 
     public override void Compute()
@@ -865,7 +862,7 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
                 },
                 layout = pipelineLayout,
             };
-            Check(deviceApi.vkCreateComputePipelines(device, VkPipelineCache.Null, 1, &pipelineCreateInfo, null, &createdPipeline));
+            Check(deviceApi.vkCreateComputePipelines(VkPipelineCache.Null, 1, &pipelineCreateInfo, null, &createdPipeline));
         }
         var pipeline = createdPipeline;
         pipelines.Add(pipeline);
@@ -894,31 +891,31 @@ public unsafe class VulkanFrameRenderer(uint width = 800, uint height = 600, byt
     {
         var (memory, size) = storageBuffers[FindResourceBinding(resourceName).KeyInfo.KeyName];
         void* mapped;
-        Check(deviceApi.vkMapMemory(device, memory, 0, size, 0, &mapped));
+        Check(deviceApi.vkMapMemory(memory, 0, size, 0, &mapped));
         var data = new ReadOnlySpan<byte>(mapped, (int)size).ToArray();
-        deviceApi.vkUnmapMemory(device, memory);
+        deviceApi.vkUnmapMemory(memory);
         return data;
     }
 
     public override void PresentAndFinish()
     {
         // Destroy only this test's resources; the device/instance are shared for the whole run
-        deviceApi.vkDeviceWaitIdle(device);
+        deviceApi.vkDeviceWaitIdle();
 
-        foreach (var pipeline in pipelines) deviceApi.vkDestroyPipeline(device, pipeline, null);
-        foreach (var framebuffer in framebuffers) deviceApi.vkDestroyFramebuffer(device, framebuffer, null);
-        foreach (var renderPass in renderPasses) deviceApi.vkDestroyRenderPass(device, renderPass, null);
-        if (pipelineLayout != VkPipelineLayout.Null) deviceApi.vkDestroyPipelineLayout(device, pipelineLayout, null);
-        if (descriptorPool != VkDescriptorPool.Null) deviceApi.vkDestroyDescriptorPool(device, descriptorPool, null);
-        if (descriptorSetLayout != VkDescriptorSetLayout.Null) deviceApi.vkDestroyDescriptorSetLayout(device, descriptorSetLayout, null);
-        foreach (var sampler in samplers) deviceApi.vkDestroySampler(device, sampler, null);
-        foreach (var bufferView in bufferViews) deviceApi.vkDestroyBufferView(device, bufferView, null);
-        foreach (var imageView in imageViews) deviceApi.vkDestroyImageView(device, imageView, null);
-        foreach (var image in images) deviceApi.vkDestroyImage(device, image, null);
-        foreach (var buffer in buffers) deviceApi.vkDestroyBuffer(device, buffer, null);
-        foreach (var memory in memories) deviceApi.vkFreeMemory(device, memory, null);
-        if (fallbackVertexModule != VkShaderModule.Null) deviceApi.vkDestroyShaderModule(device, fallbackVertexModule, null);
-        if (shaderModule != VkShaderModule.Null) deviceApi.vkDestroyShaderModule(device, shaderModule, null);
+        foreach (var pipeline in pipelines) deviceApi.vkDestroyPipeline(pipeline, null);
+        foreach (var framebuffer in framebuffers) deviceApi.vkDestroyFramebuffer(framebuffer, null);
+        foreach (var renderPass in renderPasses) deviceApi.vkDestroyRenderPass(renderPass, null);
+        if (pipelineLayout != VkPipelineLayout.Null) deviceApi.vkDestroyPipelineLayout(pipelineLayout, null);
+        if (descriptorPool != VkDescriptorPool.Null) deviceApi.vkDestroyDescriptorPool(descriptorPool, null);
+        if (descriptorSetLayout != VkDescriptorSetLayout.Null) deviceApi.vkDestroyDescriptorSetLayout(descriptorSetLayout, null);
+        foreach (var sampler in samplers) deviceApi.vkDestroySampler(sampler, null);
+        foreach (var bufferView in bufferViews) deviceApi.vkDestroyBufferView(bufferView, null);
+        foreach (var imageView in imageViews) deviceApi.vkDestroyImageView(imageView, null);
+        foreach (var image in images) deviceApi.vkDestroyImage(image, null);
+        foreach (var buffer in buffers) deviceApi.vkDestroyBuffer(buffer, null);
+        foreach (var memory in memories) deviceApi.vkFreeMemory(memory, null);
+        if (fallbackVertexModule != VkShaderModule.Null) deviceApi.vkDestroyShaderModule(fallbackVertexModule, null);
+        if (shaderModule != VkShaderModule.Null) deviceApi.vkDestroyShaderModule(shaderModule, null);
 
         // The same renderer runs once per test header: reset so the next SetupTest starts clean
         pipelines.Clear();

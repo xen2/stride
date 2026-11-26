@@ -85,7 +85,7 @@ namespace Stride.Graphics
                 initialLayout = VkImageLayout.Undefined,
             };
             VkImage image;
-            var imageResult = device.NativeDeviceApi.vkCreateImage(device.NativeDevice, &imageCreateInfo, null, &image);
+            var imageResult = device.NativeDeviceApi.vkCreateImage(&imageCreateInfo, null, &image);
             if (imageResult != VkResult.Success)
             {
                 CFRelease(ioSurface);
@@ -96,7 +96,7 @@ namespace Stride.Graphics
             // requires vkBindImageMemory for the validation layer to be happy. Allocate a normal
             // VkDeviceMemory block sized to GetImageMemoryRequirements; MoltenVK ignores it as
             // soon as the IOSurface-backed MTLTexture is created on first use.
-            device.NativeDeviceApi.vkGetImageMemoryRequirements(device.NativeDevice, image, out var memReq);
+            device.NativeDeviceApi.vkGetImageMemoryRequirements(image, out var memReq);
             var allocateInfo = new VkMemoryAllocateInfo
             {
                 sType = VkStructureType.MemoryAllocateInfo,
@@ -104,14 +104,14 @@ namespace Stride.Graphics
                 memoryTypeIndex = FindMemoryTypeIndex(device, memReq.memoryTypeBits),
             };
             VkDeviceMemory memory;
-            var allocResult = device.NativeDeviceApi.vkAllocateMemory(device.NativeDevice, &allocateInfo, null, &memory);
+            var allocResult = device.NativeDeviceApi.vkAllocateMemory(&allocateInfo, null, &memory);
             if (allocResult != VkResult.Success)
             {
-                device.NativeDeviceApi.vkDestroyImage(device.NativeDevice, image, null);
+                device.NativeDeviceApi.vkDestroyImage(image, null);
                 CFRelease(ioSurface);
                 device.CheckResult(allocResult);
             }
-            device.CheckResult(device.NativeDeviceApi.vkBindImageMemory(device.NativeDevice, image, memory, 0));
+            device.CheckResult(device.NativeDeviceApi.vkBindImageMemory(image, memory, 0));
 
             var viewCreateInfo = new VkImageViewCreateInfo
             {
@@ -123,11 +123,11 @@ namespace Stride.Graphics
                 subresourceRange = new VkImageSubresourceRange(VkImageAspectFlags.Color, baseMipLevel: 0, levelCount: 1, baseArrayLayer: 0, layerCount: 1),
             };
             VkImageView imageView;
-            var viewResult = device.NativeDeviceApi.vkCreateImageView(device.NativeDevice, &viewCreateInfo, null, &imageView);
+            var viewResult = device.NativeDeviceApi.vkCreateImageView(&viewCreateInfo, null, &imageView);
             if (viewResult != VkResult.Success)
             {
-                device.NativeDeviceApi.vkFreeMemory(device.NativeDevice, memory, null);
-                device.NativeDeviceApi.vkDestroyImage(device.NativeDevice, image, null);
+                device.NativeDeviceApi.vkFreeMemory(memory, null);
+                device.NativeDeviceApi.vkDestroyImage(image, null);
                 CFRelease(ioSurface);
                 device.CheckResult(viewResult);
             }

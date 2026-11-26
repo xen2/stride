@@ -367,7 +367,7 @@ namespace Stride.Graphics
             };
 
             VkDescriptorSet localDescriptorSet;
-            GraphicsDevice.NativeDeviceApi.vkAllocateDescriptorSets(GraphicsDevice.NativeDevice, &allocateInfo, &localDescriptorSet);
+            GraphicsDevice.NativeDeviceApi.vkAllocateDescriptorSets(&allocateInfo, &localDescriptorSet);
             descriptorSet = localDescriptorSet;
 
 #if !STRIDE_GRAPHICS_NO_DESCRIPTOR_COPIES
@@ -389,7 +389,7 @@ namespace Stride.Graphics
             }
 
             fixed (VkCopyDescriptorSet* fCopiesItems = CollectionsMarshal.AsSpan(copies))
-                GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(GraphicsDevice.NativeDevice, 0, null, (uint) copies.Count, fCopiesItems);
+                GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(0, null, (uint) copies.Count, fCopiesItems);
 #else
             var bindingCount = activePipeline.DescriptorBindingMapping.Count;
             var writes = stackalloc VkWriteDescriptorSet[bindingCount];
@@ -487,7 +487,7 @@ namespace Stride.Graphics
                 }
             }
 
-            GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets(GraphicsDevice.NativeDevice, (uint)bindingCount, writes, descriptorCopyCount: 0, descriptorCopies: null);
+            GraphicsDevice.NativeDeviceApi.vkUpdateDescriptorSets((uint)bindingCount, writes, descriptorCopyCount: 0, descriptorCopies: null);
 #endif
             GraphicsDevice.NativeDeviceApi.vkCmdBindDescriptorSets(NativeCommandBuffer, activePipeline.IsCompute ? VkPipelineBindPoint.Compute : VkPipelineBindPoint.Graphics, activePipeline.NativeLayout, firstSet: 0, descriptorSetCount: 1, &localDescriptorSet, dynamicOffsetCount: 0, dynamicOffsets: null);
         }
@@ -2092,14 +2092,14 @@ namespace Stride.Graphics
             }
 
             void* mappedMemory;
-            GraphicsDevice.NativeDeviceApi.vkMapMemory(GraphicsDevice.NativeDevice, resource.NativeMemory, (ulong) offsetInBytes, (ulong) lengthInBytes, VkMemoryMapFlags.None, &mappedMemory);
+            GraphicsDevice.NativeDeviceApi.vkMapMemory(resource.NativeMemory, (ulong) offsetInBytes, (ulong) lengthInBytes, VkMemoryMapFlags.None, &mappedMemory);
             return new MappedResource(resource, subResourceIndex, new DataBox((IntPtr) mappedMemory, rowPitch, slicePitch: 0), offsetInBytes, lengthInBytes);
         }
 
         // TODO GRAPHICS REFACTOR what should we do with this?
         public unsafe partial void UnmapSubResource(MappedResource unmapped)
         {
-            GraphicsDevice.NativeDeviceApi.vkUnmapMemory(GraphicsDevice.NativeDevice, unmapped.Resource.NativeMemory);
+            GraphicsDevice.NativeDeviceApi.vkUnmapMemory(unmapped.Resource.NativeMemory);
         }
 
         /// <inheritdoc/>

@@ -296,7 +296,7 @@ namespace Stride.Graphics
             NativeAllocationCount++;
 
             // Create buffer
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateBuffer(GraphicsDevice.NativeDevice, &createInfo, null, out NativeBuffer));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateBuffer(&createInfo, null, out NativeBuffer));
             SetDebugName();
 
             // Allocate memory
@@ -307,13 +307,13 @@ namespace Stride.Graphics
                 IsHostVisibleHeap = true;
             }
 
-            GraphicsDevice.NativeDeviceApi.vkGetBufferMemoryRequirements(GraphicsDevice.NativeDevice, NativeBuffer, out var memoryRequirements);
+            GraphicsDevice.NativeDeviceApi.vkGetBufferMemoryRequirements(NativeBuffer, out var memoryRequirements);
 
             AllocateMemory(memoryProperties, memoryRequirements);
 
             if (NativeMemory != VkDeviceMemory.Null)
             {
-                GraphicsDevice.NativeDeviceApi.vkBindBufferMemory(GraphicsDevice.NativeDevice, NativeBuffer, NativeMemory, 0);
+                GraphicsDevice.NativeDeviceApi.vkBindBufferMemory(NativeBuffer, NativeMemory, 0);
             }
 
             // Without data or a clear, the contents stay undefined and nothing is submitted
@@ -331,9 +331,9 @@ namespace Stride.Graphics
                     if (Usage == GraphicsResourceUsage.Dynamic)
                     {
                         void* uploadMemory;
-                        GraphicsDevice.NativeDeviceApi.vkMapMemory(GraphicsDevice.NativeDevice, NativeMemory, 0, (ulong) SizeInBytes, VkMemoryMapFlags.None, &uploadMemory);
+                        GraphicsDevice.NativeDeviceApi.vkMapMemory(NativeMemory, 0, (ulong) SizeInBytes, VkMemoryMapFlags.None, &uploadMemory);
                         MemoryUtilities.CopyWithAlignmentFallback(uploadMemory, (void*) dataPointer, (uint) SizeInBytes);
-                        GraphicsDevice.NativeDeviceApi.vkUnmapMemory(GraphicsDevice.NativeDevice, NativeMemory);
+                        GraphicsDevice.NativeDeviceApi.vkUnmapMemory(NativeMemory);
                     }
                     else
                     {
@@ -420,7 +420,7 @@ namespace Stride.Graphics
                 //view = (Description.BufferFlags & BufferFlags.RawBuffer) != 0 ? VkBufferViewType.Raw : VkBufferViewType.Formatted,
             };
 
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateBufferView(GraphicsDevice.NativeDevice, &createInfo, allocator: null, out var bufferView));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateBufferView(&createInfo, allocator: null, out var bufferView));
             return bufferView;
         }
 

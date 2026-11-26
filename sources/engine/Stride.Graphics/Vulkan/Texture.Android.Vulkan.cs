@@ -75,7 +75,7 @@ namespace Stride.Graphics
                 sType = VkStructureType.AndroidHardwareBufferPropertiesAndroid,
                 pNext = &formatInfo,
             };
-            device.CheckResult(device.NativeDeviceApi.vkGetAndroidHardwareBufferPropertiesANDROID(device.NativeDevice, hardwareBuffer, &props));
+            device.CheckResult(device.NativeDeviceApi.vkGetAndroidHardwareBufferPropertiesANDROID(hardwareBuffer, &props));
 
             // Non-zero externalFormat = buffer needs sampler-YCbCr conversion to read as RGB.
             // Zero = buffer is sampled directly via the returned VkFormat (RGBA AHardwareBuffers).
@@ -104,7 +104,7 @@ namespace Stride.Graphics
                     chromaFilter = VkFilter.Linear,
                     forceExplicitReconstruction = VkBool32.False,
                 };
-                device.CheckResult(device.NativeDeviceApi.vkCreateSamplerYcbcrConversion(device.NativeDevice, &conversionCreateInfo, null, out ycbcrConversion));
+                device.CheckResult(device.NativeDeviceApi.vkCreateSamplerYcbcrConversion(&conversionCreateInfo, null, out ycbcrConversion));
             }
 
             var externalMemoryImageInfo = new VkExternalMemoryImageCreateInfo
@@ -131,7 +131,7 @@ namespace Stride.Graphics
                 initialLayout = VkImageLayout.Undefined,
             };
             VkImage image;
-            device.CheckResult(device.NativeDeviceApi.vkCreateImage(device.NativeDevice, &imageCreateInfo, null, &image));
+            device.CheckResult(device.NativeDeviceApi.vkCreateImage(&imageCreateInfo, null, &image));
 
             var dedicatedInfo = new VkMemoryDedicatedAllocateInfo
             {
@@ -152,16 +152,16 @@ namespace Stride.Graphics
                 memoryTypeIndex = FindMemoryTypeIndex(device, props.memoryTypeBits),
             };
             VkDeviceMemory memory;
-            var allocResult = device.NativeDeviceApi.vkAllocateMemory(device.NativeDevice, &allocateInfo, null, &memory);
+            var allocResult = device.NativeDeviceApi.vkAllocateMemory(&allocateInfo, null, &memory);
             if (allocResult != VkResult.Success)
             {
-                device.NativeDeviceApi.vkDestroyImage(device.NativeDevice, image, null);
+                device.NativeDeviceApi.vkDestroyImage(image, null);
                 if (ycbcrConversion != VkSamplerYcbcrConversion.Null)
-                    device.NativeDeviceApi.vkDestroySamplerYcbcrConversion(device.NativeDevice, ycbcrConversion, null);
+                    device.NativeDeviceApi.vkDestroySamplerYcbcrConversion(ycbcrConversion, null);
                 AHardwareBuffer_release(hardwareBuffer);
                 device.CheckResult(allocResult);
             }
-            device.CheckResult(device.NativeDeviceApi.vkBindImageMemory(device.NativeDevice, image, memory, 0));
+            device.CheckResult(device.NativeDeviceApi.vkBindImageMemory(image, memory, 0));
 
             VkSamplerYcbcrConversionInfo viewYcbcrInfo = default;
             if (ycbcrConversion != VkSamplerYcbcrConversion.Null)
@@ -183,7 +183,7 @@ namespace Stride.Graphics
                 subresourceRange = new VkImageSubresourceRange(VkImageAspectFlags.Color, baseMipLevel: 0, levelCount: 1, baseArrayLayer: 0, layerCount: 1),
             };
             VkImageView imageView;
-            device.CheckResult(device.NativeDeviceApi.vkCreateImageView(device.NativeDevice, &viewCreateInfo, null, &imageView));
+            device.CheckResult(device.NativeDeviceApi.vkCreateImageView(&viewCreateInfo, null, &imageView));
 
             // Build a TextureDescription. For external/YUV formats Stride has no matching PixelFormat;
             // expose as R8G8B8A8_UNorm_SRgb so consumers can bind it like a normal sampled texture

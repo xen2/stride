@@ -269,16 +269,16 @@ namespace Stride.Graphics
             };
 
             // Create buffer
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateBuffer(GraphicsDevice.NativeDevice, &createInfo, allocator: null, out NativeBuffer));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateBuffer(&createInfo, allocator: null, out NativeBuffer));
 
             // Allocate and bind memory
-            GraphicsDevice.NativeDeviceApi.vkGetBufferMemoryRequirements(GraphicsDevice.NativeDevice, NativeBuffer, out var memoryRequirements);
+            GraphicsDevice.NativeDeviceApi.vkGetBufferMemoryRequirements(NativeBuffer, out var memoryRequirements);
 
             AllocateMemory(VkMemoryPropertyFlags.HostVisible | VkMemoryPropertyFlags.HostCoherent, memoryRequirements);
 
             if (NativeMemory != VkDeviceMemory.Null)
             {
-                GraphicsDevice.NativeDeviceApi.vkBindBufferMemory(GraphicsDevice.NativeDevice, NativeBuffer, NativeMemory, 0);
+                GraphicsDevice.NativeDeviceApi.vkBindBufferMemory(NativeBuffer, NativeMemory, 0);
             }
         }
 
@@ -348,10 +348,10 @@ namespace Stride.Graphics
 
             // Create native image
             // TODO: flags, usage, etc.
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateImage(GraphicsDevice.NativeDevice, &createInfo, allocator: null, out NativeImage));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateImage(&createInfo, allocator: null, out NativeImage));
 
             // Allocate and bind memory
-            GraphicsDevice.NativeDeviceApi.vkGetImageMemoryRequirements(GraphicsDevice.NativeDevice, NativeImage, out var memoryRequirements);
+            GraphicsDevice.NativeDeviceApi.vkGetImageMemoryRequirements(NativeImage, out var memoryRequirements);
 
             if (IsMemoryExportable)
                 AllocateExportableMemory(memoryProperties, memoryRequirements);
@@ -360,7 +360,7 @@ namespace Stride.Graphics
 
             if (NativeMemory != VkDeviceMemory.Null)
             {
-                GraphicsDevice.NativeDeviceApi.vkBindImageMemory(GraphicsDevice.NativeDevice, NativeImage, NativeMemory, 0);
+                GraphicsDevice.NativeDeviceApi.vkBindImageMemory(NativeImage, NativeMemory, 0);
             }
         }
 
@@ -396,7 +396,7 @@ namespace Stride.Graphics
                 }
             }
 
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkAllocateMemory(GraphicsDevice.NativeDevice, &allocateInfo, null, out NativeMemory));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkAllocateMemory(&allocateInfo, null, out NativeMemory));
             ExportableMemorySize = memoryRequirements.size;
         }
 
@@ -673,7 +673,7 @@ namespace Stride.Graphics
                 }
             }
 
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateImageView(GraphicsDevice.NativeDevice, &createInfo, null, out var imageView));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateImageView(&createInfo, null, out var imageView));
             return imageView;
         }
 
@@ -699,7 +699,7 @@ namespace Stride.Graphics
             if (IsMultiSampled && Dimension != TextureDimension.Texture2D)
                 throw new NotSupportedException("Multisample is only supported for 2D RenderTarget Textures");
 
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateImageView(GraphicsDevice.NativeDevice, &createInfo, null, out var imageView));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateImageView(&createInfo, null, out var imageView));
             return imageView;
         }
 
@@ -733,7 +733,7 @@ namespace Stride.Graphics
             //        createInfo.Flags |= (int)AttachmentViewCreateFlags.AttachmentViewCreateReadOnlyStencilBit;
             //}
 
-            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateImageView(GraphicsDevice.NativeDevice, &createInfo, allocator: null, out var imageView));
+            GraphicsDevice.CheckResult(GraphicsDevice.NativeDeviceApi.vkCreateImageView(&createInfo, allocator: null, out var imageView));
             return imageView;
         }
 

@@ -45,7 +45,7 @@ internal sealed partial class ExportableTexture
             handleType = VkExternalMemoryHandleTypeFlags.OpaqueFD,
         };
         int fd;
-        device.CheckResult(device.NativeDeviceApi.vkGetMemoryFdKHR(device.NativeDevice, &getInfo, &fd));
+        device.CheckResult(device.NativeDeviceApi.vkGetMemoryFdKHR(&getInfo, &fd));
         return fd;
     }
 
@@ -119,9 +119,9 @@ internal sealed partial class ExportableTexture
         lock (device.QueueLock)
             device.NativeDeviceApi.vkQueueWaitIdle(device.NativeCommandQueue);
         if (readySemaphore != VkSemaphore.Null)
-            device.NativeDeviceApi.vkDestroySemaphore(device.NativeDevice, readySemaphore, null);
+            device.NativeDeviceApi.vkDestroySemaphore(readySemaphore, null);
         if (releasedSemaphore != VkSemaphore.Null)
-            device.NativeDeviceApi.vkDestroySemaphore(device.NativeDevice, releasedSemaphore, null);
+            device.NativeDeviceApi.vkDestroySemaphore(releasedSemaphore, null);
         readySemaphore = releasedSemaphore = VkSemaphore.Null;
         Texture?.Dispose();
         Texture = null;
@@ -139,7 +139,7 @@ internal sealed partial class ExportableTexture
             sType = VkStructureType.SemaphoreCreateInfo,
             pNext = &exportInfo,
         };
-        device.CheckResult(device.NativeDeviceApi.vkCreateSemaphore(device.NativeDevice, &createInfo, null, out var semaphore));
+        device.CheckResult(device.NativeDeviceApi.vkCreateSemaphore(&createInfo, null, out var semaphore));
         return semaphore;
     }
 
@@ -152,7 +152,7 @@ internal sealed partial class ExportableTexture
             handleType = VkExternalSemaphoreHandleTypeFlags.OpaqueFD,
         };
         int fd;
-        device.CheckResult(device.NativeDeviceApi.vkGetSemaphoreFdKHR(device.NativeDevice, &getInfo, &fd));
+        device.CheckResult(device.NativeDeviceApi.vkGetSemaphoreFdKHR(&getInfo, &fd));
         return fd;
     }
 }
