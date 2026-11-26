@@ -1,0 +1,45 @@
+name: "tmp: MoltenVK iOS debug info"
+
+# Temporary: finds where the iOS static libMoltenVK.a loses its debug info. Not for master.
+
+on:
+  push:
+    branches: [tmp/moltenvk-debuginfo]
+
+jobs:
+  probe:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+        with: { path: stride-src, sparse-checkout: .github/scripts }
+
+      - name: Build MoltenVK (iOS only)
+        env: { XCODE_XCCONFIG_FILE: '${{ github.workspace }}/stride-src/.github/scripts/dep-debug-info.xcconfig' }
+        run: |
+          mkdir -p mvk-src && cd mvk-src
+          git init -q
+          git remote add origin https://github.com/KhronosGroup/MoltenVK.git
+          git fetch --depth 1 origin v1.4.2
+          git checkout -q FETCH_HEAD
+          ./fetchDependencies --ios
+          make ios v=1 > ../xcodebuild-ios.log 2>&1 || { tail -50 ../xcodebuild-ios.log; exit 1; }
+
+      - name: Probe
+        if: always()
+        env: { XCODE_XCCONFIG_FILE: '${{ github.workspace }}/stride-src/.github/scripts/dep-debug-info.xcconfig' }
+        run: |
+          set +e
+          has() { if otool -l "$1" 2>/dev/null | grep -q __debug_info; then echo "DWARF   $1"; else echo "no      $1"; fi; }
+          echo "== compile lines of MVKBuffer.mm (flags)"
+          grep -E 'MVKBuffer\.mm' xcodebuild-ios.log | grep -E ' -c ' | head -2 | tr ' ' '\n' | grep -E '^-g|^-O|debug|flto|bitcode|-gline' | sort -u
+          echo "== libtool / strip lines"
+          grep -nE '(^| )(libtool|strip|Strip|ld) ' xcodebuild-ios.log | grep -iE 'MoltenVK|strip' | cut -c1-400 | head -20
+          echo "== object files"
+          o=$(find ~/Library/Developer/Xcode/DerivedData mvk-src -name 'MVKBuffer.o' 2>/dev/null | head -3); for f in $o; do has "$f"; done
+          echo "== built libMoltenVK.a"
+          for f in $(find ~/Library/Developer/Xcode/DerivedData mvk-src -name 'libMoltenVK.a' 2>/dev/null); do ls -la "$f"; lipo -info "$f"; has "$f"; done
+          echo "== first member of the xcframework archive"
+          a=mvk-src/Package/Release/MoltenVK/static/MoltenVK.xcframework/ios-arm64/libMoltenVK.a
+          mkdir -p x && (cd x && ar -x "../$a" MVKBuffer.o 2>&1; ls -la; file MVKBuffer.o; otool -l MVKBuffer.o | grep -E 'sectname|segname' | sort | uniq -c | head -30)
+          echo "== settings"
+          cd mvk-src && xcodebuild -project MoltenVKPackaging.xcodeproj -scheme "MoltenVK Package (iOS only)" -destination generic/platform=iOS -showBuildSettings 2>/dev/null | grep -E ' (GCC_GENERATE_DEBUGGING_SYMBOLS|DEBUG_INFORMATION_FORMAT|STRIP_[A-Z_]+|DEPLOYMENT_POSTPROCESSING|COPY_PHASE_STRIP|LLVM_LTO|ENABLE_BITCODE|OTHER_CFLAGS|OTHER_LIBTOOLFLAGS|CLANG_DEBUG_INFORMATION_LEVEL) =' | sort -u
