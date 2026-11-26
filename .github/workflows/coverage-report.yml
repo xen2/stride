@@ -1,10 +1,11 @@
 name: Coverage
 
 # Coverage report of a CI run. On a PR: the coverage of its changed lines, with a warning on each range that no test
-# runs (a neutral check run, never required), and of the assemblies it changes against the master run of its base
-# commit (one comment, edited on each push). On a master push: the totals, in the step summary.
+# runs and a view of the code around them and around the lines that lost their coverage (a neutral check run, never
+# required), and of the assemblies it changes against the master run of its base commit (one comment, edited on each
+# push). On a master push: the totals, in the step summary.
 # On workflow_run so that fork PRs get a write token: it runs only the default branch's script, never PR code, and
-# reads the run's coverage artifacts and the PR's diff as data (.github/scripts/coverage-report.py).
+# reads the run's coverage artifacts, the PR's diff and the code of the view as data (.github/scripts/coverage-report.py).
 # tests/COVERAGE.md says what is measured.
 
 on:
@@ -161,9 +162,17 @@ jobs:
             exit 0
           fi
           gh api "repos/$repo/git/trees/$tested?recursive=1" --jq '.tree[].path' > tree.txt
+          # The tested commit without its files, for the code of the view: the script reads the few files it shows
+          # with git cat-file, which downloads each one. Never checked out.
+          source_commit=()
+          if git fetch --quiet --no-tags --depth=1 --filter=blob:none origin "$tested"; then
+            source_commit=(--source-commit "$tested")
+          else
+            echo "::notice::The tested commit could not be fetched: the view shows no code."
+          fi
 
           find_base "$base" "master run"
-          python3 .github/scripts/coverage-report.py --current current "${baseline[@]}" --diff pr.diff --projects tree.txt \
+          python3 .github/scripts/coverage-report.py --current current "${baseline[@]}" --diff pr.diff --projects tree.txt "${source_commit[@]}" \
             --base-label "master [\`${base_sha:0:10}\`]($base_url)" --no-baseline "$no_baseline" --run-url "$run_url" \
             --scope-url "$GITHUB_SERVER_URL/$repo/blob/$base/tests/COVERAGE.md" --out out
           cat out/summary.md >> "$GITHUB_STEP_SUMMARY"
@@ -177,9 +186,9 @@ jobs:
           python3 - "$HEAD_SHA" "$run_url" > check.jsonl <<'EOF'
           import json, sys
           check = json.load(open("out/result.json"))["check"]
-          annotations = check["annotations"]
+          annotations = check.pop("annotations")
           for i in range(0, max(len(annotations), 1), 50):
-              output = {"title": check["title"], "summary": check["summary"], "annotations": annotations[i:i + 50]}
+              output = dict(check, annotations=annotations[i:i + 50])
               body = {"output": output}
               if i == 0:
                   body.update(name="Coverage", head_sha=sys.argv[1], status="completed", conclusion="neutral",

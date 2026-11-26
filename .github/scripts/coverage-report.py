@@ -4,14 +4,20 @@
 Reads the coverage-<lane> artifacts of the run (one Cobertura per lane, see .github/actions/coverage-lane) and,
 for a PR, the run's diff and the artifacts of the base commit's master run (for a push, of its parent's run). Writes into --out:
   result.json  what to post: {"kind": "none" | "code" | "tests" | "push", "comment": markdown,
-               "check": {"title", "summary", "annotations"}}
+               "check": {"title", "summary", "text", "annotations"}}
   comment.md   the comment of the PR, as in result.json
-  summary.md   the step summary of the report job: the comment, and the coverage of every assembly and of each lane
+  summary.md   the step summary of the report job: the comment, the view, and the coverage of every assembly and of
+               each lane
+  view.md      the view of a PR: the code around its changed lines that no test runs and around the lines that lost
+               their coverage, as diff blocks whose marks are the coverage. The check run text and the step summary
+               have size limits and cut it; this file has all of it.
 With --not-updated, writes only comment.md: the PR's comment of an earlier push (--previous), with a note on top that
 this push got no report.
-The artifacts come from PR code, so everything read from them is data: assembly names, paths and lane names are
-checked before they reach a comment. Standard library only, so it runs on any runner and locally:
-  python3 .github/scripts/coverage-report.py --current <dir> [--baseline <dir>] [--diff <file>] --out <dir>
+The artifacts and the tested commit come from PR code, so everything read from them is data: assembly names, paths
+and lane names are checked before they reach a comment, and code is shown only in fenced blocks. The view reads the
+code of the tested commit (--source-commit) with git in the current folder. Standard library only, so it runs on any
+runner and locally:
+  python3 .github/scripts/coverage-report.py --current <dir> [--baseline <dir>] [--diff <file>] [--source-commit <sha>] --out <dir>
   python3 .github/scripts/coverage-report.py --not-updated <reason> --previous <file> --head <sha> --out <dir>
 """
 
@@ -20,6 +26,7 @@ import colorsys
 import json
 import os
 import re
+import subprocess
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 
@@ -44,6 +51,13 @@ NOISE = 50
 MAX_ASSEMBLIES = 12
 # 50 per API call; the check run gets them in several calls
 MAX_ANNOTATIONS = 200
+# GitHub's limits: 65535 characters for the text of a check run, 1 MiB for a step summary (with a margin)
+MAX_CHECK_TEXT = 65000
+MAX_SUMMARY_BYTES = 1000000
+# Lines of code shown around each line of the view
+CONTEXT = 2
+VIEW_LEGEND = ("`+` covered · `-` not covered · `!` covered at the base commit, not now · `new` the PR adds or changes "
+               "the line · no mark: no code, or an unchanged line that didn't lose its coverage")
 MARKER = "<!-- coverage-report -->"
 # The note on top of a comment that a push got no report, up to the blank line that ends it
 NOT_UPDATED_MARKER = "<!-- coverage-not-updated -->"
@@ -139,6 +153,18 @@ def merge(lanes):
     return merged
 
 
+def per_file(merged):
+    """Per file: line -> covered in any assembly that compiles it, and those assemblies."""
+    lines_of = defaultdict(dict)
+    assemblies_of = defaultdict(set)
+    for (assembly, file), lines in merged.items():
+        assemblies_of[file].add(assembly)
+        target = lines_of[file]
+        for number, covered in lines.items():
+            target[number] = target.get(number, False) or covered
+    return lines_of, assemblies_of
+
+
 def totals(merged):
     """Per assembly: [covered, coverable]."""
     result = defaultdict(lambda: [0, 0])
@@ -164,6 +190,10 @@ def paint(text, hue):
 def painted_percent(covered, coverable):
     """The coverage, from red at 0% to green at 100%."""
     return paint(percent(covered, coverable), 120 * covered / coverable) if coverable else "n/a"
+
+
+def plural(count, word):
+    return f"{count} {word}{'s' if count != 1 else ''}"
 
 
 def signed_points(points):
@@ -193,31 +223,78 @@ def plain(text):
     return PAINTED.sub(lambda m: m[1].replace("\\%", "%").replace("\\ ", " "), text)
 
 
+class FileDiff:
+    """What a diff does to one file: its path at the base (None for a new file), the lines it adds or changes, and
+    the base line of each line it keeps."""
+
+    def __init__(self, old):
+        self.old = old
+        self.added = set()
+        # Lines inside a hunk that the diff keeps: head line -> base line
+        self.kept = {}
+        # After each hunk: (its first head line after it, head lines minus base lines up to there)
+        self.shifts = []
+
+    def base_line(self, number):
+        """The base line of a head line, or None for a line the diff adds or changes."""
+        if number in self.added:
+            return None
+        if number in self.kept:
+            return self.kept[number]
+        shift = 0
+        for after, total in self.shifts:
+            if after > number:
+                break
+            shift = total
+        return number - shift
+
+
+def diff_path(text, prefix):
+    name = text.strip().strip('"')
+    return name[len(prefix):] if name.startswith(prefix) else None
+
+
 def read_diff(path):
-    """Lines the diff adds or changes, per new file path."""
-    added = defaultdict(set)
-    file = None
-    number = 0
+    """Per head file path: its FileDiff."""
+    files = {}
+    file = old = None
     in_hunk = False
+    head = base = shift = 0
     with open(path, encoding="utf-8", errors="replace") as diff:
         for line in diff:
             line = line.rstrip("\n")
             if line.startswith("diff --git "):
-                file, in_hunk = None, False
+                file = old = None
+                in_hunk = False
+                shift = 0
+            elif not in_hunk and line.startswith("rename from "):
+                old = line[len("rename from "):].strip('"')
+            elif not in_hunk and line.startswith("rename to "):
+                files[line[len("rename to "):].strip('"')] = FileDiff(old)
+            elif not in_hunk and line.startswith("--- "):
+                old = diff_path(line[4:], "a/")
             elif not in_hunk and line.startswith("+++ "):
-                name = line[4:].strip().strip('"')
-                file = name[2:] if name.startswith("b/") else None
+                name = diff_path(line[4:], "b/")
+                file = files.setdefault(name, FileDiff(old)) if name else None
             elif line.startswith("@@"):
-                match = re.match(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@", line)
-                in_hunk = match is not None
-                number = int(match.group(1)) if match else 0
-            elif in_hunk and file:
+                match = re.match(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", line)
+                in_hunk = match is not None and file is not None
+                if in_hunk:
+                    base, base_count, head, head_count = (int(g) if g is not None else 1 for g in match.groups())
+                    # A hunk of no head line comes after its head line
+                    shift += head_count - base_count
+                    file.shifts.append((head + head_count if head_count else head + 1, shift))
+            elif in_hunk:
                 if line.startswith("+"):
-                    added[file].add(number)
-                    number += 1
+                    file.added.add(head)
+                    head += 1
+                elif line.startswith("-"):
+                    base += 1
                 elif line.startswith(" ") or line == "":
-                    number += 1
-    return added
+                    file.kept[head] = base
+                    head += 1
+                    base += 1
+    return files
 
 
 def read_projects(path):
@@ -260,6 +337,88 @@ def ranges(uncovered, coverable):
     return result
 
 
+def lost_lines(lines_of, assemblies_of, base_lines_of, diffs, delta):
+    """Per file: the lines the PR keeps that no test runs now and that a test ran at the base commit. In a file the PR
+    doesn't change, only when one of its assemblies lost more covered lines than the noise."""
+    losing = {a for a, (covered, _) in delta.items() if covered < -NOISE}
+    result = {}
+    for file, lines in lines_of.items():
+        diff = diffs.get(file)
+        if diff is None and not assemblies_of[file] & losing:
+            continue
+        base = base_lines_of.get(diff.old if diff else file)
+        if not base:
+            continue
+        lost = set()
+        for number, covered in lines.items():
+            before = number if diff is None else diff.base_line(number)
+            if not covered and before is not None and base.get(before):
+                lost.add(number)
+        if lost:
+            result[file] = lost
+    return result
+
+
+def read_source(commit, file):
+    """The lines of a file at a commit, or None. git cat-file reads the file as it is stored, with no filter; in a
+    blobless fetch, it downloads it."""
+    try:
+        blob = subprocess.run(["git", "cat-file", "blob", f"{commit}:{file}"], capture_output=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return blob.decode("utf-8-sig", errors="replace").splitlines()
+
+
+def fence(lines):
+    """A code fence longer than any run of backticks in the lines."""
+    longest = max((len(run) for line in lines for run in re.findall(r"`+", line)), default=0)
+    return "`" * max(3, longest + 1)
+
+
+def file_view(file, source, lines, changed, uncovered, lost):
+    """The code around the uncovered changed lines and the lost lines of a file, as a diff block whose marks are the
+    coverage, under a heading."""
+    last = len(source) if source is not None else max(uncovered | lost) + CONTEXT
+    shown = sorted({n for anchor in uncovered | lost for n in range(anchor - CONTEXT, anchor + CONTEXT + 1) if 1 <= n <= last})
+    width = len(str(shown[-1]))
+    body = []
+    for i, number in enumerate(shown):
+        if i == 0 or number != shown[i - 1] + 1:
+            body.append(f"@@ {file}, line {number} @@")
+        if number in lost:
+            mark = "!"
+        elif number in changed and number in lines:
+            mark = "+" if lines[number] else "-"
+        else:
+            mark = " "
+        text = source[number - 1].expandtabs(4) if source is not None else ""
+        body.append(f"{mark} {number:>{width}} {'new' if number in changed else '   '} │ {text}".rstrip())
+    counts = []
+    if uncovered:
+        counts.append(f"{len(uncovered)} not covered")
+    if lost:
+        counts.append(f"{len(lost)} lost")
+    heading = f"#### {code(file)} · {', '.join(counts)}"
+    if source is None:
+        heading += " (code not available)"
+    marks = fence(body)
+    return "\n".join([heading, "", f"{marks}diff", *body, marks, ""])
+
+
+def cut(blocks, limit, size, note):
+    """The blocks that fit in limit, by size(), and then note(number left out) if any is left out."""
+    kept = []
+    used = 0
+    for i, block in enumerate(blocks):
+        # Room for the note too, unless this is the last block
+        reserve = 0 if i == len(blocks) - 1 else size(note(len(blocks) - i - 1)) + 2
+        if used + size(block) + 1 + reserve > limit:
+            return kept + [note(len(blocks) - i)]
+        kept.append(block)
+        used += size(block) + 1
+    return kept
+
+
 def code(text):
     """Text from the PR shown as inline code: no backticks or line breaks to break out of it."""
     return "`" + re.sub(r"[`\r\n]", "?", text) + "`"
@@ -270,64 +429,32 @@ def difference(now, before):
     return now[0] - before[0], (100 * now[0] / now[1] if now[1] else 0) - (100 * before[0] / before[1] if before[1] else 0)
 
 
-def cache_mismatch(current, baseline):
-    """The lanes both runs have where one run restored no effect cache and the other restored one. A lane without
-    one compiles every shader, which runs more of the shader compiler and of the preview code: the two can't be
-    compared. Lanes with no effect cache, and runs from before effect-cache.txt, always match."""
-    def state(lane):
-        return None if lane.restored_effects is None else lane.restored_effects > 0
-
-    return [key for key in current if key in baseline
-            and None not in (state(current[key]), state(baseline[key])) and state(current[key]) != state(baseline[key])]
-
-
 def changes(current, baseline):
-    """The lanes to compare, the lanes both runs have that are left out (lane -> "failed" when its job failed in the
-    base run, "cache" when its effect cache state differs), and over the compared lanes the change of each assembly
-    and of all of them."""
-    left_out = {key: "failed" for key in current if key in baseline and baseline[key].failed}
-    left_out.update((key, "cache") for key in cache_mismatch(current, baseline) if key not in left_out)
-    common = [key for key in current if key in baseline and key not in left_out]
+    """The lanes to compare, the lanes both runs have whose job failed in the base run, and over the compared lanes
+    the change of each assembly and of all of them."""
+    failed = [key for key in current if key in baseline and baseline[key].failed]
+    common = [key for key in current if key in baseline and key not in failed]
     if not common:
-        return common, left_out, {}, None
+        return common, failed, {}, None
     now = totals(merge(current[key] for key in common))
     before = totals(merge(baseline[key] for key in common))
     delta = {a: difference(now.get(a, [0, 0]), before.get(a, [0, 0])) for a in set(now) | set(before)}
-    return common, left_out, delta, difference(*([sum(v[i] for v in t.values()) for i in (0, 1)] for t in (now, before)))
+    return common, failed, delta, difference(*([sum(v[i] for v in t.values()) for i in (0, 1)] for t in (now, before)))
 
 
-def change_source(args, baseline, common, left_out, current):
+def change_source(args, baseline, common, failed, current):
     """The line that says what the change is against, or why none is shown."""
     if not baseline:
         return f"No change shown: {args.no_baseline}" if args.no_baseline else "No change shown: no base run."
-    failed = [key for key, reason in left_out.items() if reason == "failed"]
     if not common:
-        reasons = []
-        if failed:
-            reasons.append(f"{lane_names(failed)} failed in the base run")
-        if len(failed) != len(left_out):
-            reasons.append("the effect cache differs in " + lane_names(k for k, r in left_out.items() if r == "cache"))
-        return f"No change shown: {'; '.join(reasons) or 'the two runs have no lane in common'}."
+        reason = f"{lane_names(failed)} failed in the base run" if failed else "the two runs have no lane in common"
+        return f"No change shown: {reason}."
     change = f"Change against {args.base_label}" if args.base_label else "Change against the base commit"
     if set(common) != set(current):
-        change += f", over {lane_names(common)}" + ("" if left_out else " (the lanes both runs have)")
+        change += f", over {lane_names(common)}" + ("" if failed else " (the lanes both runs have)")
     if failed:
         change += f". Not compared: {lane_names(failed)}, which failed in the base run"
     return change
-
-
-def cache_warning(current, baseline, left_out):
-    """The alert that names the lanes left out of the change for their effect cache, or None."""
-    mismatched = [key for key, reason in left_out.items() if reason == "cache"]
-    if not mismatched:
-        return None
-    parts = []
-    if base_cold := [key for key in mismatched if baseline[key].restored_effects == 0]:
-        parts.append(f"{lane_names(base_cold)} (none in the base run)")
-    if current_cold := [key for key in mismatched if current[key].restored_effects == 0]:
-        parts.append(f"{lane_names(current_cold)} (none in this run)")
-    return (f"> [!WARNING]\n> Not in the change, as one of the runs had no effect cache there: {'; '.join(parts)}. "
-            "A lane without one compiles every shader, which runs more of the shader compiler and of the preview code.")
 
 
 def not_updated(previous, reason, head, run_url):
@@ -374,10 +501,10 @@ def assembly_table(total, covered_all, coverable_all, delta, change_all):
     return table("Assembly", rows, bool(delta))
 
 
-def lane_table(current, baseline, left_out):
+def lane_table(current, baseline, failed):
     """Table of each lane on its own, against the same lane in the base run, with the effect cache files each run
-    restored: a lane that restored none compiled every shader. The change of a lane left out of the others is shown
-    here, with why."""
+    restored: a lane that restored none compiled every shader, which covers more of the shader compiler. The change
+    of a lane that failed in the base run is shown here only."""
     def counts(lane):
         lines = [covered for lines in lane.files.values() for covered in lines.values()]
         return [sum(lines), len(lines)]
@@ -398,8 +525,8 @@ def lane_table(current, baseline, left_out):
         if current[key].restored_effects is not None:
             cache = f"{effects(before)} → {effects(current[key])}" if baseline else effects(current[key])
         name = LANES[key]
-        if key in left_out:
-            name += " (not in the change: " + ("failed in the base run" if left_out[key] == "failed" else "effect cache") + ")"
+        if key in failed:
+            name += " (not in the change: failed in the base run)"
         rows.append((name, now, difference(now, counts(before)) if before else None, cache))
     return (["", "Each lane on its own: its coverable lines are those of the assemblies its tests load."]
             + table("Lane", rows, bool(baseline), extra))
@@ -420,8 +547,7 @@ def report(args):
     missing = [LANES[key] for key in LANES if key not in current]
     summary = []
 
-    common, left_out, delta, change_all = changes(current, baseline)
-    warning = cache_warning(current, baseline, left_out)
+    common, failed, delta, change_all = changes(current, baseline)
 
     if not args.diff:
         head = f"## Coverage: {painted_percent(covered_all, coverable_all)} ({covered_all} of {coverable_all} lines)"
@@ -430,29 +556,22 @@ def report(args):
         summary += [head, "", f"Windows lanes: {ran or 'none'}" + (f" · not run: {', '.join(missing)}" if missing else "")]
         if args.ci_label:
             summary += ["", f"From the {args.ci_label}"]
-        summary += ["", change_source(args, baseline, common, left_out, current)]
-        if warning:
-            summary += ["", warning]
+        summary += ["", change_source(args, baseline, common, failed, current)]
         summary += assembly_table(total, covered_all, coverable_all, delta, change_all)
-        return {"kind": "push"}, summary + lane_table(current, baseline, left_out)
+        return {"kind": "push"}, summary + lane_table(current, baseline, failed)
 
     # Changed files: product code with coverage, product code no test loaded, or tests
     projects = read_projects(args.projects)
-    by_file = defaultdict(dict)
-    assembly_of = defaultdict(set)
-    for (assembly, file), lines in merged.items():
-        assembly_of[file].add(assembly)
-        target = by_file[file]
-        for number, covered in lines.items():
-            target[number] = target.get(number, False) or covered
+    by_file, assembly_of = per_file(merged)
     measured_assemblies = set(total)
-    added = read_diff(args.diff)
+    diffs = read_diff(args.diff)
     changed_assemblies = set()
     not_loaded = defaultdict(int)
     tests_changed = False
     changed_lines = {}
-    for file, numbers in sorted(added.items()):
-        if not file.endswith(".cs") or NOT_COVERED_SOURCE.search(file):
+    for file, diff in sorted(diffs.items()):
+        numbers = diff.added
+        if not numbers or not file.endswith(".cs") or NOT_COVERED_SOURCE.search(file):
             continue
         if file in assembly_of:
             changed_assemblies |= assembly_of[file]
@@ -473,7 +592,7 @@ def report(args):
 
     # Changed lines: covered, or ranges not covered, per file
     covered_changed = coverable_changed = 0
-    uncovered_files = 0
+    uncovered_of = {}
     annotations = []
     for file, numbers in changed_lines.items():
         lines = by_file[file]
@@ -483,7 +602,7 @@ def report(args):
         covered_changed += len(coverable) - len(uncovered)
         if not uncovered:
             continue
-        uncovered_files += 1
+        uncovered_of[file] = set(uncovered)
         for first, last in ranges(uncovered, sorted(lines)):
             where = f"Line {first}" if first == last else f"Lines {first}-{last}"
             annotations.append({
@@ -493,6 +612,21 @@ def report(args):
             })
     annotation_count = len(annotations)
     annotations = annotations[:MAX_ANNOTATIONS]
+
+    # Lines that lost their coverage, over the lanes both runs have
+    lost_of = {}
+    if common:
+        base_lines_of, _ = per_file(merge(baseline[key] for key in common))
+        lost_of = lost_lines(by_file, assembly_of, base_lines_of, diffs, delta)
+    lost_count = sum(len(lost) for lost in lost_of.values())
+
+    # The view: the files with the most uncovered changed lines first
+    view_files = sorted(set(uncovered_of) | set(lost_of),
+                        key=lambda f: (-len(uncovered_of.get(f, ())), -len(lost_of.get(f, ())), f))
+    view = [file_view(f, read_source(args.source_commit, f) if args.source_commit else None, by_file[f],
+                      changed_lines.get(f, set()), uncovered_of.get(f, set()), lost_of.get(f, set()))
+            for f in view_files]
+    view_head = ["### Changed lines not covered, and lines that lost their coverage", "", VIEW_LEGEND, ""]
 
     # The assemblies the PR changes, then the others whose coverage changed by more than the noise
     listed = sorted(changed_assemblies & measured_assemblies)
@@ -511,10 +645,13 @@ def report(args):
     if coverable_changed:
         head = f"**Coverage of changed lines: {painted_percent(covered_changed, coverable_changed)} ({covered_changed} of {coverable_changed})**"
         if coverable_changed - covered_changed:
-            head += f" · {coverable_changed - covered_changed} not covered in {uncovered_files} file{'s' if uncovered_files != 1 else ''} (see the warnings)"
+            head += f" · {coverable_changed - covered_changed} not covered in {plural(len(uncovered_of), 'file')} (see the warnings)"
         lines.append(head)
     elif changed_assemblies:
         lines.append("**Coverage of changed lines:** no coverable line changed")
+    lost_text = f"{plural(lost_count, 'line')} lost coverage in {plural(len(lost_of), 'file')}"
+    if lost_count:
+        lines.append(f"{lost_text}: tests ran them at the base commit, no test runs them now")
     if listed:
         shown = [assembly_text(a) for a in listed[:MAX_ASSEMBLIES]]
         if len(listed) > MAX_ASSEMBLIES:
@@ -529,7 +666,7 @@ def report(args):
     if any(key not in current and key not in PUSH_LANES for key in LANES):
         measured += ", lanes this PR didn't start"
     lines.append(measured)
-    lines.append(change_source(args, baseline, common, left_out, current))
+    lines.append(change_source(args, baseline, common, failed, current))
     links = []
     if args.run_url:
         links.append(f"[Full report]({args.run_url})")
@@ -537,20 +674,38 @@ def report(args):
         links.append(f"[What is measured]({args.scope_url})")
     if links:
         lines.append(" · ".join(links))
-    # The alert is a block of its own, after the lines
-    comment = MARKER + "\n" + "  \n".join(lines) + "\n" + (f"\n{warning}\n" if warning else "")
+    comment = MARKER + "\n" + "  \n".join(lines) + "\n"
 
     title = (f"{percent(covered_changed, coverable_changed)} of changed lines covered" if coverable_changed
              else "No coverable line changed")
-    check_summary = plain("\n\n".join(lines + ([warning] if warning else [])))
+    if lost_count:
+        title += f" · {lost_text}"
+    check_summary = plain("\n\n".join(lines))
     if annotation_count > MAX_ANNOTATIONS:
         check_summary += f"\n\nThe first {MAX_ANNOTATIONS} of {annotation_count} warnings are shown."
+    check_text = None
+    if view:
+        more = f"the [full report]({args.run_url})" if args.run_url else "the full report"
+        check_text = "\n".join(view_head + cut(view, MAX_CHECK_TEXT - len("\n".join(view_head)) - 1, len,
+                                               lambda n: f"{plural(n, 'more file')} in {more}."))
     summary.append(comment.replace(MARKER + "\n", ""))
-    summary += assembly_table(total, covered_all, coverable_all, delta, change_all)
-    summary += lane_table(current, baseline, left_out)
+    tables = (assembly_table(total, covered_all, coverable_all, delta, change_all)
+              + lane_table(current, baseline, failed))
+    if view:
+        def size(text):
+            return len(text.encode("utf-8"))
+        room = MAX_SUMMARY_BYTES - sum(size(line) + 1 for line in summary + tables + view_head)
+        summary += [""] + view_head + cut(view, room, size, lambda n: (
+            f"{plural(n, 'more file')} in `view.md` of the `coverage-report` artifact of this run."))
+    summary += tables
     kind = "code" if changed_lines or changed_assemblies or not_loaded else "tests"
-    return {"kind": kind, "comment": comment,
-            "check": {"title": title, "summary": check_summary, "annotations": annotations}}, summary
+    check = {"title": title, "summary": check_summary, "annotations": annotations}
+    if check_text:
+        check["text"] = check_text
+    result = {"kind": kind, "comment": comment, "check": check}
+    if view:
+        result["view"] = "\n".join(view_head + view)
+    return result, summary
 
 
 def main():
@@ -559,6 +714,7 @@ def main():
     parser.add_argument("--baseline", help="coverage-* artifacts of the base commit's master run, or of the push's parent")
     parser.add_argument("--diff", help="diff of the PR (merge commit against its first parent); none for a push")
     parser.add_argument("--projects", help="repo paths of the base commit (git ls-tree), to find a file's project")
+    parser.add_argument("--source-commit", help="the commit the lanes tested, for the code in the view")
     parser.add_argument("--ci-label", help="markdown naming the CI run of a push, for the totals")
     parser.add_argument("--base-label", help="markdown naming the base run")
     parser.add_argument("--no-baseline", help="why the comment shows no change")
@@ -580,6 +736,10 @@ def main():
     if not args.current:
         parser.error("--current is required")
     result, summary = report(args)
+    view = result.pop("view", None)
+    if view:
+        with open(os.path.join(args.out, "view.md"), "w", encoding="utf-8") as file:
+            file.write(view + "\n")
     with open(os.path.join(args.out, "result.json"), "w", encoding="utf-8") as file:
         json.dump(result, file, indent=1)
     with open(os.path.join(args.out, "summary.md"), "w", encoding="utf-8") as file:
