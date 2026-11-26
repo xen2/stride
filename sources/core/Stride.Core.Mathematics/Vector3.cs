@@ -136,7 +136,7 @@ public struct Vector3 : IEquatable<Vector3>, ISpanFormattable
         if (values == null)
             throw new ArgumentNullException(nameof(values));
         if (values.Length != 3)
-            throw new ArgumentOutOfRangeException(nameof(values), "There must be three and only three input values for Vector3.");
+            throw new ArgumentOutOfRangeException(nameof(values), $"Vector3 needs 3 values, not {values.Length}.");
 
         X = values[0];
         Y = values[1];
@@ -805,8 +805,13 @@ public struct Vector3 : IEquatable<Vector3>, ISpanFormattable
     /// <returns>The result of the Hermite spline interpolation.</returns>
     public static Vector3 Hermite(Vector3 value1, Vector3 tangent1, Vector3 value2, Vector3 tangent2, float amount)
     {
-        Hermite(ref value1, ref tangent1, ref value2, ref tangent2, amount, out var result);
-        return result;
+        float squared = amount * amount;
+        float cubed = amount * squared;
+        float part1 = ((2.0f * cubed) - (3.0f * squared)) + 1.0f;
+        float part2 = (-2.0f * cubed) + (3.0f * squared);
+        float part3 = (cubed - (2.0f * squared)) + amount;
+        float part4 = cubed - squared;
+        return (value1 * part1) + (value2 * part2) + (tangent1 * part3) + (tangent2 * part4);
     }
 
     /// <summary>

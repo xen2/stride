@@ -1,4 +1,4 @@
-name: CI
+name: CI (coverage view test)
 
 on:
   push:
