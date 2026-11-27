@@ -99,6 +99,10 @@
          workloads and is fast enough for what we use it for. Device Release builds can
          opt back into AOT by setting UseInterpreter=false explicitly. -->
     <UseInterpreter Condition="'$(UseInterpreter)' == ''">true</UseInterpreter>
+    <!-- CoreCLR on iOS has no JIT: what ReadyToRun leaves out runs in the interpreter. Debug builds leave out
+         every assembly that isn't from a NuGet package and root the composite at CoreLib alone, so the tests
+         and most of the engine they call run interpreted, 10 to 30 times slower than on Mono. -->
+    <FilterReadyToRunAssemblies Condition="'$(FilterReadyToRunAssemblies)' == ''">false</FilterReadyToRunAssemblies>
     <!-- Per-project bundle keys derived from the assembly name; the iOS SDK turns these
          into CFBundleIdentifier / CFBundleDisplayName / CFBundle*Version (Single Project). -->
     <ApplicationId Condition="'$(ApplicationId)' == ''">stride.$(AssemblyName.ToLowerInvariant())</ApplicationId>
