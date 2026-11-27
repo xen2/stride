@@ -230,7 +230,13 @@ jobs:
           UDID=$(xcrun simctl list devices --json | python3 -c '
           import json, sys
           d = json.load(sys.stdin)["devices"]
-          for runtime in sorted((k for k in d if k.startswith("com.apple.CoreSimulator.SimRuntime.iOS-")), reverse=True):
+          version = lambda k: [int(p) for p in k.rsplit("iOS-", 1)[1].split("-")]
+          runtimes = sorted((k for k in d if k.startswith("com.apple.CoreSimulator.SimRuntime.iOS-")), key=version, reverse=True)
+          print("Runtimes: " + ", ".join(runtimes), file=sys.stderr)
+          # Trial: iOS 27 crashes apps without a UIScene manifest at launch, and SDL2 has no scene support.
+          # The newest runtime below 27 first (sort is stable).
+          runtimes.sort(key=lambda k: version(k)[0] >= 27)
+          for runtime in runtimes:
             for x in d[runtime]:
               if x.get("isAvailable") and "iPhone" in x["name"]:
                 print(x["udid"]); sys.exit(0)
@@ -253,6 +259,7 @@ jobs:
           dotnet build "$IOS_BUILD_TARGET" \
             -nr:false -v:m -p:WarningLevel=0 \
             -p:StrideSkipAutoPack=true \
+            -p:ValidateSceneManifest=false \
             -p:StrideCombinedSuites="$STRIDE_TEST_SUITES" \
             ${{ inputs.upload-binlog && '-bl:build.binlog' || '' }} \
             -p:Configuration=${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }} \
