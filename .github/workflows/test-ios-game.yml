@@ -74,10 +74,9 @@ concurrency:
 jobs:
   iOS-Tests-Game:
     name: iOS (Vulkan, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
-    # macOS host: iOS Simulator only runs on macOS. macos-26 ships Xcode 26.x (we select 26.5
-    # below to match the .NET iOS 26.5 SDK pack's strict version check). macos-15's newest Xcode
-    # is 26.3, which the 26.5 pack rejects.
-    runs-on: macos-26
+    # macOS host: iOS Simulator only runs on macOS. The .NET 11 iOS packs (27.2) need Xcode 27.2,
+    # which only the xcode-27 image has; macos-26 stops at Xcode 26.6.
+    runs-on: xcode-27
     # A normal run takes about 25 min
     timeout-minutes: 60
     env:
@@ -128,8 +127,16 @@ jobs:
           key: ${{ env.STRIDE_METAL_CACHE_PREFIX }}${{ github.sha }}
           restore-keys: ${{ env.STRIDE_METAL_CACHE_PREFIX }}
 
+      # The xcode-27 image has no .NET 11 SDK. 10.0 too: setup-dotnet's own folder hides the image's
+      # runtimes, and the asset compiler runs on net10.0.
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.x
+            11.0.100
+
       - name: Install iOS + macOS Workloads
-        # macOS workload is needed because the engine libs cross-target net10.0-macos (for the
+        # macOS workload is needed because the engine libs cross-target net11.0-macos (for the
         # AVFoundation/Metal bring-up work). slnf-driven builds dispatch all TFMs of every project
         # they pull in, so the iOS slnf still needs the macOS workload available.
         uses: ./.github/actions/stride-workload

@@ -15,9 +15,9 @@ inputs:
   macos-workload-set:
     description: >-
       Workload set installed on macOS. It must be in the feature band of the runner's .NET SDK
-      (10.0.4xx), and its iOS/macOS packs must accept the newest Xcode of the runner image.
-      10.0.401 has the 26.5 packs (Xcode 26.x); 10.0.401.1 moved to the 27.0 packs (Xcode 27).
-    default: 10.0.401
+      (11.0.1xx), and its iOS/macOS packs must accept the newest Xcode of the runner image.
+      11.0.100.1 has the 27.2 packs (Xcode 27.2, image xcode-27).
+    default: 11.0.100.1
 
 runs:
   using: composite
