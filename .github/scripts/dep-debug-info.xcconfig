@@ -4,7 +4,3 @@
 GCC_GENERATE_DEBUGGING_SYMBOLS = YES
 DEBUG_INFORMATION_FORMAT = dwarf
 COPY_PHASE_STRIP = NO
-// A static library target that links a master object (GENERATE_MASTER_OBJECT_FILE, as MoltenVK's) runs ld -r. The
-// linker of Xcode 15 and later leaves the DWARF in the .o files of DerivedData and writes only a debug map that points
-// at them, which is lost once the archive leaves the runner. The classic linker copies the DWARF into the object.
-PRELINK_FLAGS = $(inherited) -ld_classic

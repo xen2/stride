@@ -66,7 +66,6 @@ jobs:
           set +e
           dbg() { echo "$1: $(lipo -archs "$1" 2>/dev/null), $(otool -l "$1" 2>/dev/null | grep -c 'sectname __debug_info') __debug_info, $(nm -ap "$1" 2>/dev/null | grep -c ' OSO ') OSO stabs"; }
           for p in macos ios iossim; do
-            echo "$p: $(grep -c -- '-ld_classic' xcodebuild-$p.log) lines with -ld_classic"
             echo "::group::$p compile of MVKDevice.mm"
             grep -E 'clang .* -c .*/MVKDevice\.mm' xcodebuild-$p.log | head -1 | tr ' ' '\n' | grep -E '^-g|^-O|^-arch|^-target|^-gline|^-fembed|^-S$' | sort | uniq -c
             echo "::endgroup::"
@@ -94,6 +93,28 @@ jobs:
           name: xcodebuild-logs
           path: xcodebuild-*.log
 
+      - name: Relink iOS static libraries with their debug info
+        run: |
+          # MoltenVK's static targets link their objects and libMoltenVKShaderConverter.a into one master object
+          # (ld -r), which keeps no DWARF: it writes a debug map that points at the .o files of DerivedData, lost once
+          # the archive leaves the runner. An archive of the same objects keeps each one with its DWARF. It has every
+          # member of libMoltenVKShaderConverter.a (SPIRV-Cross, SPIRV-Tools), where ld -r took only those MoltenVK uses.
+          build=(~/Library/Developer/Xcode/DerivedData/MoltenVKPackaging-*/Build)
+          [ ${#build[@]} -eq 1 ] || { echo "::error::not one MoltenVKPackaging DerivedData: ${build[*]}"; exit 1; }
+          for p in iphoneos:ios-arm64 iphonesimulator:iossimulator-arm64; do
+            sdk=${p%%:*} rid=${p#*:}
+            mkdir -p relinked/$rid
+            xcrun libtool -static -arch_only arm64 -D -o relinked/$rid/libMoltenVK.a \
+              -filelist "$build/Intermediates.noindex/MoltenVK.build/Release-$sdk/MoltenVK-iOS-static.build/Objects-normal/arm64/MoltenVK.LinkFileList" \
+              "$build/Products/Release-$sdk/libMoltenVKShaderConverter.a"
+            # tmp: members with and without DWARF, and the size against the master-object archive
+            otool -l relinked/$rid/libMoltenVK.a | awk -v a=relinked/$rid/libMoltenVK.a '
+              /^[^ ]+\([^)]+\):$/ { m = $0; all[m]; n++ }
+              /sectname __debug_info/ && !(m in d) { d[m]; k++ }
+              END { print a ": " n " members, " k+0 " with __debug_info"; for (x in all) if (!(x in d) && j++ < 20) print "  no DWARF: " x }'
+            ls -l relinked/$rid/libMoltenVK.a "$build/Products/Release-$sdk/libMoltenVK.a"
+          done
+
       - name: Repackage macOS dylib (osx-arm64)
         run: |
           # Rename to the Vulkan loader leaf name so Vortice.Vulkan's
@@ -107,15 +128,12 @@ jobs:
 
       - name: Repackage iOS device static (ios-arm64)
         run: |
-          stride-src/.github/scripts/dep-split-debug.sh \
-            mvk-src/Package/Release/MoltenVK/static/MoltenVK.xcframework/ios-arm64/libMoltenVK.a \
-            out/dotnet/ios-arm64 symbols/ios-arm64
+          stride-src/.github/scripts/dep-split-debug.sh relinked/ios-arm64/libMoltenVK.a out/dotnet/ios-arm64 symbols/ios-arm64
 
       - name: Repackage iOS simulator static (iossimulator-arm64)
         run: |
           stride-src/.github/scripts/dep-split-debug.sh \
-            mvk-src/Package/Release/MoltenVK/static/MoltenVK.xcframework/ios-arm64-simulator/libMoltenVK.a \
-            out/dotnet/iossimulator-arm64 symbols/iossimulator-arm64
+            relinked/iossimulator-arm64/libMoltenVK.a out/dotnet/iossimulator-arm64 symbols/iossimulator-arm64
 
       - name: Version
         id: version
