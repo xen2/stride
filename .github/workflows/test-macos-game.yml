@@ -244,13 +244,26 @@ jobs:
         run: |
           CONFIG="${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}"
           worst=0
+          dotnet tool install --tool-path "$RUNNER_TEMP/dtools" dotnet-stack > /dev/null || echo "::warning::dotnet-stack not installed"
           for app in bin/Tests/*/macOS-Vulkan/$CONFIG/*.app; do
             [ -e "$app" ] || continue
             suite=$(basename "$app" .app)
             echo "::group::Run $suite (.app)"
             args=(--xunit-command run --xunit-exit-on-complete true)
             if [ -n "$STRIDE_TEST_FILTER" ]; then args+=(--xunit-filter "$STRIDE_TEST_FILTER"); fi
-            "$app/Contents/MacOS/$suite" "${args[@]}" || worst=$?
+            # A suite takes seconds: after 5 minutes, save its managed and native stacks and kill it,
+            # so that the job's timeout doesn't cancel the steps that upload the results.
+            "$app/Contents/MacOS/$suite" "${args[@]}" &
+            pid=$!
+            for _ in $(seq 300); do kill -0 $pid 2> /dev/null || break; sleep 1; done
+            if kill -0 $pid 2> /dev/null; then
+              echo "::error::$suite: still running after 5 minutes; saving its stacks to TestResults/ and killing it"
+              DOTNET_ROLL_FORWARD=Major "$RUNNER_TEMP/dtools/dotnet-stack" report -p $pid > "TestResults/$suite.hang.managed.txt" 2>&1 || true
+              sample $pid 5 -file "TestResults/$suite.hang.native.txt" > /dev/null 2>&1 || true
+              cat "TestResults/$suite.hang.managed.txt"
+              kill -9 $pid || true
+            fi
+            wait $pid || worst=$?
             # The binary's exit code doesn't reflect test failures; parse the TRX like the
             # Android/iOS drivers do.
             trx="$app/Contents/MonoBundle/TestResults/$suite.trx"
