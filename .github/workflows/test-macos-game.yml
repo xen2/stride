@@ -71,11 +71,11 @@ concurrency:
 jobs:
   macOS-Tests-Game:
     name: macOS (Vulkan, ${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }})
-    # macos-26 ships Xcode 26.x; we select 26.5 below to match the .NET macOS 26.5 SDK pack's
-    # strict version check (same situation as test-ios-game.yml).
-    runs-on: macos-26
+    # The .NET 11 macOS packs (27.2) need Xcode 27.2, which only the xcode-27 image has (same
+    # situation as test-ios-game.yml).
+    runs-on: xcode-27
     # macOS minutes bill 10× Linux on GitHub-hosted runners; keep timeouts tight.
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       STRIDE_MAX_PARALLELISM: "8"
       # createdump writes a full dump into TestResults/ on native faults (e.g. MoltenVK teardown).
@@ -106,9 +106,16 @@ jobs:
         with:
           mode: restore
           lane: Vulkan-${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}
+      # The xcode-27 image has no .NET 11 SDK. 10.0 too: setup-dotnet's own folder hides the image's
+      # runtimes, and the asset compiler and the net10.0 suites run on it.
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.x
+            11.0.100
       - name: Install macOS Workload
         # Building a suite project on its own dispatched all TFMs of the referenced engine projects,
-        # including net10.0-macos. The target is now always a solution filter, which never does, so
+        # including net11.0-macos. The target is now always a solution filter, which never does, so
         # this is only a safety net.
         uses: ./.github/actions/stride-workload
         with:
@@ -201,7 +208,7 @@ jobs:
         continue-on-error: ${{ inputs.tolerate-test-failures == true }}
         run: |
           CONFIG="${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}"
-          # net10.0-macos suites build a .app and need its host (the Microsoft.macOS ObjC
+          # net11.0-macos suites build a .app and need its host (the Microsoft.macOS ObjC
           # bridge is only initialized there); the next step runs them. Exclude from vstest.
           EXCLUDE=""
           for app in bin/Tests/*/macOS-Vulkan/$CONFIG/*.app; do
