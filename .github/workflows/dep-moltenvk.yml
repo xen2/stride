@@ -5,8 +5,8 @@ name: "Dep: Build MoltenVK"
 # builds the macOS dylib + iOS + iOS-simulator static libs.
 #
 # Output per RID:
-#   osx-arm64           libvulkan.1.dylib  (arm64-thinned dynamic dylib,
-#                                           renamed + signed so dyld matches
+#   osx-arm64           libvulkan.1.dylib  (dynamic dylib, renamed +
+#                                           signed so dyld matches
 #                                           the leaf name Vortice.Vulkan
 #                                           dlopen()s)
 #   ios-arm64           libMoltenVK.a      (device static, statically linked
@@ -14,7 +14,7 @@ name: "Dep: Build MoltenVK"
 #                                           [DllImport("__Internal")])
 #   iossimulator-arm64  libMoltenVK.a      (Apple Silicon simulator static)
 #
-# RIDs covered: osx-arm64, ios-arm64, iossimulator-arm64.
+# RIDs covered: osx-arm64, ios-arm64, iossimulator-arm64. dep-moltenvk.xcconfig builds arm64 only.
 #
 # Debug files: dep-debug-info.xcconfig turns on debug info for the Xcode builds, which MoltenVK's Release turns off.
 # The libraries ship without it (dep-split-debug.sh), and the debug files go to the symbols pre-release
@@ -39,7 +39,7 @@ jobs:
         with: { path: stride-src, sparse-checkout: .github/scripts }
 
       - name: Build MoltenVK from source
-        env: { XCODE_XCCONFIG_FILE: '${{ github.workspace }}/stride-src/.github/scripts/dep-debug-info.xcconfig' }
+        env: { XCODE_XCCONFIG_FILE: '${{ github.workspace }}/stride-src/.github/scripts/dep-moltenvk.xcconfig' }
         run: |
           # Shallow init + fetch supports both refnames (tags/branches) and raw
           # SHAs uniformly, unlike `git clone --branch`.
@@ -49,19 +49,24 @@ jobs:
           git fetch --depth 1 origin "${{ github.event.inputs.moltenvk-version }}"
           git checkout -q FETCH_HEAD
           # SPIRV-Cross / SPIRV-Tools / etc. — must be built per-platform.
-          ./fetchDependencies --macos --ios
+          ./fetchDependencies --macos --ios --iossim
           # Release config for parity with upstream release artifacts.
           make macos
           cp xcodebuild.log ../xcodebuild-macos.log
           make ios
           cp xcodebuild.log ../xcodebuild-ios.log
+          make iossim
+          cp xcodebuild.log ../xcodebuild-iossim.log
+          BUILT_SHA=$(git rev-parse --short HEAD)
+          echo "MVK_BUILD_LABEL=${{ github.event.inputs.moltenvk-version }}@${BUILT_SHA}" >> $GITHUB_ENV
 
       - name: Diagnose debug info
         if: always()
         run: |
           set +e
-          dbg() { echo "$1: $(otool -l "$1" 2>/dev/null | grep -c 'sectname __debug_info') __debug_info, $(nm -ap "$1" 2>/dev/null | grep -c ' OSO ') OSO stabs"; }
-          for p in macos ios; do
+          dbg() { echo "$1: $(lipo -archs "$1" 2>/dev/null), $(otool -l "$1" 2>/dev/null | grep -c 'sectname __debug_info') __debug_info, $(nm -ap "$1" 2>/dev/null | grep -c ' OSO ') OSO stabs"; }
+          for p in macos ios iossim; do
+            echo "$p: $(grep -c -- '-ld_classic' xcodebuild-$p.log) lines with -ld_classic"
             echo "::group::$p compile of MVKDevice.mm"
             grep -E 'clang .* -c .*/MVKDevice\.mm' xcodebuild-$p.log | head -1 | tr ' ' '\n' | grep -E '^-g|^-O|^-arch|^-target|^-gline|^-fembed|^-S$' | sort | uniq -c
             echo "::endgroup::"
@@ -80,7 +85,8 @@ jobs:
             echo "$f: members $(ar t "$f" | head -5 | tr '\n' ' ')"
             dbg "$f"
           done
-          exit 1
+          dbg mvk-src/Package/Release/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib
+          true
 
       - uses: actions/upload-artifact@v7
         if: always()
@@ -90,10 +96,9 @@ jobs:
 
       - name: Repackage macOS dylib (osx-arm64)
         run: |
-          # Slice arm64 out of the universal dylib, renaming to the Vulkan loader
-          # leaf name so Vortice.Vulkan's dlopen("libvulkan.1.dylib") matches.
-          lipo -thin arm64 mvk-src/Package/Release/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib \
-            -output libvulkan.1.dylib
+          # Rename to the Vulkan loader leaf name so Vortice.Vulkan's
+          # dlopen("libvulkan.1.dylib") matches.
+          cp mvk-src/Package/Release/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib libvulkan.1.dylib
           # Rewrite LC_ID_DYLIB so dyld's already-loaded match keys on the new
           # leaf name rather than the original "@rpath/libMoltenVK.dylib".
           install_name_tool -id libvulkan.1.dylib libvulkan.1.dylib
@@ -108,11 +113,9 @@ jobs:
 
       - name: Repackage iOS simulator static (iossimulator-arm64)
         run: |
-          # Upstream ships a fat arm64+x86_64 simulator slice; thin to arm64.
-          lipo -thin arm64 \
-            mvk-src/Package/Release/MoltenVK/static/MoltenVK.xcframework/ios-arm64_x86_64-simulator/libMoltenVK.a \
-            -output libMoltenVK.a
-          stride-src/.github/scripts/dep-split-debug.sh libMoltenVK.a out/dotnet/iossimulator-arm64 symbols/iossimulator-arm64
+          stride-src/.github/scripts/dep-split-debug.sh \
+            mvk-src/Package/Release/MoltenVK/static/MoltenVK.xcframework/ios-arm64-simulator/libMoltenVK.a \
+            out/dotnet/iossimulator-arm64 symbols/iossimulator-arm64
 
       - name: Version
         id: version
