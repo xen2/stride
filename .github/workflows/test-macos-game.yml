@@ -263,8 +263,19 @@ jobs:
               sample $pid 5 -file "TestResults/$suite.hang.native.txt" > /dev/null 2>&1 || true
               # A hung async test has no thread: its awaiting state machines and the synchronization
               # contexts on the heap say where its continuation went.
+              # The runtime starts createdump from the bundle, which doesn't ship it: take it and the DAC
+              # from the runtime pack the app was built with.
+              bundle="$app/Contents/MonoBundle"
+              packs="$(dotnet nuget locals global-packages --list | sed 's/^global-packages: //')microsoft.netcore.app.runtime.osx-arm64"
+              for native in "$packs"/*/runtimes/osx-arm64/native; do
+                if cmp -s "$native/System.Private.CoreLib.dll" "$bundle/System.Private.CoreLib.dll"; then
+                  echo "createdump from $native"
+                  cp "$native/createdump" "$native/libmscordaccore.dylib" "$bundle/" || true
+                fi
+              done
+              [ -x "$bundle/createdump" ] || echo "::warning::No runtime pack matches the bundle's CoreLib: $(ls -d "$packs"/* 2>&1)"
               dump="$RUNNER_TEMP/$suite.dmp"
-              DOTNET_ROLL_FORWARD=Major "$RUNNER_TEMP/dtools/dotnet-dump" collect -p $pid --type Heap -o "$dump" > /dev/null 2>&1 || true
+              DOTNET_ROLL_FORWARD=Major "$RUNNER_TEMP/dtools/dotnet-dump" collect -p $pid --type Heap -o "$dump" 2>&1 | tail -5 || true
               if [ -f "$dump" ]; then
                 DOTNET_ROLL_FORWARD=Major "$RUNNER_TEMP/dtools/dotnet-dump" analyze "$dump" \
                   -c "dumpasync --stacks" -c "dumpheap -stat -type SynchronizationContext" -c "clrthreads" -c "exit" \
