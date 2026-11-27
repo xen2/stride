@@ -228,10 +228,11 @@ jobs:
         run: |
           set -e
           UDID=$(xcrun simctl list devices --json | python3 -c '
-          import json, sys
+          import itertools, json, sys
           d = json.load(sys.stdin)["devices"]
-          version = lambda k: [int(p) for p in k.rsplit("iOS-", 1)[1].split("-")]
-          runtimes = sorted((k for k in d if k.startswith("com.apple.CoreSimulator.SimRuntime.iOS-")), key=version, reverse=True)
+          # The leading numbers only: some keys end with a device name, such as iOS-27-0-iPhone19.
+          version = lambda k: [int(p) for p in itertools.takewhile(str.isdigit, k.rsplit("iOS-", 1)[1].split("-"))]
+          runtimes = sorted((k for k in d if k.startswith("com.apple.CoreSimulator.SimRuntime.iOS-") and version(k)), key=version, reverse=True)
           print("Runtimes: " + ", ".join(runtimes), file=sys.stderr)
           # Trial: iOS 27 crashes apps without a UIScene manifest at launch, and SDL2 has no scene support.
           # The newest runtime below 27 first (sort is stable).
