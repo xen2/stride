@@ -9,6 +9,8 @@
     <StrideFrameworkWindows>net10.0-windows</StrideFrameworkWindows>
     <StrideFrameworkmacOS>net11.0-macos</StrideFrameworkmacOS>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- Lowest iOS version Stride.Native compiles for and iOS apps target: the minimum of the .NET 11 iOS SDK. -->
+    <StrideiOSMinimumVersion>15.0</StrideiOSMinimumVersion>
   </PropertyGroup>
 
   <!-- StrideTargetFramework collapses any platform-version suffix on TargetFramework down to
