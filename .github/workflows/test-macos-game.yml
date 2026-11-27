@@ -245,6 +245,7 @@ jobs:
           CONFIG="${{ github.event.inputs.build-type || inputs.build-type || 'Debug' }}"
           worst=0
           dotnet tool install --tool-path "$RUNNER_TEMP/dtools" dotnet-stack > /dev/null || echo "::warning::dotnet-stack not installed"
+          dotnet tool install --tool-path "$RUNNER_TEMP/dtools" dotnet-dump > /dev/null || echo "::warning::dotnet-dump not installed"
           for app in bin/Tests/*/macOS-Vulkan/$CONFIG/*.app; do
             [ -e "$app" ] || continue
             suite=$(basename "$app" .app)
@@ -260,6 +261,16 @@ jobs:
               echo "::error::$suite: still running after 5 minutes; saving its stacks to TestResults/ and killing it"
               DOTNET_ROLL_FORWARD=Major "$RUNNER_TEMP/dtools/dotnet-stack" report -p $pid > "TestResults/$suite.hang.managed.txt" 2>&1 || true
               sample $pid 5 -file "TestResults/$suite.hang.native.txt" > /dev/null 2>&1 || true
+              # A hung async test has no thread: its awaiting state machines and the synchronization
+              # contexts on the heap say where its continuation went.
+              dump="$RUNNER_TEMP/$suite.dmp"
+              DOTNET_ROLL_FORWARD=Major "$RUNNER_TEMP/dtools/dotnet-dump" collect -p $pid --type Heap -o "$dump" > /dev/null 2>&1 || true
+              if [ -f "$dump" ]; then
+                DOTNET_ROLL_FORWARD=Major "$RUNNER_TEMP/dtools/dotnet-dump" analyze "$dump" \
+                  -c "dumpasync --stacks" -c "dumpheap -stat -type SynchronizationContext" -c "clrthreads" -c "exit" \
+                  > "TestResults/$suite.hang.async.txt" 2>&1 || true
+                cat "TestResults/$suite.hang.async.txt"
+              fi
               cat "TestResults/$suite.hang.managed.txt"
               kill -9 $pid || true
             fi
