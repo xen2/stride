@@ -97,16 +97,31 @@ jobs:
         run: |
           # MoltenVK's static targets link their objects and libMoltenVKShaderConverter.a into one master object
           # (ld -r), which keeps no DWARF: it writes a debug map that points at the .o files of DerivedData, lost once
-          # the archive leaves the runner. An archive of the same objects keeps each one with its DWARF. It has every
-          # member of libMoltenVKShaderConverter.a (SPIRV-Cross, SPIRV-Tools), where ld -r took only those MoltenVK uses.
+          # the archive leaves the runner. An archive of the objects its debug map names keeps each one with its DWARF:
+          # MoltenVK's objects, and the members of libMoltenVKShaderConverter.a (SPIRV-Cross, SPIRV-Tools) that ld -r
+          # took, which it names as <archive>(<member>).
           build=(~/Library/Developer/Xcode/DerivedData/MoltenVKPackaging-*/Build)
           [ ${#build[@]} -eq 1 ] || { echo "::error::not one MoltenVKPackaging DerivedData: ${build[*]}"; exit 1; }
           for p in iphoneos:ios-arm64 iphonesimulator:iossimulator-arm64; do
             sdk=${p%%:*} rid=${p#*:}
-            mkdir -p relinked/$rid
-            xcrun libtool -static -arch_only arm64 -D -o relinked/$rid/libMoltenVK.a \
-              -filelist "$build/Intermediates.noindex/MoltenVK.build/Release-$sdk/MoltenVK-iOS-static.build/Objects-normal/arm64/MoltenVK.LinkFileList" \
-              "$build/Products/Release-$sdk/libMoltenVKShaderConverter.a"
+            master=$build/Intermediates.noindex/MoltenVK.build/Release-$sdk/MoltenVK-iOS-static.build/Objects-normal/libMoltenVK.a-arm64-master.o
+            members=relinked/$rid/members
+            mkdir -p $members
+            inputs=()
+            while IFS= read -r object; do
+              case "$object" in
+                *\))
+                  archive=${object%%(*} member=${object#*(} member=${member%)}
+                  # ar x takes a member by its name
+                  [ -z "$(ar t "$archive" | sort | uniq -d)" ] || { echo "::error::$archive has two members of one name"; exit 1; }
+                  (cd $members && ar x "$archive" "$member")
+                  inputs+=("$members/$member")
+                  ;;
+                *) inputs+=("$object") ;;
+              esac
+            done < <(nm -ap "$master" | sed -n 's/.* OSO //p')
+            echo "$rid: ${#inputs[@]} objects in the debug map of $(basename "$master")"
+            xcrun libtool -static -arch_only arm64 -D -o relinked/$rid/libMoltenVK.a "${inputs[@]}"
             # tmp: members with and without DWARF, and the size against the master-object archive
             otool -l relinked/$rid/libMoltenVK.a | awk -v a=relinked/$rid/libMoltenVK.a '
               /^[^ ]+\([^)]+\):$/ { m = $0; all[m]; n++ }
