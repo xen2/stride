@@ -49,13 +49,44 @@ jobs:
           git fetch --depth 1 origin "${{ github.event.inputs.moltenvk-version }}"
           git checkout -q FETCH_HEAD
           # SPIRV-Cross / SPIRV-Tools / etc. — must be built per-platform.
-          ./fetchDependencies --macos --ios --iossim
+          ./fetchDependencies --macos --ios
           # Release config for parity with upstream release artifacts.
           make macos
+          cp xcodebuild.log ../xcodebuild-macos.log
           make ios
-          make iossim
-          BUILT_SHA=$(git rev-parse --short HEAD)
-          echo "MVK_BUILD_LABEL=${{ github.event.inputs.moltenvk-version }}@${BUILT_SHA}" >> $GITHUB_ENV
+          cp xcodebuild.log ../xcodebuild-ios.log
+
+      - name: Diagnose debug info
+        if: always()
+        run: |
+          set +e
+          dbg() { echo "$1: $(otool -l "$1" 2>/dev/null | grep -c 'sectname __debug_info') __debug_info, $(nm -ap "$1" 2>/dev/null | grep -c ' OSO ') OSO stabs"; }
+          for p in macos ios; do
+            echo "::group::$p compile of MVKDevice.mm"
+            grep -E 'clang .* -c .*/MVKDevice\.mm' xcodebuild-$p.log | head -1 | tr ' ' '\n' | grep -E '^-g|^-O|^-arch|^-target|^-gline|^-fembed|^-S$' | sort | uniq -c
+            echo "::endgroup::"
+            echo "::group::$p prelink / libtool of libMoltenVK.a"
+            grep -nE '(PrelinkedObjectLink|MasterObjectLink|Libtool) .*MoltenVK' xcodebuild-$p.log | head -5
+            grep -nE '^\s+.*(/ld |clang.* -r |libtool ).*MoltenVK' xcodebuild-$p.log | head -5 | cut -c1-2500
+            echo "::endgroup::"
+          done
+          for f in $(find ~/Library/Developer/Xcode/DerivedData -path '*Release-iphoneos*' -name 'MVKDevice.o' | head -2) \
+                   $(find ~/Library/Developer/Xcode/DerivedData -path '*Release/*' -name 'MVKDevice.o' | head -2) \
+                   $(find ~/Library/Developer/Xcode/DerivedData -name '*-master.o' -o -name '*master*.o' -o -name '*prelink*.o' | head -6); do
+            dbg "$f"
+          done
+          for f in mvk-src/Package/Release/MoltenVK/static/MoltenVK.xcframework/*/libMoltenVK.a \
+                   $(find ~/Library/Developer/Xcode/DerivedData -name libMoltenVK.a | head -6); do
+            echo "$f: members $(ar t "$f" | head -5 | tr '\n' ' ')"
+            dbg "$f"
+          done
+          exit 1
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: xcodebuild-logs
+          path: xcodebuild-*.log
 
       - name: Repackage macOS dylib (osx-arm64)
         run: |
