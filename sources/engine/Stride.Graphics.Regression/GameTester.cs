@@ -141,6 +141,7 @@ namespace Stride.Graphics.Regression
                     // for an interactive test session (the user is looking at the game, not the
                     // runner UI). When the SDL window is disposed, iOS makes Avalonia's window key
                     // again automatically.
+                    WaitForConnectedScene();
                     Exception runError = null;
                     UIApplication.SharedApplication.InvokeOnMainThread(() =>
                     {
@@ -207,5 +208,22 @@ namespace Stride.Graphics.Regression
             }
 #endif
         }
+
+#if STRIDE_PLATFORM_IOS
+        // The headless run starts during launch, and UIKit connects the app's scene after it: an SDL window needs a scene to be shown.
+        private static void WaitForConnectedScene()
+        {
+            var deadline = Stopwatch.StartNew();
+            while (deadline.Elapsed < TimeSpan.FromSeconds(10))
+            {
+                var connected = false;
+                UIApplication.SharedApplication.InvokeOnMainThread(() => connected = UIApplication.SharedApplication.ConnectedScenes.Count > 0);
+                if (connected)
+                    return;
+                System.Threading.Thread.Sleep(50);
+            }
+            Logger.Warning("No scene connected after 10 s.");
+        }
+#endif
     }
 }

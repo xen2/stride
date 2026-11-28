@@ -15,6 +15,9 @@ namespace Stride.Starter
     /// an SDL window + iOS GameContext and schedules <see cref="GameBase.Run"/> on the next
     /// main-loop tick so launch finishes before the (blocking) game loop takes over.
     /// </summary>
+    /// <remarks>
+    /// When the Info.plist has a <c>UIApplicationSceneManifest</c>, the game starts when its scene connects.
+    /// </remarks>
     public class StrideApplicationDelegate : UIApplicationDelegate
     {
         protected GameBase Game { get; set; }
@@ -26,16 +29,32 @@ namespace Stride.Starter
             if (Game == null)
                 throw new InvalidOperationException("Game must be assigned before base.FinishedLaunching.");
 
+            // A scene app has no scene yet at this point, and UIKit shows no window outside one.
+            if (NSBundle.MainBundle.ObjectForInfoDictionary("UIApplicationSceneManifest") == null)
+                StartGame();
+
+            return true;
+        }
+
+        public override UISceneConfiguration GetConfiguration(UIApplication application, UISceneSession connectingSceneSession, UISceneConnectionOptions options)
+        {
+            return new UISceneConfiguration(null, connectingSceneSession.Role) { DelegateType = typeof(StrideSceneDelegate) };
+        }
+
+        internal void StartGame()
+        {
+            // One game per app: a second scene doesn't start another.
+            if (sdlWindow != null)
+                return;
+
             sdlWindow = new Window("Stride");
 
-            // Game.Run blocks; iOS needs FinishedLaunching to return for launch to complete.
+            // Game.Run blocks; iOS needs FinishedLaunching (or the scene connection) to return first.
             BeginInvokeOnMainThread(() =>
             {
                 try { Game.Run(new GameContextiOS(sdlWindow)); }
                 finally { sdlWindow?.Dispose(); sdlWindow = null; }
             });
-
-            return true;
         }
 
         public override void WillTerminate(UIApplication application)
@@ -45,6 +64,16 @@ namespace Stride.Starter
             Game = null;
             sdlWindow?.Dispose();
             sdlWindow = null;
+        }
+    }
+
+    internal sealed class StrideSceneDelegate : UIResponder, IUIWindowSceneDelegate
+    {
+        [Export("scene:willConnectToSession:options:")]
+        public void WillConnect(UIScene scene, UISceneSession session, UISceneConnectionOptions connectionOptions)
+        {
+            if (scene is UIWindowScene && UIApplication.SharedApplication.Delegate is StrideApplicationDelegate app)
+                app.StartGame();
         }
     }
 }
