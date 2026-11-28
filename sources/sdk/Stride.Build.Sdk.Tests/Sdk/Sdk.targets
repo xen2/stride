@@ -99,10 +99,6 @@
          workloads and is fast enough for what we use it for. Device Release builds can
          opt back into AOT by setting UseInterpreter=false explicitly. -->
     <UseInterpreter Condition="'$(UseInterpreter)' == ''">true</UseInterpreter>
-    <!-- CoreCLR on iOS has no JIT: what ReadyToRun leaves out runs in the interpreter. Debug builds leave out
-         every assembly that isn't from a NuGet package and root the composite at CoreLib alone, so the tests
-         and most of the engine they call run interpreted, 10 to 30 times slower than on Mono. -->
-    <FilterReadyToRunAssemblies Condition="'$(FilterReadyToRunAssemblies)' == ''">false</FilterReadyToRunAssemblies>
     <!-- Workaround for https://github.com/dotnet/runtime/issues/138446: the .NET 11.0.0 arm64 JIT drops code after a loop
          in composite ReadyToRun of Debug IL (TestDynamicSpriteFontVarious). Remove once a .NET 11 servicing release fixes it. -->
     <PublishReadyToRunCrossgen2ExtraArgs>$(PublishReadyToRunCrossgen2ExtraArgs);--codegenopt:JitEnableCrossBlockLocalAssertionProp=0</PublishReadyToRunCrossgen2ExtraArgs>
@@ -122,6 +118,20 @@
       <Link>Info.plist</Link>
     </None>
   </ItemGroup>
+  <!-- CoreCLR on iOS has no JIT: what ReadyToRun leaves out runs in the interpreter. Debug builds keep the test
+       assemblies out of ReadyToRun and root the composite at CoreLib alone, so the engine compiles only where
+       CoreLib reaches it and runs interpreted otherwise, 10 to 30 times slower than on Mono. Rooting the Stride
+       packages compiles all of the engine, as a game's own Debug build would need too. -->
+  <Target Name="_StrideRootEngineInReadyToRunComposite"
+          AfterTargets="_SelectR2RAssemblies"
+          BeforeTargets="ResolveReadyToRunCompilers"
+          Condition=" '$(StridePlatform)' == 'iOS' And '$(FilterReadyToRunAssemblies)' == 'true' ">
+    <ItemGroup>
+      <PublishReadyToRunCompositeRoots Include="@(ResolvedFileToPublish->'%(Filename)%(Extension)')"
+          Condition="'%(ResolvedFileToPublish.Extension)' == '.dll' And '%(ResolvedFileToPublish.Culture)' == '' And $([System.String]::Copy('%(ResolvedFileToPublish.NuGetPackageId)').StartsWith('Stride.'))"
+          KeepDuplicates="false" />
+    </ItemGroup>
+  </Target>
   <PropertyGroup Condition=" '$(StridePlatform)' == 'macOS' And '$(StrideTargetFramework)' == '$(StrideFrameworkmacOS)' ">
     <OutputType>Exe</OutputType>
     <!-- Pin RID so the macOS SDK's install_name_tool / dylib processing only walks osx-* native libs.
