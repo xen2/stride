@@ -1,6 +1,8 @@
 // Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net)
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 using System;
+using System.Diagnostics;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Stride.Media;
@@ -117,9 +119,57 @@ namespace Stride.Audio.Tests
             {
                 if (condition())
                     return true;
-                await Task.Delay(10);
+                var delay = Task.Delay(10);
+                AwaitProbe.Before(delay);
+                await delay;
+                AwaitProbe.After();
             }
             return condition();
+        }
+
+        // Trial diagnostic for a macOS hang where no thread runs the test after this await:
+        // says whether the delay never completed (timers) or its continuation went to a context that never runs.
+        private static class AwaitProbe
+        {
+            private static readonly TimeSpan StallThreshold = TimeSpan.FromSeconds(2);
+            private static readonly Timer Checker = new(_ => Check(), null, StallThreshold, StallThreshold);
+            private static Task pending;
+            private static long pendingSince;
+            private static string where;
+            private static bool reported;
+
+            public static void Before(Task delay)
+            {
+                var context = SynchronizationContext.Current;
+                where = $"thread {Environment.CurrentManagedThreadId}, context {Describe(context)}, scheduler {TaskScheduler.Current.GetType().FullName}";
+                pendingSince = Stopwatch.GetTimestamp();
+                reported = false;
+                Volatile.Write(ref pending, delay);
+            }
+
+            public static void After() => Volatile.Write(ref pending, null);
+
+            private static void Check()
+            {
+                var task = Volatile.Read(ref pending);
+                var elapsed = Stopwatch.GetElapsedTime(pendingSince);
+                if (task is null || reported || elapsed < StallThreshold)
+                    return;
+                reported = true;
+                var continuation = typeof(Task).GetField("m_continuationObject", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(task);
+                Console.WriteLine($"  AWAIT STALL after {elapsed.TotalSeconds:F1} s: Task.Delay(10) is {task.Status}, continuation {continuation?.GetType().FullName ?? "null"}; awaited on {where}; "
+                    + $"timers {Timer.ActiveCount}, pool threads {ThreadPool.ThreadCount}, pending work {ThreadPool.PendingWorkItemCount}, completed work {ThreadPool.CompletedWorkItemCount}");
+                Task.Delay(10).ContinueWith(_ => Console.WriteLine("  AWAIT STALL: a new Task.Delay(10) completes and its continuation runs"), TaskScheduler.Default);
+            }
+
+            // An xunit AsyncTestSyncContext wraps the context the test started on: name that one too.
+            private static string Describe(SynchronizationContext context)
+            {
+                if (context is null)
+                    return "none";
+                var field = context.GetType().GetField("innerContext", BindingFlags.Instance | BindingFlags.NonPublic);
+                return field is null ? context.GetType().FullName : $"{context.GetType().FullName} over {field.GetValue(context)?.GetType().FullName ?? "none"}";
+            }
         }
 
         [SkippableFact]

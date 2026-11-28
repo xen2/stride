@@ -278,7 +278,18 @@ jobs:
               done
               [ -x "$bundle/createdump" ] || echo "::warning::No runtime pack matches the bundle's runtime '$want': $(for native in "$packs"/*/runtimes/osx-arm64/native; do echo "$native: $(runtime_version "$native")"; done)"
               dump="$RUNNER_TEMP/$suite.dmp"
-              DOTNET_ROLL_FORWARD=Major "$RUNNER_TEMP/dtools/dotnet-dump" collect -p $pid --type Heap -o "$dump" 2>&1 | tail -5 || true
+              # createdump can hang until the job times out: give it 2 minutes, then save its stacks and kill it.
+              DOTNET_ROLL_FORWARD=Major "$RUNNER_TEMP/dtools/dotnet-dump" collect -p $pid --type Heap -o "$dump" > "$RUNNER_TEMP/$suite.collect.txt" 2>&1 &
+              collect=$!
+              for _ in $(seq 120); do kill -0 $collect 2> /dev/null || break; sleep 1; done
+              if kill -0 $collect 2> /dev/null; then
+                echo "::warning::$suite: createdump still running after 2 minutes; saving its stacks to TestResults/ and killing it"
+                for dumper in $(pgrep -x createdump); do sample $dumper 5 -file "TestResults/$suite.hang.createdump.txt" > /dev/null 2>&1 || true; done
+                pkill -9 -x createdump || true
+                kill -9 $collect || true
+                rm -f "$dump"
+              fi
+              tail -5 "$RUNNER_TEMP/$suite.collect.txt" || true
               if [ -f "$dump" ]; then
                 DOTNET_ROLL_FORWARD=Major "$RUNNER_TEMP/dtools/dotnet-dump" analyze "$dump" \
                   -c "dumpasync --stacks" -c "dumpheap -stat -type SynchronizationContext" -c "clrthreads" -c "exit" \
