@@ -103,6 +103,9 @@
          every assembly that isn't from a NuGet package and root the composite at CoreLib alone, so the tests
          and most of the engine they call run interpreted, 10 to 30 times slower than on Mono. -->
     <FilterReadyToRunAssemblies Condition="'$(FilterReadyToRunAssemblies)' == ''">false</FilterReadyToRunAssemblies>
+    <!-- Workaround for https://github.com/dotnet/runtime/issues/138446: the .NET 11.0.0 arm64 JIT drops code after a loop
+         in composite ReadyToRun of Debug IL (TestDynamicSpriteFontVarious). Remove once a .NET 11 servicing release fixes it. -->
+    <PublishReadyToRunCrossgen2ExtraArgs>$(PublishReadyToRunCrossgen2ExtraArgs);--codegenopt:JitEnableCrossBlockLocalAssertionProp=0</PublishReadyToRunCrossgen2ExtraArgs>
     <!-- Per-project bundle keys derived from the assembly name; the iOS SDK turns these
          into CFBundleIdentifier / CFBundleDisplayName / CFBundle*Version (Single Project). -->
     <ApplicationId Condition="'$(ApplicationId)' == ''">stride.$(AssemblyName.ToLowerInvariant())</ApplicationId>
